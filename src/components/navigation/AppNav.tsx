@@ -5,7 +5,9 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 
+import { LogOut, Settings } from "lucide-react";
 import { BsListTask, BsCalendar } from "react-icons/bs";
 import { HiMenu, HiOutlineLightBulb, HiOutlineSearch, HiX } from "react-icons/hi";
 import { RiKeyboardLine } from "react-icons/ri";
@@ -25,6 +27,9 @@ export function AppNav({ className }: AppNavProps) {
   const pathname = usePathname();
   const { setOpen: setShortcutsOpen } = useShortcutsStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: session } = useSession();
+
+  const handleLogout = () => signOut({ callbackUrl: "/auth/signin" });
 
   const openCommandPalette = () => {
     const event = new KeyboardEvent("keydown", {
@@ -163,9 +168,30 @@ export function AppNav({ className }: AppNavProps) {
                 <ThemeToggle />
               </div>
 
-              <div className="px-5 py-3">
-                <UserMenu />
-              </div>
+              <div className="mx-4 my-2 border-t border-border" />
+
+              {session?.user?.email && (
+                <div className="px-5 py-3 text-sm text-muted-foreground">
+                  {session.user.email}
+                </div>
+              )}
+
+              <Link
+                href="/settings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-5 py-4 text-base font-medium text-foreground hover:bg-muted"
+              >
+                <Settings className="h-5 w-5" />
+                Settings
+              </Link>
+
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 px-5 py-4 text-base font-medium text-destructive hover:bg-muted"
+              >
+                <LogOut className="h-5 w-5" />
+                Log out
+              </button>
             </div>
           </div>
         </>
