@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 
 import { DndProvider } from "@/components/dnd/DndProvider";
 import { AppNav } from "@/components/navigation/AppNav";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { PrivacyProvider } from "@/components/providers/PrivacyProvider";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { SetupCheck } from "@/components/setup/SetupCheck";
@@ -81,6 +82,7 @@ export default function RootLayout({
               onClose={() => setShortcutsOpen(false)}
             />
             <AppNav />
+            <PwaInstallPrompt />
             <main className="relative flex-1">
               <NotificationProvider>{children}</NotificationProvider>
             </main>
