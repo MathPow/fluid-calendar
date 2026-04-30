@@ -155,14 +155,6 @@ export function AppNav({ className }: AppNavProps) {
                 <HiOutlineSearch className="h-5 w-5" />
                 Search
               </button>
-              <button
-                onClick={() => { setShortcutsOpen(true); setMobileMenuOpen(false); }}
-                className="flex items-center gap-3 px-5 py-4 text-base font-medium text-foreground hover:bg-muted"
-              >
-                <RiKeyboardLine className="h-5 w-5" />
-                Shortcuts
-              </button>
-
               <div className="flex items-center justify-between px-5 py-3">
                 <span className="text-sm text-muted-foreground">Theme</span>
                 <ThemeToggle />
