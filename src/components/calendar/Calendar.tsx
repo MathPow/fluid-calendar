@@ -3,8 +3,16 @@
 import { useEffect } from "react";
 
 import dynamic from "next/dynamic";
+import { BsCalendarPlus } from "react-icons/bs";
 import { HiMenu } from "react-icons/hi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import {
+  MdCalendarViewDay,
+  MdCalendarViewMonth,
+  MdCalendarViewWeek,
+  MdDateRange,
+  MdToday,
+} from "react-icons/md";
 
 import { DayView } from "@/components/calendar/DayView";
 import { FeedManager } from "@/components/calendar/FeedManager";
@@ -17,6 +25,8 @@ import { addDays, formatDate, newDate, subDays } from "@/lib/date-utils";
 import { isSaasEnabled } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
+import { useEventModalStore } from "@/lib/commands/groups/calendar";
+
 import {
   useCalendarStore,
   useCalendarUIStore,
@@ -27,9 +37,10 @@ import { useTaskStore } from "@/store/task";
 import { CalendarEvent, CalendarFeed } from "@/types/calendar";
 
 const LifetimeAccessBanner = dynamic(
-  () => import(`./LifetimeAccessBanner.${isSaasEnabled ? "saas" : "open"}`).then(
-    (mod) => mod.LifetimeAccessBanner
-  ),
+  () =>
+    import(`./LifetimeAccessBanner.${isSaasEnabled ? "saas" : "open"}`).then(
+      (mod) => mod.LifetimeAccessBanner
+    ),
   { ssr: false }
 );
 
@@ -44,22 +55,16 @@ export function Calendar({
 }: CalendarProps) {
   const { date: currentDate, setDate, view, setView } = useViewStore();
   const { isSidebarOpen, setSidebarOpen, isHydrated } = useCalendarUIStore();
-  const { scheduleAllTasks } = useTaskStore();
+  const { scheduleAllTasks: handleAutoSchedule } = useTaskStore();
   const { setFeeds, setEvents } = useCalendarStore();
+  const eventModal = useEventModalStore();
 
   useEffect(() => {
-    if (initialFeeds.length > 0) {
-      setFeeds(initialFeeds);
-    }
-
-    if (initialEvents.length > 0) {
-      setEvents(initialEvents);
-    }
-
+    if (initialFeeds.length > 0) setFeeds(initialFeeds);
+    if (initialEvents.length > 0) setEvents(initialEvents);
     if (!initialFeeds.length || !initialEvents.length) {
       useCalendarStore.getState().loadFromDatabase();
     }
-
     useTaskStore.getState().fetchTasks();
   }, [initialFeeds, initialEvents, setFeeds, setEvents]);
 
@@ -70,37 +75,38 @@ export function Calendar({
     }
   }, [setView]);
 
-  const handlePrevWeek = () => {
+  const handlePrev = () => {
     if (view === "month" || view === "multiMonth") {
-      const newDate = new Date(currentDate);
-      newDate.setMonth(newDate.getMonth() - 1);
-      setDate(newDate);
+      const d = new Date(currentDate);
+      d.setMonth(d.getMonth() - 1);
+      setDate(d);
     } else {
-      const days = view === "day" ? 1 : 7;
-      setDate(subDays(currentDate, days));
+      setDate(subDays(currentDate, view === "day" ? 1 : 7));
     }
   };
 
-  const handleNextWeek = () => {
+  const handleNext = () => {
     if (view === "month" || view === "multiMonth") {
-      const newDate = new Date(currentDate);
-      newDate.setMonth(newDate.getMonth() + 1);
-      setDate(newDate);
+      const d = new Date(currentDate);
+      d.setMonth(d.getMonth() + 1);
+      setDate(d);
     } else {
-      const days = view === "day" ? 1 : 7;
-      setDate(addDays(currentDate, days));
+      setDate(addDays(currentDate, view === "day" ? 1 : 7));
     }
   };
 
-  const handleAutoSchedule = async () => {
-    await scheduleAllTasks();
-  };
-
-  const viewButtons = [
+  const desktopViewButtons = [
     { key: "day", label: "Day" },
     { key: "week", label: "Week" },
     { key: "month", label: "Month" },
     { key: "multiMonth", label: "Year" },
+  ] as const;
+
+  const mobileNavItems = [
+    { key: "day", label: "Day", icon: MdCalendarViewDay },
+    { key: "week", label: "Week", icon: MdCalendarViewWeek },
+    { key: "month", label: "Month", icon: MdCalendarViewMonth },
+    { key: "multiMonth", label: "Year", icon: MdDateRange },
   ] as const;
 
   return (
@@ -118,9 +124,7 @@ export function Calendar({
         className={cn(
           "h-full w-80 flex-none border-r border-gray-200 bg-white",
           "transform transition-transform duration-300 ease-in-out",
-          // Mobile: fixed overlay
           "fixed inset-y-0 left-0 z-40",
-          // Desktop: relative in flex flow
           "md:relative md:z-auto",
           !isHydrated && "opacity-0 duration-0",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -140,103 +144,83 @@ export function Calendar({
         <LifetimeAccessBanner />
 
         {/* Header */}
-        <header className="flex-none border-b border-border">
-          {/* Primary row */}
-          <div className="flex h-14 items-center gap-2 px-3">
+        <header className="flex h-14 flex-none items-center gap-2 border-b border-border px-3">
+          <button
+            onClick={() => setSidebarOpen(!isSidebarOpen)}
+            className="rounded-lg p-2 text-foreground hover:bg-muted"
+            title="Toggle Sidebar (b)"
+          >
+            <HiMenu className="h-5 w-5" />
+          </button>
+
+          {/* Prev / date / next */}
+          <div className="flex items-center gap-1">
             <button
-              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              onClick={handlePrev}
               className="rounded-lg p-2 text-foreground hover:bg-muted"
-              title="Toggle Sidebar (b)"
+              title="Previous (←)"
             >
-              <HiMenu className="h-5 w-5" />
+              <IoChevronBack className="h-5 w-5" />
             </button>
-
-            {/* Prev / date / next */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handlePrevWeek}
-                className="rounded-lg p-2 text-foreground hover:bg-muted"
-                title="Previous (←)"
-              >
-                <IoChevronBack className="h-5 w-5" />
-              </button>
-              <h1 className="min-w-0 truncate text-base font-semibold text-foreground md:text-lg">
-                {formatDate(currentDate)}
-              </h1>
-              <button
-                onClick={handleNextWeek}
-                className="rounded-lg p-2 text-foreground hover:bg-muted"
-                title="Next (→)"
-              >
-                <IoChevronForward className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Desktop-only actions */}
-            <div className="ml-2 hidden items-center gap-2 md:flex">
-              <button
-                onClick={() => setDate(newDate())}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
-                title="Go to Today (t)"
-              >
-                Today
-              </button>
-              <button
-                onClick={handleAutoSchedule}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10"
-              >
-                Auto Schedule
-              </button>
-            </div>
-
-            {/* Desktop-only view switcher */}
-            <div className="ml-auto hidden items-center gap-1 md:flex">
-              {viewButtons.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setView(key)}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-sm font-medium",
-                    view === key
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <h1 className="min-w-0 truncate text-base font-semibold text-foreground md:text-lg">
+              {formatDate(currentDate)}
+            </h1>
+            <button
+              onClick={handleNext}
+              className="rounded-lg p-2 text-foreground hover:bg-muted"
+              title="Next (→)"
+            >
+              <IoChevronForward className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* Mobile-only secondary row */}
-          <div className="flex items-center gap-1 border-t border-border px-3 py-2 md:hidden">
+          {/* Desktop-only actions */}
+          <div className="ml-2 hidden items-center gap-2 md:flex">
             <button
               onClick={() => setDate(newDate())}
               className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+              title="Go to Today (t)"
             >
               Today
             </button>
-            <div className="ml-auto flex items-center gap-1">
-              {viewButtons.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setView(key)}
-                  className={cn(
-                    "rounded-lg px-2.5 py-1.5 text-sm font-medium",
-                    view === key
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={handleAutoSchedule}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10"
+            >
+              Auto Schedule
+            </button>
           </div>
+
+          {/* Desktop-only view switcher */}
+          <div className="ml-auto hidden items-center gap-1 md:flex">
+            {desktopViewButtons.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setView(key)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium",
+                  view === key
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile-only add button */}
+          <button
+            onClick={() => eventModal.setOpen(true)}
+            className="ml-auto rounded-full bg-primary p-2.5 text-primary-foreground shadow-md md:hidden"
+            title="New event"
+          >
+            <BsCalendarPlus className="h-5 w-5" />
+          </button>
         </header>
 
-        {/* Calendar Grid */}
-        <div className="flex-1 overflow-hidden">
+        {/* Calendar Grid — extra bottom padding on mobile for the bottom nav */}
+        <div className="flex-1 overflow-hidden pb-16 md:pb-0">
           {view === "day" ? (
             <DayView currentDate={currentDate} onDateClick={setDate} />
           ) : view === "week" ? (
@@ -247,6 +231,34 @@ export function Calendar({
             <MultiMonthView currentDate={currentDate} onDateClick={setDate} />
           )}
         </div>
+
+        {/* Mobile-only bottom nav */}
+        <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t border-border bg-background md:hidden">
+          {mobileNavItems.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setView(key)}
+              className={cn(
+                "flex flex-1 flex-col items-center justify-center gap-0.5 py-3",
+                "text-xs font-medium transition-colors",
+                view === key
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              {label}
+            </button>
+          ))}
+          {/* Today shortcut */}
+          <button
+            onClick={() => setDate(newDate())}
+            className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium text-muted-foreground transition-colors"
+          >
+            <MdToday className="h-5 w-5" />
+            Today
+          </button>
+        </nav>
       </main>
     </div>
   );
