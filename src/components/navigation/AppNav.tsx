@@ -1,11 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { BsListTask, BsCalendar } from "react-icons/bs";
-import { HiOutlineLightBulb, HiOutlineSearch } from "react-icons/hi";
+import { HiMenu, HiOutlineLightBulb, HiOutlineSearch, HiX } from "react-icons/hi";
 import { RiKeyboardLine } from "react-icons/ri";
 
 import { cn } from "@/lib/utils";
@@ -22,10 +24,9 @@ interface AppNavProps {
 export function AppNav({ className }: AppNavProps) {
   const pathname = usePathname();
   const { setOpen: setShortcutsOpen } = useShortcutsStore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Function to trigger command palette
   const openCommandPalette = () => {
-    // Simulate Cmd+K / Ctrl+K
     const event = new KeyboardEvent("keydown", {
       key: "k",
       metaKey: true,
@@ -41,79 +42,134 @@ export function AppNav({ className }: AppNavProps) {
   ];
 
   return (
-    <nav
-      className={cn(
-        "z-10 h-16 flex-none border-b border-border bg-background",
-        className
-      )}
-    >
-      <div className="h-full px-4">
-        <div className="flex h-full items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link
-              href="/calendar"
-              className={cn(
-                "flex items-center mr-8",
-                pathname === "/calendar" ? "text-primary" : "text-foreground hover:text-primary"
-              )}
-            >
-              <Image
-                src="/logo.svg"
-                alt="Calendar Logo"
-                width={28}
-                height={28}
-                className="mr-2"
-              />
+    <>
+      <nav
+        className={cn(
+          "z-10 h-16 flex-none border-b border-border bg-background",
+          className
+        )}
+      >
+        <div className="h-full px-4">
+          <div className="flex h-full items-center justify-between">
+            {/* Logo */}
+            <Link href="/calendar" className="flex items-center">
+              <Image src="/logo.svg" alt="FluidCalendar" width={28} height={28} />
             </Link>
-            {links.map((link) => {
-              const Icon = link.icon;
-              const isActive = pathname === link.href;
 
-              return (
+            {/* Desktop links */}
+            <div className="hidden items-center gap-6 md:flex ml-8">
+              {links.map(({ href, label, icon: Icon }) => (
                 <Link
-                  key={link.href}
-                  href={link.href}
+                  key={href}
+                  href={href}
                   className={cn(
                     "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
-                    isActive
+                    pathname === href
                       ? "bg-primary/10 text-primary"
                       : "text-foreground hover:bg-muted"
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {link.label}
+                  {label}
                 </Link>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-2">
+              ))}
+            </div>
+
+            {/* Desktop right actions */}
+            <div className="hidden items-center gap-2 md:flex ml-auto">
+              <button
+                onClick={openCommandPalette}
+                className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                title="Search (⌘K)"
+              >
+                <HiOutlineSearch className="h-4 w-4" />
+                <span>Search</span>
+                <kbd className="ml-1 rounded bg-muted px-1 py-0.5 text-xs">⌘K</kbd>
+              </button>
+              <ThemeToggle />
+              <button
+                onClick={() => setShortcutsOpen(true)}
+                className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                title="Shortcuts (?)"
+              >
+                <RiKeyboardLine className="h-4 w-4" />
+                <span>Shortcuts</span>
+              </button>
+              <UserMenu />
+            </div>
+
+            {/* Mobile: hamburger */}
             <button
-              onClick={openCommandPalette}
-              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-              title="Search or run a command (⌘K)"
+              className="ml-auto rounded-lg p-2 text-foreground hover:bg-muted md:hidden"
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              aria-label="Menu"
             >
-              <HiOutlineSearch className="h-4 w-4" />
-              <span className="hidden sm:inline">Search</span>
-              <kbd className="ml-1 hidden rounded bg-muted px-1 py-0.5 text-xs sm:inline">
-                ⌘K
-              </kbd>
+              {mobileMenuOpen ? (
+                <HiX className="h-6 w-6" />
+              ) : (
+                <HiMenu className="h-6 w-6" />
+              )}
             </button>
-            <ThemeToggle />
-            <button
-              onClick={() => setShortcutsOpen(true)}
-              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-              title="View Keyboard Shortcuts (Press ?)"
-            >
-              <RiKeyboardLine className="h-4 w-4" />
-              <span className="hidden sm:inline">Shortcuts</span>
-              <kbd className="ml-1 hidden rounded bg-muted px-1 py-0.5 text-xs sm:inline">
-                ?
-              </kbd>
-            </button>
-            <UserMenu />
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile dropdown menu */}
+      {mobileMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-20 bg-black/40 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="fixed left-0 right-0 top-16 z-30 border-b border-border bg-background shadow-lg md:hidden">
+            <div className="flex flex-col py-2">
+              {links.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-5 py-4 text-base font-medium",
+                    pathname === href
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  {label}
+                </Link>
+              ))}
+
+              <div className="mx-4 my-2 border-t border-border" />
+
+              <button
+                onClick={() => { openCommandPalette(); setMobileMenuOpen(false); }}
+                className="flex items-center gap-3 px-5 py-4 text-base font-medium text-foreground hover:bg-muted"
+              >
+                <HiOutlineSearch className="h-5 w-5" />
+                Search
+              </button>
+              <button
+                onClick={() => { setShortcutsOpen(true); setMobileMenuOpen(false); }}
+                className="flex items-center gap-3 px-5 py-4 text-base font-medium text-foreground hover:bg-muted"
+              >
+                <RiKeyboardLine className="h-5 w-5" />
+                Shortcuts
+              </button>
+
+              <div className="flex items-center justify-between px-5 py-3">
+                <span className="text-sm text-muted-foreground">Theme</span>
+                <ThemeToggle />
+              </div>
+
+              <div className="px-5 py-3">
+                <UserMenu />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }
