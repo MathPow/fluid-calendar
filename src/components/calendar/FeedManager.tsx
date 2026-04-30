@@ -13,6 +13,7 @@ import { MiniCalendar } from "./MiniCalendar";
 
 export function FeedManager() {
   const [syncingFeeds, setSyncingFeeds] = useState<Set<string>>(new Set());
+  const [syncingAll, setSyncingAll] = useState(false);
   const { feeds, removeFeed, toggleFeed, syncFeed } = useCalendarStore();
   const { date: currentDate, setDate } = useViewStore();
 
@@ -26,6 +27,16 @@ export function FeedManager() {
     },
     [removeFeed]
   );
+
+  const handleSyncAll = useCallback(async () => {
+    if (syncingAll) return;
+    setSyncingAll(true);
+    try {
+      await Promise.all(feeds.map((feed) => syncFeed(feed.id)));
+    } finally {
+      setSyncingAll(false);
+    }
+  }, [feeds, syncFeed, syncingAll]);
 
   const handleSyncFeed = useCallback(
     async (feedId: string) => {
@@ -52,7 +63,17 @@ export function FeedManager() {
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         <div className="space-y-2">
-          <h3 className="font-medium text-foreground">Your Calendars</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-foreground">Your Calendars</h3>
+            <button
+              onClick={handleSyncAll}
+              disabled={syncingAll || feeds.length === 0}
+              className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-40"
+              title="Refresh all calendars"
+            >
+              <BsArrowRepeat className={cn("h-4 w-4", syncingAll && "animate-spin")} />
+            </button>
+          </div>
           {feeds.map((feed) => (
             <div
               key={feed.id}
