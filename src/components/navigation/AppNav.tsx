@@ -9,7 +9,7 @@ import { signOut, useSession } from "next-auth/react";
 
 import { LogOut, Settings } from "lucide-react";
 import { BsListTask, BsCalendar } from "react-icons/bs";
-import { HiMenu, HiOutlineLightBulb, HiOutlineSearch, HiX } from "react-icons/hi";
+import { HiMenu, HiOutlineSearch, HiX } from "react-icons/hi";
 import { RiKeyboardLine } from "react-icons/ri";
 
 import { cn } from "@/lib/utils";
@@ -43,7 +43,6 @@ export function AppNav({ className }: AppNavProps) {
   const links = [
     { href: "/calendar", label: "Calendar", icon: BsCalendar },
     { href: "/tasks", label: "Tasks", icon: BsListTask },
-    { href: "/focus", label: "Focus", icon: HiOutlineLightBulb },
   ];
 
   return (
