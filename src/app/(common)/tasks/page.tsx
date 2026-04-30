@@ -110,70 +110,65 @@ export default function TasksPage() {
     }
   };
 
+  const handleCreateTaskClick = () => {
+    setSelectedTask(undefined);
+    const projectId = activeProject
+      ? activeProject.id === "no-project"
+        ? null
+        : activeProject.id
+      : undefined;
+    setInitialProjectId(projectId);
+    setOpen(true);
+  };
+
   return (
     <div className="flex h-full">
-      <ProjectSidebar />
+      {/* Sidebar: hidden on mobile */}
+      <div className="hidden md:block">
+        <ProjectSidebar />
+      </div>
+
       <div className="flex min-w-0 flex-1 flex-col" data-task-page>
-        <div className="border-b border-border px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
-              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md p-2 text-sm font-medium",
-                    viewMode === "list"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <BsListTask className="h-4 w-4" />
-                  List
-                </button>
-                <button
-                  onClick={() => setViewMode("board")}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md p-2 text-sm font-medium",
-                    viewMode === "board"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <BsKanban className="h-4 w-4" />
-                  Board
-                </button>
-              </div>
-            </div>
+        <div className="border-b border-border px-4 py-3 md:px-6 md:py-4">
+          {/* Row 1: title + create button */}
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-xl font-bold text-foreground md:text-2xl">Tasks</h1>
             <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  scheduleAllTasks();
-                }}
-              >
+              <Button variant="secondary" onClick={() => scheduleAllTasks()} className="hidden md:inline-flex">
                 Auto Schedule
               </Button>
-              <Button
-                data-create-task-button
-                onClick={() => {
-                  setSelectedTask(undefined);
-                  // Set initial project ID based on active project
-                  // If viewing "No Project", set to null
-                  // If viewing a specific project, set to that project's ID
-                  // Otherwise, don't set an initial project (undefined)
-                  const projectId = activeProject
-                    ? activeProject.id === "no-project"
-                      ? null
-                      : activeProject.id
-                    : undefined;
-                  setInitialProjectId(projectId);
-                  setOpen(true);
-                }}
-              >
-                Create Task
+              <Button data-create-task-button onClick={handleCreateTaskClick}>
+                + Task
               </Button>
             </div>
+          </div>
+
+          {/* Row 2: view switcher */}
+          <div className="mt-2 flex items-center gap-1 rounded-lg bg-muted p-1 w-fit">
+            <button
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "flex items-center gap-2 rounded-md p-2 text-sm font-medium",
+                viewMode === "list"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <BsListTask className="h-4 w-4" />
+              List
+            </button>
+            <button
+              onClick={() => setViewMode("board")}
+              className={cn(
+                "flex items-center gap-2 rounded-md p-2 text-sm font-medium",
+                viewMode === "board"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <BsKanban className="h-4 w-4" />
+              Board
+            </button>
           </div>
 
           {error && (
@@ -183,7 +178,7 @@ export default function TasksPage() {
           )}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 pb-20 md:p-6 md:pb-6">
           {viewMode === "list" ? (
             <TaskList
               tasks={tasks}
