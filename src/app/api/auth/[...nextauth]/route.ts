@@ -26,6 +26,8 @@ declare module "next-auth/jwt" {
   }
 }
 
+export const dynamic = "force-dynamic";
+
 // Create a NextAuth handler with the auth options
 const handler = NextAuth(await getAuthOptions());
 
