@@ -361,7 +361,7 @@ export function EventModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="flex max-h-[90vh] max-w-[500px] flex-col p-0">
+        <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] flex-col p-0 sm:max-w-[500px]">
           {isSubmitting && <LoadingOverlay />}
           <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6">
             <DialogTitle>{event?.id ? "Edit Event" : "New Event"}</DialogTitle>
@@ -407,7 +407,7 @@ export function EventModal({
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="start">Start</Label>
                 <Input

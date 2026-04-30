@@ -26,12 +26,11 @@ import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, CalendarFeed } from "@/types/calendar";
 
-// Dynamically import the appropriate version of the LifetimeAccessBanner
 const LifetimeAccessBanner = dynamic(
   () => import(`./LifetimeAccessBanner.${isSaasEnabled ? "saas" : "open"}`).then(
     (mod) => mod.LifetimeAccessBanner
   ),
-  { ssr: false } // Disable SSR for this component to prevent import errors
+  { ssr: false }
 );
 
 interface CalendarProps {
@@ -48,7 +47,6 @@ export function Calendar({
   const { scheduleAllTasks } = useTaskStore();
   const { setFeeds, setEvents } = useCalendarStore();
 
-  // Use initial data from server for hydration
   useEffect(() => {
     if (initialFeeds.length > 0) {
       setFeeds(initialFeeds);
@@ -58,14 +56,19 @@ export function Calendar({
       setEvents(initialEvents);
     }
 
-    // Only fetch from database if we didn't get initial data
     if (!initialFeeds.length || !initialEvents.length) {
       useCalendarStore.getState().loadFromDatabase();
     }
 
-    // Always fetch tasks since they're not pre-loaded
     useTaskStore.getState().fetchTasks();
   }, [initialFeeds, initialEvents, setFeeds, setEvents]);
+
+  // Default to day view on mobile
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setView("day");
+    }
+  }, [setView]);
 
   const handlePrevWeek = () => {
     if (view === "month" || view === "multiMonth") {
@@ -93,129 +96,142 @@ export function Calendar({
     await scheduleAllTasks();
   };
 
+  const viewButtons = [
+    { key: "day", label: "Day" },
+    { key: "week", label: "Week" },
+    { key: "month", label: "Month" },
+    { key: "multiMonth", label: "Year" },
+  ] as const;
+
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full overflow-hidden">
+      {/* Mobile backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
         className={cn(
           "h-full w-80 flex-none border-r border-gray-200 bg-white",
           "transform transition-transform duration-300 ease-in-out",
+          // Mobile: fixed overlay
+          "fixed inset-y-0 left-0 z-40",
+          // Desktop: relative in flex flow
+          "md:relative md:z-auto",
           !isHydrated && "opacity-0 duration-0",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ marginLeft: isSidebarOpen ? 0 : "-20rem" }}
       >
         <div className="flex h-full flex-col">
-          {/* Feed Manager */}
           <div className="flex-1 overflow-y-auto">
             <FeedManager />
           </div>
-
-          {/* Sponsorship Banner */}
           <SponsorshipBanner />
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex min-w-0 flex-1 flex-col bg-background">
-        {/* Lifetime Access Banner */}
         <LifetimeAccessBanner />
+
         {/* Header */}
-        <header className="flex h-16 flex-none items-center border-b border-border px-4">
-          <button
-            onClick={() => setSidebarOpen(!isSidebarOpen)}
-            className="rounded-lg p-2 text-foreground hover:bg-muted"
-            title="Toggle Sidebar (b)"
-          >
-            <HiMenu className="h-5 w-5" />
-          </button>
-
-          <div className="ml-4 flex items-center gap-4">
+        <header className="flex-none border-b border-border">
+          {/* Primary row */}
+          <div className="flex h-14 items-center gap-2 px-3">
             <button
-              onClick={() => setDate(newDate())}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
-              title="Go to Today (t)"
+              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              className="rounded-lg p-2 text-foreground hover:bg-muted"
+              title="Toggle Sidebar (b)"
             >
-              Today
+              <HiMenu className="h-5 w-5" />
             </button>
 
-            <button
-              onClick={handleAutoSchedule}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10"
-            >
-              Auto Schedule
-            </button>
-
-            <div className="flex items-center gap-2">
+            {/* Prev / date / next */}
+            <div className="flex items-center gap-1">
               <button
                 onClick={handlePrevWeek}
-                className="rounded-lg p-1.5 text-foreground hover:bg-muted"
-                data-testid="calendar-prev-week"
-                title="Previous Week (←)"
+                className="rounded-lg p-2 text-foreground hover:bg-muted"
+                title="Previous (←)"
               >
                 <IoChevronBack className="h-5 w-5" />
               </button>
+              <h1 className="min-w-0 truncate text-base font-semibold text-foreground md:text-lg">
+                {formatDate(currentDate)}
+              </h1>
               <button
                 onClick={handleNextWeek}
-                className="rounded-lg p-1.5 text-foreground hover:bg-muted"
-                data-testid="calendar-next-week"
-                title="Next Week (→)"
+                className="rounded-lg p-2 text-foreground hover:bg-muted"
+                title="Next (→)"
               >
                 <IoChevronForward className="h-5 w-5" />
               </button>
             </div>
 
-            <h1 className="text-xl font-semibold text-foreground">
-              {formatDate(currentDate)}
-            </h1>
+            {/* Desktop-only actions */}
+            <div className="ml-2 hidden items-center gap-2 md:flex">
+              <button
+                onClick={() => setDate(newDate())}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+                title="Go to Today (t)"
+              >
+                Today
+              </button>
+              <button
+                onClick={handleAutoSchedule}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10"
+              >
+                Auto Schedule
+              </button>
+            </div>
+
+            {/* Desktop-only view switcher */}
+            <div className="ml-auto hidden items-center gap-1 md:flex">
+              {viewButtons.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setView(key)}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-sm font-medium",
+                    view === key
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* View Switching Buttons */}
-          <div className="ml-auto flex items-center gap-2">
+          {/* Mobile-only secondary row */}
+          <div className="flex items-center gap-1 border-t border-border px-3 py-2 md:hidden">
             <button
-              onClick={() => setView("day")}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm font-medium",
-                view === "day"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
+              onClick={() => setDate(newDate())}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
             >
-              Day
+              Today
             </button>
-            <button
-              onClick={() => setView("week")}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm font-medium",
-                view === "week"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              Week
-            </button>
-            <button
-              onClick={() => setView("month")}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm font-medium",
-                view === "month"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              Month
-            </button>
-            <button
-              onClick={() => setView("multiMonth")}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm font-medium",
-                view === "multiMonth"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              Year
-            </button>
+            <div className="ml-auto flex items-center gap-1">
+              {viewButtons.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setView(key)}
+                  className={cn(
+                    "rounded-lg px-2.5 py-1.5 text-sm font-medium",
+                    view === key
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </header>
 
