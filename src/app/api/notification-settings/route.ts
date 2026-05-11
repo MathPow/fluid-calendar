@@ -28,10 +28,11 @@ export async function GET(request: NextRequest) {
         eventCancellations: true,
         eventReminders: true,
         defaultReminderTiming: "[30]",
+        pushRemindersEnabled: true,
+        pushReminderMinutes: 30,
       },
     });
 
-    // Transform the response to match the store's structure
     return NextResponse.json({
       emailNotifications: settings.emailNotifications,
       dailyEmailEnabled: settings.dailyEmailEnabled,
@@ -42,6 +43,8 @@ export async function GET(request: NextRequest) {
         eventReminders: settings.eventReminders,
       },
       defaultReminderTiming: JSON.parse(settings.defaultReminderTiming),
+      pushRemindersEnabled: settings.pushRemindersEnabled,
+      pushReminderMinutes: settings.pushReminderMinutes,
     });
   } catch (error) {
     logger.error(
@@ -66,7 +69,6 @@ export async function PATCH(request: NextRequest) {
     const userId = auth.userId;
     const updates = await request.json();
 
-    // Transform the updates to match the database schema
     const dbUpdates = {
       emailNotifications: updates.emailNotifications,
       dailyEmailEnabled: updates.dailyEmailEnabled,
@@ -77,18 +79,16 @@ export async function PATCH(request: NextRequest) {
       defaultReminderTiming: updates.defaultReminderTiming
         ? JSON.stringify(updates.defaultReminderTiming)
         : undefined,
+      pushRemindersEnabled: updates.pushRemindersEnabled,
+      pushReminderMinutes: updates.pushReminderMinutes,
     };
 
     const settings = await prisma.notificationSettings.upsert({
       where: { userId },
       update: dbUpdates,
-      create: {
-        userId,
-        ...dbUpdates,
-      },
+      create: { userId, ...dbUpdates },
     });
 
-    // Transform the response to match the store's structure
     return NextResponse.json({
       emailNotifications: settings.emailNotifications,
       dailyEmailEnabled: settings.dailyEmailEnabled,
@@ -99,6 +99,8 @@ export async function PATCH(request: NextRequest) {
         eventReminders: settings.eventReminders,
       },
       defaultReminderTiming: JSON.parse(settings.defaultReminderTiming),
+      pushRemindersEnabled: settings.pushRemindersEnabled,
+      pushReminderMinutes: settings.pushReminderMinutes,
     });
   } catch (error) {
     logger.error(

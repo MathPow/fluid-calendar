@@ -69,7 +69,9 @@ const defaultSettings: Settings & { accounts: ConnectedAccount[] } = {
       eventCancellations: true,
       eventReminders: true,
     },
-    defaultReminderTiming: [30], // 30 minutes before
+    defaultReminderTiming: [30],
+    pushRemindersEnabled: true,
+    pushReminderMinutes: 30,
   },
   integrations: {
     googleCalendar: {

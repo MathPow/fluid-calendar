@@ -85,6 +85,7 @@ model User {
   taskProviders        TaskProvider[]
   TaskChange           TaskChange[]
   PasswordReset        PasswordReset[]
+  pushSubscriptions    PushSubscription[]
 }
 
 model VerificationToken {
@@ -354,6 +355,8 @@ model NotificationSettings {
   eventCancellations    Boolean  @default(true)
   eventReminders        Boolean  @default(true)
   defaultReminderTiming String   @default("[30]") // JSON string of minutes before event
+  pushRemindersEnabled  Boolean  @default(true)
+  pushReminderMinutes   Int      @default(30)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -633,4 +636,28 @@ model Subscription {
 
   @@index([stripeCustomerId])
   @@index([stripePaymentIntentId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SentPushReminder {
+  id              String   @id @default(cuid())
+  userId          String
+  eventId         String
+  reminderMinutes Int
+  sentAt          DateTime @default(now())
+
+  @@unique([userId, eventId, reminderMinutes])
+  @@index([userId])
+  @@index([sentAt])
 }

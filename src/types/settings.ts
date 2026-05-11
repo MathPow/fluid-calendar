@@ -29,14 +29,16 @@ export interface CalendarSettings {
 
 export interface NotificationSettings {
   emailNotifications: boolean;
-  dailyEmailEnabled: boolean; // Controls whether the user receives daily email updates
+  dailyEmailEnabled: boolean;
   notifyFor: {
     eventInvites: boolean;
     eventUpdates: boolean;
     eventCancellations: boolean;
     eventReminders: boolean;
   };
-  defaultReminderTiming: number[]; // minutes before event, multiple allowed
+  defaultReminderTiming: number[];
+  pushRemindersEnabled: boolean;
+  pushReminderMinutes: number;
 }
 
 export interface IntegrationSettings {
