@@ -1,10 +1,4 @@
-import {
-  HiOutlineCalendar,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-  HiOutlineMenu,
-  HiOutlinePlus,
-} from "react-icons/hi";
+import { Calendar, ChevronLeft, ChevronRight, Menu, Plus } from "lucide-react";
 import { create } from "zustand";
 
 import { addDays, newDate, subDays } from "@/lib/date-utils";
@@ -46,7 +40,7 @@ export function useCalendarCommands(): Command[] {
       id: "calendar.today",
       title: "Go to Today",
       keywords: ["calendar", "today", "now", "current"],
-      icon: HiOutlineCalendar,
+      icon: Calendar,
       section: "calendar",
       perform: () => setDate(newDate()),
       shortcut: "t",
@@ -56,7 +50,7 @@ export function useCalendarCommands(): Command[] {
       id: "calendar.prev-week",
       title: "Previous Week",
       keywords: ["calendar", "previous", "week", "back"],
-      icon: HiOutlineChevronLeft,
+      icon: ChevronLeft,
       section: "calendar",
       perform: () => setDate(subDays(currentDate, 7)),
       shortcut: "left",
@@ -69,7 +63,7 @@ export function useCalendarCommands(): Command[] {
       id: "calendar.next-week",
       title: "Next Week",
       keywords: ["calendar", "next", "week", "forward"],
-      icon: HiOutlineChevronRight,
+      icon: ChevronRight,
       section: "calendar",
       perform: () => setDate(addDays(currentDate, 7)),
       shortcut: "right",
@@ -82,7 +76,7 @@ export function useCalendarCommands(): Command[] {
       id: "calendar.toggle-sidebar",
       title: "Toggle Calendar Sidebar",
       keywords: ["calendar", "sidebar", "toggle", "show", "hide"],
-      icon: HiOutlineMenu,
+      icon: Menu,
       section: "calendar",
       perform: () => setSidebarOpen(!isSidebarOpen),
       shortcut: "b",
@@ -92,7 +86,7 @@ export function useCalendarCommands(): Command[] {
       id: "calendar.new-event",
       title: "Create New Event",
       keywords: ["calendar", "event", "new", "create", "add"],
-      icon: HiOutlinePlus,
+      icon: Plus,
       section: "calendar",
       perform: () => {
         const now = newDate();

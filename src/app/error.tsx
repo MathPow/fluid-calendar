@@ -21,7 +21,7 @@ export default function Error({
   useEffect(() => {
     setMounted(true);
     // Set document title on the client side
-    document.title = "Error - FluidCalendar";
+    document.title = "Error - DreamDash";
     // Log the error to an error reporting service
     console.error(error);
   }, [error]);

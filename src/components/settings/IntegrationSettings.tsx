@@ -1,6 +1,6 @@
 import { useSession } from "next-auth/react";
 
-import { BsGoogle } from "react-icons/bs";
+import { Chrome } from "lucide-react";
 
 import { useSettingsStore } from "@/store/settings";
 
@@ -22,7 +22,7 @@ export function IntegrationSettings() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <BsGoogle className="h-6 w-6 text-gray-500" />
+              <Chrome className="h-6 w-6 text-gray-500" />
               <div>
                 <div className="font-medium">Google Calendar</div>
                 <div className="text-sm text-gray-500">

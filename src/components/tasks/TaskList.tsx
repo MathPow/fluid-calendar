@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { HiX } from "react-icons/hi";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -282,7 +282,7 @@ export function TaskList({
               onClick={resetFilters}
               className="h-9"
             >
-              <HiX className="mr-1 h-4 w-4" />
+              <X className="mr-1 h-4 w-4" />
               Clear Filters
             </Button>
           )}

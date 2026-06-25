@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { HiClock, HiLockClosed, HiPencil, HiTrash } from "react-icons/hi";
+import { Clock, Lock, Pencil, Trash2 } from "lucide-react";
 
 import {
   format,
@@ -111,9 +111,11 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
                   className="flex items-center gap-1 text-primary"
                   title="Auto-scheduled"
                 >
-                  <HiClock className="h-4 w-4" />
+                  <Clock className="h-4 w-4" />
                   {task.scheduleLocked && (
-                    <HiLockClosed className="h-3 w-3" title="Schedule locked" />
+                    <Lock className="h-3 w-3">
+                      <title>Schedule locked</title>
+                    </Lock>
                   )}
                 </div>
               )}
@@ -220,7 +222,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-primary"
           title="Edit task"
         >
-          <HiPencil className="h-4 w-4" />
+          <Pencil className="h-4 w-4" />
         </button>
         <button
           type="button"
@@ -228,7 +230,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
           title="Delete task"
         >
-          <HiTrash className="h-4 w-4" />
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { HiCheckCircle, HiExclamationCircle } from "react-icons/hi";
+import { CircleAlert, CircleCheck } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,7 @@ export function SetupForm() {
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader>
-        <CardTitle className="text-2xl">Welcome to FluidCalendar</CardTitle>
+        <CardTitle className="text-2xl">Welcome to DreamDash</CardTitle>
         <CardDescription>
           Set up your admin account to get started with the multi-user version.
         </CardDescription>
@@ -106,7 +106,7 @@ export function SetupForm() {
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <HiExclamationCircle className="h-4 w-4" />
+            <CircleAlert className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -114,7 +114,7 @@ export function SetupForm() {
 
         {success && (
           <Alert className="mb-4 border-green-200 bg-green-50">
-            <HiCheckCircle className="h-4 w-4 text-green-600" />
+            <CircleCheck className="h-4 w-4 text-green-600" />
             <AlertTitle className="text-green-800">Success!</AlertTitle>
             <AlertDescription className="text-green-700">
               Admin account created successfully. Redirecting to dashboard...

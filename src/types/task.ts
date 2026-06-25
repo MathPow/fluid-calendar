@@ -3,6 +3,7 @@ import { ChangeType } from "@/lib/task-sync/task-change-tracker";
 import { Project } from "./project";
 
 export enum TaskStatus {
+  BACKLOG = "backlog",
   TODO = "todo",
   IN_PROGRESS = "in_progress",
   COMPLETED = "completed",

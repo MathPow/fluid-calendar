@@ -16,12 +16,14 @@ interface ColumnProps {
 }
 
 const statusColors = {
+  [TaskStatus.BACKLOG]: "bg-slate-500/10 border-slate-500/20",
   [TaskStatus.TODO]: "bg-yellow-500/10 border-yellow-500/20",
   [TaskStatus.IN_PROGRESS]: "bg-blue-500/10 border-blue-500/20",
   [TaskStatus.COMPLETED]: "bg-green-500/10 border-green-500/20",
 };
 
 const statusHeaderColors = {
+  [TaskStatus.BACKLOG]: "bg-slate-500/20 text-slate-700 dark:text-slate-400",
   [TaskStatus.TODO]: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
   [TaskStatus.IN_PROGRESS]: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
   [TaskStatus.COMPLETED]: "bg-green-500/20 text-green-700 dark:text-green-400",

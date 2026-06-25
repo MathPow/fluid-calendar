@@ -10,8 +10,8 @@ export function PwaInstallPrompt() {
   return (
     <pwa-install
       manifest-url="/manifest.json"
-      name="FluidCalendar"
-      description="Your self-hosted intelligent calendar"
+      name="DreamDash"
+      description="Your personal command center — calendar, tasks, email and notes"
       icon="/logo.svg"
     />
   );

@@ -91,7 +91,7 @@ export function TaskModal({
   const { projects } = useProjectStore();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>(TaskStatus.TODO);
+  const [status, setStatus] = useState<TaskStatus>(TaskStatus.BACKLOG);
   const [dueDate, setDueDate] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
@@ -120,7 +120,7 @@ export function TaskModal({
   const resetForm = useCallback(() => {
     setTitle("");
     setDescription("");
-    setStatus(TaskStatus.TODO);
+    setStatus(TaskStatus.BACKLOG);
     setDueDate("");
     setStartDate("");
     setDuration("");

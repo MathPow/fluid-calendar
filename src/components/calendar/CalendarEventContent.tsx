@@ -1,7 +1,7 @@
 import { memo } from "react";
 
 import type { EventContentArg } from "@fullcalendar/core";
-import { IoCheckmarkCircle, IoRepeat, IoTimeOutline } from "react-icons/io5";
+import { CircleCheck, Clock, Repeat } from "lucide-react";
 
 import { isTaskOverdue } from "@/lib/task-utils";
 import { cn } from "@/lib/utils";
@@ -55,11 +55,11 @@ export const CalendarEventContent = memo(function CalendarEventContent({
     >
       <div className="flex w-full items-center gap-1.5">
         {isTask ? (
-          <IoCheckmarkCircle className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
+          <CircleCheck className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         ) : isRecurring ? (
-          <IoRepeat className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
+          <Repeat className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         ) : (
-          <IoTimeOutline className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
+          <Clock className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         )}
         <div className="min-w-0 flex-1">
           <div

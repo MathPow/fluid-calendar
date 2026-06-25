@@ -15,7 +15,7 @@ export default function OpenSourceHomePage() {
 
   const handleLogin = () => {
     if (session) {
-      router.push("/calendar");
+      router.push("/dashboard");
     } else {
       router.push("/auth/signin");
     }
@@ -51,7 +51,7 @@ export default function OpenSourceHomePage() {
         <div className="mb-8">
           <Image
             src="/logo.svg"
-            alt="FluidCalendar Logo"
+            alt="DreamDash Logo"
             width={64}
             height={64}
             className="h-16 w-16"
@@ -61,7 +61,7 @@ export default function OpenSourceHomePage() {
 
         {/* Title and Description */}
         <h1 className="mb-6 text-center text-5xl font-bold md:text-6xl">
-          <span className="text-blue-600">FluidCalendar</span>
+          <span className="text-blue-600">DreamDash</span>
           <span className="text-gray-800"> Open Source</span>
         </h1>
         <p className="mx-auto mb-4 max-w-3xl text-center text-xl text-gray-600">
@@ -129,7 +129,7 @@ export default function OpenSourceHomePage() {
             <div>
               <h3 className="mb-2 text-xl font-semibold">Self-Hosting</h3>
               <p className="text-gray-600">
-                Host FluidCalendar on your own servers for complete control over
+                Host DreamDash on your own servers for complete control over
                 your data and infrastructure.
               </p>
             </div>
@@ -157,7 +157,7 @@ export default function OpenSourceHomePage() {
               <h3 className="mb-2 text-xl font-semibold">Full Source Access</h3>
               <p className="text-gray-600">
                 Access and modify the complete source code to customize
-                FluidCalendar to your specific needs.
+                DreamDash to your specific needs.
               </p>
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function OpenSourceHomePage() {
               <h3 className="mb-2 text-xl font-semibold">Community Driven</h3>
               <p className="text-gray-600">
                 Join a vibrant community of developers and users contributing to
-                the future of FluidCalendar.
+                the future of DreamDash.
               </p>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function OpenSourceHomePage() {
         {/* Get Started Section */}
         <div className="mt-12 w-full max-w-3xl rounded-lg border border-gray-200 bg-gray-50 p-8">
           <h2 className="mb-4 text-center text-2xl font-bold">
-            Get Started with FluidCalendar
+            Get Started with DreamDash
           </h2>
           <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row">
             <Button
@@ -222,12 +222,12 @@ export default function OpenSourceHomePage() {
             <div className="mb-4 flex items-center space-x-2 md:mb-0">
               <Image
                 src="/logo.svg"
-                alt="FluidCalendar Logo"
+                alt="DreamDash Logo"
                 width={24}
                 height={24}
                 className="text-blue-600"
               />
-              <span className="text-xl font-bold">FluidCalendar</span>
+              <span className="text-xl font-bold">DreamDash</span>
             </div>
             <div className="text-sm text-gray-500">
               Licensed under MIT. Contribute on{" "}

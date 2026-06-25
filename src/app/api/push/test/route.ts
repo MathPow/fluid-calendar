@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   if ("response" in auth) return auth.response;
 
   await sendPushToUser(auth.userId, {
-    title: "FluidCalendar",
+    title: "DreamDash",
     body: "Push notifications are working! ⚡",
     url: "/calendar",
   });

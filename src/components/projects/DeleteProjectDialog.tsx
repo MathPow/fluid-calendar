@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { IoClose } from "react-icons/io5";
+import { X } from "lucide-react";
 
 import { useProjectStore } from "@/store/project";
 
@@ -85,7 +85,7 @@ export function DeleteProjectDialog({
               aria-label="Close"
               disabled={isDeleting}
             >
-              <IoClose />
+              <X />
             </button>
           </Dialog.Close>
         </Dialog.Content>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { HiChevronDown } from "react-icons/hi";
+import { ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -65,7 +65,7 @@ export function StatusFilter({ value = [], onChange }: StatusFilterProps) {
               ? "All Status"
               : `${value.length} selected`}
         </span>
-        <HiChevronDown
+        <ChevronDown
           className={`h-4 w-4 text-muted-foreground transition-transform ${
             isOpen ? "rotate-180" : ""
           }`}

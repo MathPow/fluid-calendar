@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { RiEyeLine, RiEyeOffLine } from "react-icons/ri";
+import { Eye, EyeOff } from "lucide-react";
 
 import { usePrivacy } from "@/components/providers/PrivacyProvider";
 
@@ -30,9 +30,9 @@ export function PrivacyToggle({ className }: PrivacyToggleProps) {
       }
     >
       {isPrivacyModeActive ? (
-        <RiEyeOffLine className="h-4 w-4" />
+        <EyeOff className="h-4 w-4" />
       ) : (
-        <RiEyeLine className="h-4 w-4" />
+        <Eye className="h-4 w-4" />
       )}
       <span className="hidden sm:inline">
         {isPrivacyModeActive ? "Privacy On" : "Privacy"}

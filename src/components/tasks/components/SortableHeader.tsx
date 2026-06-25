@@ -1,4 +1,4 @@
-import { HiChevronDown, HiChevronUp } from "react-icons/hi";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -45,12 +45,12 @@ export function SortableHeader({
         <span className="text-muted-foreground/50">
           {currentSort === column ? (
             direction === "asc" ? (
-              <HiChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4" />
             ) : (
-              <HiChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4" />
             )
           ) : (
-            <HiChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-50" />
+            <ChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-50" />
           )}
         </span>
       </div>

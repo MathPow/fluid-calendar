@@ -3,16 +3,17 @@
 import { useEffect } from "react";
 
 import dynamic from "next/dynamic";
-import { BsCalendarPlus } from "react-icons/bs";
-import { HiMenu } from "react-icons/hi";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import {
-  MdCalendarViewDay,
-  MdCalendarViewMonth,
-  MdCalendarViewWeek,
-  MdDateRange,
-  MdToday,
-} from "react-icons/md";
+  Calendar as CalendarIcon,
+  CalendarCheck,
+  CalendarDays,
+  CalendarPlus,
+  CalendarRange,
+  ChevronLeft,
+  ChevronRight,
+  Columns3,
+  Menu,
+} from "lucide-react";
 
 import { DayView } from "@/components/calendar/DayView";
 import { FeedManager } from "@/components/calendar/FeedManager";
@@ -103,10 +104,10 @@ export function Calendar({
   ] as const;
 
   const mobileNavItems = [
-    { key: "day", label: "Day", icon: MdCalendarViewDay },
-    { key: "week", label: "Week", icon: MdCalendarViewWeek },
-    { key: "month", label: "Month", icon: MdCalendarViewMonth },
-    { key: "multiMonth", label: "Year", icon: MdDateRange },
+    { key: "day", label: "Day", icon: CalendarIcon },
+    { key: "week", label: "Week", icon: Columns3 },
+    { key: "month", label: "Month", icon: CalendarDays },
+    { key: "multiMonth", label: "Year", icon: CalendarRange },
   ] as const;
 
   return (
@@ -150,7 +151,7 @@ export function Calendar({
             className="rounded-lg p-2 text-foreground hover:bg-muted"
             title="Toggle Sidebar (b)"
           >
-            <HiMenu className="h-5 w-5" />
+            <Menu className="h-5 w-5" />
           </button>
 
           {/* Prev / date / next */}
@@ -160,7 +161,7 @@ export function Calendar({
               className="rounded-lg p-2 text-foreground hover:bg-muted"
               title="Previous (←)"
             >
-              <IoChevronBack className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
             <h1 className="min-w-0 truncate text-base font-semibold text-foreground md:text-lg">
               {formatDate(currentDate)}
@@ -170,7 +171,7 @@ export function Calendar({
               className="rounded-lg p-2 text-foreground hover:bg-muted"
               title="Next (→)"
             >
-              <IoChevronForward className="h-5 w-5" />
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
 
@@ -215,7 +216,7 @@ export function Calendar({
             className="ml-auto rounded-full bg-primary p-2.5 text-primary-foreground shadow-md md:hidden"
             title="New event"
           >
-            <BsCalendarPlus className="h-5 w-5" />
+            <CalendarPlus className="h-5 w-5" />
           </button>
         </header>
 
@@ -255,7 +256,7 @@ export function Calendar({
             onClick={() => setDate(newDate())}
             className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium text-muted-foreground transition-colors"
           >
-            <MdToday className="h-5 w-5" />
+            <CalendarCheck className="h-5 w-5" />
             Today
           </button>
         </nav>

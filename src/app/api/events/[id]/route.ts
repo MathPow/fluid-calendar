@@ -113,6 +113,53 @@ export async function PATCH(
   }
 }
 
+// Update a specific event (PUT — used by local calendar store)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await authenticateRequest(request, LOG_SOURCE);
+    if ("response" in auth) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
+    const { id } = await params;
+
+    const existingEvent = await prisma.calendarEvent.findUnique({
+      where: { id },
+      include: { feed: true },
+    });
+
+    if (!existingEvent || existingEvent.feed.userId !== userId) {
+      return NextResponse.json(
+        { error: "Event not found or you don't have permission to update it" },
+        { status: 404 }
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { mode, ...updates } = await request.json();
+    const updated = await prisma.calendarEvent.update({
+      where: { id },
+      data: updates,
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    logger.error(
+      "Failed to update event:",
+      { error: error instanceof Error ? error.message : String(error) },
+      LOG_SOURCE
+    );
+    return NextResponse.json(
+      { error: "Failed to update event" },
+      { status: 500 }
+    );
+  }
+}
+
 // Delete a specific event
 export async function DELETE(
   request: NextRequest,

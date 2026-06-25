@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { isThisWeek, isThisYear, isToday, isTomorrow } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { HiCheck, HiExclamation, HiX } from "react-icons/hi";
+import { Check, TriangleAlert, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,7 +195,7 @@ export function EditableCell({
               <>
                 {formatContextualDate(newDate(value)).text}
                 {formatContextualDate(newDate(value)).isOverdue && (
-                  <HiExclamation className="h-4 w-4 text-destructive" />
+                  <TriangleAlert className="h-4 w-4 text-destructive" />
                 )}
               </>
             ) : (
@@ -372,7 +372,7 @@ export function EditableCell({
             }}
             className="h-8 w-8 p-0 text-green-600 hover:bg-green-500/10 hover:text-green-700"
           >
-            <HiCheck className="h-4 w-4" />
+            <Check className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
@@ -380,7 +380,7 @@ export function EditableCell({
             onClick={handleCancel}
             className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
-            <HiX className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </Button>
         </div>
       ) : field === "startDate" ? (
@@ -417,7 +417,7 @@ export function EditableCell({
             }}
             className="h-8 w-8 p-0 text-green-600 hover:bg-green-500/10 hover:text-green-700"
           >
-            <HiCheck className="h-4 w-4" />
+            <Check className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
@@ -425,7 +425,7 @@ export function EditableCell({
             onClick={handleCancel}
             className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
-            <HiX className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </Button>
         </div>
       ) : field === "projectId" ? (
@@ -477,7 +477,7 @@ export function EditableCell({
             onClick={handleSave}
             className="h-8 w-8 p-0 text-green-600 hover:bg-green-500/10 hover:text-green-700"
           >
-            <HiCheck className="h-4 w-4" />
+            <Check className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
@@ -485,7 +485,7 @@ export function EditableCell({
             onClick={handleCancel}
             className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
-            <HiX className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </Button>
         </>
       )}

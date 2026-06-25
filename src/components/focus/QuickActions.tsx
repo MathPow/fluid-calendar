@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { HiClock, HiPencil, HiTrash } from "react-icons/hi";
+import { Clock, Pencil, Trash2 } from "lucide-react";
 
 import { TaskModal } from "@/components/tasks/TaskModal";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ export function QuickActions() {
           disabled={!currentTask}
         >
           <span className="flex items-center">
-            <HiPencil className="mr-2 h-4 w-4" />
+            <Pencil className="mr-2 h-4 w-4" />
             Edit Task
           </span>
         </Button>
@@ -93,7 +93,7 @@ export function QuickActions() {
           disabled={!currentTask}
         >
           <span className="flex items-center">
-            <HiTrash className="mr-2 h-4 w-4" />
+            <Trash2 className="mr-2 h-4 w-4" />
             Delete Task
           </span>
         </Button>
@@ -110,7 +110,7 @@ export function QuickActions() {
             className="flex items-center"
             disabled={!currentTask}
           >
-            <HiClock className="mr-1 h-3 w-3" /> 1 hour
+            <Clock className="mr-1 h-3 w-3" /> 1 hour
           </Button>
           <Button
             variant="outline"
@@ -119,7 +119,7 @@ export function QuickActions() {
             className="flex items-center"
             disabled={!currentTask}
           >
-            <HiClock className="mr-1 h-3 w-3" /> 3 hours
+            <Clock className="mr-1 h-3 w-3" /> 3 hours
           </Button>
           <Button
             variant="outline"
@@ -128,7 +128,7 @@ export function QuickActions() {
             className="flex items-center"
             disabled={!currentTask}
           >
-            <HiClock className="mr-1 h-3 w-3" /> 1 day
+            <Clock className="mr-1 h-3 w-3" /> 1 day
           </Button>
           <Button
             variant="outline"
@@ -137,7 +137,7 @@ export function QuickActions() {
             className="flex items-center"
             disabled={!currentTask}
           >
-            <HiClock className="mr-1 h-3 w-3" /> 1 week
+            <Clock className="mr-1 h-3 w-3" /> 1 week
           </Button>
         </div>
       </div>

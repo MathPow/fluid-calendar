@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FluidCalendar",
-  description: "A modern calendar and task management application",
+  title: "DreamDash",
+  description: "Your personal command center — calendar, tasks, email and notes",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "FluidCalendar",
+    title: "DreamDash",
   },
   icons: {
     icon: [

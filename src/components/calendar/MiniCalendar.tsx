@@ -9,7 +9,7 @@ import {
   isToday,
   startOfMonth,
 } from "date-fns";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -66,13 +66,13 @@ export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
             onClick={handlePrevMonth}
             className="rounded-full p-1 text-foreground hover:bg-muted/50"
           >
-            <IoChevronBack className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={handleNextMonth}
             className="rounded-full p-1 text-foreground hover:bg-muted/50"
           >
-            <IoChevronForward className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>

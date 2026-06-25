@@ -1,13 +1,13 @@
 import {
-  HiCheck,
-  HiClock,
-  HiCloud,
-  HiLockClosed,
-  HiMenuAlt4,
-  HiPencil,
-  HiRefresh,
-  HiTrash,
-} from "react-icons/hi";
+  Check,
+  Clock,
+  Cloud,
+  Lock,
+  Menu,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -59,7 +59,7 @@ export function TaskRow({
           {...draggableProps}
           onClick={(e) => e.stopPropagation()}
         >
-          <HiMenuAlt4 className="h-4 w-4" />
+          <Menu className="h-4 w-4" />
         </div>
       </td>
       <td className="whitespace-nowrap px-3 py-2">
@@ -133,7 +133,7 @@ export function TaskRow({
                 : "Mark as completed"
             }
           >
-            <HiCheck className="h-5 w-5" />
+            <Check className="h-5 w-5" />
           </Button>
         </div>
       </td>
@@ -153,28 +153,24 @@ export function TaskRow({
           )}
 
           {task.isRecurring && (
-            <HiRefresh
-              className="h-4 w-4 shrink-0 text-blue-500"
-              title="Recurring task"
-            />
+            <RefreshCw className="h-4 w-4 shrink-0 text-blue-500">
+              <title>Recurring task</title>
+            </RefreshCw>
           )}
           {task.isAutoScheduled && (
-            <HiClock
-              className="h-4 w-4 shrink-0 text-purple-500"
-              title="Auto-scheduled"
-            />
+            <Clock className="h-4 w-4 shrink-0 text-purple-500">
+              <title>Auto-scheduled</title>
+            </Clock>
           )}
           {task.scheduleLocked && (
-            <HiLockClosed
-              className="h-4 w-4 shrink-0 text-amber-500"
-              title="Schedule locked"
-            />
+            <Lock className="h-4 w-4 shrink-0 text-amber-500">
+              <title>Schedule locked</title>
+            </Lock>
           )}
           {task.externalTaskId && (
-            <HiCloud
-              className="h-4 w-4 shrink-0 text-sky-500"
-              title={`Synced from ${task.source}`}
-            />
+            <Cloud className="h-4 w-4 shrink-0 text-sky-500">
+              <title>{`Synced from ${task.source}`}</title>
+            </Cloud>
           )}
         </div>
       </td>
@@ -230,15 +226,13 @@ export function TaskRow({
         <div className="flex items-center gap-2">
           {task.isAutoScheduled ? (
             <div className="flex items-center gap-1">
-              <HiClock
-                className="h-4 w-4 text-primary"
-                title="Auto-scheduled"
-              />
+              <Clock className="h-4 w-4 text-primary">
+                <title>Auto-scheduled</title>
+              </Clock>
               {task.scheduleLocked && (
-                <HiLockClosed
-                  className="h-3 w-3 text-primary"
-                  title="Schedule locked"
-                />
+                <Lock className="h-3 w-3 text-primary">
+                  <title>Schedule locked</title>
+                </Lock>
               )}
               {task.scheduledStart && task.scheduledEnd && (
                 <span className="text-sm text-primary">
@@ -277,7 +271,7 @@ export function TaskRow({
             }}
             title="Edit task"
           >
-            <HiPencil className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
@@ -289,7 +283,7 @@ export function TaskRow({
             }}
             title="Delete task"
           >
-            <HiTrash className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </td>

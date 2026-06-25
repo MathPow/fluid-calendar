@@ -11,7 +11,7 @@ const LOG_SOURCE = "task-sync-providers-api";
 // Schema for creating a new task provider
 const createProviderSchema = z.object({
   name: z.string().min(1).max(100),
-  type: z.enum(["OUTLOOK", "GOOGLE", "CALDAV"]),
+  type: z.enum(["OUTLOOK", "GOOGLE", "CALDAV", "GITHUB"]),
   accountId: z.string().optional(), // Keep this for UI data, but don't pass to Prisma
   syncEnabled: z.boolean().default(true),
   defaultProjectId: z.string().optional(),

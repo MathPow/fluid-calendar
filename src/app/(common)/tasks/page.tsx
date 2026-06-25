@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { BsKanban, BsListTask } from "react-icons/bs";
+import { Kanban, ListTodo } from "lucide-react";
 import { toast } from "sonner";
 
 import { ProjectSidebar } from "@/components/projects/ProjectSidebar";
@@ -154,7 +154,7 @@ export default function TasksPage() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <BsListTask className="h-4 w-4" />
+              <ListTodo className="h-4 w-4" />
               List
             </button>
             <button
@@ -166,7 +166,7 @@ export default function TasksPage() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <BsKanban className="h-4 w-4" />
+              <Kanban className="h-4 w-4" />
               Board
             </button>
           </div>

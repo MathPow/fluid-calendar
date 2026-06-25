@@ -1,11 +1,6 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-import {
-  HiOutlineCalendar,
-  HiOutlineClipboardList,
-  HiOutlineCog,
-  HiOutlineLightningBolt,
-} from "react-icons/hi";
+import { Calendar, ClipboardList, Settings, Zap } from "lucide-react";
 
 import { Command } from "../types";
 
@@ -15,7 +10,7 @@ export function useNavigationCommands(): Command[] {
       id: "navigation.calendar",
       title: "Go to Calendar",
       keywords: ["navigation"],
-      icon: HiOutlineCalendar,
+      icon: Calendar,
       section: "navigation",
       shortcut: "gc",
       perform: (router?: AppRouterInstance) => {
@@ -26,7 +21,7 @@ export function useNavigationCommands(): Command[] {
       id: "navigation.tasks",
       title: "Go to Tasks",
       keywords: ["navigation"],
-      icon: HiOutlineClipboardList,
+      icon: ClipboardList,
       section: "navigation",
       shortcut: "gt",
       perform: (router?: AppRouterInstance) => {
@@ -37,7 +32,7 @@ export function useNavigationCommands(): Command[] {
       id: "navigation.focus",
       title: "Go to Focus",
       keywords: ["navigation"],
-      icon: HiOutlineLightningBolt,
+      icon: Zap,
       section: "navigation",
       shortcut: "gf",
       perform: (router?: AppRouterInstance) => {
@@ -48,7 +43,7 @@ export function useNavigationCommands(): Command[] {
       id: "navigation.settings",
       title: "Go to Settings",
       keywords: ["navigation"],
-      icon: HiOutlineCog,
+      icon: Settings,
       section: "navigation",
       shortcut: "gs",
       perform: (router?: AppRouterInstance) => {

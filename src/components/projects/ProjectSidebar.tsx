@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { BsArrowRepeat } from "react-icons/bs";
-import { HiFolderOpen, HiPencil, HiPlus } from "react-icons/hi";
+import { FolderOpen, Pencil, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -165,7 +164,7 @@ export function ProjectSidebar() {
                 setIsModalOpen(true);
               }}
             >
-              <HiPlus className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
           <div className="space-y-1">
@@ -183,7 +182,7 @@ export function ProjectSidebar() {
               className="w-full justify-start gap-2"
               onClick={() => setActiveProject(NO_PROJECT as Project)}
             >
-              <HiFolderOpen className="h-4 w-4 text-muted-foreground" />
+              <FolderOpen className="h-4 w-4 text-muted-foreground" />
               <span className="flex-1">No Project</span>
               <span className="text-xs text-muted-foreground">
                 {unassignedTasksCount}
@@ -335,7 +334,7 @@ function ProjectItem({
             onSync(project.id, mappings[0].id);
           }}
         >
-          <BsArrowRepeat
+          <RefreshCw
             className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")}
           />
         </Button>
@@ -350,7 +349,7 @@ function ProjectItem({
           onEdit(project);
         }}
       >
-        <HiPencil className="h-3 w-3" />
+        <Pencil className="h-3 w-3" />
       </Button>
     </div>
   );

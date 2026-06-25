@@ -1,14 +1,16 @@
-import { HiCheck, HiPencil, HiTrash } from "react-icons/hi";
 import {
-  IoCalendarOutline,
-  IoFlagOutline,
-  IoFolderOutline,
-  IoLocationOutline,
-  IoLockClosedOutline,
-  IoPeopleOutline,
-  IoRepeat,
-  IoTimeOutline,
-} from "react-icons/io5";
+  Calendar,
+  Check,
+  Clock,
+  Flag,
+  Folder,
+  Lock,
+  MapPin,
+  Pencil,
+  Repeat,
+  Trash2,
+  Users,
+} from "lucide-react";
 
 import { format, isFutureDate, newDate } from "@/lib/date-utils";
 import { isTaskOverdue } from "@/lib/task-utils";
@@ -112,24 +114,21 @@ export function EventQuickView({
               {isTask ? (
                 <>
                   {taskItem?.isRecurring && (
-                    <IoRepeat
-                      className="h-4 w-4 text-primary"
-                      title="Recurring task"
-                    />
+                    <Repeat className="h-4 w-4 text-primary">
+                      <title>Recurring task</title>
+                    </Repeat>
                   )}
                   {taskItem?.scheduleLocked && (
-                    <IoLockClosedOutline
-                      className="h-4 w-4 text-warning"
-                      title="Schedule locked"
-                    />
+                    <Lock className="h-4 w-4 text-warning">
+                      <title>Schedule locked</title>
+                    </Lock>
                   )}
                 </>
               ) : (
                 eventItem?.isRecurring && (
-                  <IoRepeat
-                    className="h-4 w-4 text-primary"
-                    title="Recurring event"
-                  />
+                  <Repeat className="h-4 w-4 text-primary">
+                    <title>Recurring event</title>
+                  </Repeat>
                 )
               )}
             </h3>
@@ -156,7 +155,7 @@ export function EventQuickView({
                       : "Mark as completed"
                   }
                 >
-                  <HiCheck className="h-4 w-4" />
+                  <Check className="h-4 w-4" />
                 </button>
               )}
               <button
@@ -164,14 +163,14 @@ export function EventQuickView({
                 className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
                 title="Edit"
               >
-                <HiPencil className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
               </button>
               <button
                 onClick={onDelete}
                 className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive"
                 title="Delete"
               >
-                <HiTrash className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -179,7 +178,7 @@ export function EventQuickView({
           {!isTask && eventItem && (
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <IoTimeOutline className="h-4 w-4 flex-shrink-0" />
+                <Clock className="h-4 w-4 flex-shrink-0" />
                 <span>
                   {format(newDate(eventItem.start), "PPp")} -{" "}
                   {format(
@@ -190,7 +189,7 @@ export function EventQuickView({
               </div>
               {eventItem.location && (
                 <div className="flex items-center gap-2">
-                  <IoLocationOutline className="h-4 w-4 flex-shrink-0" />
+                  <MapPin className="h-4 w-4 flex-shrink-0" />
                   <span className="event-location line-clamp-2">
                     {eventItem.location}
                   </span>
@@ -198,7 +197,7 @@ export function EventQuickView({
               )}
               {eventItem.attendees && eventItem.attendees.length > 0 && (
                 <div className="flex items-start gap-2">
-                  <IoPeopleOutline className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <Users className="mt-0.5 h-4 w-4 flex-shrink-0" />
                   <div className="flex-1">
                     {eventItem.attendees.map((attendee) => (
                       <div
@@ -233,7 +232,7 @@ export function EventQuickView({
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <IoTimeOutline className="h-4 w-4 flex-shrink-0" />
+                  <Clock className="h-4 w-4 flex-shrink-0" />
                   {taskItem.dueDate ? (
                     <span
                       className={cn(
@@ -267,7 +266,7 @@ export function EventQuickView({
 
               {taskItem.startDate && (
                 <div className="flex items-center gap-2">
-                  <IoCalendarOutline className="h-4 w-4 flex-shrink-0" />
+                  <Calendar className="h-4 w-4 flex-shrink-0" />
                   <span
                     className={cn(
                       isFutureDate(taskItem.startDate) &&
@@ -282,7 +281,7 @@ export function EventQuickView({
 
               {taskItem.priority && (
                 <div className="flex items-center gap-2">
-                  <IoFlagOutline className="h-4 w-4 flex-shrink-0" />
+                  <Flag className="h-4 w-4 flex-shrink-0" />
                   <span
                     className={cn(
                       "text-sm",
@@ -300,7 +299,7 @@ export function EventQuickView({
                 taskItem.scheduledStart &&
                 taskItem.scheduledEnd && (
                   <div className="flex items-center gap-2">
-                    <IoCalendarOutline className="h-4 w-4 flex-shrink-0" />
+                    <Calendar className="h-4 w-4 flex-shrink-0" />
                     <div className="flex-1">
                       <div>
                         Scheduled:{" "}
@@ -319,7 +318,7 @@ export function EventQuickView({
 
               {taskItem.project && (
                 <div className="flex items-center gap-2">
-                  <IoFolderOutline className="h-4 w-4 flex-shrink-0" />
+                  <Folder className="h-4 w-4 flex-shrink-0" />
                   <span
                     className="rounded px-2 py-0.5 text-xs"
                     style={{
@@ -336,7 +335,7 @@ export function EventQuickView({
 
               {taskItem.duration && (
                 <div className="flex items-center gap-2">
-                  <IoTimeOutline className="h-4 w-4 flex-shrink-0" />
+                  <Clock className="h-4 w-4 flex-shrink-0" />
                   <span>Duration: {taskItem.duration} minutes</span>
                 </div>
               )}

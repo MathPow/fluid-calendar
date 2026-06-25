@@ -47,7 +47,7 @@ const LOG_SOURCE = "TaskSyncSettings";
 // Types for providers and mappings
 interface TaskProvider {
   id: string;
-  type: "OUTLOOK" | "CALDAV" | "GOOGLE";
+  type: "OUTLOOK" | "CALDAV" | "GOOGLE" | "GITHUB";
   name: string;
   accountId?: string;
   accountEmail?: string; // This will be populated from the account for UI display
@@ -92,6 +92,13 @@ export function TaskSyncSettings() {
   const [isCreating, setIsCreating] = useState(false);
   const [newProviderName, setNewProviderName] = useState("");
   const [selectedAccount, setSelectedAccount] = useState("");
+
+  // GitHub-specific state
+  const [isGitHubDialogOpen, setIsGitHubDialogOpen] = useState(false);
+  const [githubName, setGithubName] = useState("GitHub Projects");
+  const [githubToken, setGithubToken] = useState("");
+  const [githubLogin, setGithubLogin] = useState("");
+  const [githubOwnerType, setGithubOwnerType] = useState<"user" | "organization">("user");
 
   // Get accounts that can be used as task providers
   const compatibleAccounts = accounts.filter(
@@ -291,6 +298,51 @@ export function TaskSyncSettings() {
         LOG_SOURCE
       );
       toast.error("Failed to create task provider");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Connect a GitHub provider via PAT
+  const connectGitHub = async () => {
+    if (!githubToken || !githubLogin || !githubName) {
+      toast.error("Please fill in all GitHub fields");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const response = await fetch("/api/task-sync/github/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: githubName,
+          token: githubToken,
+          login: githubLogin,
+          ownerType: githubOwnerType,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Failed to connect GitHub");
+      }
+
+      const { provider: newProvider } = await response.json();
+      const enriched = {
+        ...newProvider,
+        accountEmail: `${githubLogin} (GitHub)`,
+      };
+
+      setProviders([...providers, enriched]);
+      setSelectedProvider(enriched);
+      setGithubToken("");
+      setGithubLogin("");
+      setGithubName("GitHub Projects");
+      setIsGitHubDialogOpen(false);
+      toast.success("GitHub provider connected successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to connect GitHub");
     } finally {
       setIsCreating(false);
     }
@@ -554,7 +606,11 @@ export function TaskSyncSettings() {
                   <SelectContent>
                     {providers.map((provider) => (
                       <SelectItem key={provider.id} value={provider.id}>
-                        {provider.name} ({provider.accountEmail})
+                        {provider.name} (
+                        {provider.type === "GITHUB"
+                          ? `${(provider.settings as { login?: string })?.login ?? "GitHub"}`
+                          : provider.accountEmail}
+                        )
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -569,12 +625,12 @@ export function TaskSyncSettings() {
                 </Alert>
               )}
 
-              {unusedAccounts.length > 0 && (
-                <div className="pt-2">
+              <div className="flex gap-2 pt-2">
+                {unusedAccounts.length > 0 && (
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm">
-                        <Plus className="mr-2 h-4 w-4" /> Add Provider
+                        <Plus className="mr-2 h-4 w-4" /> Add Outlook/Google
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -631,8 +687,93 @@ export function TaskSyncSettings() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                </div>
-              )}
+                )}
+
+                {/* GitHub provider — always available, uses PAT */}
+                <Dialog open={isGitHubDialogOpen} onOpenChange={setIsGitHubDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Plus className="mr-2 h-4 w-4" /> Add GitHub
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Connect GitHub Projects</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="gh-name">Provider Name</Label>
+                        <Input
+                          id="gh-name"
+                          value={githubName}
+                          onChange={(e) => setGithubName(e.target.value)}
+                          placeholder="e.g., GitHub Projects"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="gh-token">
+                          Personal Access Token
+                        </Label>
+                        <Input
+                          id="gh-token"
+                          type="password"
+                          value={githubToken}
+                          onChange={(e) => setGithubToken(e.target.value)}
+                          placeholder="ghp_..."
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Needs <code>read:project</code> and <code>repo</code> scopes.
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="gh-owner-type">Owner Type</Label>
+                        <Select
+                          value={githubOwnerType}
+                          onValueChange={(v) =>
+                            setGithubOwnerType(v as "user" | "organization")
+                          }
+                        >
+                          <SelectTrigger id="gh-owner-type">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="organization">Organization</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="gh-login">
+                          {githubOwnerType === "organization" ? "Organization" : "Username"}
+                        </Label>
+                        <Input
+                          id="gh-login"
+                          value={githubLogin}
+                          onChange={(e) => setGithubLogin(e.target.value)}
+                          placeholder={githubOwnerType === "organization" ? "my-org" : "my-username"}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsGitHubDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={connectGitHub}
+                        disabled={isCreating || !githubToken || !githubLogin || !githubName}
+                      >
+                        {isCreating && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Connect
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </>
           )}
         </div>
@@ -663,7 +804,9 @@ export function TaskSyncSettings() {
               <div>
                 <div className="text-sm text-muted-foreground">Account</div>
                 <div className="font-medium">
-                  {selectedProvider.accountEmail}
+                  {selectedProvider.type === "GITHUB"
+                    ? `${(selectedProvider.settings as { login?: string })?.login ?? "GitHub"}`
+                    : selectedProvider.accountEmail}
                 </div>
               </div>
               <div>
@@ -737,7 +880,7 @@ export function TaskSyncSettings() {
     return (
       <SettingRow
         label="Task Lists"
-        description="Map external task lists to FluidCalendar projects"
+        description="Map external task lists to DreamDash projects"
       >
         <div className="space-y-4">
           {error && (
@@ -891,47 +1034,34 @@ export function TaskSyncSettings() {
       title="Task Synchronization"
       description="Manage task synchronization with external services such as Outlook or Google Tasks."
     >
-      {compatibleAccounts.length === 0 ? (
-        <SettingRow
-          label="No Compatible Accounts"
-          description="Connect an Outlook account to sync tasks"
-        >
-          <div className="text-sm text-muted-foreground">
-            Go to the Accounts tab to connect a compatible account.
-          </div>
-        </SettingRow>
-      ) : (
+      {renderProviderSelection()}
+
+      {selectedProvider && (
         <>
-          {renderProviderSelection()}
+          {renderProviderDetails()}
 
-          {selectedProvider && (
-            <>
-              {renderProviderDetails()}
-
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="w-full"
-              >
-                <TabsList className="mb-4 w-full">
-                  <TabsTrigger value="task-lists" className="flex-1">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Task Lists
-                  </TabsTrigger>
-                  <TabsTrigger value="sync-history" className="flex-1">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Sync History
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="task-lists" className="mt-0">
-                  {renderTaskLists()}
-                </TabsContent>
-                <TabsContent value="sync-history" className="mt-0">
-                  {renderSyncHistory()}
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="mb-4 w-full">
+              <TabsTrigger value="task-lists" className="flex-1">
+                <Calendar className="mr-2 h-4 w-4" />
+                Task Lists
+              </TabsTrigger>
+              <TabsTrigger value="sync-history" className="flex-1">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Sync History
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="task-lists" className="mt-0">
+              {renderTaskLists()}
+            </TabsContent>
+            <TabsContent value="sync-history" className="mt-0">
+              {renderSyncHistory()}
+            </TabsContent>
+          </Tabs>
         </>
       )}
     </SettingsSection>

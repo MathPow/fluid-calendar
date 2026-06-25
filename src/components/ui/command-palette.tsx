@@ -4,14 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { Command } from "cmdk";
-import { HiOutlineSearch, HiX } from "react-icons/hi";
 import {
-  HiOutlineCalendar,
-  HiOutlineClipboardList,
-  HiOutlineCog,
-  HiOutlineCollection,
-  HiOutlineLightningBolt,
-} from "react-icons/hi";
+  Calendar,
+  ClipboardList,
+  LayoutGrid,
+  Search,
+  Settings,
+  X,
+  Zap,
+} from "lucide-react";
 
 import { cn, formatShortcut } from "@/lib/utils";
 
@@ -77,7 +78,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             )}
           >
             <div className="flex items-center border-b px-3">
-              <HiOutlineSearch className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5 text-gray-400" />
               <Command.Input
                 placeholder="Type a command or search..."
                 className="h-12 flex-1 px-3 text-base outline-none placeholder:text-gray-400"
@@ -90,7 +91,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
                 >
-                  <HiX className="h-5 w-5" />
+                  <X className="h-5 w-5" />
                 </button>
               )}
               {!search && (
@@ -103,7 +104,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 className="ml-2 p-2 text-gray-400 hover:text-gray-600"
                 aria-label="Close command menu"
               >
-                <HiX className="h-5 w-5" />
+                <X className="h-5 w-5" />
               </Dialog.Close>
             </div>
 
@@ -121,7 +122,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         onOpenChange(false);
                       }}
                     >
-                      <HiOutlineCalendar className="h-4 w-4 text-gray-500" />
+                      <Calendar className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">Go to Calendar</span>
                       <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                         gc
@@ -134,7 +135,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         onOpenChange(false);
                       }}
                     >
-                      <HiOutlineClipboardList className="h-4 w-4 text-gray-500" />
+                      <ClipboardList className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">Go to Tasks</span>
                       <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                         gt
@@ -147,7 +148,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         onOpenChange(false);
                       }}
                     >
-                      <HiOutlineLightningBolt className="h-4 w-4 text-gray-500" />
+                      <Zap className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">Go to Focus</span>
                       <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                         gf
@@ -160,7 +161,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         onOpenChange(false);
                       }}
                     >
-                      <HiOutlineCog className="h-4 w-4 text-gray-500" />
+                      <Settings className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">Go to Settings</span>
                       <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                         gs
@@ -173,7 +174,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                       onClick={() => setShowAllCommands(true)}
                       className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
                     >
-                      <HiOutlineCollection className="h-4 w-4" />
+                      <LayoutGrid className="h-4 w-4" />
                       Show all commands
                     </button>
                   </div>

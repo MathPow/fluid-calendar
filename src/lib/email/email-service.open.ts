@@ -43,7 +43,7 @@ export class EmailService {
         LOG_SOURCE
       );
 
-      const fromEmail = EmailService.formatSender("FluidCalendar");
+      const fromEmail = EmailService.formatSender("DreamDash");
 
       const emailToSend = {
         from: fromEmail,

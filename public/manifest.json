@@ -1,11 +1,11 @@
 {
-  "name": "FluidCalendar",
-  "short_name": "Calendar",
-  "description": "Your self-hosted intelligent calendar",
-  "start_url": "/calendar",
+  "name": "DreamDash",
+  "short_name": "DreamDash",
+  "description": "Your personal command center — calendar, tasks, email and notes",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "theme_color": "#ff6f5e",
   "orientation": "portrait",
   "icons": [
     {

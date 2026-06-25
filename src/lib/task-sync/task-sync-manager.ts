@@ -25,6 +25,7 @@ import { TaskStatus } from "@/types/task";
 import { FieldMapper } from "./field-mapper";
 import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
 import { GoogleFieldMapper } from "./providers/google-field-mapper";
+import { GitHubFieldMapper } from "./providers/github-field-mapper";
 // Import provider implementations
 import { OutlookTaskProvider } from "./providers/outlook-provider";
 import {
@@ -57,7 +58,8 @@ export class TaskSyncManager {
         return new OutlookFieldMapper();
       case "GOOGLE":
         return new GoogleFieldMapper();
-      // Add cases for other provider types
+      case "GITHUB":
+        return new GitHubFieldMapper();
       default:
         return new FieldMapper();
     }
@@ -105,6 +107,12 @@ export class TaskSyncManager {
         );
         const googleClient = await getGoogleTasksClient(dbProvider.accountId, dbProvider.account.userId);
         return new GoogleTaskProvider(googleClient, dbProvider.accountId, dbProvider.account.userId);
+      case "GITHUB": {
+        const { createGitHubProvider } = await import(
+          "@/lib/task-sync/providers/github-provider"
+        );
+        return createGitHubProvider(dbProvider.settings);
+      }
       // case "CALDAV":
       //   return new CalDAVTaskProvider(dbProvider);
       default:

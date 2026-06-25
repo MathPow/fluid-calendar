@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-import { BsArrowRepeat, BsGoogle, BsMicrosoft, BsTrash } from "react-icons/bs";
+import { Chrome, Mail, RefreshCw, Trash2 } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -71,7 +71,7 @@ export function FeedManager() {
               className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-40"
               title="Refresh all calendars"
             >
-              <BsArrowRepeat className={cn("h-4 w-4", syncingAll && "animate-spin")} />
+              <RefreshCw className={cn("h-4 w-4", syncingAll && "animate-spin")} />
             </button>
           </div>
           {feeds.map((feed) => (
@@ -95,10 +95,14 @@ export function FeedManager() {
                   {feed.name}
                 </span>
                 {feed.type === "GOOGLE" && (
-                  <BsGoogle className="h-4 w-4 flex-shrink-0 text-muted-foreground" title={feed.url} />
+                  <Chrome className="h-4 w-4 flex-shrink-0 text-muted-foreground">
+                    {feed.url && <title>{feed.url}</title>}
+                  </Chrome>
                 )}
                 {feed.type === "OUTLOOK" && (
-                  <BsMicrosoft className="h-4 w-4 flex-shrink-0 text-muted-foreground" title={feed.url} />
+                  <Mail className="h-4 w-4 flex-shrink-0 text-muted-foreground">
+                    {feed.url && <title>{feed.url}</title>}
+                  </Mail>
                 )}
               </div>
               <div className="flex items-center gap-1">
@@ -112,7 +116,7 @@ export function FeedManager() {
                     "disabled:opacity-50"
                   )}
                 >
-                  <BsArrowRepeat
+                  <RefreshCw
                     className={cn(
                       "h-3.5 w-3.5",
                       syncingFeeds.has(feed.id) && "animate-spin"
@@ -123,7 +127,7 @@ export function FeedManager() {
                   onClick={() => handleRemoveFeed(feed.id)}
                   className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                 >
-                  <BsTrash className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>

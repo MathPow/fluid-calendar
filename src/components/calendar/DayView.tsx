@@ -4,9 +4,12 @@ import type {
   DatesSetArg,
   EventClickArg,
   EventContentArg,
+  EventDropArg,
 } from "@fullcalendar/core";
 import type { DateSelectArg } from "@fullcalendar/core";
-import interactionPlugin from "@fullcalendar/interaction";
+import interactionPlugin, {
+  EventResizeDoneArg,
+} from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 
@@ -32,7 +35,7 @@ interface DayViewProps {
 }
 
 export function DayView({ currentDate, onDateClick }: DayViewProps) {
-  const { feeds, getAllCalendarItems, isLoading, removeEvent } =
+  const { feeds, getAllCalendarItems, isLoading, removeEvent, updateEvent } =
     useCalendarStore();
   const { user: userSettings, calendar: calendarSettings } = useSettingsStore();
   const { updateTask } = useTaskStore();
@@ -254,6 +257,46 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
     }
   };
 
+  const handleEventDrop = useCallback(
+    async (info: EventDropArg) => {
+      const { event, revert } = info;
+      const start = event.start;
+      const end = event.end ?? event.start ?? undefined;
+      if (!start) return revert();
+
+      try {
+        if (event.extendedProps.isTask) {
+          await updateTask(event.id, { scheduledStart: start, scheduledEnd: end ?? undefined });
+        } else {
+          await updateEvent(event.id, { start, end: end ?? undefined });
+        }
+      } catch {
+        revert();
+      }
+    },
+    [updateEvent, updateTask]
+  );
+
+  const handleEventResize = useCallback(
+    async (info: EventResizeDoneArg) => {
+      const { event, revert } = info;
+      const start = event.start;
+      const end = event.end ?? event.start ?? undefined;
+      if (!start) return revert();
+
+      try {
+        if (event.extendedProps.isTask) {
+          await updateTask(event.id, { scheduledStart: start, scheduledEnd: end ?? undefined });
+        } else {
+          await updateEvent(event.id, { start, end: end ?? undefined });
+        }
+      } catch {
+        revert();
+      }
+    },
+    [updateEvent, updateTask]
+  );
+
   const renderEventContent = useCallback(
     (arg: EventContentArg) => <CalendarEventContent eventInfo={arg} />,
     []
@@ -311,6 +354,9 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
         select={handleDateSelect}
         selectable={true}
         selectMirror={true}
+        editable={true}
+        eventDrop={handleEventDrop}
+        eventResize={handleEventResize}
         datesSet={handleDatesSet}
         eventContent={renderEventContent}
       />
