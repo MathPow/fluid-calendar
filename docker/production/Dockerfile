@@ -3,6 +3,10 @@ FROM node:20-alpine3.19 AS builder
 
 WORKDIR /app
 
+# Build toolchain for native modules (bcrypt) — its prebuilt download is flaky,
+# so make the source-compile fallback always work.
+RUN apk add --no-cache python3 make g++
+
 # Install dependencies
 COPY package*.json ./
 COPY prisma ./prisma/
