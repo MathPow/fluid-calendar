@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const entries = await listVault();
-    return NextResponse.json({ configured: true, entries });
+    return NextResponse.json({
+      configured: true,
+      entries,
+      // Obsidian vault name, used to build obsidian:// deep-links in the UI.
+      vault: process.env.OBSIDIAN_VAULT_NAME ?? null,
+    });
   } catch (error) {
     logger.error(
       "Failed to load notes",

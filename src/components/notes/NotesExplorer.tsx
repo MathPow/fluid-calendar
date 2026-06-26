@@ -84,15 +84,20 @@ const prettyName = (name: string) => name.replace(/\.(md|markdown|txt|canvas)$/i
 
 /**
  * Deep-link that opens a note in the desktop/mobile Obsidian app via its URI
- * scheme. The vault-relative path matches the WebDAV path (leading slash
- * stripped). Set NEXT_PUBLIC_OBSIDIAN_VAULT to target a specific vault by name;
- * otherwise Obsidian opens the file in the current vault.
+ * scheme. When a vault name is configured (server env OBSIDIAN_VAULT_NAME), the
+ * vault's own folder is the first path segment in WebDAV terms, so we strip it —
+ * inside the vault the file is relative to its root. Without a vault name,
+ * Obsidian opens the file in the currently-open vault.
  */
-const obsidianHref = (path: string) => {
+const obsidianHref = (path: string, vault: string | null) => {
   const params = new URLSearchParams();
-  const vault = process.env.NEXT_PUBLIC_OBSIDIAN_VAULT;
-  if (vault) params.set("vault", vault);
-  params.set("file", path.replace(/^\//, ""));
+  let file = path.replace(/^\//, "");
+  if (vault) {
+    params.set("vault", vault);
+    const prefix = `${vault}/`;
+    if (file.startsWith(prefix)) file = file.slice(prefix.length);
+  }
+  params.set("file", file);
   return `obsidian://open?${params.toString()}`;
 };
 
@@ -247,6 +252,7 @@ export function NotesExplorer() {
   const [content, setContent] = useState<string>("");
   const [loadingNote, setLoadingNote] = useState(false);
   const [filter, setFilter] = useState("");
+  const [vault, setVault] = useState<string | null>(null);
 
   const loadTree = async () => {
     setLoadingTree(true);
@@ -257,6 +263,7 @@ export function NotesExplorer() {
       const data = await res.json();
       setConfigured(data.configured);
       setEntries(data.entries ?? []);
+      setVault(data.vault ?? null);
     } catch {
       setTreeError("Couldn't reach the Obsidian vault.");
     } finally {
@@ -440,7 +447,7 @@ export function NotesExplorer() {
                 {prettyName(selectedPath.split("/").pop() ?? "")}
               </h1>
               <a
-                href={obsidianHref(selectedPath)}
+                href={obsidianHref(selectedPath, vault)}
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 title="Open this note in the Obsidian app"
               >
