@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useRouter } from "next/navigation";
+
 import * as Dialog from "@radix-ui/react-dialog";
 import { Command } from "cmdk";
 import {
+  AudioLines,
   Calendar,
+  CalendarClock,
+  CheckSquare,
   ClipboardList,
+  FileText,
   LayoutGrid,
+  Loader2,
   Search,
   Settings,
   X,
@@ -23,10 +30,74 @@ interface CommandPaletteProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface SearchResult {
+  type: "task" | "event" | "note" | "recording";
+  id: string;
+  title: string;
+  subtitle?: string;
+  url: string;
+}
+
+const RESULT_META: Record<
+  SearchResult["type"],
+  { label: string; icon: typeof CheckSquare }
+> = {
+  task: { label: "Tasks", icon: CheckSquare },
+  event: { label: "Calendar", icon: CalendarClock },
+  note: { label: "Notes", icon: FileText },
+  recording: { label: "Recordings", icon: AudioLines },
+};
+
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [showAllCommands, setShowAllCommands] = useState(false);
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
   const { searchCommands, executeCommand, getAllCommands } = useCommands();
+
+  // Debounced content search across tasks / events / notes / recordings.
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data.results ?? []);
+        }
+      } catch {
+        // aborted or failed — keep prior results
+      } finally {
+        setSearching(false);
+      }
+    }, 200);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [search]);
+
+  // Group content results by type, in the RESULT_META order.
+  const groupedResults = useMemo(() => {
+    const groups: Partial<Record<SearchResult["type"], SearchResult[]>> = {};
+    for (const r of results) (groups[r.type] ??= []).push(r);
+    return groups;
+  }, [results]);
+
+  const goTo = (url: string) => {
+    router.push(url);
+    onOpenChange(false);
+  };
 
   // Get filtered commands based on search or show all commands
   const commands = useMemo(() => {
@@ -41,6 +112,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     if (!open) {
       setSearch("");
       setShowAllCommands(false);
+      setResults([]);
     }
   }, [open]);
 
@@ -69,6 +141,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </Dialog.Description>
 
           <Command
+            shouldFilter={false}
             className={cn(
               "overflow-hidden rounded-lg border bg-white shadow-lg",
               "transform transition-all",
@@ -80,7 +153,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <div className="flex items-center border-b px-3">
               <Search className="h-5 w-5 text-gray-400" />
               <Command.Input
-                placeholder="Type a command or search..."
+                placeholder="Search tasks, notes, events… or run a command"
                 className="h-12 flex-1 px-3 text-base outline-none placeholder:text-gray-400"
                 value={search}
                 onValueChange={setSearch}
@@ -181,9 +254,46 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 </div>
               )}
 
-              <Command.Empty className="py-6 text-center text-sm text-gray-500">
-                No results found. Try a different search term.
-              </Command.Empty>
+              {/* Content results: tasks, events, notes, recordings */}
+              {(Object.keys(RESULT_META) as SearchResult["type"][]).map(
+                (type) => {
+                  const items = groupedResults[type];
+                  if (!items || items.length === 0) return null;
+                  const { label, icon: Icon } = RESULT_META[type];
+                  return (
+                    <Command.Group key={`result-${type}`} heading={label}>
+                      {items.map((item) => (
+                        <Command.Item
+                          key={`${item.type}:${item.id}`}
+                          value={`${item.type}:${item.id}`}
+                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm aria-selected:bg-blue-50 aria-selected:text-blue-700"
+                          onSelect={() => goTo(item.url)}
+                        >
+                          <Icon className="h-4 w-4 shrink-0 text-gray-500" />
+                          <span className="truncate">{item.title}</span>
+                          {item.subtitle && (
+                            <span className="ml-auto truncate pl-2 text-xs capitalize text-gray-400">
+                              {item.subtitle}
+                            </span>
+                          )}
+                        </Command.Item>
+                      ))}
+                    </Command.Group>
+                  );
+                }
+              )}
+
+              {searching && results.length === 0 && (
+                <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Searching…
+                </div>
+              )}
+
+              {!searching && (
+                <Command.Empty className="py-6 text-center text-sm text-gray-500">
+                  No results found. Try a different search term.
+                </Command.Empty>
+              )}
 
               {(commands.length > 0 || showAllCommands) &&
                 Object.entries(groupedCommands).map(

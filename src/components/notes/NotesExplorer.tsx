@@ -280,6 +280,28 @@ export function NotesExplorer() {
     }
   };
 
+  // Deep-link support: /notes?path=/Foo/bar.md (from global search) opens that
+  // note once and expands its folders. One-shot so it won't fight the user.
+  const [openedDeepLink, setOpenedDeepLink] = useState(false);
+  useEffect(() => {
+    if (openedDeepLink || entries.length === 0) return;
+    if (typeof window === "undefined") return;
+    const target = new URLSearchParams(window.location.search).get("path");
+    if (!target) return;
+    if (!entries.some((e) => e.type === "file" && e.path === target)) return;
+
+    const parts = target.split("/").filter(Boolean);
+    const dirs: string[] = [];
+    let acc = "";
+    for (let i = 0; i < parts.length - 1; i++) {
+      acc += `/${parts[i]}`;
+      dirs.push(acc);
+    }
+    setExpanded((prev) => new Set([...prev, ...dirs]));
+    selectNote(target);
+    setOpenedDeepLink(true);
+  }, [entries, openedDeepLink]);
+
   const toggle = (path: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
