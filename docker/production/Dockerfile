@@ -3,10 +3,6 @@ FROM node:20-alpine3.19 AS builder
 
 WORKDIR /app
 
-# Build toolchain for native modules (bcrypt) — its prebuilt download is flaky,
-# so make the source-compile fallback always work.
-RUN apk add --no-cache python3 make g++
-
 # Install dependencies
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -23,16 +19,14 @@ RUN npm run build
 
 # Production stage
 FROM node:20-alpine3.19 AS runner
-# Install netcat and jq for JSON manipulation
-RUN apk add --no-cache netcat-openbsd jq python3 make g++
+# Install netcat (DB wait) and jq for JSON manipulation
+RUN apk add --no-cache netcat-openbsd jq
 
 WORKDIR /app
 
-# Install production dependencies
+# Install production dependencies (pure-JS deps only — no native build needed)
 COPY --from=builder /app/package*.json ./
 RUN npm ci --only=production --legacy-peer-deps --ignore-scripts
-# Rebuild bcrypt explicitly
-RUN cd node_modules/bcrypt && npm rebuild bcrypt --build-from-source
 
 # Copy built application
 COPY --from=builder /app/.next/standalone ./
