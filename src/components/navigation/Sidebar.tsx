@@ -91,29 +91,32 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         </p>
         {MENU.map(renderLink)}
 
-        <p className="px-3 pb-1 pt-5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-          General
-        </p>
-        {renderLink({ href: "/settings", label: "Settings", icon: Settings })}
-        <button
-          type="button"
-          onClick={() => {
-            setShortcutsOpen(true);
-            onNavigate?.();
-          }}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-        >
-          <HelpCircle className="h-[18px] w-[18px]" />
-          Shortcuts
-        </button>
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-        >
-          <LogOut className="h-[18px] w-[18px]" />
-          Log out
-        </button>
+        {/* General pinned to the bottom of the sidebar. */}
+        <div className="mt-auto flex flex-col gap-1 pt-4">
+          <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            General
+          </p>
+          {renderLink({ href: "/settings", label: "Settings", icon: Settings })}
+          <button
+            type="button"
+            onClick={() => {
+              setShortcutsOpen(true);
+              onNavigate?.();
+            }}
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <HelpCircle className="h-[18px] w-[18px]" />
+            Shortcuts
+          </button>
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-[18px] w-[18px]" />
+            Log out
+          </button>
+        </div>
       </nav>
     </aside>
   );
