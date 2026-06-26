@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   ChevronRight,
+  ExternalLink,
   FileText,
   Folder,
   FolderOpen,
@@ -80,6 +81,20 @@ function buildTree(entries: NoteEntry[]): TreeNode[] {
 }
 
 const prettyName = (name: string) => name.replace(/\.(md|markdown|txt|canvas)$/i, "");
+
+/**
+ * Deep-link that opens a note in the desktop/mobile Obsidian app via its URI
+ * scheme. The vault-relative path matches the WebDAV path (leading slash
+ * stripped). Set NEXT_PUBLIC_OBSIDIAN_VAULT to target a specific vault by name;
+ * otherwise Obsidian opens the file in the current vault.
+ */
+const obsidianHref = (path: string) => {
+  const params = new URLSearchParams();
+  const vault = process.env.NEXT_PUBLIC_OBSIDIAN_VAULT;
+  if (vault) params.set("vault", vault);
+  params.set("file", path.replace(/^\//, ""));
+  return `obsidian://open?${params.toString()}`;
+};
 
 const markdownComponents = {
   h1: (p: React.HTMLAttributes<HTMLHeadingElement>) => (
@@ -420,9 +435,19 @@ export function NotesExplorer() {
             <div className="mb-1 text-xs text-muted-foreground">
               {selectedPath.replace(/^\//, "")}
             </div>
-            <h1 className="mb-6 text-2xl font-bold tracking-tight">
-              {prettyName(selectedPath.split("/").pop() ?? "")}
-            </h1>
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <h1 className="text-2xl font-bold tracking-tight">
+                {prettyName(selectedPath.split("/").pop() ?? "")}
+              </h1>
+              <a
+                href={obsidianHref(selectedPath)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                title="Open this note in the Obsidian app"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open in Obsidian
+              </a>
+            </div>
             {loadingNote ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading note…
