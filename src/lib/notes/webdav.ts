@@ -59,6 +59,24 @@ function assertSafePath(path: string): void {
 }
 
 /**
+ * Vault entries hidden from the Notes tab. Matched against any path segment
+ * (case-insensitive, extension ignored), so a folder named here hides its
+ * contents too and a note name hides that file.
+ */
+const HIDDEN_NAMES = new Set(["koof", "koofr-rclone-setup"]);
+
+function isHiddenEntry(filename: string): boolean {
+  return filename
+    .split("/")
+    .filter(Boolean)
+    .some((segment) => {
+      const lower = segment.toLowerCase();
+      const noExt = lower.replace(/\.(md|markdown|txt|canvas)$/, "");
+      return HIDDEN_NAMES.has(lower) || HIDDEN_NAMES.has(noExt);
+    });
+}
+
+/**
  * Deep-list the whole vault, returning folders plus text notes only
  * (skips attachments/images). Sorted folders-first then alphabetical.
  */
@@ -76,6 +94,8 @@ export async function listVault(): Promise<NoteEntry[]> {
       })
       // Hide Obsidian's internal config folder
       .filter((item) => !item.filename.includes("/.obsidian"))
+      // Hide explicitly excluded notes/folders (e.g. Koofr setup)
+      .filter((item) => !isHiddenEntry(item.filename))
       .map((item) => ({
         path: item.filename.startsWith("/")
           ? item.filename
