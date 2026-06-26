@@ -253,6 +253,18 @@ export function NotesExplorer() {
     loadTree();
   }, []);
 
+  // Default the view to the "Main" folder so notes start there, not at the
+  // cluttered vault root. Only seeds the initial expansion (won't fight the user).
+  const [seededDefault, setSeededDefault] = useState(false);
+  useEffect(() => {
+    if (seededDefault || entries.length === 0) return;
+    const main = entries.find(
+      (e) => e.type === "directory" && (e.path === "/Main" || e.name === "Main")
+    );
+    if (main) setExpanded((prev) => (prev.size === 0 ? new Set([main.path]) : prev));
+    setSeededDefault(true);
+  }, [entries, seededDefault]);
+
   const selectNote = async (path: string) => {
     setSelectedPath(path);
     setLoadingNote(true);
