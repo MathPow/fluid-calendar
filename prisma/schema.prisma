@@ -677,12 +677,17 @@ model Recording {
   mimeType    String   @default("audio/mp4")
   sizeBytes   Int      @default(0)
   durationSec Int?
-  transcript  String? // full transcript text, if the client sent one
-  summary     String? // short summary, if the client sent one
+  transcript  String? // full transcript text (client-supplied or canardo-generated)
+  summary     String? // short summary (client-supplied or canardo-generated)
+  // Server-side transcription/summary pipeline (canardo: whisper + local LLM).
+  status      String   @default("done") // "pending" | "processing" | "done" | "error"
+  statusError String? // last pipeline error message, if status = "error"
+  language    String? // transcript language detected by whisper, e.g. "fr" | "en"
   recordedAt  DateTime @default(now())
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([recordedAt])
+  @@index([status])
 }

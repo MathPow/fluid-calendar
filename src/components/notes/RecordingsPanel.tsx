@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  AlertCircle,
   AudioLines,
   FileText,
   Loader2,
   Mic,
   RefreshCw,
+  Sparkles,
   Trash2,
   Watch,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { cn } from "@/lib/utils";
 
@@ -23,6 +27,9 @@ interface RecordingListItem {
   sizeBytes: number;
   durationSec: number | null;
   summary: string | null;
+  status: string; // "pending" | "processing" | "done" | "error"
+  statusError: string | null;
+  language: string | null;
   recordedAt: string;
   createdAt: string;
   hasTranscript: boolean;
@@ -32,6 +39,32 @@ interface RecordingDetail extends RecordingListItem {
   transcript: string | null;
   storagePath: string;
 }
+
+const isProcessing = (status: string) =>
+  status === "pending" || status === "processing";
+
+/** Compact Markdown styling for LLM-generated summaries (## sections + bullets). */
+const summaryMarkdown = {
+  h2: (p: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h3 className="mb-1 mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground first:mt-0" {...p} />
+  ),
+  h3: (p: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h3 className="mb-1 mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground first:mt-0" {...p} />
+  ),
+  p: (p: React.HTMLAttributes<HTMLParagraphElement>) => (
+    <p className="mb-2 leading-7" {...p} />
+  ),
+  ul: (p: React.HTMLAttributes<HTMLUListElement>) => (
+    <ul className="mb-2 ml-4 list-disc space-y-0.5" {...p} />
+  ),
+  ol: (p: React.HTMLAttributes<HTMLOListElement>) => (
+    <ol className="mb-2 ml-4 list-decimal space-y-0.5" {...p} />
+  ),
+  li: (p: React.HTMLAttributes<HTMLLIElement>) => <li className="leading-6" {...p} />,
+  strong: (p: React.HTMLAttributes<HTMLElement>) => (
+    <strong className="font-semibold text-foreground" {...p} />
+  ),
+};
 
 const sourceIcon = (source: string) => {
   if (source === "watch") return Watch;
@@ -73,8 +106,8 @@ export function RecordingsPanel() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const loadList = async () => {
-    setLoading(true);
+  const loadList = useCallback(async (opts?: { quiet?: boolean }) => {
+    if (!opts?.quiet) setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/recordings");
@@ -84,13 +117,33 @@ export function RecordingsPanel() {
     } catch {
       setError("Couldn't load recordings.");
     } finally {
-      setLoading(false);
+      if (!opts?.quiet) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadList();
-  }, []);
+  }, [loadList]);
+
+  // While anything is transcribing/summarizing, poll quietly so the UI fills in
+  // the transcript + summary when canardo finishes — no manual refresh needed.
+  const selectedIdRef = useRef<string | null>(null);
+  selectedIdRef.current = selectedId;
+  const anyProcessing = items.some((r) => isProcessing(r.status));
+  useEffect(() => {
+    if (!anyProcessing) return;
+    const t = setInterval(() => {
+      loadList({ quiet: true });
+      const open = selectedIdRef.current;
+      if (open) {
+        fetch(`/api/recordings/${open}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => d?.recording && setDetail(d.recording))
+          .catch(() => {});
+      }
+    }, 5000);
+    return () => clearInterval(t);
+  }, [anyProcessing, loadList]);
 
   const select = async (id: string) => {
     setSelectedId(id);
@@ -105,6 +158,23 @@ export function RecordingsPanel() {
       setDetail(null);
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  const reprocess = async (id: string, regenerate = false) => {
+    try {
+      const res = await fetch(
+        `/api/recordings/${id}/process${regenerate ? "?regenerate=1" : ""}`,
+        { method: "POST" }
+      );
+      if (!res.ok) throw new Error("Failed to start processing");
+      // Optimistically flip to processing; the poll loop takes over from here.
+      setItems((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: "processing" } : r))
+      );
+      setDetail((d) => (d && d.id === id ? { ...d, status: "processing" } : d));
+    } catch {
+      alert("Couldn't start processing.");
     }
   };
 
@@ -139,7 +209,7 @@ export function RecordingsPanel() {
           </div>
           <button
             type="button"
-            onClick={loadList}
+            onClick={() => loadList()}
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
             title="Refresh"
           >
@@ -186,8 +256,22 @@ export function RecordingsPanel() {
                         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span>{formatDate(r.recordedAt)}</span>
                           {dur && <span>· {dur}</span>}
-                          {r.hasTranscript && (
-                            <FileText className="h-3 w-3" aria-label="Has transcript" />
+                          {isProcessing(r.status) ? (
+                            <span className="inline-flex items-center gap-1 text-primary">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Processing
+                            </span>
+                          ) : r.status === "error" ? (
+                            <span className="inline-flex items-center gap-1 text-destructive">
+                              <AlertCircle className="h-3 w-3" /> Failed
+                            </span>
+                          ) : (
+                            r.hasTranscript && (
+                              <FileText
+                                className="h-3 w-3"
+                                aria-label="Has transcript"
+                              />
+                            )
                           )}
                         </span>
                       </span>
@@ -252,14 +336,58 @@ export function RecordingsPanel() {
               src={`/api/recordings/${detail.id}/audio`}
             />
 
+            {isProcessing(detail.status) && (
+              <div className="mb-6 flex items-center gap-2 rounded-xl border border-border bg-primary/5 p-4 text-sm text-primary">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Transcribing &amp; summarizing on canardo… this can take a few
+                minutes.
+              </div>
+            )}
+
+            {detail.status === "error" && (
+              <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+                  <AlertCircle className="h-4 w-4" /> Processing failed
+                </div>
+                {detail.statusError && (
+                  <p className="mt-1 text-xs text-destructive/80">
+                    {detail.statusError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => reprocess(detail.id)}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Retry
+                </button>
+              </div>
+            )}
+
             {detail.summary && (
               <section className="mb-6 rounded-xl border border-border bg-muted/40 p-4">
-                <h2 className="mb-2 text-sm font-semibold text-foreground/80">
-                  Summary
-                </h2>
-                <p className="whitespace-pre-wrap text-sm leading-7 text-foreground/90">
-                  {detail.summary}
-                </p>
+                <div className="mb-2 flex items-center justify-between">
+                  <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground/80">
+                    <Sparkles className="h-4 w-4 text-primary" /> Summary
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => reprocess(detail.id, true)}
+                    disabled={isProcessing(detail.status)}
+                    className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    title="Regenerate summary"
+                  >
+                    Regenerate
+                  </button>
+                </div>
+                <div className="text-sm leading-7 text-foreground/90">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={summaryMarkdown}
+                  >
+                    {detail.summary}
+                  </ReactMarkdown>
+                </div>
               </section>
             )}
 
@@ -267,15 +395,22 @@ export function RecordingsPanel() {
               <section>
                 <h2 className="mb-2 text-sm font-semibold text-foreground/80">
                   Transcript
+                  {detail.language && (
+                    <span className="ml-2 text-xs font-normal uppercase text-muted-foreground">
+                      {detail.language}
+                    </span>
+                  )}
                 </h2>
                 <p className="whitespace-pre-wrap text-sm leading-7 text-foreground/90">
                   {detail.transcript}
                 </p>
               </section>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No transcript was sent with this recording.
-              </p>
+              !isProcessing(detail.status) && (
+                <p className="text-sm text-muted-foreground">
+                  No transcript yet for this recording.
+                </p>
+              )
             )}
           </article>
         )}

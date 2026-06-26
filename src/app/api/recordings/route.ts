@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { authenticateIngest } from "@/lib/auth/ingest-auth";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
+import { enqueueProcessing } from "@/lib/recordings/pipeline";
 import { prisma } from "@/lib/prisma";
 import { saveRecordingFile } from "@/lib/recordings/storage";
 
@@ -35,6 +36,9 @@ export async function GET(request: NextRequest) {
         durationSec: true,
         summary: true,
         transcript: true,
+        status: true,
+        statusError: true,
+        language: true,
         recordedAt: true,
         createdAt: true,
       },
@@ -103,6 +107,11 @@ export async function POST(request: NextRequest) {
   const recordedAtRaw = str("recordedAt");
   const recordedAt = recordedAtRaw ? new Date(recordedAtRaw) : newDate();
 
+  const transcript = str("transcript") ?? null;
+  const summary = str("summary") ?? null;
+  // If the client didn't already provide both, canardo transcribes/summarizes.
+  const needsProcessing = !transcript || !summary;
+
   try {
     const created = await prisma.recording.create({
       data: {
@@ -117,8 +126,9 @@ export async function POST(request: NextRequest) {
           durationSec !== undefined && Number.isFinite(durationSec)
             ? durationSec
             : null,
-        transcript: str("transcript") ?? null,
-        summary: str("summary") ?? null,
+        transcript,
+        summary,
+        status: needsProcessing ? "pending" : "done",
         recordedAt: Number.isNaN(recordedAt.getTime()) ? newDate() : recordedAt,
       },
     });
@@ -130,13 +140,26 @@ export async function POST(request: NextRequest) {
       data: { storagePath },
     });
 
+    // Kick off transcription + summary in the background; respond immediately
+    // so the capture client never blocks on the (slow, CPU-bound) pipeline.
+    if (needsProcessing) enqueueProcessing(created.id);
+
     logger.info(
       "Recording ingested",
-      { id: created.id, source: created.source, bytes: file.size },
+      {
+        id: created.id,
+        source: created.source,
+        bytes: file.size,
+        willProcess: needsProcessing,
+      },
       LOG_SOURCE
     );
     return NextResponse.json(
-      { id: created.id, title: created.title, status: "stored" },
+      {
+        id: created.id,
+        title: created.title,
+        status: needsProcessing ? "processing" : "stored",
+      },
       { status: 201 }
     );
   } catch (error) {
