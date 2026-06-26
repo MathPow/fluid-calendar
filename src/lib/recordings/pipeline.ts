@@ -54,9 +54,11 @@ export async function processRecording(id: string): Promise<void> {
 
   try {
     let transcript = rec.transcript;
+    let language = rec.language ?? undefined;
     if (!transcript) {
       const result = await transcribeRecording(rec.storagePath, rec.mimeType);
       transcript = result.text;
+      language = result.language;
       await prisma.recording.update({
         where: { id },
         data: { transcript, language: result.language ?? null },
@@ -64,7 +66,10 @@ export async function processRecording(id: string): Promise<void> {
     }
 
     if (!rec.summary && transcript) {
-      const summary = await summarizeTranscript(transcript, { title: rec.title });
+      const summary = await summarizeTranscript(transcript, {
+        title: rec.title,
+        language,
+      });
       await prisma.recording.update({ where: { id }, data: { summary } });
     }
 
