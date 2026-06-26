@@ -336,6 +336,23 @@ export function RecordingsPanel() {
               src={`/api/recordings/${detail.id}/audio`}
             />
 
+            {/* Run the pipeline on a recording that was saved without a
+                transcript/summary (e.g. ingested before this feature). */}
+            {!isProcessing(detail.status) &&
+              detail.status !== "error" &&
+              (!detail.transcript || !detail.summary) && (
+                <button
+                  type="button"
+                  onClick={() => reprocess(detail.id)}
+                  className="mb-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {detail.transcript
+                    ? "Summarize on canardo"
+                    : "Transcribe & summarize on canardo"}
+                </button>
+              )}
+
             {isProcessing(detail.status) && (
               <div className="mb-6 flex items-center gap-2 rounded-xl border border-border bg-primary/5 p-4 text-sm text-primary">
                 <Loader2 className="h-4 w-4 animate-spin" />
