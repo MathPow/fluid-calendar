@@ -22,27 +22,30 @@ FROM node:20-alpine3.19 AS runner
 # Install netcat (DB wait) and jq for JSON manipulation
 RUN apk add --no-cache netcat-openbsd jq
 
+# Create the runtime user up front so files land owned correctly via COPY --chown.
+# This avoids a final `chown -R /app` over the multi-GB node_modules tree, which
+# is slow and flaky on this host's overlayfs (it was the #1 cause of failed builds).
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
+
 WORKDIR /app
+RUN chown nextjs:nodejs /app
+# npm/npx cache somewhere writable for the non-root user (runtime prisma generate too).
+ENV npm_config_cache=/tmp/.npm
+USER nextjs
 
 # Install production dependencies (pure-JS deps only — no native build needed)
-COPY --from=builder /app/package*.json ./
+COPY --chown=nextjs:nodejs --from=builder /app/package*.json ./
 RUN npm ci --only=production --legacy-peer-deps --ignore-scripts
 
-# Copy built application
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
+# Copy built application (ownership set at copy time — no recursive chown needed)
+COPY --chown=nextjs:nodejs --from=builder /app/.next/standalone ./
+COPY --chown=nextjs:nodejs --from=builder /app/.next/static ./.next/static
+COPY --chown=nextjs:nodejs --from=builder /app/public ./public
+COPY --chown=nextjs:nodejs --from=builder /app/prisma ./prisma
+COPY --chown=nextjs:nodejs --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --chown=nextjs:nodejs --from=builder /app/entrypoint.sh ./entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
-
-# Create and switch to non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-# Set ownership of the application files to nextjs user
-RUN chown -R nextjs:nodejs /app
-USER nextjs
 
 # Expose port
 EXPOSE 3000
