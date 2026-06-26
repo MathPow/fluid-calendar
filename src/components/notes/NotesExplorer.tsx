@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ChevronRight,
@@ -90,15 +90,15 @@ const prettyName = (name: string) => name.replace(/\.(md|markdown|txt|canvas)$/i
  * Obsidian opens the file in the currently-open vault.
  */
 const obsidianHref = (path: string, vault: string | null) => {
-  const params = new URLSearchParams();
   let file = path.replace(/^\//, "");
-  if (vault) {
-    params.set("vault", vault);
-    const prefix = `${vault}/`;
-    if (file.startsWith(prefix)) file = file.slice(prefix.length);
-  }
-  params.set("file", file);
-  return `obsidian://open?${params.toString()}`;
+  if (vault && file.startsWith(`${vault}/`)) file = file.slice(vault.length + 1);
+  // Obsidian wants literal "/" path separators — encode each segment (so spaces
+  // and accents are escaped) but keep the slashes raw.
+  const encodedFile = file.split("/").map(encodeURIComponent).join("/");
+  const query = [];
+  if (vault) query.push(`vault=${encodeURIComponent(vault)}`);
+  query.push(`file=${encodedFile}`);
+  return `obsidian://open?${query.join("&")}`;
 };
 
 const markdownComponents = {
@@ -287,20 +287,55 @@ export function NotesExplorer() {
     setSeededDefault(true);
   }, [entries, seededDefault]);
 
-  const selectNote = async (path: string) => {
-    setSelectedPath(path);
-    setLoadingNote(true);
-    try {
-      const res = await fetch(`/api/notes/file?path=${encodeURIComponent(path)}`);
-      if (!res.ok) throw new Error("Failed to read note");
-      const data = await res.json();
-      setContent(data.content ?? "");
-    } catch {
-      setContent("> Failed to load this note.");
-    } finally {
-      setLoadingNote(false);
+  const selectNote = useCallback(
+    async (path: string, opts?: { fromUrl?: boolean }) => {
+      setSelectedPath(path);
+      // Reflect the open note in the URL (/notes?path=…) so a refresh or a
+      // shared/bookmarked link reopens the same note.
+      if (!opts?.fromUrl && typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        params.set("path", path);
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}?${params.toString()}`
+        );
+      }
+      setLoadingNote(true);
+      try {
+        const res = await fetch(`/api/notes/file?path=${encodeURIComponent(path)}`);
+        if (!res.ok) throw new Error("Failed to read note");
+        const data = await res.json();
+        setContent(data.content ?? "");
+      } catch {
+        setContent("> Failed to load this note.");
+      } finally {
+        setLoadingNote(false);
+      }
+    },
+    []
+  );
+
+  // Restore the note from the URL on first load (refresh / shared link).
+  const [restoredFromUrl, setRestoredFromUrl] = useState(false);
+  useEffect(() => {
+    if (restoredFromUrl || entries.length === 0) return;
+    setRestoredFromUrl(true);
+    const param = new URLSearchParams(window.location.search).get("path");
+    if (!param || !entries.some((e) => e.type === "file" && e.path === param)) {
+      return;
     }
-  };
+    // Expand the ancestor folders so the note is revealed in the tree.
+    const parts = param.split("/").filter(Boolean);
+    const dirs: string[] = [];
+    let cur = "";
+    for (let i = 0; i < parts.length - 1; i++) {
+      cur += `/${parts[i]}`;
+      dirs.push(cur);
+    }
+    setExpanded((prev) => new Set([...prev, ...dirs]));
+    selectNote(param, { fromUrl: true });
+  }, [entries, restoredFromUrl, selectNote]);
 
   // Deep-link support: /notes?path=/Foo/bar.md (from global search) opens that
   // note once and expands its folders. One-shot so it won't fight the user.
