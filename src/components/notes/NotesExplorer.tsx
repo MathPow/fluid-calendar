@@ -92,6 +92,8 @@ const prettyName = (name: string) => name.replace(/\.(md|markdown|txt|canvas)$/i
 const obsidianHref = (path: string, vault: string | null) => {
   let file = path.replace(/^\//, "");
   if (vault && file.startsWith(`${vault}/`)) file = file.slice(vault.length + 1);
+  // Obsidian addresses markdown notes by path WITHOUT the extension.
+  file = file.replace(/\.(md|markdown)$/i, "");
   // Obsidian wants literal "/" path separators — encode each segment (so spaces
   // and accents are escaped) but keep the slashes raw.
   const encodedFile = file.split("/").map(encodeURIComponent).join("/");
