@@ -18,18 +18,17 @@ export interface TranscriptionResult {
   language?: string;
 }
 
-/** Transcribe a stored recording file. Throws on transport/HTTP/empty errors. */
-export async function transcribeRecording(
-  storagePath: string,
-  mimeType: string
+/** Transcribe an in-memory audio buffer. Throws on transport/HTTP/empty errors. */
+export async function transcribeAudioBuffer(
+  buffer: Buffer,
+  mimeType: string,
+  filename = "audio"
 ): Promise<TranscriptionResult> {
-  const buffer = await readFile(recordingAbsPath(storagePath));
-
   const form = new FormData();
   form.append(
     "file",
     new Blob([buffer], { type: mimeType || "audio/mp4" }),
-    storagePath
+    filename
   );
   form.append("model", WHISPER_MODEL);
   // verbose_json so we also get the detected language back.
@@ -61,4 +60,13 @@ export async function transcribeRecording(
     text,
     language: typeof data.language === "string" ? data.language : undefined,
   };
+}
+
+/** Transcribe a stored recording file. Throws on transport/HTTP/empty errors. */
+export async function transcribeRecording(
+  storagePath: string,
+  mimeType: string
+): Promise<TranscriptionResult> {
+  const buffer = await readFile(recordingAbsPath(storagePath));
+  return transcribeAudioBuffer(buffer, mimeType, storagePath);
 }
