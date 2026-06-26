@@ -86,6 +86,7 @@ model User {
   TaskChange           TaskChange[]
   PasswordReset        PasswordReset[]
   pushSubscriptions    PushSubscription[]
+  recordings           Recording[]
 }
 
 model VerificationToken {
@@ -660,4 +661,28 @@ model SentPushReminder {
   @@unique([userId, eventId, reminderMinutes])
   @@index([userId])
   @@index([sentAt])
+}
+
+// Audio recordings synced in from external capture clients (Meetily on the Mac,
+// Apple Watch / iPhone voice memos via Shortcuts). The client POSTs the audio
+// file plus optional transcript/summary text to /api/recordings; the bytes live
+// on disk under RECORDINGS_DIR and this row holds the metadata + text.
+model Recording {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  source      String   @default("upload") // "meetily" | "watch" | "upload"
+  fileName    String // original client filename, e.g. "standup.m4a"
+  storagePath String // path on disk relative to RECORDINGS_DIR
+  mimeType    String   @default("audio/mp4")
+  sizeBytes   Int      @default(0)
+  durationSec Int?
+  transcript  String? // full transcript text, if the client sent one
+  summary     String? // short summary, if the client sent one
+  recordedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([recordedAt])
 }
