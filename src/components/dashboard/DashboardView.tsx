@@ -10,6 +10,8 @@ import {
   CheckSquare,
   ChevronRight,
   Clock,
+  FileText,
+  History,
   Loader2,
   Mic,
   Watch,
@@ -42,6 +44,24 @@ interface RecordingItem {
   status: string;
   recordedAt: string;
   hasTranscript: boolean;
+}
+
+interface NoteEntry {
+  path: string;
+  name: string;
+  type: "file" | "directory";
+  lastModified: string | null;
+}
+
+// A unified "recent change" — either a touched note or a synced recording.
+interface RecentChange {
+  key: string;
+  kind: "note" | "recording";
+  title: string;
+  ts: number;
+  href: string;
+  source?: string;
+  processing?: boolean;
 }
 
 const startOfDay = (d: Date) => {
@@ -88,26 +108,45 @@ const relativeDue = (iso: string) => {
 const recSourceIcon = (s: string) =>
   s === "watch" ? Watch : s === "meetily" ? Mic : AudioLines;
 
+const timeAgo = (ts: number) => {
+  const diff = Date.now() - ts;
+  const min = Math.round(diff / 60_000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.round(hr / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(ts).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+};
+
 export function DashboardView() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [recordings, setRecordings] = useState<RecordingItem[]>([]);
+  const [notes, setNotes] = useState<NoteEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [evRes, tkRes, rcRes] = await Promise.all([
+        const [evRes, tkRes, rcRes, ntRes] = await Promise.all([
           fetch("/api/events"),
           fetch("/api/tasks?status=todo&status=in_progress"),
           fetch("/api/recordings"),
+          fetch("/api/notes"),
         ]);
         if (cancelled) return;
         setEvents(evRes.ok ? await evRes.json() : []);
         setTasks(tkRes.ok ? await tkRes.json() : []);
         const rc = rcRes.ok ? await rcRes.json() : { recordings: [] };
         setRecordings(rc.recordings ?? []);
+        const nt = ntRes.ok ? await ntRes.json() : { entries: [] };
+        setNotes(nt.entries ?? []);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -137,10 +176,33 @@ export function DashboardView() {
     });
   }, [tasks]);
 
-  const recentRecordings = useMemo(
-    () => recordings.slice(0, 6),
-    [recordings]
-  );
+  // Merge recently-touched notes and recordings into one activity feed.
+  const recentChanges = useMemo<RecentChange[]>(() => {
+    const noteChanges: RecentChange[] = notes
+      .filter((n) => n.type === "file" && n.lastModified)
+      .map((n) => ({
+        key: `note:${n.path}`,
+        kind: "note" as const,
+        title: n.name.replace(/\.(md|markdown|txt|canvas)$/i, ""),
+        ts: new Date(n.lastModified as string).getTime(),
+        href: `/notes?path=${encodeURIComponent(n.path)}`,
+      }));
+
+    const recordingChanges: RecentChange[] = recordings.map((r) => ({
+      key: `rec:${r.id}`,
+      kind: "recording" as const,
+      title: r.title,
+      ts: new Date(r.recordedAt).getTime(),
+      href: "/notes?tab=recordings",
+      source: r.source,
+      processing: r.status === "pending" || r.status === "processing",
+    }));
+
+    return [...noteChanges, ...recordingChanges]
+      .filter((c) => Number.isFinite(c.ts))
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, 6);
+  }, [notes, recordings]);
 
   if (loading) {
     return (
@@ -263,32 +325,33 @@ export function DashboardView() {
         </Card>
       </div>
 
-      {/* Recent recordings */}
-      <Card title="Recent recordings" icon={AudioLines} href="/notes">
-        {recentRecordings.length === 0 ? (
-          <Empty>No recordings yet — sync from Meetily or your Watch.</Empty>
+      {/* Recent changes — notes + recordings */}
+      <Card title="Recent changes" icon={History} href="/notes">
+        {recentChanges.length === 0 ? (
+          <Empty>No recent notes or recordings yet.</Empty>
         ) : (
           <ul className="grid gap-2 sm:grid-cols-2">
-            {recentRecordings.map((r) => {
-              const Icon = recSourceIcon(r.source);
+            {recentChanges.map((c) => {
+              const Icon =
+                c.kind === "note" ? FileText : recSourceIcon(c.source ?? "");
               return (
-                <li
-                  key={r.id}
-                  className="flex items-center gap-2.5 rounded-lg border border-border p-2.5"
-                >
-                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{r.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(r.recordedAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  {(r.status === "pending" || r.status === "processing") && (
-                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
-                  )}
+                <li key={c.key}>
+                  <Link
+                    href={c.href}
+                    className="flex items-center gap-2.5 rounded-lg border border-border p-2.5 transition-colors hover:border-primary/40"
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{c.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {c.kind === "note" ? "Note" : "Recording"} ·{" "}
+                        {timeAgo(c.ts)}
+                      </p>
+                    </div>
+                    {c.processing && (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+                    )}
+                  </Link>
                 </li>
               );
             })}

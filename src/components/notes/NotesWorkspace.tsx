@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AudioLines, FileText } from "lucide-react";
 
@@ -16,6 +16,16 @@ type Tab = "notes" | "recordings";
  */
 export function NotesWorkspace() {
   const [tab, setTab] = useState<Tab>("notes");
+
+  // Honor a deep link like /notes?tab=recordings (e.g. from the dashboard's
+  // recent-changes feed). window.location avoids a useSearchParams Suspense
+  // boundary that would otherwise force this route to bail out of prerender.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("tab") === "recordings") {
+      setTab("recordings");
+    }
+  }, []);
 
   return (
     <div className="flex h-full flex-col">
