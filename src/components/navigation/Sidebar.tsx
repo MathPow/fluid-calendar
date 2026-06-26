@@ -78,7 +78,14 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         onClick={onNavigate}
         className="flex items-center gap-2.5 px-5 py-5"
       >
-        <Image src="/logo.svg" alt="DreamDash" width={28} height={28} />
+        {/* unoptimized: Next's image optimizer rejects SVGs by default (400). */}
+        <Image
+          src="/logo.svg"
+          alt="DreamDash"
+          width={28}
+          height={28}
+          unoptimized
+        />
         <span className="text-lg font-semibold tracking-tight">
           Dream<span className="text-primary">Dash</span>
         </span>
