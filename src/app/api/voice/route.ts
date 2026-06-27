@@ -12,18 +12,24 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
+type VoiceInput =
+  | { kind: "text"; text: string }
+  | { kind: "audio"; buffer: Buffer; mimeType: string; filename: string };
+
 /**
  * POST /api/voice — voice command to the dashboard (separate from /api/recordings,
- * which keeps meeting audio + transcripts). This one is ephemeral: it transcribes
- * the clip, asks the local LLM what to do, executes it, and returns a confirmation.
- * Nothing is stored except the resulting action (e.g. a created task).
+ * which keeps meeting audio + transcripts). Ephemeral: it transcribes the clip,
+ * asks the local LLM what to do, and executes it (e.g. creates a task).
+ *
+ * Fire-and-forget: as soon as the audio is received we ack with 200
+ * {status:"processing"} and run whisper + the LLM in the background, so the
+ * Shortcut / Watch never waits on the slow CPU pipeline. The action still lands
+ * (check Tasks); errors are logged server-side.
  *
  * Auth: X-Api-Key header (RECORDINGS_API_KEY — same key as recordings).
  * Body: multipart/form-data with EITHER:
  *   file  the audio clip, OR
  *   text  an already-transcribed command (skips whisper)
- *
- * Returns: { transcript, action, ok, message, taskId? }
  */
 export async function POST(request: NextRequest) {
   const auth = await authenticateIngest(request, LOG_SOURCE);
@@ -42,68 +48,52 @@ export async function POST(request: NextRequest) {
   const textField = form.get("text");
   const file = form.get("file");
 
-  let transcript: string;
-  try {
-    if (typeof textField === "string" && textField.trim()) {
-      transcript = textField.trim();
-    } else if (file instanceof File) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const result = await transcribeAudioBuffer(
-        buffer,
-        file.type || "audio/mp4",
-        file.name || "command.m4a"
-      );
-      transcript = result.text;
-    } else {
-      return NextResponse.json(
-        { error: "Provide a 'file' audio clip or a 'text' command" },
-        { status: 400 }
-      );
-    }
-  } catch (error) {
+  // Read the body now (while the request is open), but don't process yet.
+  let input: VoiceInput;
+  if (typeof textField === "string" && textField.trim()) {
+    input = { kind: "text", text: textField.trim() };
+  } else if (file instanceof File) {
+    input = {
+      kind: "audio",
+      buffer: Buffer.from(await file.arrayBuffer()),
+      mimeType: file.type || "audio/mp4",
+      filename: file.name || "command.m4a",
+    };
+  } else {
+    return NextResponse.json(
+      { error: "Provide a 'file' audio clip or a 'text' command" },
+      { status: 400 }
+    );
+  }
+
+  // Process in the background; ack immediately.
+  void runVoiceCommand(auth.userId, input).catch((error) => {
     logger.error(
-      "Voice transcription failed",
+      "Voice command failed",
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Couldn't transcribe the audio." },
-      { status: 502 }
-    );
-  }
+  });
 
-  try {
-    const todayIso = newDate().toISOString().slice(0, 10);
-    const intent = await interpretCommand(transcript, todayIso);
-    const result = await executeCommand(auth.userId, intent);
+  return NextResponse.json({ status: "processing" }, { status: 200 });
+}
 
-    logger.info(
-      "Voice command handled",
-      { action: result.action, ok: result.ok },
-      LOG_SOURCE
-    );
-    return NextResponse.json(
-      {
-        transcript,
-        action: result.action,
-        ok: result.ok,
-        message: result.message,
-        ...(result.taskId ? { taskId: result.taskId } : {}),
-      },
-      { status: result.ok ? 200 : 422 }
-    );
-  } catch (error) {
-    logger.error(
-      "Voice command failed",
-      {
-        transcript,
-        error: error instanceof Error ? error.message : String(error),
-      },
-      LOG_SOURCE
-    );
-    return NextResponse.json(
-      { transcript, error: "Understood the audio but couldn't run the command." },
-      { status: 502 }
-    );
-  }
+/** Transcribe (if needed), interpret, and execute a voice command. */
+async function runVoiceCommand(userId: string, input: VoiceInput): Promise<void> {
+  const transcript =
+    input.kind === "text"
+      ? input.text
+      : (
+          await transcribeAudioBuffer(input.buffer, input.mimeType, input.filename)
+        ).text;
+
+  const todayIso = newDate().toISOString().slice(0, 10);
+  const intent = await interpretCommand(transcript, todayIso);
+  const result = await executeCommand(userId, intent);
+
+  logger.info(
+    "Voice command handled",
+    { action: result.action, ok: result.ok, message: result.message },
+    LOG_SOURCE
+  );
 }
