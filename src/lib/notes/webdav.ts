@@ -129,3 +129,33 @@ export async function readNote(path: string): Promise<string> {
   const content = await client.getFileContents(path, { format: "text" });
   return typeof content === "string" ? content : content.toString();
 }
+
+/** Vault folder that in-app dropped notes land in. */
+export function notesInboxDir(): string {
+  const dir = process.env.NOTES_INBOX_DIR || "/DreamDash Inbox";
+  return dir.startsWith("/") ? dir : `/${dir}`;
+}
+
+/** Turn a title/filename into a safe `.md` filename. */
+function safeNoteName(name: string): string {
+  const base = name.replace(/\.[^.]+$/, "").replace(/[^\p{L}\p{N} _-]/gu, "").trim();
+  const slug = (base || "note").slice(0, 80);
+  return `${slug}.md`;
+}
+
+/**
+ * Write a note into the vault inbox folder over WebDAV. Returns the vault-
+ * relative path. Creates the inbox folder if needed.
+ */
+export async function saveNote(name: string, content: string): Promise<string> {
+  const client = getClient();
+  const dir = notesInboxDir();
+  assertSafePath(dir);
+  if (!(await client.exists(dir))) {
+    await client.createDirectory(dir, { recursive: true });
+  }
+  const path = `${dir}/${safeNoteName(name)}`;
+  assertSafePath(path);
+  await client.putFileContents(path, content, { overwrite: true });
+  return path;
+}

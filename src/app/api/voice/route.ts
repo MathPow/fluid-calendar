@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { authenticateIngest } from "@/lib/auth/ingest-auth";
+import { authenticateUpload } from "@/lib/auth/ingest-auth";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { executeCommand, interpretCommand } from "@/lib/recordings/command";
@@ -32,7 +32,7 @@ type VoiceInput =
  *   text  an already-transcribed command (skips whisper)
  */
 export async function POST(request: NextRequest) {
-  const auth = await authenticateIngest(request, LOG_SOURCE);
+  const auth = await authenticateUpload(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
   let form: FormData;
@@ -87,8 +87,8 @@ async function runVoiceCommand(userId: string, input: VoiceInput): Promise<void>
           await transcribeAudioBuffer(input.buffer, input.mimeType, input.filename)
         ).text;
 
-  const todayIso = newDate().toISOString().slice(0, 10);
-  const intent = await interpretCommand(transcript, todayIso);
+  const nowIso = newDate().toISOString();
+  const intent = await interpretCommand(transcript, nowIso);
   const result = await executeCommand(userId, intent);
 
   logger.info(

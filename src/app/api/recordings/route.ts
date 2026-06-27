@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
-import { authenticateIngest } from "@/lib/auth/ingest-auth";
+import { authenticateUpload } from "@/lib/auth/ingest-auth";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { enqueueProcessing } from "@/lib/recordings/pipeline";
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
  *   durationSec (optional) integer seconds
  */
 export async function POST(request: NextRequest) {
-  const auth = await authenticateIngest(request, LOG_SOURCE);
+  const auth = await authenticateUpload(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
   let form: FormData;

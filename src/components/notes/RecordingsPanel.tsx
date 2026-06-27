@@ -16,6 +16,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { DropZones } from "@/components/notes/DropZones";
 import { cn } from "@/lib/utils";
 
 interface RecordingListItem {
@@ -287,9 +288,12 @@ export function RecordingsPanel() {
       {/* Viewer pane */}
       <div className="min-w-0 flex-1 overflow-y-auto">
         {!selectedId ? (
-          <div className="flex h-full flex-col items-center justify-center p-6 text-center text-muted-foreground">
-            <AudioLines className="h-10 w-10 opacity-40" />
-            <p className="mt-3 text-sm">Select a recording to play it.</p>
+          <div className="flex h-full flex-col items-center justify-center gap-6 p-6 text-center">
+            <div className="text-muted-foreground">
+              <AudioLines className="mx-auto h-10 w-10 opacity-40" />
+              <p className="mt-3 text-sm">Select a recording to play it.</p>
+            </div>
+            <DropZones onSaved={() => loadList()} />
           </div>
         ) : loadingDetail ? (
           <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">

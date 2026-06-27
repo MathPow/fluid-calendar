@@ -15,6 +15,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { DropZones } from "@/components/notes/DropZones";
 import { cn } from "@/lib/utils";
 
 interface NoteEntry {
@@ -359,6 +360,8 @@ export function NotesExplorer() {
     setExpanded((prev) => new Set([...prev, ...dirs]));
     selectNote(target);
     setOpenedDeepLink(true);
+    // selectNote is stable enough for this one-shot deep-link open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, openedDeepLink]);
 
   const toggle = (path: string) =>
@@ -470,9 +473,12 @@ export function NotesExplorer() {
             </p>
           </div>
         ) : !selectedPath ? (
-          <div className="flex h-full flex-col items-center justify-center p-6 text-center text-muted-foreground">
-            <FileText className="h-10 w-10 opacity-40" />
-            <p className="mt-3 text-sm">Select a note to read it.</p>
+          <div className="flex h-full flex-col items-center justify-center gap-6 p-6 text-center">
+            <div className="text-muted-foreground">
+              <FileText className="mx-auto h-10 w-10 opacity-40" />
+              <p className="mt-3 text-sm">Select a note to read it.</p>
+            </div>
+            <DropZones onSaved={loadTree} />
           </div>
         ) : (
           <article className="mx-auto max-w-3xl px-8 py-8">

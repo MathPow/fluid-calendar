@@ -7,15 +7,46 @@ const OLLAMA_URL = process.env.OLLAMA_URL || "http://100.88.98.44:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
 const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS || 5 * 60 * 1000);
 
-export type CommandAction = "create_task" | "create_note" | "unknown";
+export type CommandAction =
+  | "create_task"
+  | "create_event"
+  | "create_note"
+  | "unknown";
 
 export interface CommandIntent {
   action: CommandAction;
-  /** Task title / note line. */
+  /** Task title / event title / note line. */
   title?: string;
-  /** ISO date (YYYY-MM-DD) if a due date was spoken, else null. */
+  /** ISO date (YYYY-MM-DD) if a task due date was spoken, else null. */
   due?: string | null;
   priority?: "high" | "medium" | "low" | null;
+  /** create_event: ISO 8601 datetime for the event start. */
+  start?: string | null;
+  /** create_event: ISO 8601 datetime for the event end (defaults to +1h). */
+  end?: string | null;
+  allDay?: boolean;
+}
+
+const LOCAL_FEED_NAME = process.env.VOICE_FEED_NAME || "DreamDash";
+let cachedFeedId: string | null = null;
+
+/** Find or create the LOCAL calendar feed that voice-created events land in. */
+async function getOrCreateLocalFeed(userId: string): Promise<string> {
+  if (cachedFeedId) return cachedFeedId;
+  const existing = await prisma.calendarFeed.findFirst({
+    where: { userId, type: "LOCAL", name: LOCAL_FEED_NAME },
+  });
+  if (existing) return (cachedFeedId = existing.id);
+  const created = await prisma.calendarFeed.create({
+    data: {
+      name: LOCAL_FEED_NAME,
+      type: "LOCAL",
+      userId,
+      color: "hsl(6 100% 68%)",
+      enabled: true,
+    },
+  });
+  return (cachedFeedId = created.id);
 }
 
 export interface CommandResult {
@@ -23,6 +54,7 @@ export interface CommandResult {
   ok: boolean;
   message: string;
   taskId?: string;
+  eventId?: string;
 }
 
 /**
@@ -31,20 +63,24 @@ export interface CommandResult {
  */
 export async function interpretCommand(
   transcript: string,
-  todayIso: string
+  nowIso: string
 ): Promise<CommandIntent> {
   const prompt = [
     "You convert a short spoken command for a personal productivity dashboard into JSON.",
-    `Today is ${todayIso}.`,
+    `The current date and time is ${nowIso}. Resolve relative dates/times against it.`,
     "Respond with ONLY a JSON object, no prose, matching this schema:",
-    `{"action": "create_task" | "create_note" | "unknown",`,
-    ` "title": string,            // the task text or note text`,
-    ` "due": string | null,       // ISO date YYYY-MM-DD if a due date is mentioned, resolved against today; else null`,
-    ` "priority": "high" | "medium" | "low" | null}`,
-    'Examples: "remind me to call the bank tomorrow" -> create_task with title "Call the bank" and due = tomorrow.',
-    '"add a note that the wifi password is hunter2" -> create_note with title "The wifi password is hunter2".',
-    "If it is not a clear actionable command, use action \"unknown\".",
-    "Keep the title concise and imperative. Preserve the command's language.",
+    `{"action": "create_task" | "create_event" | "create_note" | "unknown",`,
+    ` "title": string,            // the task / event / note text`,
+    ` "due": string | null,       // create_task: ISO date YYYY-MM-DD if a due date is mentioned, else null`,
+    ` "priority": "high" | "medium" | "low" | null,`,
+    ` "start": string | null,     // create_event: ISO 8601 datetime of the event start`,
+    ` "end": string | null,       // create_event: ISO 8601 datetime of the event end (else null = +1h)`,
+    ` "allDay": boolean}`,
+    'Pick create_event when a meeting/appointment at a time is described ("meeting friday at 3pm").',
+    'Pick create_task for to-dos/reminders ("remind me to call the bank tomorrow").',
+    'Pick create_note to capture a fact ("note that the wifi password is hunter2").',
+    'Use "unknown" if it is not a clear actionable command.',
+    "Keep the title concise. Preserve the command's language.",
     `\nCommand: "${transcript.replace(/"/g, "'")}"`,
   ].join("\n");
 
@@ -83,15 +119,18 @@ export async function interpretCommand(
     return { action: "unknown" };
   }
 
-  const action: CommandAction =
-    parsed.action === "create_task" || parsed.action === "create_note"
-      ? parsed.action
-      : "unknown";
+  const known: CommandAction[] = ["create_task", "create_event", "create_note"];
+  const action: CommandAction = known.includes(parsed.action as CommandAction)
+    ? (parsed.action as CommandAction)
+    : "unknown";
   return {
     action,
     title: typeof parsed.title === "string" ? parsed.title.trim() : undefined,
     due: parsed.due ?? null,
     priority: parsed.priority ?? null,
+    start: parsed.start ?? null,
+    end: parsed.end ?? null,
+    allDay: Boolean(parsed.allDay),
   };
 }
 
@@ -122,6 +161,41 @@ export async function executeCommand(
       ok: true,
       taskId: task.id,
       message: `Added task: ${task.title}${when}`,
+    };
+  }
+
+  if (intent.action === "create_event") {
+    if (!intent.title || !intent.start) {
+      return {
+        action: intent.action,
+        ok: false,
+        message: "Need an event title and a time.",
+      };
+    }
+    const start = new Date(intent.start);
+    if (Number.isNaN(start.getTime())) {
+      return { action: intent.action, ok: false, message: "Couldn't parse the event time." };
+    }
+    const end =
+      intent.end && !Number.isNaN(new Date(intent.end).getTime())
+        ? new Date(intent.end)
+        : new Date(start.getTime() + 60 * 60 * 1000);
+    const feedId = await getOrCreateLocalFeed(userId);
+    const ev = await prisma.calendarEvent.create({
+      data: {
+        feedId,
+        title: intent.title,
+        start,
+        end,
+        allDay: intent.allDay ?? false,
+      },
+      select: { id: true, title: true },
+    });
+    return {
+      action: intent.action,
+      ok: true,
+      eventId: ev.id,
+      message: `Added event: ${ev.title} — ${start.toLocaleString()}`,
     };
   }
 

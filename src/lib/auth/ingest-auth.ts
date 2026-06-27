@@ -1,3 +1,4 @@
+import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
 import { logger } from "@/lib/logger";
@@ -57,4 +58,28 @@ export async function authenticateIngest(
   }
 
   return { userId: user.id };
+}
+
+/**
+ * Auth that accepts EITHER an X-Api-Key (unattended clients) OR a logged-in
+ * NextAuth session (browser drag-and-drop). Used by the upload/voice routes so
+ * the same endpoint serves Shortcuts and in-app drops. Key takes precedence
+ * when present; otherwise the request must carry a valid session cookie.
+ */
+export async function authenticateUpload(
+  request: NextRequest,
+  logSource: string
+): Promise<{ userId: string } | { response: NextResponse }> {
+  if (request.headers.get("x-api-key")) {
+    return authenticateIngest(request, logSource);
+  }
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+  if (token?.sub) {
+    return { userId: token.sub };
+  }
+  logger.warn("Upload rejected: no API key and no session", {}, logSource);
+  return { response: new NextResponse("Unauthorized", { status: 401 }) };
 }
