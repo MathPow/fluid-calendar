@@ -1,3 +1,4 @@
+import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
@@ -222,4 +223,54 @@ export async function executeCommand(
     ok: false,
     message: "Sorry, I didn't catch an actionable command.",
   };
+}
+
+/** Persist a command + its outcome to the audit log (for revert / follow-up). */
+export async function recordCommand(
+  userId: string,
+  transcript: string,
+  result: CommandResult
+): Promise<void> {
+  const targetType = result.taskId ? "task" : result.eventId ? "event" : null;
+  const targetId = result.taskId ?? result.eventId ?? null;
+  await prisma.voiceCommand.create({
+    data: {
+      userId,
+      transcript: transcript || "(no transcript)",
+      action: result.action,
+      ok: result.ok,
+      message: result.message,
+      targetType,
+      targetId,
+    },
+  });
+}
+
+/** Undo what a command did: delete the created task/event, mark it reverted. */
+export async function revertCommand(
+  userId: string,
+  id: string
+): Promise<{ ok: boolean; message: string }> {
+  const cmd = await prisma.voiceCommand.findFirst({ where: { id, userId } });
+  if (!cmd) return { ok: false, message: "Command not found" };
+  if (cmd.reverted) return { ok: false, message: "Already reverted" };
+  if (!cmd.targetId || !cmd.targetType) {
+    return { ok: false, message: "Nothing to revert for this command" };
+  }
+
+  try {
+    if (cmd.targetType === "task") {
+      await prisma.task.delete({ where: { id: cmd.targetId } });
+    } else if (cmd.targetType === "event") {
+      await prisma.calendarEvent.delete({ where: { id: cmd.targetId } });
+    }
+  } catch {
+    // Target already gone — still mark the command reverted below.
+  }
+
+  await prisma.voiceCommand.update({
+    where: { id: cmd.id },
+    data: { reverted: true, revertedAt: newDate() },
+  });
+  return { ok: true, message: "Reverted" };
 }

@@ -88,6 +88,7 @@ model User {
   pushSubscriptions    PushSubscription[]
   recordings           Recording[]
   mailAccounts         MailAccount[]
+  voiceCommands        VoiceCommand[]
 }
 
 model VerificationToken {
@@ -714,4 +715,25 @@ model MailAccount {
 
   @@unique([userId, email])
   @@index([userId])
+}
+
+// Audit log of voice/text commands sent to /api/voice and what they did, so the
+// action is reversible (delete the created task/event) and followable. The audio
+// itself stays ephemeral — only the transcript + outcome are kept.
+model VoiceCommand {
+  id         String    @id @default(cuid())
+  userId     String
+  transcript String
+  action     String // "create_task" | "create_event" | "create_note" | "unknown"
+  ok         Boolean   @default(false)
+  message    String?
+  targetType String? // "task" | "event"
+  targetId   String? // id of the created row, for revert
+  reverted   Boolean   @default(false)
+  revertedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }

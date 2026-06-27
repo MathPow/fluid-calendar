@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateUpload } from "@/lib/auth/ingest-auth";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
-import { executeCommand, interpretCommand } from "@/lib/recordings/command";
+import {
+  executeCommand,
+  interpretCommand,
+  recordCommand,
+} from "@/lib/recordings/command";
 import { transcribeAudioBuffer } from "@/lib/recordings/transcribe";
 
 const LOG_SOURCE = "voice-route";
@@ -78,22 +82,39 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ status: "processing" }, { status: 200 });
 }
 
-/** Transcribe (if needed), interpret, and execute a voice command. */
+/** Transcribe (if needed), interpret, execute, and log a voice command. */
 async function runVoiceCommand(userId: string, input: VoiceInput): Promise<void> {
-  const transcript =
-    input.kind === "text"
-      ? input.text
-      : (
-          await transcribeAudioBuffer(input.buffer, input.mimeType, input.filename)
-        ).text;
+  let transcript = "";
+  try {
+    transcript =
+      input.kind === "text"
+        ? input.text
+        : (
+            await transcribeAudioBuffer(
+              input.buffer,
+              input.mimeType,
+              input.filename
+            )
+          ).text;
 
-  const nowIso = newDate().toISOString();
-  const intent = await interpretCommand(transcript, nowIso);
-  const result = await executeCommand(userId, intent);
+    const nowIso = newDate().toISOString();
+    const intent = await interpretCommand(transcript, nowIso);
+    const result = await executeCommand(userId, intent);
+    await recordCommand(userId, transcript, result);
 
-  logger.info(
-    "Voice command handled",
-    { action: result.action, ok: result.ok, message: result.message },
-    LOG_SOURCE
-  );
+    logger.info(
+      "Voice command handled",
+      { action: result.action, ok: result.ok, message: result.message },
+      LOG_SOURCE
+    );
+  } catch (error) {
+    // Still log the attempt so it shows in the Commands tab.
+    const message = error instanceof Error ? error.message : String(error);
+    await recordCommand(userId, transcript, {
+      action: "unknown",
+      ok: false,
+      message: `Failed: ${message}`,
+    }).catch(() => {});
+    throw error;
+  }
 }
