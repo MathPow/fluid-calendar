@@ -28,15 +28,10 @@ export function UserMenu() {
     return null; // Return nothing during loading to prevent flash of sign-in button
   }
 
-  // Check both session status and session data to handle all authentication scenarios
+  // Don't surface a Sign In button — the app sits behind Cloudflare Access, and
+  // /auth/signin is still reachable directly if a session is ever needed.
   if (status !== "authenticated" || !session) {
-    return (
-      <Link href="/auth/signin">
-        <Button variant="outline" size="sm">
-          Sign In
-        </Button>
-      </Link>
-    );
+    return null;
   }
 
   const handleLogout = async () => {
