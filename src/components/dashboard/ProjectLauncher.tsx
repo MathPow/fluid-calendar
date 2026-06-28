@@ -20,7 +20,7 @@ const TERMINAL_BASE = "https://mathpow.taila15d52.ts.net:7681/";
 const PROJECTS: Project[] = [
   { id: "orka", name: "Orka", logo: "/projects/staychum.svg" },
   { id: "StayChum", name: "StayChum", logo: "/projects/staychum.svg" },
-  { id: "dreamdash", name: "DreamDash", logo: "/logo.svg" },
+  { id: "dreamdash", name: "DreamDash", logo: "/projects/dreamdash.svg" },
   { id: "meetily", name: "Meetily", logo: "/projects/meetily.svg" },
   {
     id: "realsync-technologies",
