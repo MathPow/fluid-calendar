@@ -17,6 +17,7 @@ import {
   Watch,
 } from "lucide-react";
 
+import { ProjectLauncher } from "@/components/dashboard/ProjectLauncher";
 import { cn } from "@/lib/utils";
 
 interface EventItem {
@@ -247,6 +248,9 @@ export function DashboardView() {
           href="/notes"
         />
       </div>
+
+      {/* Project quick-launch */}
+      <ProjectLauncher />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Today's schedule */}
