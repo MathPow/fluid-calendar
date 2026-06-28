@@ -27,6 +27,7 @@ const PROJECTS: Project[] = [
     name: "RealSync",
     logo: "/projects/realsync.svg",
   },
+  { id: "ttyd", name: "SpySSH", logo: "/projects/ttyd.svg" },
 ];
 
 function ProjectLogo({ src, name }: { src: string | null; name: string }) {
@@ -57,7 +58,7 @@ export function ProjectLauncher() {
         <LayoutGrid className="h-4 w-4 text-muted-foreground" />
         Projects
       </h2>
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
         {PROJECTS.map((p) => (
           <a
             key={p.id}

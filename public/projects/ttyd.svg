@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Calque_1" data-name="Calque 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="14 26 246 250">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#StayChum_Gradient);
+        fill-rule: evenodd;
+      }
+    </style>
+    <radialGradient id="StayChum_Gradient" data-name="StayChum Gradient" cx="799.28" cy="165.23" fx="799.28" fy="165.23" r="113.94" gradientTransform="translate(-2274.19 -547.09) rotate(1.79) scale(3.1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f7bba8"/>
+      <stop offset="1" stop-color="#ed7175"/>
+    </radialGradient>
+  </defs>
+  <path class="cls-1" d="M165.61,208.72 A92,92,0,1,1,196.72,177.61 L239.62,220.51 A22,22,0,0,1,208.51,251.62 L165.61,208.72 Z M106.9625,132.12 L92.195,118.71 L76.6625,131.175 L70.43,123.4125 L89.285,108.2625 C91.2275,106.7325,93.965,106.815,95.75,108.465 L113.6675,124.7625 L106.9625,132.12 Z M159.0,132.1125 L144.2775,118.7025 L128.745,131.1675 L122.5125,123.405 L141.3675,108.255 C143.2575,106.7175,146.0475,106.8075,147.8325,108.4575 L165.6975,124.755 L158.9925,132.1125 Z"/>
+</svg>
