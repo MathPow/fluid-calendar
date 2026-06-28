@@ -1,10 +1,23 @@
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
-import { summarizeTranscript } from "./summarize";
+import { generateTitle, summarizeTranscript } from "./summarize";
 import { transcribeRecording } from "./transcribe";
 
 const LOG_SOURCE = "recordings-pipeline";
+
+/**
+ * True when the recording still has its ingest-default title (the original
+ * filename, or a generic voice-memo name) — i.e. safe to auto-rename. Avoids
+ * clobbering a title the client/user set deliberately.
+ */
+function isDefaultTitle(title: string, fileName: string): boolean {
+  const stem = fileName.replace(/\.[^.]+$/, "");
+  if (title.trim() === stem.trim()) return true;
+  return /^(enregistrement audio|nouvel enregistrement|new recording|audio recording|recording|voice memo|m[ée]mo vocal|untitled)\b/i.test(
+    title.trim()
+  );
+}
 
 /**
  * In-process serial queue. canardo is a weak CPU box (no GPU), so we transcribe
@@ -42,6 +55,15 @@ export async function processRecording(id: string): Promise<void> {
   const rec = await prisma.recording.findUnique({ where: { id } });
   if (!rec) return;
   if (rec.transcript && rec.summary) {
+    // Already processed — still backfill a title if it's the default name.
+    if (isDefaultTitle(rec.title, rec.fileName)) {
+      try {
+        const title = await generateTitle(rec.transcript, rec.language ?? undefined);
+        if (title) await prisma.recording.update({ where: { id }, data: { title } });
+      } catch {
+        // keep default title
+      }
+    }
     await prisma.recording.update({ where: { id }, data: { status: "done" } });
     return;
   }
@@ -71,6 +93,23 @@ export async function processRecording(id: string): Promise<void> {
         language,
       });
       await prisma.recording.update({ where: { id }, data: { summary } });
+    }
+
+    // Replace the default "Enregistrement audio …" filename with a generated
+    // title. Non-fatal: a title failure must not fail the recording.
+    if (transcript && isDefaultTitle(rec.title, rec.fileName)) {
+      try {
+        const title = await generateTitle(transcript, language);
+        if (title) {
+          await prisma.recording.update({ where: { id }, data: { title } });
+        }
+      } catch (error) {
+        logger.warn(
+          "Auto-title failed; keeping default",
+          { id, error: error instanceof Error ? error.message : String(error) },
+          LOG_SOURCE
+        );
+      }
     }
 
     await prisma.recording.update({

@@ -88,3 +88,58 @@ export async function summarizeTranscript(
   if (!summary) throw new Error("Ollama returned an empty summary");
   return summary;
 }
+
+/**
+ * Generate a short, descriptive title for a transcript (≤8 words), in the
+ * transcript's language. Used to replace the default "Enregistrement audio …"
+ * filename once a recording is transcribed.
+ */
+export async function generateTitle(
+  transcript: string,
+  language?: string
+): Promise<string> {
+  const lang = languageName(language);
+  // The opening of the transcript is enough for a title — keep the prompt small.
+  const clipped = transcript.slice(0, 4000);
+  const prompt = [
+    "Generate a concise, descriptive title for this audio transcript.",
+    "Maximum 8 words. No surrounding quotes, no trailing punctuation, no 'Title:' prefix.",
+    lang ? `Write the title in ${lang}.` : "Write it in the transcript's language.",
+    "\nTranscript:\n```\n" + clipped + "\n```",
+  ].join("\n");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${OLLAMA_URL}/api/generate`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        prompt,
+        stream: false,
+        options: { temperature: 0.3 },
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Ollama HTTP ${res.status}: ${body.slice(0, 300)}`);
+  }
+
+  const data = (await res.json()) as { response?: string };
+  let title = (data.response ?? "").trim();
+  // Strip wrapping quotes, a leading "Title:" the small model sometimes adds,
+  // and any trailing period; collapse to a single line.
+  title = title
+    .split("\n")[0]
+    .replace(/^["'«»\s]+|["'«».\s]+$/g, "")
+    .replace(/^title\s*:\s*/i, "")
+    .trim();
+  return title.slice(0, 120);
+}
