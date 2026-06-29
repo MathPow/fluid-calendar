@@ -739,3 +739,37 @@ model VoiceCommand {
   @@index([userId])
   @@index([createdAt])
 }
+
+// A code workspace/repo that Claude operates in via the SSH web terminal (ttyd).
+// Keyed by `slug` = folder basename, matching the ttyd launcher project id and
+// the claude-watch bridge's folderName. DISTINCT from the task-management
+// `Project` model above — this one tracks what the agent *did* per repo, fed by
+// the claude-watch bridge (Stop hook → Canardo summary → POST). Global (not
+// user-scoped): repos are shared, and the dashboard pages already require a session.
+model AgentProject {
+  id             String          @id @default(cuid())
+  slug           String          @unique // folder basename, e.g. "dreamdash", "ttyd"
+  name           String
+  path           String? // absolute path on the box, if known
+  lastActivityAt DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  activities     AgentActivity[]
+
+  @@index([lastActivityAt])
+}
+
+// One turn of agent work, summarized. Appended each time Claude finishes a turn
+// in a repo's web terminal.
+model AgentActivity {
+  id        String       @id @default(cuid())
+  projectId String
+  project   AgentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  summary   String // short markdown summary of what the agent did
+  agent     String? // e.g. "claude"
+  source    String? // e.g. "ttyd-web", "stop-hook"
+  createdAt DateTime     @default(now())
+
+  @@index([projectId])
+  @@index([createdAt])
+}

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
-import { LayoutGrid } from "lucide-react";
+import Link from "next/link";
+
+import { ArrowRight, LayoutGrid } from "lucide-react";
 
 /**
  * Quick-launch buttons for each project. Each opens the project's web terminal
@@ -54,10 +56,19 @@ function ProjectLogo({ src, name }: { src: string | null; name: string }) {
 export function ProjectLauncher() {
   return (
     <section className="rounded-xl border border-border bg-card p-4">
-      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-        <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-        Projects
-      </h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+          Projects
+        </h2>
+        <Link
+          href="/projets"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Voir les détails
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
         {PROJECTS.map((p) => (
           <a
