@@ -23,9 +23,12 @@ export const PROVIDER_PRESETS: Record<string, ProviderPreset> = {
   zoho: {
     id: "zoho",
     label: "Zoho",
-    imapHost: "imap.zoho.com",
+    // Canada data center (staychum.com is on zohocloud.ca). Zoho's IMAP host is
+    // data-center specific — imap.zoho.com only works for the US DC. For Zoho in
+    // another region use "Other IMAP" (e.g. imap.zoho.eu, imap.zoho.in).
+    imapHost: "imap.zohocloud.ca",
     imapPort: 993,
-    smtpHost: "smtp.zoho.com",
+    smtpHost: "smtp.zohocloud.ca",
     smtpPort: 465,
     hint: "Enable IMAP in Zoho Mail settings and create an app password (Account → Security).",
   },
