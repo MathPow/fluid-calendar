@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       email: true,
       imapHost: true,
       smtpHost: true,
+      station: true,
       createdAt: true,
     },
   });

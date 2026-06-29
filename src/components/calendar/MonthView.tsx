@@ -17,6 +17,7 @@ import { newDate } from "@/lib/date-utils";
 
 import { useCalendarStore } from "@/store/calendar";
 import { useSettingsStore } from "@/store/settings";
+import { useStationStore, accountVisibleInStation } from "@/store/station";
 import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, ExtendedEventProps } from "@/types/calendar";
@@ -64,6 +65,8 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
   const [clickedElement, setClickedElement] = useState<HTMLElement | null>(null);
 
   // Update events when the calendar view changes
+  const currentStation = useStationStore((st) => st.currentStation);
+
   const handleDatesSet = useCallback(
     async (arg: DatesSetArg) => {
       const items = getAllCalendarItems(arg.start, arg.end);
@@ -71,7 +74,7 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
         .filter((item) => {
           if (item.feedId === "tasks") return true;
           const feed = feeds.find((f) => f.id === item.feedId);
-          return feed?.enabled;
+          return feed?.enabled && accountVisibleInStation(feed.station, currentStation);
         })
         .map((item) => ({
           id: item.id,
@@ -102,7 +105,7 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
 
       setEvents(formattedItems);
     },
-    [feeds, getAllCalendarItems]
+    [feeds, getAllCalendarItems, currentStation]
   );
 
   // Initial data load

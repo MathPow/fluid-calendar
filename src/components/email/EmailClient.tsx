@@ -20,11 +20,14 @@ import {
 import { PROVIDER_PRESETS } from "@/lib/mail/providers";
 import { cn } from "@/lib/utils";
 
+import { accountVisibleInStation, useStationStore } from "@/store/station";
+
 interface Account {
   id: string;
   provider: string;
   displayName: string | null;
   email: string;
+  station?: string | null;
 }
 
 interface Address {
@@ -67,6 +70,7 @@ const fmtDate = (iso: string | null) => {
 };
 
 export function EmailClient() {
+  const currentStation = useStationStore((s) => s.currentStation);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountId, setAccountId] = useState<string | null>(null);
   const [folders, setFolders] = useState<string[]>([]);
@@ -122,13 +126,17 @@ export function EmailClient() {
     []
   );
 
-  // Initial load.
+  // Initial load — pick the first account visible under the active station.
   useEffect(() => {
     (async () => {
       const accts = await loadAccounts();
-      if (accts.length > 0) {
-        setAccountId(accts[0].id);
-        await loadMessages(accts[0].id, "INBOX", "", true);
+      const station = useStationStore.getState().currentStation;
+      const first =
+        accts.find((a) => accountVisibleInStation(a.station, station)) ??
+        accts[0];
+      if (first) {
+        setAccountId(first.id);
+        await loadMessages(first.id, "INBOX", "", true);
       }
       setInitializing(false);
     })();
@@ -143,6 +151,27 @@ export function EmailClient() {
     setFolders([]);
     await loadMessages(id, "INBOX", "", true);
   };
+
+  // Accounts shown under the active station (untagged always show).
+  const visibleAccounts = accounts.filter((a) =>
+    accountVisibleInStation(a.station, currentStation)
+  );
+
+  // If switching station hides the open account, jump to a visible one.
+  useEffect(() => {
+    if (initializing || accounts.length === 0) return;
+    if (accountId && visibleAccounts.some((a) => a.id === accountId)) return;
+    const next = visibleAccounts[0];
+    if (next) {
+      switchAccount(next.id);
+    } else {
+      setAccountId(null);
+      setMessages([]);
+      setSelectedUid(null);
+      setDetail(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStation]);
 
   const switchMailbox = async (box: string) => {
     if (!accountId) return;
@@ -284,9 +313,14 @@ export function EmailClient() {
           )}
         </div>
 
-        {/* Account switcher */}
+        {/* Account switcher (filtered by the active station) */}
         <div className="border-t border-border p-2">
-          {accounts.map((a) => (
+          {visibleAccounts.length === 0 && accounts.length > 0 && (
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              No accounts in this station.
+            </p>
+          )}
+          {visibleAccounts.map((a) => (
             <button
               key={a.id}
               onClick={() => switchAccount(a.id)}

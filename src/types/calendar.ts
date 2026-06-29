@@ -5,6 +5,7 @@ export interface CalendarFeed {
   type: "GOOGLE" | "OUTLOOK" | "CALDAV";
   color?: string;
   enabled: boolean;
+  station?: string | null; // "personal" | "work" | null
   lastSync?: Date;
   error?: string;
   caldavPath?: string;

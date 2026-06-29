@@ -11,6 +11,7 @@ import { CalendarSettings } from "@/components/settings/CalendarSettings";
 import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
 import { LogViewer } from "@/components/settings/LogViewer";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { StationSettings } from "@/components/settings/StationSettings";
 import { SystemSettings } from "@/components/settings/SystemSettings";
 import { TaskSyncSettings } from "@/components/settings/TaskSyncSettings";
 import { UserManagement } from "@/components/settings/UserManagement";
@@ -42,6 +43,7 @@ const WaitlistPage = dynamic(
 
 type SettingsTab =
   | "accounts"
+  | "stations"
   | "user"
   | "calendar"
   | "auto-schedule"
@@ -67,6 +69,7 @@ export default function SettingsPage() {
   const tabs = useMemo(() => {
     const baseTabs = [
       { id: "accounts", label: "Accounts" },
+      { id: "stations", label: "Stations" },
       { id: "user", label: "User" },
       { id: "calendar", label: "Calendar" },
       { id: "auto-schedule", label: "Auto-Schedule" },
@@ -109,6 +112,7 @@ export default function SettingsPage() {
       // Check if the hash is a valid tab ID, regardless of admin status
       const allPossibleTabIds: SettingsTab[] = [
         "accounts",
+        "stations",
         "user",
         "calendar",
         "auto-schedule",
@@ -181,6 +185,8 @@ export default function SettingsPage() {
     switch (activeTab) {
       case "accounts":
         return <AccountManager />;
+      case "stations":
+        return <StationSettings />;
       case "user":
         return <UserSettings />;
       case "calendar":
