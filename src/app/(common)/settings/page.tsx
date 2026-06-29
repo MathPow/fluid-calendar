@@ -229,7 +229,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="container py-6">
+    <div className="container px-4 py-6 md:px-6">
       <div className="flex flex-col lg:flex-row lg:space-x-12 lg:space-y-0">
         <aside className="lg:w-1/5">
           <Card>
