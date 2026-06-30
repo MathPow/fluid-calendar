@@ -2,8 +2,27 @@ import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+import { verifyUtSession, type UtClaims } from "@/lib/auth/ut-session";
 
 const LOG_SOURCE = "APIAuth";
+
+// Upsert l'utilisateur local (clé = email) depuis un compte UltraTales et renvoie son id.
+async function utUserId(claims: UtClaims): Promise<string> {
+  const user = await prisma.user.upsert({
+    where: { email: claims.email },
+    update: { name: claims.name || undefined },
+    create: { email: claims.email, name: claims.name || null },
+  });
+  return user.id;
+}
+
+// Tente le SSO UltraTales sur une requête (cookie ut_session). Renvoie le userId local ou null.
+async function tryUtSession(request: NextRequest): Promise<string | null> {
+  const claims = await verifyUtSession(request.cookies.get("ut_session")?.value);
+  if (!claims?.email) return null;
+  return utUserId(claims);
+}
 
 /**
  * Authenticates a request and returns the user ID if authenticated
@@ -21,19 +40,14 @@ export async function authenticateRequest(
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // If there's no token, return unauthorized
-  if (!token) {
-    logger.warn("Unauthorized access attempt to API", {}, logSource);
-    return { response: new NextResponse("Unauthorized", { status: 401 }) };
-  }
+  if (token?.sub) return { userId: token.sub };
 
-  const userId = token.sub;
-  if (!userId) {
-    logger.warn("No user ID found in token", {}, logSource);
-    return { response: new NextResponse("Unauthorized", { status: 401 }) };
-  }
+  // Fallback SSO UltraTales (cookie ut_session)
+  const utId = await tryUtSession(request);
+  if (utId) return { userId: utId };
 
-  return { userId };
+  logger.warn("Unauthorized access attempt to API", {}, logSource);
+  return { response: new NextResponse("Unauthorized", { status: 401 }) };
 }
 
 /**
@@ -48,6 +62,9 @@ export async function requireAuth(
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
     if (!token) {
+      // Fallback SSO UltraTales
+      const utId = await tryUtSession(req);
+      if (utId) return null;
       logger.warn(
         "Unauthenticated API access attempt",
         { path: req.nextUrl.pathname },
