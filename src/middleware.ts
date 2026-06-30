@@ -2,6 +2,8 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { verifyUtSession } from "@/lib/auth/ut-session";
+
 // List of public routes that don't require authentication
 const publicRoutes = [
   "/setup",
@@ -153,8 +155,16 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // If there's no token, redirect to the sign-in page
+  // If there's no NextAuth token, accept a valid UltraTales SSO cookie (ut_session).
   if (!token) {
+    const ut = await verifyUtSession(request.cookies.get("ut_session")?.value);
+    if (ut) {
+      // SSO authentifié : on laisse passer (pages admin réservées au token NextAuth).
+      if (adminRoutes.some((route) => pathname.startsWith(route))) {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+      return NextResponse.next();
+    }
     const url = new URL("/auth/signin", request.url);
     url.searchParams.set("callbackUrl", encodeURI(request.url));
     return NextResponse.redirect(url);
