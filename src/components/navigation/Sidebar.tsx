@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 import {
   Calendar,
   FileText,
+  FolderGit2,
   HelpCircle,
   LayoutDashboard,
   ListTodo,
@@ -34,6 +35,7 @@ const MENU: NavLink[] = [
   { href: "/email", label: "Email", icon: Mail },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/focus", label: "Focus", icon: Target },
+  { href: "/projets", label: "Projets", icon: FolderGit2 },
 ];
 
 interface SidebarProps {
