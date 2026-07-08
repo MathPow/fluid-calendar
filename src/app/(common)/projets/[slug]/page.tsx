@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { AskBox } from "@/components/projets/AskBox";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 
@@ -49,6 +50,8 @@ export default async function ProjetDetailPage({
           </p>
         ) : null}
       </header>
+
+      <AskBox slug={project.slug} />
 
       {project.activities.length === 0 ? (
         <p className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">

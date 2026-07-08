@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { FolderGit2 } from "lucide-react";
 
+import { AskBox } from "@/components/projets/AskBox";
 import { prisma } from "@/lib/prisma";
 
 // Activity is written by the bridge at any time; always render fresh.
@@ -33,6 +34,10 @@ export default async function ProjetsPage() {
         <FolderGit2 className="h-5 w-5 text-muted-foreground" />
         <h1 className="text-xl font-semibold tracking-tight">Projets</h1>
       </header>
+
+      {projects.length > 0 ? (
+        <AskBox placeholder="Pose une question sur tous les projets…" />
+      ) : null}
 
       {projects.length === 0 ? (
         <p className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
