@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
       isRecurring,
       recurrenceRule,
       allDay,
+      strongAlarm,
+      alarmMinutes,
     } = await request.json();
 
     if (!feedId || !title || !start || !end) {
@@ -115,6 +117,11 @@ export async function POST(request: NextRequest) {
         isRecurring: isRecurring || false,
         recurrenceRule,
         allDay: allDay || false,
+        strongAlarm: strongAlarm || false,
+        alarmMinutes:
+          typeof alarmMinutes === "number" && alarmMinutes > 0
+            ? alarmMinutes
+            : 30,
       },
     });
 
@@ -154,6 +161,8 @@ export async function PATCH(request: NextRequest) {
       isRecurring,
       recurrenceRule,
       allDay,
+      strongAlarm,
+      alarmMinutes,
     } = await request.json();
 
     if (!id) {
@@ -178,17 +187,37 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Re-arm the strong alarm if its timing or the flag itself changed, so the
+    // iOS Shortcut picks it up again on its next poll.
+    const newStart = start ? newDate(start) : undefined;
+    const startChanged =
+      newStart !== undefined &&
+      newStart.getTime() !== existingEvent.start.getTime();
+    const alarmMinutesChanged =
+      typeof alarmMinutes === "number" &&
+      alarmMinutes !== existingEvent.alarmMinutes;
+    const strongAlarmChanged =
+      strongAlarm !== undefined && strongAlarm !== existingEvent.strongAlarm;
+    const resetArmed =
+      startChanged || alarmMinutesChanged || strongAlarmChanged;
+
     const event = await prisma.calendarEvent.update({
       where: { id },
       data: {
         title,
         description,
-        start: start ? newDate(start) : undefined,
+        start: newStart,
         end: end ? newDate(end) : undefined,
         location,
         isRecurring,
         recurrenceRule,
         allDay,
+        strongAlarm: strongAlarm === undefined ? undefined : Boolean(strongAlarm),
+        alarmMinutes:
+          typeof alarmMinutes === "number" && alarmMinutes > 0
+            ? alarmMinutes
+            : undefined,
+        ...(resetArmed ? { alarmArmedAt: null } : {}),
       },
     });
 

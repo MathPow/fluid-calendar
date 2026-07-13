@@ -149,6 +149,15 @@ model CalendarEvent {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  // "Strong alarm": when true, this event should trigger a real device alarm
+  // (via the iOS Shortcuts poll at /api/shortcuts/alarms) rather than a normal
+  // push reminder. alarmMinutes is how long before `start` the alarm fires.
+  // alarmArmedAt is a dedup ledger: null = not yet handed to the Shortcut; set =
+  // already armed. It's reset to null whenever `start` or `strongAlarm` changes.
+  strongAlarm  Boolean   @default(false)
+  alarmMinutes Int       @default(30)
+  alarmArmedAt DateTime?
+
   // New fields for hybrid approach
   isMaster         Boolean         @default(false) // True if this is a master event
   masterEventId    String? // Reference to the master event for instances

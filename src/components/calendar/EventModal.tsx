@@ -155,6 +155,8 @@ export function EventModal({
     event?.feedId || calendar.defaultCalendarId || ""
   );
   const [isAllDay, setIsAllDay] = useState(event?.allDay || false);
+  const [strongAlarm, setStrongAlarm] = useState(event?.strongAlarm || false);
+  const [alarmMinutes, setAlarmMinutes] = useState(event?.alarmMinutes ?? 30);
   const [isRecurring, setIsRecurring] = useState(event?.isRecurring || false);
   const [recurrenceFreq, setRecurrenceFreq] = useState("");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
@@ -183,6 +185,8 @@ export function EventModal({
       );
       setSelectedFeedId(event?.feedId || calendar.defaultCalendarId || "");
       setIsAllDay(event?.allDay || false);
+      setStrongAlarm(event?.strongAlarm || false);
+      setAlarmMinutes(event?.alarmMinutes ?? 30);
       setIsRecurring(event?.isRecurring || false);
       const { freq, interval, byDay } = parseRecurrenceRule(
         event?.recurrenceRule
@@ -232,6 +236,8 @@ export function EventModal({
         end: endDate,
         feedId: selectedFeedId,
         allDay: isAllDay,
+        strongAlarm,
+        alarmMinutes,
         isRecurring,
         recurrenceRule: isRecurring
           ? buildRecurrenceRule(
@@ -474,6 +480,53 @@ export function EventModal({
               </Label>
             </div>
 
+            {!isAllDay && (
+              <div className="space-y-2 rounded-md border border-border p-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="strong-alarm"
+                    checked={strongAlarm}
+                    onCheckedChange={(checked) =>
+                      setStrongAlarm(checked as boolean)
+                    }
+                    data-testid="strong-alarm-checkbox"
+                  />
+                  <Label htmlFor="strong-alarm" className="text-sm">
+                    🔔 M&apos;alerter fortement (alarme sur le téléphone)
+                  </Label>
+                </div>
+                {strongAlarm && (
+                  <div className="flex items-center gap-2 pl-6">
+                    <Label
+                      htmlFor="alarm-minutes"
+                      className="text-sm text-muted-foreground"
+                    >
+                      Alarme
+                    </Label>
+                    <Input
+                      type="number"
+                      id="alarm-minutes"
+                      min="1"
+                      max="1440"
+                      value={alarmMinutes}
+                      onChange={(e) =>
+                        setAlarmMinutes(
+                          Math.min(
+                            1440,
+                            Math.max(1, parseInt(e.target.value, 10) || 1)
+                          )
+                        )
+                      }
+                      className="w-20"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      min avant le début
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <Input
@@ -612,6 +665,8 @@ export function EventModal({
     setStartDate(newDate());
     setEndDate(newDate(Date.now() + 3600000));
     setIsAllDay(false);
+    setStrongAlarm(false);
+    setAlarmMinutes(30);
     setIsRecurring(false);
     setRecurrenceFreq("");
     setRecurrenceInterval(1);

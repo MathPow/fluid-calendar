@@ -38,6 +38,10 @@ export interface CalendarEvent {
   recurrenceRule?: string;
   allDay: boolean;
   color?: string;
+  // "Strong alarm": trigger a real device alarm (via the iOS Shortcuts poll)
+  // instead of a normal push reminder. alarmMinutes = lead time before start.
+  strongAlarm?: boolean;
+  alarmMinutes?: number;
   // Additional fields for iCal support
   uid?: string; // Unique identifier from iCal
   sequence?: number; // Modification sequence

@@ -141,6 +141,22 @@ export async function PUT(
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { mode, ...updates } = await request.json();
+
+    // Re-arm the strong alarm when its timing or the flag itself changes, so
+    // the iOS Shortcut (/api/shortcuts/alarms) picks it up again on next poll.
+    const startChanged =
+      updates.start !== undefined &&
+      new Date(updates.start).getTime() !== existingEvent.start.getTime();
+    const alarmMinutesChanged =
+      updates.alarmMinutes !== undefined &&
+      updates.alarmMinutes !== existingEvent.alarmMinutes;
+    const strongAlarmChanged =
+      updates.strongAlarm !== undefined &&
+      updates.strongAlarm !== existingEvent.strongAlarm;
+    if (startChanged || alarmMinutesChanged || strongAlarmChanged) {
+      updates.alarmArmedAt = null;
+    }
+
     const updated = await prisma.calendarEvent.update({
       where: { id },
       data: updates,
