@@ -106,6 +106,11 @@ export async function GET(request: NextRequest) {
         alarmTime: at.toISOString(),
         // Pre-formatted local time for the iOS Shortcut (parse this, not alarmTime).
         alarmTimeLocal: localStamp(at),
+        // Bare "HH:mm" local time — iOS "Get Dates from Input" parses this in any
+        // locale (unlike the YYYY-MM-DD stamp, which a French device rejects).
+        // Time-of-day is all an iOS alarm needs; the 24h window guarantees the
+        // right occurrence.
+        alarmClock: localStamp(at).split(" ")[1],
         alarmMinutes: e.alarmMinutes,
       };
     });
