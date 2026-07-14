@@ -16,6 +16,28 @@ export const dynamic = "force-dynamic";
 // rings at exactly the right moment. That's why we only hand out alarms whose
 // fire time falls in the next 24 hours.
 const LOOKAHEAD_MS = 24 * 60 * 60 * 1000;
+// Timezone the alarm clock-times are expressed in. iOS Shortcuts' date parser
+// chokes on ISO-8601 with `T`/`Z`/millis, so we also hand back a pre-formatted
+// local time the "Get Dates from Input" action parses reliably.
+const ALARM_TZ = process.env.ALARM_TIMEZONE || "America/Toronto";
+
+/** "2026-07-14 01:30" (24h) in ALARM_TZ — numeric, locale-neutral, parseable. */
+function localStamp(d: Date): string {
+  const p = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ALARM_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+  const g = (t: string) => p.find((x) => x.type === t)?.value ?? "";
+  // ICU can emit "24" for midnight with hour12:false — normalize to "00".
+  const hh = g("hour") === "24" ? "00" : g("hour");
+  return `${g("year")}-${g("month")}-${g("day")} ${hh}:${g("minute")}`;
+}
+
 // Allow an alarm whose fire time slipped slightly into the past (late poll) to
 // still be armed — it'll just ring almost immediately.
 const GRACE_MS = 2 * 60 * 1000;
@@ -75,15 +97,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const alarms = due.map((e) => ({
-      id: e.id,
-      title: e.title,
-      start: e.start.toISOString(),
-      alarmTime: new Date(
-        e.start.getTime() - e.alarmMinutes * 60 * 1000
-      ).toISOString(),
-      alarmMinutes: e.alarmMinutes,
-    }));
+    const alarms = due.map((e) => {
+      const at = new Date(e.start.getTime() - e.alarmMinutes * 60 * 1000);
+      return {
+        id: e.id,
+        title: e.title,
+        start: e.start.toISOString(),
+        alarmTime: at.toISOString(),
+        // Pre-formatted local time for the iOS Shortcut (parse this, not alarmTime).
+        alarmTimeLocal: localStamp(at),
+        alarmMinutes: e.alarmMinutes,
+      };
+    });
 
     logger.info(
       "Served strong alarms to Shortcut",
