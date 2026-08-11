@@ -191,7 +191,15 @@ export async function buildDigest(
     ? [
         "Tu prépares un briefing pour un agent de développement qui va modifier du code et des documents.",
         `Appel : « ${ctx.title} ».`,
-        ctx.brief ? `\nCe que l'utilisateur attend de ce briefing :\n${ctx.brief}\n` : "",
+        ctx.brief
+          ? [
+              "\nCe que l'utilisateur espère trouver dans cet appel :",
+              ctx.brief,
+              "ATTENTION : ce brief dit ce que l'utilisateur CHERCHE, ce n'est pas une preuve",
+              "que ça a été discuté. Si le déroulé ci-dessous n'en parle pas, ne fabrique rien",
+              "pour lui faire plaisir — dis-le franchement.\n",
+            ].join("\n")
+          : "",
         "Voici le déroulé horodaté de l'appel :",
         timeline,
         "",
@@ -204,13 +212,25 @@ export async function buildDigest(
         "Règles strictes :",
         "- Termine CHAQUE puce par le timestamp d'où elle vient, entre crochets, ex. [1:47:20].",
         "- N'invente rien qui ne soit pas dans le déroulé ci-dessus.",
+        "- Une section sans matière dans le déroulé s'OMET. Mieux vaut un briefing court",
+        "  qu'une action inventée : un agent va agir sur ces puces.",
+        "- Si l'appel ne correspond pas du tout à ce que l'utilisateur attendait, écris",
+        "  une seule ligne « ## Note — l'appel ne couvre pas ce qui était attendu » et explique.",
         "- Sois concret et impératif : « Passer le pricing à 3 paliers », pas « ils ont parlé de pricing ».",
         "- Pas de préambule, pas de conclusion. Commence directement par la première section.",
       ]
     : [
         "You are preparing a briefing for a coding agent that will change code and documents.",
         `Call: "${ctx.title}".`,
-        ctx.brief ? `\nWhat the user expects from this briefing:\n${ctx.brief}\n` : "",
+        ctx.brief
+          ? [
+              "\nWhat the user hopes to find in this call:",
+              ctx.brief,
+              "CAUTION: the brief says what the user is LOOKING FOR — it is not evidence",
+              "that it was discussed. If the run below doesn't cover it, don't manufacture",
+              "anything to satisfy it; say so plainly.\n",
+            ].join("\n")
+          : "",
         "Here is the timestamped run of the call:",
         timeline,
         "",
@@ -223,6 +243,10 @@ export async function buildDigest(
         "Strict rules:",
         "- End EVERY bullet with the timestamp it came from, in brackets, e.g. [1:47:20].",
         "- Invent nothing that isn't in the run above.",
+        "- OMIT a section with no material in the run. A short briefing beats an invented",
+        "  action: an agent is going to act on these bullets.",
+        "- If the call doesn't match what the user expected at all, write a single",
+        "  \"## Note — the call doesn't cover what was expected\" section and explain.",
         "- Be concrete and imperative.",
         "- No preamble, no conclusion. Start directly with the first section.",
       ];
