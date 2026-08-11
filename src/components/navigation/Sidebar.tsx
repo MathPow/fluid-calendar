@@ -14,6 +14,7 @@ import {
   ListTodo,
   LogOut,
   Mail,
+  Mic,
   Settings,
   Target,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const MENU: NavLink[] = [
   { href: "/tasks", label: "Tasks", icon: ListTodo },
   { href: "/email", label: "Email", icon: Mail },
   { href: "/notes", label: "Notes", icon: FileText },
+  { href: "/sessions", label: "Sessions", icon: Mic },
   { href: "/focus", label: "Focus", icon: Target },
   { href: "/projets", label: "Projets", icon: FolderGit2 },
 ];

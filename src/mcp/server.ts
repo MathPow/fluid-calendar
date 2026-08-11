@@ -25,6 +25,20 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
+// Relative imports on purpose: src/mcp is excluded from tsconfig, so the "@/"
+// path alias isn't guaranteed to resolve when this runs standalone under tsx.
+// These modules take a Prisma client as an argument rather than importing the
+// app's singleton, precisely so they work on both sides.
+import { renderMission } from "../lib/sessions/mission";
+import { getSegmentRange, searchTranscript } from "../lib/sessions/search";
+import {
+  buildTimeline,
+  formatTimestamp,
+  parseTimestamp,
+  timelineDuration,
+} from "../lib/sessions/timeline";
+import { parseTargets } from "../lib/sessions/types";
+
 const TOKEN = process.env.FLUID_MCP_TOKEN ?? "";
 const PORT = Number(process.env.FLUID_MCP_PORT ?? 3837);
 const HOST = process.env.FLUID_MCP_HOST ?? "127.0.0.1";
@@ -358,6 +372,160 @@ function buildMcpServer(): McpServer {
         throw new Error("Task not found or not owned by this user.");
       await prisma.task.delete({ where: { id } });
       return ok({ deleted: id });
+    },
+  );
+
+  // ----- Work sessions (recorded calls → directed agent work) -----
+  //
+  // Three-level retrieval, and the descriptions say so on purpose: an agent that
+  // doesn't know the transcript is reachable will happily act on the digest
+  // alone. list/get_mission are cheap and always safe; get_segment and
+  // search_transcript reach into hours of verbatim and are meant to be used
+  // often, a few minutes at a time.
+
+  server.registerTool(
+    "list_missions",
+    {
+      description:
+        "List work sessions (recorded calls compiled into missions). Start here to find the session id for a call the user mentions.",
+      inputSchema: {
+        status: z
+          .enum(["draft", "processing", "ready", "error"])
+          .optional()
+          .describe("Filter by status. Only 'ready' sessions have a digest."),
+        limit: z.number().int().min(1).max(100).optional(),
+      },
+    },
+    async ({ status, limit }) => {
+      const userId = await resolveUserId();
+      const rows = await prisma.workSession.findMany({
+        where: { userId, ...(status ? { status } : {}) },
+        orderBy: { createdAt: "desc" },
+        take: limit ?? 25,
+        include: { recordings: { select: { durationSec: true } } },
+      });
+      return ok(
+        rows.map((s) => ({
+          id: s.id,
+          title: s.title,
+          status: s.status,
+          createdAt: s.createdAt.toISOString(),
+          compiledAt: s.compiledAt?.toISOString(),
+          audioCount: s.recordings.length,
+          totalDuration: formatTimestamp(
+            s.recordings.reduce((sum, r) => sum + (r.durationSec ?? 0), 0),
+          ),
+        })),
+      );
+    },
+  );
+
+  server.registerTool(
+    "get_mission",
+    {
+      description:
+        "Full mission for a work session: the user's written brief, the file paths you may change, a timestamped digest of what was decided, and a table of contents of the call. Read this FIRST. It deliberately does NOT contain the transcript — use search_transcript and get_segment to read the actual words.",
+      inputSchema: {
+        sessionId: z.string().describe("Session id from list_missions."),
+      },
+    },
+    async ({ sessionId }) => {
+      const userId = await resolveUserId();
+      const s = await prisma.workSession.findUnique({
+        where: { id: sessionId },
+        include: {
+          recordings: {
+            orderBy: { orderIndex: "asc" },
+            select: { id: true, title: true, orderIndex: true, durationSec: true },
+          },
+        },
+      });
+      if (!s || s.userId !== userId)
+        throw new Error("Session not found or not owned by this user.");
+
+      const timeline = buildTimeline(s.recordings);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: renderMission({
+              id: s.id,
+              title: s.title,
+              brief: s.brief,
+              digest: s.digest,
+              toc: s.toc,
+              lexicon: s.lexicon,
+              language: s.language,
+              targets: parseTargets(s.targets),
+              timeline,
+              totalDurationSec: timelineDuration(timeline),
+              createdAt: s.createdAt,
+            }),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "search_transcript",
+    {
+      description:
+        "Full-text search the verbatim transcript of a work session. Use it whenever a digest bullet is ambiguous, or to find where a topic was discussed. Returns ranked excerpts with timestamps you can then widen with get_segment.",
+      inputSchema: {
+        sessionId: z.string(),
+        query: z
+          .string()
+          .describe('Search terms. Supports quoted phrases and -exclusions, e.g. \'"trois paliers" pricing\'.'),
+        limit: z.number().int().min(1).max(100).optional().describe("Default 15."),
+      },
+    },
+    async ({ sessionId, query, limit }) => {
+      const userId = await resolveUserId();
+      const s = await prisma.workSession.findUnique({
+        where: { id: sessionId },
+        select: { userId: true },
+      });
+      if (!s || s.userId !== userId)
+        throw new Error("Session not found or not owned by this user.");
+
+      const hits = await searchTranscript(prisma, sessionId, query, { limit });
+      return ok(
+        hits.map((h) => ({ timestamp: h.timestamp, text: h.text, source: h.recordingTitle })),
+      );
+    },
+  );
+
+  server.registerTool(
+    "get_segment",
+    {
+      description:
+        "Verbatim transcript for a window of a work session's timeline. This is the source of truth — the digest is only an index. Pull the minutes that matter rather than trying to read the whole call.",
+      inputSchema: {
+        sessionId: z.string(),
+        from: z.string().describe('Start, e.g. "1:40:00" or "742" (seconds).'),
+        to: z.string().describe('End, e.g. "1:55:00".'),
+      },
+    },
+    async ({ sessionId, from, to }) => {
+      const userId = await resolveUserId();
+      const s = await prisma.workSession.findUnique({
+        where: { id: sessionId },
+        select: { userId: true },
+      });
+      if (!s || s.userId !== userId)
+        throw new Error("Session not found or not owned by this user.");
+
+      const fromSec = parseTimestamp(from);
+      const toSec = parseTimestamp(to);
+      if (fromSec === null || toSec === null)
+        throw new Error('from/to must be timestamps like "1:40:00" or seconds.');
+
+      const range = await getSegmentRange(prisma, sessionId, fromSec, toSec);
+      const header = range.truncated
+        ? "[window truncated — request a narrower range for the rest]\n\n"
+        : "";
+      return { content: [{ type: "text" as const, text: header + range.text }] };
     },
   );
 
