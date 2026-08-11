@@ -26,7 +26,11 @@ COPY . .
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps --ignore-scripts
 RUN npm run prisma:generate
-RUN npm run build
+# Node's default heap isn't enough for `next build`'s type-check pass on this
+# codebase: tsc gets OOM-killed mid-"Linting and checking validity of types",
+# and the build dies without printing an error, which looks like a mystery
+# failure. Raise the heap explicitly.
+RUN NODE_OPTIONS=--max-old-space-size=6144 npm run build
 
 # Production stage
 FROM base AS production
