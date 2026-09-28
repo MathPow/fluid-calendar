@@ -68,12 +68,14 @@ export function Calendar({
     useTaskStore.getState().fetchTasks();
   }, [initialFeeds, initialEvents, setFeeds, setEvents]);
 
-  // Default to day view on mobile
+  // Default to day view on mobile, with the calendar drawer closed so the
+  // grid isn't hidden behind it on first load.
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setView("day");
+      setSidebarOpen(false);
     }
-  }, [setView]);
+  }, [setView, setSidebarOpen]);
 
   const handlePrev = () => {
     if (view === "month" || view === "multiMonth") {
@@ -122,7 +124,7 @@ export function Calendar({
       {/* Sidebar */}
       <aside
         className={cn(
-          "h-full w-80 flex-none border-r border-gray-200 bg-white",
+          "h-full w-80 flex-none border-r border-border bg-card",
           "transform transition-transform duration-300 ease-in-out",
           "fixed inset-y-0 left-0 z-40",
           "md:relative md:z-auto",
@@ -143,10 +145,10 @@ export function Calendar({
         <LifetimeAccessBanner />
 
         {/* Header */}
-        <header className="flex h-14 flex-none items-center gap-2 border-b border-border px-3">
+        <header className="flex h-16 flex-none items-center gap-2 border-b border-border px-3 md:px-5">
           <button
             onClick={() => setSidebarOpen(!isSidebarOpen)}
-            className="rounded-lg p-2 text-foreground hover:bg-muted"
+            className="rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             title="Toggle Sidebar (b)"
           >
             <Menu className="h-5 w-5" />
@@ -156,17 +158,17 @@ export function Calendar({
           <div className="flex items-center gap-1">
             <button
               onClick={handlePrev}
-              className="rounded-lg p-2 text-foreground hover:bg-muted"
+              className="rounded-full p-2 text-foreground hover:bg-secondary"
               title="Previous (←)"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <h1 className="min-w-0 truncate text-base font-semibold text-foreground md:text-lg">
+            <h1 className="min-w-0 truncate text-[18px] font-bold tracking-title text-foreground md:text-[22px]">
               {formatDate(currentDate)}
             </h1>
             <button
               onClick={handleNext}
-              className="rounded-lg p-2 text-foreground hover:bg-muted"
+              className="rounded-full p-2 text-foreground hover:bg-secondary"
               title="Next (→)"
             >
               <ChevronRight className="h-5 w-5" />
@@ -177,31 +179,27 @@ export function Calendar({
           <div className="ml-2 hidden items-center gap-2 md:flex">
             <button
               onClick={() => setDate(newDate())}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+              className="rounded-full px-3.5 py-1.5 text-[13px] font-medium text-foreground hover:bg-secondary"
               title="Go to Today (t)"
             >
               Today
             </button>
             <button
               onClick={handleAutoSchedule}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10"
+              className="rounded-full border-[1.5px] border-foreground px-3.5 py-1 text-[13px] font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
             >
               Auto Schedule
             </button>
           </div>
 
           {/* Desktop-only view switcher */}
-          <div className="ml-auto hidden items-center gap-1 md:flex">
+          <div className="segmented ml-auto hidden md:inline-flex">
             {desktopViewButtons.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setView(key)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm font-medium",
-                  view === key
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
+                className="segmented-item"
+                data-active={view === key}
               >
                 {label}
               </button>
@@ -211,7 +209,7 @@ export function Calendar({
           {/* Mobile-only add button */}
           <button
             onClick={() => eventModal.setOpen(true)}
-            className="ml-auto rounded-full bg-primary p-2.5 text-primary-foreground shadow-md md:hidden"
+            className="ml-auto rounded-full bg-primary p-2.5 text-primary-foreground shadow-float md:hidden"
             title="New event"
           >
             <CalendarPlus className="h-5 w-5" />
@@ -232,7 +230,7 @@ export function Calendar({
         </div>
 
         {/* Mobile-only bottom nav */}
-        <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t border-border bg-background md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
           {mobileNavItems.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -241,7 +239,7 @@ export function Calendar({
                 "flex flex-1 flex-col items-center justify-center gap-0.5 py-3",
                 "text-xs font-medium transition-colors",
                 view === key
-                  ? "text-primary"
+                  ? "text-foreground"
                   : "text-muted-foreground"
               )}
             >

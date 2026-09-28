@@ -2,111 +2,265 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   DreamDash design tokens — "papier & encre"
+   Warm paper canvas, pure white tiles, ink-black primary, one cold client
+   tint (blue) for accents, and warm colours reserved for statuses.
+   --------------------------------------------------------------------------- */
 @layer base {
   :root {
     color-scheme: light;
-    /* Soft warm canvas; cards stay pure white for the "cards on gray" look */
-    --background: 30 24% 97%;
-    --foreground: 220 14% 16%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 14% 16%;
+    /* Surfaces */
+    --background: 30 25% 98%; /* fond papier   #fcfbfa */
+    --foreground: 255 8% 10%; /* texte encre   #19181c */
+
+    --card: 0 0% 100%; /* fond surface  #ffffff */
+    --card-foreground: 255 8% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 14% 16%;
+    --popover-foreground: 255 8% 10%;
 
-    /* Coral accent */
-    --primary: 6 100% 68%;
+    /* Ink is the primary action colour */
+    --primary: 255 8% 10%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 16% 94%;
-    --secondary-foreground: 220 14% 20%;
+    /* Track / piste — inputs, segmented controls, quiet chips */
+    --secondary: 40 20% 94%; /* #f3f1ed */
+    --secondary-foreground: 255 8% 10%;
 
-    --muted: 30 16% 94%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 40 20% 94%;
+    --muted-foreground: 252 2% 44%; /* encre atténuée #6e6d72 */
 
-    /* Subtle coral-tinted hover surface */
-    --accent: 6 100% 96%;
-    --accent-foreground: 6 72% 42%;
+    /* Hover surface */
+    --accent: 40 20% 94%;
+    --accent-foreground: 255 8% 10%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Client tint — cold, never a status */
+    --tint-400: 215 100% 83%; /* #a8ccff */
+    --tint-100: 214 100% 94%; /* #e1eeff */
+    --tint-foreground: 255 8% 10%;
+
+    /* Warm states */
+    --positive: 143 33% 91%; /* #dfefe5 */
+    --positive-foreground: 151 61% 27%; /* #1b7147 */
+    --pending: 41 81% 92%; /* #fbf0d8 */
+    --pending-foreground: 39 82% 30%; /* #8c5f0e */
+    --negative: 0 68% 93%;
+    --negative-foreground: 0 56% 40%;
+
+    --destructive: 0 56% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --warning: 39 82% 30%;
+    --warning-foreground: 41 81% 92%;
 
-    --border: 30 12% 90%;
-    --input: 30 12% 90%;
-    --ring: 6 100% 68%;
+    /* Hairlines */
+    --border: 40 15% 88%; /* trait filet #e5e2dc */
+    --input: 40 20% 94%;
+    --ring: 215 100% 70%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    /* coral → amber → teal → indigo → rose */
-    --chart-1: 6 100% 68%;
+    --shadow-tile: 0 8px 24px 0 rgba(25, 24, 28, 0.06);
+    --shadow-float: 0 10px 28px 0 rgba(25, 24, 28, 0.1);
 
-    --chart-2: 33 95% 60%;
-
-    --chart-3: 173 58% 45%;
-
-    --chart-4: 222 60% 58%;
-
-    --chart-5: 340 75% 62%;
+    /* Charts: tint first, then the warm family */
+    --chart-1: 215 100% 70%;
+    --chart-2: 39 82% 50%;
+    --chart-3: 151 45% 42%;
+    --chart-4: 350 100% 73%;
+    --chart-5: 268 60% 72%;
   }
 
   .dark {
     color-scheme: dark;
-    --background: 220 14% 11%;
-    --foreground: 0 0% 98%;
 
-    /* Cards sit one step above the canvas */
-    --card: 220 12% 15%;
-    --card-foreground: 0 0% 98%;
+    --background: 255 9% 8%;
+    --foreground: 40 13% 95%;
 
-    --popover: 220 12% 15%;
-    --popover-foreground: 0 0% 98%;
+    --card: 252 8% 12%;
+    --card-foreground: 40 13% 95%;
 
-    /* Coral accent */
-    --primary: 6 100% 68%;
-    --primary-foreground: 0 0% 100%;
+    --popover: 252 8% 12%;
+    --popover-foreground: 40 13% 95%;
 
-    --secondary: 220 10% 20%;
-    --secondary-foreground: 0 0% 98%;
+    /* Ink flips to paper on dark */
+    --primary: 40 13% 95%;
+    --primary-foreground: 255 8% 10%;
 
-    --muted: 220 10% 20%;
-    --muted-foreground: 0 0% 63.9%;
+    --secondary: 250 7% 16%;
+    --secondary-foreground: 40 13% 95%;
 
-    --accent: 6 45% 24%;
-    --accent-foreground: 6 100% 82%;
+    --muted: 250 7% 16%;
+    --muted-foreground: 250 3% 65%;
 
-    --destructive: 0 62.8% 45%;
-    --destructive-foreground: 0 0% 98%;
+    --accent: 250 7% 18%;
+    --accent-foreground: 40 13% 95%;
 
-    --warning: 48 96% 89%;
-    --warning-foreground: 38 92% 50%;
+    --tint-400: 215 100% 83%;
+    --tint-100: 218 36% 18%;
+    --tint-foreground: 255 8% 10%;
 
-    --border: 220 10% 22%;
-    --input: 220 10% 22%;
-    --ring: 6 100% 68%;
-    --chart-1: 6 100% 68%;
-    --chart-2: 33 95% 62%;
-    --chart-3: 173 58% 48%;
-    --chart-4: 222 70% 64%;
-    --chart-5: 340 75% 60%;
+    --positive: 151 30% 16%;
+    --positive-foreground: 151 45% 65%;
+    --pending: 39 40% 16%;
+    --pending-foreground: 41 70% 65%;
+    --negative: 0 35% 16%;
+    --negative-foreground: 0 70% 70%;
+
+    --destructive: 0 60% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 41 70% 65%;
+    --warning-foreground: 39 40% 16%;
+
+    --border: 249 7% 19%;
+    --input: 250 7% 16%;
+    --ring: 215 100% 70%;
+
+    --shadow-tile: 0 8px 24px 0 rgba(0, 0, 0, 0.35);
+    --shadow-float: 0 12px 32px 0 rgba(0, 0, 0, 0.5);
+
+    --chart-1: 215 100% 78%;
+    --chart-2: 41 70% 60%;
+    --chart-3: 151 45% 55%;
+    --chart-4: 350 100% 76%;
+    --chart-5: 268 60% 75%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border transition-colors duration-200;
+    @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-foreground antialiased;
+    font-feature-settings:
+      "ss01" on,
+      "cv11" on;
+  }
+  ::selection {
+    background: hsl(var(--tint-400) / 0.6);
+    color: hsl(var(--tint-foreground));
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-title;
+    text-wrap: balance;
+  }
+  kbd {
+    @apply rounded-md bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-muted-foreground;
   }
 }
 
-/* FullCalendar Customization */
+/* ---------------------------------------------------------------------------
+   Recurring shapes from the design
+   --------------------------------------------------------------------------- */
+@layer components {
+  /* 11px uppercase tracked label ("Étiquette") */
+  .etiquette {
+    @apply text-[11px] font-medium uppercase leading-none tracking-label text-muted-foreground;
+  }
+
+  /* Big extra-bold headline ("Affiche") — ends with a period by convention */
+  .display {
+    @apply font-extrabold leading-[0.9] tracking-display text-foreground;
+  }
+
+  /* Section title inside a tile ("Titre de section") */
+  .titre-section {
+    @apply text-[26px] font-bold leading-[1.1] tracking-title md:text-[32px];
+  }
+
+  /* Serif "voice" phrase (Newsreader) */
+  .voice {
+    @apply font-serif font-medium leading-[1.2] tracking-[-0.01em];
+  }
+  .voice-note {
+    @apply font-serif italic leading-[1.3] text-muted-foreground;
+  }
+
+  /* Tiles */
+  .tile {
+    @apply rounded-tile bg-card text-card-foreground shadow-tile;
+  }
+  .tile-ink {
+    @apply rounded-tile bg-foreground text-background shadow-tile;
+  }
+  .tile-tint {
+    @apply rounded-tile bg-tint text-tint-foreground;
+  }
+
+  /* Hairline */
+  .filet {
+    @apply h-px w-full bg-border;
+  }
+
+  /* Segmented control (pill slider) */
+  .segmented {
+    @apply inline-flex items-center gap-0.5 rounded-full bg-secondary p-1;
+  }
+  .segmented-item {
+    @apply inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium text-foreground/80 transition-colors hover:text-foreground;
+  }
+  .segmented-item[data-active="true"],
+  .segmented-item[aria-pressed="true"],
+  .segmented-item[aria-current="page"] {
+    @apply bg-primary text-primary-foreground shadow-sm;
+  }
+
+  /* Numbered row ("Rangée") */
+  .rangee-num {
+    @apply w-7 shrink-0 text-[15px] font-semibold tabular-nums tracking-title text-muted-foreground;
+  }
+
+  /* Page container — same gutters as the portal (60px at 1440) */
+  .page {
+    @apply mx-auto w-full max-w-[1400px] px-5 sm:px-8 lg:px-[60px];
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   FullCalendar (day / week / month grids)
+   --------------------------------------------------------------------------- */
 .fc {
   @apply h-full;
+  --fc-small-font-size: 0.8em;
+  --fc-page-bg-color: hsl(var(--card));
+  --fc-neutral-bg-color: hsl(var(--muted) / 0.5);
+  --fc-neutral-text-color: hsl(var(--muted-foreground));
+  --fc-border-color: hsl(var(--border));
+
+  --fc-button-text-color: hsl(var(--primary-foreground));
+  --fc-button-bg-color: hsl(var(--primary));
+  --fc-button-border-color: hsl(var(--primary));
+  --fc-button-hover-bg-color: hsl(var(--primary) / 0.9);
+  --fc-button-hover-border-color: hsl(var(--primary) / 0.9);
+  --fc-button-active-bg-color: hsl(var(--primary) / 0.8);
+  --fc-button-active-border-color: hsl(var(--primary) / 0.8);
+
+  --fc-event-bg-color: hsl(var(--tint-400));
+  --fc-event-border-color: hsl(var(--tint-400));
+  --fc-event-text-color: hsl(var(--tint-foreground));
+  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.15);
+
+  --fc-more-link-bg-color: hsl(var(--muted));
+  --fc-more-link-text-color: hsl(var(--muted-foreground));
+
+  --fc-non-business-color: hsl(var(--muted) / 0.35);
+  --fc-bg-event-color: hsl(var(--tint-400) / 0.3);
+  --fc-bg-event-opacity: 0.3;
+  --fc-highlight-color: hsl(var(--tint-100));
+  --fc-today-bg-color: hsl(var(--tint-100) / 0.6);
+  --fc-now-indicator-color: hsl(var(--destructive));
 }
 
 .fc .fc-toolbar {
@@ -118,11 +272,11 @@
 }
 
 .fc .fc-button {
-  @apply bg-card border border-border text-foreground px-3 py-1.5 rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  @apply rounded-full border border-border bg-card px-3 py-1.5 text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
 }
 
 .fc .fc-button-primary {
-  @apply bg-primary text-primary-foreground border-primary hover:bg-primary/90;
+  @apply border-primary bg-primary text-primary-foreground hover:bg-primary/90;
 }
 
 .fc .fc-daygrid-day-frame {
@@ -133,12 +287,14 @@
   @apply h-20;
 }
 
-.fc .fc-timegrid-slot-label {
-  @apply text-xs text-gray-500;
+.fc .fc-timegrid-slot-label,
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-timegrid-axis-cushion {
+  @apply text-[11px] font-medium text-muted-foreground;
 }
 
 .fc .fc-event {
-  @apply rounded shadow-sm border-none cursor-pointer;
+  @apply cursor-pointer rounded-lg border-none shadow-sm;
 }
 
 .fc .fc-event-main {
@@ -157,125 +313,65 @@
   @apply text-xs opacity-90;
 }
 
-.fc .fc-timegrid-now-indicator-line {
-  @apply border-red-500;
-}
-
+.fc .fc-timegrid-now-indicator-line,
 .fc .fc-timegrid-now-indicator-arrow {
-  @apply border-red-500;
+  border-color: hsl(var(--destructive));
 }
 
 .fc .fc-day-today {
-  @apply bg-primary/5;
-}
-
-.fc .fc-day-header {
-  @apply py-2 border-b border-gray-200;
-}
-
-.fc .fc-scrollgrid {
-  @apply border-gray-200;
+  background: var(--fc-today-bg-color);
 }
 
 .fc .fc-col-header-cell {
-  @apply bg-white border-b border-gray-200;
+  @apply border-b border-border bg-card;
 }
 
-/* Dark mode styles for FullCalendar */
-.dark .fc {
-  --fc-small-font-size: .85em;
-  --fc-page-bg-color: hsl(var(--background));
-  --fc-neutral-bg-color: hsl(var(--muted) / 0.2);
-  --fc-neutral-text-color: hsl(var(--muted-foreground));
-  --fc-border-color: hsl(var(--border));
-
-  --fc-button-text-color: hsl(var(--primary-foreground));
-  --fc-button-bg-color: hsl(var(--primary));
-  --fc-button-border-color: hsl(var(--primary));
-  --fc-button-hover-bg-color: hsl(var(--primary) / 0.9);
-  --fc-button-hover-border-color: hsl(var(--primary) / 0.9);
-  --fc-button-active-bg-color: hsl(var(--primary) / 0.8);
-  --fc-button-active-border-color: hsl(var(--primary) / 0.8);
-
-  --fc-event-bg-color: hsl(var(--primary));
-  --fc-event-border-color: hsl(var(--primary));
-  --fc-event-text-color: hsl(var(--primary-foreground));
-  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
-
-  --fc-more-link-bg-color: hsl(var(--muted));
-  --fc-more-link-text-color: hsl(var(--muted-foreground));
-
-  --fc-non-business-color: hsl(var(--muted) / 0.3);
-  --fc-bg-event-color: hsl(var(--primary) / 0.3);
-  --fc-bg-event-opacity: 0.3;
-  --fc-highlight-color: hsl(var(--accent) / 0.3);
-  --fc-today-bg-color: hsl(var(--primary) / 0.1);
-  --fc-now-indicator-color: hsl(var(--destructive));
+.fc .fc-col-header-cell-cushion {
+  @apply py-2 text-[11px] font-medium uppercase tracking-label text-muted-foreground;
 }
 
-.dark .fc .fc-toolbar-title {
-  color: hsl(var(--foreground));
+.fc .fc-daygrid-day-number {
+  @apply text-sm font-medium text-foreground;
 }
 
-.dark .fc .fc-col-header-cell-cushion {
-  color: hsl(var(--foreground));
+.fc .fc-scrollgrid {
+  @apply border-border;
 }
 
-.dark .fc .fc-daygrid-day.fc-day-other {
+.fc .fc-daygrid-day.fc-day-other {
   background: var(--fc-neutral-bg-color);
 }
 
-.dark .fc .fc-scrollgrid-section-sticky > * {
-  background: unset;
+.fc .fc-scrollgrid-section-sticky > * {
+  background: var(--fc-page-bg-color);
   position: sticky;
   z-index: 3;
 }
 
-.dark :not(td[aria-labelledby]) > .fc-daygrid-day-frame {
-  background: var(--fc-neutral-bg-color);
-}
-
-.dark .fc .fc-scrollgrid-section-body {
+.fc .fc-scrollgrid-section-body,
+.fc .fc-timegrid-slot-label,
+.fc .fc-timegrid-axis-frame {
   background: var(--fc-page-bg-color);
 }
 
-.dark .fc .fc-timegrid-slot-label,
-.dark .fc .fc-timegrid-axis-frame {
-  background-color: var(--fc-page-bg-color);
-}
-
-.dark .fc .fc-col-header-cell {
-  background: var(--fc-page-bg-color);
-  border-color: var(--fc-border-color);
-}
-
-.dark .fc .fc-timegrid-slot-label-cushion,
-.dark .fc .fc-timegrid-axis-cushion {
-  color: hsl(var(--foreground));
-}
-
-.dark .fc .fc-daygrid-day-number {
-  color: hsl(var(--foreground));
-}
-
-/* Command Palette Styles */
+/* ---------------------------------------------------------------------------
+   Command palette (cmdk)
+   --------------------------------------------------------------------------- */
 [cmdk-root] {
   max-width: 640px;
   width: 100%;
-  background-color: hsl(var(--background));
-  border-radius: 8px;
-  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  border-radius: 24px;
 }
 
 [cmdk-input] {
   border: none;
   width: 100%;
-  font-size: 14px;
+  font-size: 15px;
   padding: 12px;
   outline: none;
   background: transparent;
   color: hsl(var(--foreground));
-  border: none;
   margin: 0;
   border-radius: 0;
 }
@@ -293,21 +389,19 @@
   content-visibility: auto;
   cursor: pointer;
   height: 40px;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 14px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 8px;
+  padding: 0 10px;
   color: hsl(var(--foreground));
   user-select: none;
   will-change: background, color;
-  transition: all 150ms ease;
-  transition-property: none;
 }
 
 [cmdk-item][aria-selected="true"] {
-  background: hsl(var(--muted));
+  background: hsl(var(--tint-100));
   color: hsl(var(--foreground));
 }
 
@@ -318,34 +412,35 @@
 
 [cmdk-group-heading] {
   user-select: none;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: hsl(var(--muted-foreground));
-  padding: 0 8px;
+  padding: 6px 10px;
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
-/* Privacy Mode Styles */
+/* ---------------------------------------------------------------------------
+   Privacy mode
+   --------------------------------------------------------------------------- */
 .privacy-mode-active .private-content {
   filter: blur(3px);
   transition: filter 0.1s ease-in-out;
 }
 
 .privacy-mode-active .private-content:hover {
-  filter: blur(3px); /* Increase blur on hover for better privacy */
+  filter: blur(3px);
 }
 
-/* Apply to specific content types */
 .privacy-mode-active .event-title,
 .privacy-mode-active .event-description,
 .privacy-mode-active .event-location,
 .privacy-mode-active .event-attendees,
 .privacy-mode-active .calendar-event-title,
-.privacy-mode-active .calendar-event-description {
-  filter: blur(3px);
-  transition: filter 0.1s ease-in-out;
-}
+.privacy-mode-active .calendar-event-description,
 .privacy-mode-active .task-title,
 .privacy-mode-active .task-description,
 .privacy-mode-active .task-notes,
@@ -356,23 +451,13 @@
   transition: filter 0.1s ease-in-out;
 }
 
-/* Ensure privacy mode toggle is always visible */
 .privacy-mode-toggle {
   z-index: 100;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-/* Override toast description styles for better readability */
+/* Toast description readability */
 .notification-toast [data-description] {
-  color: var(--foreground) !important;
+  color: hsl(var(--foreground)) !important;
   font-weight: 500 !important;
   opacity: 1 !important;
 }

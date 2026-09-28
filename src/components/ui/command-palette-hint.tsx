@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 import { Search, X } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+
 export function CommandPaletteHint() {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -30,54 +32,41 @@ export function CommandPaletteHint() {
   // Trigger command palette
   const openCommandPalette = () => {
     dismissHint();
-    // Simulate Cmd+K / Ctrl+K
-    const event = new KeyboardEvent("keydown", {
-      key: "k",
-      metaKey: true,
-      bubbles: true,
-    });
-    document.dispatchEvent(event);
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })
+    );
   };
 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 duration-300 animate-in fade-in slide-in-from-bottom-4">
-      <div className="max-w-xs rounded-lg border bg-background p-4 shadow-lg">
+    <div className="fixed bottom-5 right-5 z-50 duration-300 animate-in fade-in slide-in-from-bottom-4">
+      <div className="max-w-xs rounded-[24px] bg-card p-5 shadow-float">
         <div className="mb-2 flex items-start justify-between">
-          <div className="flex items-center gap-2 font-medium text-primary">
-            <Search className="h-5 w-5" />
-            <span>Quick Tip</span>
-          </div>
+          <p className="etiquette flex items-center gap-2 pt-1">
+            <Search className="h-3.5 w-3.5" />
+            Quick tip
+          </p>
           <button
             onClick={dismissHint}
-            className="text-muted-foreground hover:text-foreground"
+            className="-mr-1 -mt-1 rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
             aria-label="Dismiss hint"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="mb-3 text-sm text-foreground">
-          Press <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs">⌘K</kbd>{" "}
-          (or{" "}
-          <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs">Ctrl+K</kbd>)
-          to open the command palette and quickly access features.
+        <p className="voice mb-4 text-[19px] text-foreground">
+          Press <kbd>⌘K</kbd> to search or run anything.
         </p>
 
         <div className="flex justify-end gap-2">
-          <button
-            onClick={dismissHint}
-            className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
-          >
+          <Button variant="ghost" size="sm" onClick={dismissHint}>
             Dismiss
-          </button>
-          <button
-            onClick={openCommandPalette}
-            className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground hover:bg-primary/90"
-          >
+          </Button>
+          <Button size="sm" onClick={openCommandPalette}>
             Try it now
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -3,12 +3,10 @@
 import { useEffect, useState } from "react";
 
 import dynamic from "next/dynamic";
-
-import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import { DndProvider } from "@/components/dnd/DndProvider";
-import { Sidebar } from "@/components/navigation/Sidebar";
-import { Topbar } from "@/components/navigation/Topbar";
+import { AppHeader } from "@/components/navigation/AppHeader";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { PrivacyProvider } from "@/components/providers/PrivacyProvider";
 import { SessionProvider } from "@/components/providers/SessionProvider";
@@ -47,7 +45,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  // Sign-in, password reset and first-run setup are full-bleed pages that
+  // carry their own wordmark — no app chrome there.
+  const bare = pathname?.startsWith("/auth") || pathname === "/setup";
   const { isOpen: shortcutsOpen, setOpen: setShortcutsOpen } =
     useShortcutsStore();
 
@@ -70,7 +71,7 @@ export default function RootLayout({
   }, [setShortcutsOpen]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden">
       <SessionProvider>
         <PrivacyProvider>
           <DndProvider>
@@ -79,44 +80,18 @@ export default function RootLayout({
               open={commandPaletteOpen}
               onOpenChange={setCommandPaletteOpen}
             />
-            <CommandPaletteHint />
-            <CommandPaletteFab />
+            {!bare && <CommandPaletteHint />}
+            {!bare && <CommandPaletteFab />}
             <ShortcutsModal
               isOpen={shortcutsOpen}
               onClose={() => setShortcutsOpen(false)}
             />
 
-            {/* Desktop sidebar */}
-            <Sidebar className="hidden md:flex" />
+            {!bare && <AppHeader />}
 
-            {/* Mobile sidebar drawer */}
-            {mobileSidebarOpen && (
-              <div className="fixed inset-0 z-40 md:hidden">
-                <div
-                  className="absolute inset-0 bg-black/40"
-                  onClick={() => setMobileSidebarOpen(false)}
-                />
-                <div className="absolute left-0 top-0 h-full">
-                  <Sidebar onNavigate={() => setMobileSidebarOpen(false)} />
-                  <button
-                    type="button"
-                    onClick={() => setMobileSidebarOpen(false)}
-                    className="absolute right-3 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
-                    aria-label="Close menu"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Main column */}
-            <div className="flex min-w-0 flex-1 flex-col">
-              <Topbar onMenuClick={() => setMobileSidebarOpen(true)} />
-              <main className="relative flex-1 overflow-auto">
-                <NotificationProvider>{children}</NotificationProvider>
-              </main>
-            </div>
+            <main className="relative min-h-0 flex-1 overflow-auto">
+              <NotificationProvider>{children}</NotificationProvider>
+            </main>
 
             <PwaInstallPrompt />
             <Toaster />

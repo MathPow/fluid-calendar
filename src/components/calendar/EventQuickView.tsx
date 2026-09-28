@@ -69,7 +69,7 @@ export function EventQuickView({
     switch (status?.toUpperCase()) {
       case "ACCEPTED":
       case TaskStatus.COMPLETED:
-        return "text-green-600 dark:text-green-400";
+        return "text-positive-foreground";
       case "TENTATIVE":
       case TaskStatus.IN_PROGRESS:
         return "text-warning dark:text-warning";
@@ -146,8 +146,8 @@ export function EventQuickView({
                   className={cn(
                     "rounded-md p-1.5",
                     taskItem.status === TaskStatus.COMPLETED
-                      ? "bg-green-500/20 text-green-700 hover:bg-green-500/30 dark:text-green-400"
-                      : "text-muted-foreground hover:bg-muted hover:text-green-600"
+                      ? "bg-positive text-positive-foreground hover:bg-positive/80"
+                      : "text-muted-foreground hover:bg-secondary hover:text-positive-foreground"
                   )}
                   title={
                     taskItem.status === TaskStatus.COMPLETED
@@ -252,7 +252,7 @@ export function EventQuickView({
                 </div>
                 <span
                   className={cn("rounded-full px-2 py-0.5 text-xs", {
-                    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100":
+                    "bg-positive text-positive-foreground":
                       taskItem.status === TaskStatus.COMPLETED,
                     "bg-warning/10 text-warning":
                       taskItem.status === TaskStatus.IN_PROGRESS,

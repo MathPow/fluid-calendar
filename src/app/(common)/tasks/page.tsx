@@ -13,8 +13,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-import { cn } from "@/lib/utils";
-
 import { useProjectStore } from "@/store/project";
 import { useTaskStore } from "@/store/task";
 import { useTaskModalStore } from "@/store/taskModal";
@@ -129,12 +127,12 @@ export default function TasksPage() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col" data-task-page>
-        <div className="border-b border-border px-4 py-3 md:px-6 md:py-4">
+        <div className="border-b border-border px-4 pb-4 pt-5 md:px-8 md:pb-5 md:pt-7">
           {/* Row 1: title + create button */}
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-xl font-bold text-foreground md:text-2xl">Tasks</h1>
+            <h1 className="display text-[32px] md:text-[40px]">Tasks.</h1>
             <div className="flex items-center gap-2">
-              <Button variant="secondary" onClick={() => scheduleAllTasks()} className="hidden md:inline-flex">
+              <Button variant="outline" onClick={() => scheduleAllTasks()} className="hidden md:inline-flex">
                 Auto Schedule
               </Button>
               <Button data-create-task-button onClick={handleCreateTaskClick}>
@@ -144,27 +142,19 @@ export default function TasksPage() {
           </div>
 
           {/* Row 2: view switcher */}
-          <div className="mt-2 flex items-center gap-1 rounded-lg bg-muted p-1 w-fit">
+          <div className="segmented mt-4">
             <button
               onClick={() => setViewMode("list")}
-              className={cn(
-                "flex items-center gap-2 rounded-md p-2 text-sm font-medium",
-                viewMode === "list"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
+              className="segmented-item"
+              data-active={viewMode === "list"}
             >
               <ListTodo className="h-4 w-4" />
               List
             </button>
             <button
               onClick={() => setViewMode("board")}
-              className={cn(
-                "flex items-center gap-2 rounded-md p-2 text-sm font-medium",
-                viewMode === "board"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
+              className="segmented-item"
+              data-active={viewMode === "board"}
             >
               <Kanban className="h-4 w-4" />
               Board
@@ -219,7 +209,7 @@ export default function TasksPage() {
 
         {loading && (
           <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="rounded-lg border bg-background p-4 shadow-lg">
+            <div className="rounded-[24px] bg-card p-5 shadow-float">
               <LoadingSpinner size="lg" />
             </div>
           </div>

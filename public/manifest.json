@@ -1,11 +1,11 @@
 {
   "name": "DreamDash",
   "short_name": "DreamDash",
-  "description": "Your personal command center — calendar, tasks, email and notes",
+  "description": "Your personal command center \u2014 calendar, tasks, email and notes",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ff6f5e",
+  "background_color": "#fcfbfa",
+  "theme_color": "#19181c",
   "orientation": "portrait",
   "icons": [
     {

@@ -13,10 +13,10 @@ interface CalendarEventContentProps {
 }
 
 const priorityColors = {
-  [Priority.HIGH]: "border-red-500",
-  [Priority.MEDIUM]: "border-orange-500",
-  [Priority.LOW]: "border-blue-500",
-  [Priority.NONE]: "border-gray-500",
+  [Priority.HIGH]: "border-destructive",
+  [Priority.MEDIUM]: "border-pending-foreground",
+  [Priority.LOW]: "border-tint",
+  [Priority.NONE]: "border-muted-foreground",
 };
 
 export const CalendarEventContent = memo(function CalendarEventContent({
@@ -41,16 +41,16 @@ export const CalendarEventContent = memo(function CalendarEventContent({
       className={cn(
         "flex h-full flex-col justify-start gap-1 overflow-hidden text-[11px]",
         isTask && "border-l-4",
-        isTask && "text-gray-700",
+        isTask && "text-foreground/80",
         isTask && priority && priorityColors[priority as Priority],
         isTask &&
           !priority && {
-            "border-green-500": status === TaskStatus.COMPLETED,
-            "border-yellow-500": status === TaskStatus.IN_PROGRESS,
-            "border-gray-500": status === TaskStatus.TODO,
+            "border-positive-foreground": status === TaskStatus.COMPLETED,
+            "border-pending-foreground": status === TaskStatus.IN_PROGRESS,
+            "border-muted-foreground": status === TaskStatus.TODO,
           },
-        isOverdue && "border-red-500 font-medium text-red-600",
-        status === TaskStatus.COMPLETED && "text-gray-500 line-through"
+        isOverdue && "border-destructive font-medium text-negative-foreground",
+        status === TaskStatus.COMPLETED && "text-muted-foreground line-through"
       )}
     >
       <div className="flex w-full items-center gap-1.5">

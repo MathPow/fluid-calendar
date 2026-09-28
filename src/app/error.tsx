@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 
 import Link from "next/link";
 
-import { inter } from "@/lib/fonts";
-
-import "../app/globals.css";
-
 export default function Error({
   error,
   reset,
@@ -32,30 +28,23 @@ export default function Error({
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <meta name="description" content="An error occurred" />
-      </head>
-      <body className={inter.className} suppressHydrationWarning>
-        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-          <h1 className="mb-4 text-4xl font-bold">Something went wrong!</h1>
-          <p className="mb-6">An unexpected error has occurred.</p>
-          <div className="flex space-x-4">
-            <button
-              onClick={reset}
-              className="rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
-            >
-              Try again
-            </button>
-            <Link
-              href="/"
-              className="rounded bg-gray-500 px-4 py-2 text-white transition-colors hover:bg-gray-600"
-            >
-              Return Home
-            </Link>
-          </div>
-        </div>
-      </body>
-    </html>
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+      <h1 className="display mb-4 text-[48px] md:text-[72px]">Something broke.</h1>
+      <p className="voice mb-8 text-[20px] text-muted-foreground">An unexpected error has occurred.</p>
+      <div className="flex space-x-4">
+        <button
+          onClick={reset}
+          className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Try again
+        </button>
+        <Link
+          href="/"
+          className="inline-flex h-11 items-center rounded-full border-[1.5px] border-foreground px-6 text-[15px] font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
+        >
+          Return Home
+        </Link>
+      </div>
+    </div>
   );
 }

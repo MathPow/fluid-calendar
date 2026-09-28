@@ -46,7 +46,7 @@ export async function GET(
       );
     }
 
-    if (!provider.account && provider.type !== "GITHUB") {
+    if (!provider.account && provider.type !== "GITHUB" && provider.type !== "TRELLO") {
       return NextResponse.json(
         { error: "Provider has no associated account" },
         { status: 400 }
@@ -87,6 +87,11 @@ export async function GET(
         "@/lib/task-sync/providers/github-provider"
       );
       providerImpl = createGitHubProvider(provider.settings);
+    } else if (provider.type === "TRELLO") {
+      const { createTrelloProvider } = await import(
+        "@/lib/task-sync/providers/trello-provider"
+      );
+      providerImpl = createTrelloProvider(provider.settings);
     } else {
       return NextResponse.json(
         { error: `Provider type ${provider.type} not supported` },

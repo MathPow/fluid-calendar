@@ -229,38 +229,50 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="container px-4 py-6 md:px-6">
-      <div className="flex flex-col lg:flex-row lg:space-x-12 lg:space-y-0">
-        <aside className="lg:w-1/5">
-          <Card>
-            <nav className="space-y-1 p-1">
-              {tabs.map((tab) => (
-                <a
-                  key={tab.id}
-                  href={`#${tab.id}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveTab(tab.id as SettingsTab);
-                  }}
-                  className={cn(
-                    "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    !isHydrated && "duration-0",
-                    activeTab === tab.id
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  {tab.label}
-                </a>
-              ))}
+    <div className="page pb-16 pt-8 md:pt-12">
+      <header>
+        <h1 className="display text-[44px] sm:text-[56px] md:text-[72px]">
+          Settings.
+        </h1>
+        <div className="filet mt-8" />
+      </header>
+
+      <div className="mt-8 flex flex-col gap-5 lg:flex-row lg:items-start">
+        <aside className="lg:sticky lg:top-4 lg:w-[280px] lg:shrink-0">
+          <Card className="p-5 md:p-7">
+            <p className="etiquette mb-3">Sections</p>
+            <nav className="-mx-1 flex gap-1 overflow-x-auto lg:mx-0 lg:flex-col lg:overflow-visible">
+              {tabs.map((tab, i) => {
+                const active = activeTab === tab.id;
+                return (
+                  <a
+                    key={tab.id}
+                    href={`#${tab.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab(tab.id as SettingsTab);
+                    }}
+                    className={cn(
+                      "flex shrink-0 items-baseline gap-3 rounded-chip px-3 py-2.5 text-[15px] transition-colors",
+                      !isHydrated && "duration-0",
+                      active
+                        ? "bg-tint-soft font-semibold tracking-title text-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                  >
+                    <span className="hidden text-[13px] font-semibold tabular-nums text-muted-foreground/70 lg:inline">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {tab.label}
+                  </a>
+                );
+              })}
             </nav>
           </Card>
         </aside>
-        <div className="mt-6 flex-1 lg:mt-0">
-          <div className="space-y-6">
-            <div className={cn("space-y-8", !isHydrated && "opacity-0")}>
-              {renderContent()}
-            </div>
+        <div className="min-w-0 flex-1">
+          <div className={cn("space-y-8", !isHydrated && "opacity-0")}>
+            {renderContent()}
           </div>
         </div>
       </div>

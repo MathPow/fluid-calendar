@@ -12,6 +12,12 @@ export const getTitleFromPathname = (pathname: string) => {
       return "Notes | DreamDash";
     case "/focus":
       return "Focus | DreamDash";
+    case "/sessions":
+      return "Sessions | DreamDash";
+    case "/projets":
+      return "Projets | DreamDash";
+    case "/contacts":
+      return "Contacts | DreamDash";
     case "/settings":
       return "Settings | DreamDash";
     case "/setup":

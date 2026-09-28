@@ -613,7 +613,7 @@ export function EventModal({
       >
         <AlertDialog.Portal>
           <AlertDialog.Overlay className="fixed inset-0 z-[10001] bg-background/80 backdrop-blur-sm" />
-          <AlertDialog.Content className="fixed left-1/2 top-1/2 z-[10002] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 shadow-lg">
+          <AlertDialog.Content className="fixed left-1/2 top-1/2 z-[10002] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[28px] bg-card p-7 shadow-float">
             <AlertDialog.Title className="mb-4 text-lg font-semibold">
               Edit Recurring Event
             </AlertDialog.Title>

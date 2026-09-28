@@ -1,0 +1,112 @@
+/**
+ * Shared vocabulary for the Projets and Contacts tabs — link kinds, the client
+ * colour palette, station labels, and small helpers. Safe to import from both
+ * server and client code (no Prisma here).
+ */
+
+export const LINK_KINDS = [
+  { id: "figma", label: "Figma" },
+  { id: "drive", label: "Drive" },
+  { id: "website", label: "Site web" },
+  { id: "claude", label: "Projet Claude" },
+  { id: "github", label: "GitHub" },
+  { id: "trello", label: "Trello" },
+  { id: "notion", label: "Notion" },
+  { id: "coolify", label: "Coolify" },
+  { id: "other", label: "Autre" },
+] as const;
+
+export type LinkKind = (typeof LINK_KINDS)[number]["id"];
+export const LINK_KIND_IDS = LINK_KINDS.map((k) => k.id) as [
+  LinkKind,
+  ...LinkKind[],
+];
+
+export const linkKindLabel = (kind: string) =>
+  LINK_KINDS.find((k) => k.id === kind)?.label ?? "Lien";
+
+/** The eight client tints from the design file. A colour never means a status. */
+export const PROJECT_COLORS = [
+  { hex: "#a8ccff", name: "Bleu" },
+  { hex: "#ff7585", name: "Corail" },
+  { hex: "#ffd166", name: "Ambre" },
+  { hex: "#9fe0c4", name: "Menthe" },
+  { hex: "#cbb2f0", name: "Lilas" },
+  { hex: "#ffa8c5", name: "Rose" },
+  { hex: "#bfd3a8", name: "Sauge" },
+  { hex: "#9fd5f0", name: "Ciel" },
+] as const;
+
+export const DEFAULT_PROJECT_COLOR = PROJECT_COLORS[0].hex;
+
+export type ProjectStation = "personal" | "work";
+
+export const PROJECT_STATIONS: { id: ProjectStation; label: string }[] = [
+  { id: "personal", label: "Perso" },
+  { id: "work", label: "Client" },
+];
+
+export const stationLabel = (station: string) =>
+  PROJECT_STATIONS.find((s) => s.id === station)?.label ?? station;
+
+/** "dehors-shop" from "Dehors · Shop"; accents stripped, lowercase, dashes. */
+export function slugify(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+/** Best guess of the link kind from its host, e.g. figma.com → "figma". */
+export function guessLinkKind(url: string): LinkKind | null {
+  let host = "";
+  try {
+    host = new URL(normalizeUrl(url)).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (host.includes("figma.com")) return "figma";
+  if (host.includes("drive.google.com") || host.includes("docs.google.com")) return "drive";
+  if (host.includes("claude.ai")) return "claude";
+  if (host.includes("github.com")) return "github";
+  if (host.includes("trello.com")) return "trello";
+  if (host.includes("notion.so") || host.includes("notion.site")) return "notion";
+  if (host.includes("coolify")) return "coolify";
+  return null;
+}
+
+/** Prepend https:// when the user typed a bare domain. */
+export function normalizeUrl(input: string): string {
+  const v = input.trim();
+  if (!v) return v;
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? v : `https://${v}`;
+}
+
+export function timeAgoFr(date: Date | string | null | undefined): string {
+  if (!date) return "—";
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 60) return "à l'instant";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `il y a ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `il y a ${d} j`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `il y a ${mo} mois`;
+  return `il y a ${Math.floor(mo / 12)} an${mo >= 24 ? "s" : ""}`;
+}
+
+export const initials = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "?";
+
+export const pad2 = (n: number) => String(n).padStart(2, "0");

@@ -113,10 +113,10 @@ export function SetupForm() {
         )}
 
         {success && (
-          <Alert className="mb-4 border-green-200 bg-green-50">
-            <CircleCheck className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-800">Success!</AlertTitle>
-            <AlertDescription className="text-green-700">
+          <Alert className="mb-4 bg-positive">
+            <CircleCheck className="h-4 w-4 text-positive-foreground" />
+            <AlertTitle className="text-positive-foreground">Success!</AlertTitle>
+            <AlertDescription className="text-positive-foreground">
               Admin account created successfully. Redirecting to dashboard...
             </AlertDescription>
           </Alert>
@@ -187,7 +187,7 @@ export function SetupForm() {
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-center text-sm text-gray-500">
+      <CardFooter className="flex justify-center text-sm text-muted-foreground">
         This will set up the initial admin user and migrate existing data.
       </CardFooter>
     </Card>

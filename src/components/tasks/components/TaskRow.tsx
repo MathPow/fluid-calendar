@@ -115,8 +115,8 @@ export function TaskRow({
             className={cn(
               "h-8 w-8 p-1",
               task.status === TaskStatus.COMPLETED
-                ? "bg-green-500/20 text-green-700 hover:bg-green-500/30 dark:text-green-400"
-                : "text-muted-foreground hover:bg-muted hover:text-green-600"
+                ? "bg-positive text-positive-foreground hover:bg-positive/80"
+                : "text-muted-foreground hover:bg-secondary hover:text-positive-foreground"
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -153,22 +153,22 @@ export function TaskRow({
           )}
 
           {task.isRecurring && (
-            <RefreshCw className="h-4 w-4 shrink-0 text-blue-500">
+            <RefreshCw className="h-4 w-4 shrink-0 text-muted-foreground">
               <title>Recurring task</title>
             </RefreshCw>
           )}
           {task.isAutoScheduled && (
-            <Clock className="h-4 w-4 shrink-0 text-purple-500">
+            <Clock className="h-4 w-4 shrink-0 text-muted-foreground">
               <title>Auto-scheduled</title>
             </Clock>
           )}
           {task.scheduleLocked && (
-            <Lock className="h-4 w-4 shrink-0 text-amber-500">
+            <Lock className="h-4 w-4 shrink-0 text-pending-foreground">
               <title>Schedule locked</title>
             </Lock>
           )}
           {task.externalTaskId && (
-            <Cloud className="h-4 w-4 shrink-0 text-sky-500">
+            <Cloud className="h-4 w-4 shrink-0 text-muted-foreground">
               <title>{`Synced from ${task.source}`}</title>
             </Cloud>
           )}

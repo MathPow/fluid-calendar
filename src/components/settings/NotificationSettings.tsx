@@ -49,7 +49,7 @@ export function NotificationSettings() {
                   dailyEmailEnabled: e.target.checked,
                 })
               }
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-border text-foreground focus:ring-ring"
             />
             <span className="ml-2 text-sm">Enable daily email updates</span>
           </label>
@@ -68,17 +68,17 @@ export function NotificationSettings() {
               pushState === "unsupported" ||
               pushState === "denied"
             }
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
             {pushLoading ? "Working…" : pushLabel[pushState]}
           </button>
           {pushState === "subscribed" && (
             <>
-              <span className="text-sm text-green-600">Active</span>
+              <span className="text-sm text-positive-foreground">Active</span>
               <button
                 onClick={sendTestNotification}
                 disabled={testStatus === "sending"}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50"
+                className="rounded-full border-[1.5px] border-foreground px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
               >
                 {testStatus === "sending" ? "Sending…" : testStatus === "sent" ? "Sent!" : testStatus === "error" ? "Failed" : "Send test"}
               </button>
@@ -101,7 +101,7 @@ export function NotificationSettings() {
                   pushRemindersEnabled: e.target.checked,
                 })
               }
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-border text-foreground focus:ring-ring"
             />
             <span className="text-sm">Enable event reminders</span>
           </label>
@@ -117,7 +117,7 @@ export function NotificationSettings() {
                 })
               }
               disabled={!(notifications.pushRemindersEnabled ?? true)}
-              className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
+              className="w-20 rounded-xl border border-border px-2 py-1 text-sm disabled:opacity-50"
             />
             <span className="text-sm text-muted-foreground">minutes before</span>
           </div>

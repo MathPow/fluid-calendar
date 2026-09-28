@@ -7,7 +7,6 @@ import { AudioLines, FileText, Zap } from "lucide-react";
 import { CommandsPanel } from "@/components/notes/CommandsPanel";
 import { NotesExplorer } from "@/components/notes/NotesExplorer";
 import { RecordingsPanel } from "@/components/notes/RecordingsPanel";
-import { cn } from "@/lib/utils";
 
 type Tab = "notes" | "recordings" | "commands";
 
@@ -29,7 +28,8 @@ export function NotesWorkspace() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1 border-b border-border bg-card px-3 py-1.5">
+      <div className="flex items-center border-b border-border px-4 py-3 md:px-6">
+        <div className="segmented">
         <TabButton
           active={tab === "notes"}
           onClick={() => setTab("notes")}
@@ -48,6 +48,7 @@ export function NotesWorkspace() {
           icon={<Zap className="h-4 w-4" />}
           label="Commands"
         />
+        </div>
       </div>
       <div className="min-h-0 flex-1">
         {tab === "notes" && <NotesExplorer />}
@@ -73,12 +74,8 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium",
-        active
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      )}
+      className="segmented-item"
+      data-active={active}
     >
       {icon}
       {label}

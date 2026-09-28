@@ -24,17 +24,17 @@ interface BoardTaskProps {
 }
 
 const energyLevelColors = {
-  high: "bg-red-500/20 text-red-700 dark:text-red-400",
-  medium: "bg-orange-500/20 text-orange-700 dark:text-orange-400",
-  low: "bg-green-500/20 text-green-700 dark:text-green-400",
+  high: "bg-negative text-negative-foreground",
+  medium: "bg-pending text-pending-foreground",
+  low: "bg-positive text-positive-foreground",
 };
 
 const timePreferenceColors = {
-  [TimePreference.MORNING]: "bg-sky-500/20 text-sky-700 dark:text-sky-400",
+  [TimePreference.MORNING]: "bg-tint-soft text-foreground",
   [TimePreference.AFTERNOON]:
-    "bg-amber-500/20 text-amber-700 dark:text-amber-400",
+    "bg-pending text-pending-foreground",
   [TimePreference.EVENING]:
-    "bg-indigo-500/20 text-indigo-700 dark:text-indigo-400",
+    "bg-secondary text-muted-foreground",
 };
 
 // Helper function to format enum values for display

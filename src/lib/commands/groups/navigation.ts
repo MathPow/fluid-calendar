@@ -1,6 +1,13 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-import { Calendar, ClipboardList, Settings, Zap } from "lucide-react";
+import {
+  Calendar,
+  ClipboardList,
+  FolderGit2,
+  Settings,
+  Users,
+  Zap,
+} from "lucide-react";
 
 import { Command } from "../types";
 
@@ -37,6 +44,28 @@ export function useNavigationCommands(): Command[] {
       shortcut: "gf",
       perform: (router?: AppRouterInstance) => {
         if (router) router.push("/focus");
+      },
+    },
+    {
+      id: "navigation.projets",
+      title: "Go to Projets",
+      keywords: ["navigation", "projects", "projets"],
+      icon: FolderGit2,
+      section: "navigation",
+      shortcut: "gp",
+      perform: (router?: AppRouterInstance) => {
+        if (router) router.push("/projets");
+      },
+    },
+    {
+      id: "navigation.contacts",
+      title: "Go to Contacts",
+      keywords: ["navigation", "people", "contacts"],
+      icon: Users,
+      section: "navigation",
+      shortcut: "go",
+      perform: (router?: AppRouterInstance) => {
+        if (router) router.push("/contacts");
       },
     },
     {

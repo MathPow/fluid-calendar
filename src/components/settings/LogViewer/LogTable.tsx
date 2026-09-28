@@ -38,9 +38,9 @@ export function LogTable({
       case "error":
         return "text-destructive font-medium";
       case "warn":
-        return "text-yellow-600 dark:text-yellow-500 font-medium";
+        return "text-pending-foreground font-medium";
       case "info":
-        return "text-blue-600 dark:text-blue-400 font-medium";
+        return "text-foreground font-medium";
       case "debug":
         return "text-muted-foreground font-medium";
       default:
@@ -62,7 +62,7 @@ export function LogTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      <div className="rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow>

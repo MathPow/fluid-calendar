@@ -9,14 +9,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -135,24 +128,18 @@ export function SignInForm() {
   };
 
   return (
-    <Card className="mx-auto w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">
-          Welcome to DreamDash
-        </CardTitle>
-        <CardDescription>Sign in to your account to continue</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Card className="mx-auto mt-10 w-full max-w-[400px] rounded-tile">
+      <CardContent className="p-7 md:p-8">
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as "signin" | "signup")}
         >
-          <TabsList className="mb-6 grid w-full grid-cols-2">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            {publicSignupEnabled && (
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            )}
-          </TabsList>
+          {publicSignupEnabled && (
+            <TabsList className="mb-6 grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign in</TabsTrigger>
+              <TabsTrigger value="signup">Sign up</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="signin">
             <form onSubmit={handleEmailSignIn} className="space-y-4">
@@ -177,20 +164,25 @@ export function SignInForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <div className="text-right">
-                  <Button
-                    variant="link"
-                    className="h-auto p-0 text-sm text-muted-foreground"
-                    onClick={() => router.push("/auth/reset-password")}
-                    type="button"
-                  >
-                    Forgot password?
-                  </Button>
-                </div>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing in…" : "Sign in"}
               </Button>
+              <div className="text-center">
+                <Button
+                  variant="link"
+                  className="text-[13px] text-muted-foreground"
+                  onClick={() => router.push("/auth/reset-password")}
+                  type="button"
+                >
+                  Forgot password?
+                </Button>
+              </div>
             </form>
           </TabsContent>
 
@@ -229,16 +221,21 @@ export function SignInForm() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create Account"}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Creating account…" : "Create account"}
                 </Button>
               </form>
             </TabsContent>
           )}
         </Tabs>
       </CardContent>
-      <CardFooter className="flex justify-center text-sm text-muted-foreground">
-        By signing in, you agree to our Terms of Service and Privacy Policy.
+      <CardFooter className="justify-center px-7 pb-7 text-center text-[12px] leading-relaxed text-muted-foreground md:px-8 md:pb-8">
+        Private instance. Sessions stay on this device until you log out.
       </CardFooter>
     </Card>
   );

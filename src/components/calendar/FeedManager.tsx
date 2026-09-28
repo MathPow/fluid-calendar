@@ -57,14 +57,14 @@ export function FeedManager() {
   );
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-card">
       <div className="border-b border-border py-4">
         <MiniCalendar currentDate={currentDate} onDateClick={setDate} />
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="font-medium text-foreground">Your Calendars</h3>
+            <h3 className="etiquette">Your calendars</h3>
             <button
               onClick={handleSyncAll}
               disabled={syncingAll || feeds.length === 0}
@@ -77,7 +77,7 @@ export function FeedManager() {
           {feeds.map((feed) => (
             <div
               key={feed.id}
-              className="flex items-center justify-between rounded-md p-2 hover:bg-muted/50"
+              className="flex items-center justify-between rounded-xl p-2 hover:bg-secondary"
             >
               <div className="flex items-center gap-3">
                 <Checkbox

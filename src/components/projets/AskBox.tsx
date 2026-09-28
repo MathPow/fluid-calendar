@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 
-import { Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Textarea } from "@/components/ui/textarea";
 
 /**
  * Natural-language Q&A over the Projets activity feed. Omit `slug` for a
@@ -49,40 +48,49 @@ export function AskBox({
   }
 
   return (
-    <div className="mb-5 rounded-xl border border-border bg-card p-4">
-      <div className="flex items-start gap-2">
-        <Textarea
+    <div className="tile p-4 md:p-5">
+      {/* Messagerie-style composer: pill field + ink send button */}
+      <form
+        className="flex items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          ask();
+        }}
+      >
+        <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter submits; Shift+Enter for a newline.
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              ask();
-            }
-          }}
           placeholder={placeholder}
-          rows={2}
-          className="min-h-0 flex-1 resize-none"
           disabled={loading}
+          className="h-12 min-w-0 flex-1 rounded-full border-0 bg-input px-5 text-[15px] text-foreground placeholder:text-muted-foreground focus:bg-card focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
         />
-        <Button onClick={ask} disabled={loading || !question.trim()}>
+        <Button
+          type="submit"
+          size="icon"
+          className="h-12 w-12 shrink-0"
+          disabled={loading || !question.trim()}
+          aria-label="Demander"
+        >
           {loading ? (
-            <LoadingSpinner size="sm" />
+            <LoadingSpinner size="sm" className="text-primary-foreground" />
           ) : (
-            <>
-              <Sparkles className="h-4 w-4" /> Demander
-            </>
+            <ArrowRight className="h-5 w-5" />
           )}
         </Button>
-      </div>
+      </form>
+
+      {loading ? (
+        <p className="mt-4 px-1 font-serif text-[15px] italic text-muted-foreground">
+          Le modèle tourne en local — compte une à deux minutes.
+        </p>
+      ) : null}
 
       {error ? (
-        <p className="mt-3 text-sm text-destructive">{error}</p>
+        <p className="mt-4 px-1 text-sm text-negative-foreground">{error}</p>
       ) : null}
 
       {answer ? (
-        <div className="mt-3 border-t border-border pt-3 text-sm leading-7 text-foreground/90 [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2 [&_strong]:font-semibold">
+        <div className="mt-4 border-t border-border px-1 pt-4 text-[15px] leading-7 text-foreground/90 [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2 [&_strong]:font-semibold">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
         </div>
       ) : null}

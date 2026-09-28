@@ -47,7 +47,7 @@ const LOG_SOURCE = "TaskSyncSettings";
 // Types for providers and mappings
 interface TaskProvider {
   id: string;
-  type: "OUTLOOK" | "CALDAV" | "GOOGLE" | "GITHUB";
+  type: "OUTLOOK" | "CALDAV" | "GOOGLE" | "GITHUB" | "TRELLO";
   name: string;
   accountId?: string;
   accountEmail?: string; // This will be populated from the account for UI display
@@ -99,6 +99,12 @@ export function TaskSyncSettings() {
   const [githubToken, setGithubToken] = useState("");
   const [githubLogin, setGithubLogin] = useState("");
   const [githubOwnerType, setGithubOwnerType] = useState<"user" | "organization">("user");
+
+  // Trello-specific state
+  const [isTrelloDialogOpen, setIsTrelloDialogOpen] = useState(false);
+  const [trelloName, setTrelloName] = useState("Trello");
+  const [trelloKey, setTrelloKey] = useState("");
+  const [trelloToken, setTrelloToken] = useState("");
 
   // Get accounts that can be used as task providers
   const compatibleAccounts = accounts.filter(
@@ -298,6 +304,50 @@ export function TaskSyncSettings() {
         LOG_SOURCE
       );
       toast.error("Failed to create task provider");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Connect a Trello provider via API key + token
+  const connectTrello = async () => {
+    if (!trelloKey || !trelloToken || !trelloName) {
+      toast.error("Please fill in the Trello key, token and name");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const response = await fetch("/api/task-sync/trello/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trelloName, key: trelloKey, token: trelloToken }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Failed to connect Trello");
+      }
+
+      const { provider: newProvider } = await response.json();
+      const enriched = {
+        ...newProvider,
+        accountEmail: `${newProvider.settings?.username ?? "Trello"} (Trello)`,
+      };
+
+      setProviders([...providers, enriched]);
+      setSelectedProvider(enriched);
+      setTrelloKey("");
+      setTrelloToken("");
+      setIsTrelloDialogOpen(false);
+      toast.success("Trello connected — pick a board to map onto a project");
+    } catch (error) {
+      logger.error(
+        "Failed to connect Trello provider",
+        { error: error instanceof Error ? error.message : "Unknown error" },
+        LOG_SOURCE
+      );
+      toast.error(error instanceof Error ? error.message : "Failed to connect Trello");
     } finally {
       setIsCreating(false);
     }
@@ -609,7 +659,9 @@ export function TaskSyncSettings() {
                         {provider.name} (
                         {provider.type === "GITHUB"
                           ? `${(provider.settings as { login?: string })?.login ?? "GitHub"}`
-                          : provider.accountEmail}
+                          : provider.type === "TRELLO"
+                            ? `${(provider.settings as { username?: string })?.username ?? "Trello"}`
+                            : provider.accountEmail}
                         )
                       </SelectItem>
                     ))}
@@ -773,6 +825,100 @@ export function TaskSyncSettings() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+
+                {/* Trello provider — API key + token, boards map onto projects */}
+                <Dialog open={isTrelloDialogOpen} onOpenChange={setIsTrelloDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Plus className="mr-2 h-4 w-4" /> Add Trello
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Connect Trello</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="trello-name">Provider Name</Label>
+                        <Input
+                          id="trello-name"
+                          value={trelloName}
+                          onChange={(e) => setTrelloName(e.target.value)}
+                          placeholder="e.g., Trello"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="trello-key">API key</Label>
+                        <Input
+                          id="trello-key"
+                          value={trelloKey}
+                          onChange={(e) => setTrelloKey(e.target.value.trim())}
+                          placeholder="32-character key"
+                          autoComplete="off"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Create a Power-Up on{" "}
+                          <a
+                            href="https://trello.com/power-ups/admin"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline underline-offset-2"
+                          >
+                            trello.com/power-ups/admin
+                          </a>{" "}
+                          and copy its API key.
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="trello-token">Token</Label>
+                        <Input
+                          id="trello-token"
+                          type="password"
+                          value={trelloToken}
+                          onChange={(e) => setTrelloToken(e.target.value.trim())}
+                          placeholder="Token with read,write scope"
+                          autoComplete="off"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {trelloKey ? (
+                            <a
+                              href={`https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=DreamDash&key=${encodeURIComponent(trelloKey)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2"
+                            >
+                              Generate a token for this key
+                            </a>
+                          ) : (
+                            "Paste the key first, then a link to generate the token appears here."
+                          )}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Each board becomes a task list. Cards sync as tasks; the column they sit in
+                        (To do / Doing / Done) sets their status, and closing a task here moves the
+                        card to the board&apos;s Done column when it has one.
+                      </p>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsTrelloDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={connectTrello}
+                        disabled={isCreating || !trelloKey || !trelloToken || !trelloName}
+                      >
+                        {isCreating && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Connect
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </>
           )}
@@ -806,7 +952,9 @@ export function TaskSyncSettings() {
                 <div className="font-medium">
                   {selectedProvider.type === "GITHUB"
                     ? `${(selectedProvider.settings as { login?: string })?.login ?? "GitHub"}`
-                    : selectedProvider.accountEmail}
+                    : selectedProvider.type === "TRELLO"
+                      ? `${(selectedProvider.settings as { username?: string })?.username ?? "Trello"}`
+                      : selectedProvider.accountEmail}
                 </div>
               </div>
               <div>

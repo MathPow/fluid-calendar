@@ -153,10 +153,10 @@ export function ProjectSidebar() {
 
   return (
     <>
-      <div className="flex h-full w-64 flex-col border-r bg-background">
+      <div className="flex h-full w-64 flex-col border-r border-border bg-card">
         <div className="border-b p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Projects</h2>
+            <h2 className="text-[18px] font-bold tracking-title">Projects</h2>
             <Button
               size="icon"
               onClick={() => {
@@ -220,7 +220,7 @@ export function ProjectSidebar() {
 
               {archivedProjects.length > 0 && (
                 <div className="space-y-1">
-                  <div className="py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <div className="etiquette py-2">
                     Archived
                   </div>
                   {archivedProjects.map((project) => (

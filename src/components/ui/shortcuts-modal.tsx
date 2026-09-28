@@ -28,36 +28,32 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 shadow-lg">
-          <div className="mb-4 flex items-center justify-between">
-            <Dialog.Title className="text-lg font-semibold text-foreground">
-              Keyboard Shortcuts
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[28px] bg-card p-7 shadow-float">
+          <div className="mb-6 flex items-center justify-between">
+            <Dialog.Title className="text-[22px] font-bold tracking-title text-foreground">
+              Keyboard shortcuts
             </Dialog.Title>
-            <Dialog.Close className="rounded-full p-1.5 hover:bg-muted">
-              <X className="h-5 w-5 text-foreground" />
+            <Dialog.Close className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-border hover:text-foreground">
+              <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
 
           <div className="space-y-6">
             {Object.entries(commandsBySection).map(([section, commands]) => (
               <div key={section}>
-                <h3 className="mb-2 text-sm font-medium uppercase text-muted-foreground">
-                  {section}
-                </h3>
-                <div className="space-y-2">
+                <h3 className="etiquette mb-3">{section}</h3>
+                <div className="divide-y divide-border">
                   {commands.map((command) => (
                     <div
                       key={command.id}
-                      className="flex items-center justify-between text-sm"
+                      className="flex items-center justify-between py-2.5 text-sm"
                     >
                       <span className="text-foreground">{command.title}</span>
                       {formatShortcut(command.shortcut) && (
-                        <div className="flex-shrink-0">
-                          <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                            {formatShortcut(command.shortcut)}
-                          </kbd>
-                        </div>
+                        <kbd className="flex-shrink-0">
+                          {formatShortcut(command.shortcut)}
+                        </kbd>
                       )}
                     </div>
                   ))}

@@ -19,7 +19,7 @@ export function PageHeaderHeading({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h1
-      className={cn("text-3xl font-bold tracking-tight", className)}
+      className={cn("display text-[32px] md:text-[40px]", className)}
       {...props}
     >
       {children}
@@ -33,7 +33,7 @@ export function PageHeaderDescription({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-muted-foreground", className)} {...props}>
+    <p className={cn("text-[15px] text-muted-foreground", className)} {...props}>
       {children}
     </p>
   );

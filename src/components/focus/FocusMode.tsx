@@ -51,7 +51,7 @@ export function FocusMode() {
 
       <div className="flex flex-1">
         {/* Left sidebar with queued tasks */}
-        <aside className="h-full w-80 border-r border-border">
+        <aside className="h-full w-80 border-r border-border bg-card">
           <TaskQueue />
         </aside>
 
@@ -61,7 +61,7 @@ export function FocusMode() {
         </main>
 
         {/* Right sidebar with quick actions */}
-        <aside className="h-full w-64 border-l border-border">
+        <aside className="h-full w-64 border-l border-border bg-card">
           <QuickActions />
         </aside>
       </div>

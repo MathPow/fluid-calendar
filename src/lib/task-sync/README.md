@@ -66,3 +66,17 @@ In Phase 2, we plan to implement bidirectional sync that will allow changes made
 
 - `POST /api/task-providers/:providerId/sync` - Trigger sync for a specific provider
 - `POST /api/task-list-mappings/:mappingId/sync` - Trigger sync for a specific task list mapping
+
+## Providers
+
+| Type      | Auth                          | Task list = | Notes                                                                 |
+| --------- | ----------------------------- | ----------- | --------------------------------------------------------------------- |
+| `OUTLOOK` | Connected account (OAuth)     | To Do list  |                                                                       |
+| `GOOGLE`  | Connected account (OAuth)     | Tasks list  |                                                                       |
+| `GITHUB`  | Personal access token         | Project v2  | Import only; issues are closed / reopened on status change.           |
+| `TRELLO`  | API key + token (`settings`)  | Board       | Cards ↔ tasks. Column name sets status (To do / Doing / Done, FR too); completing a task moves the card to the Done column and sets `dueComplete`. Deleting archives the card. |
+
+Trello credentials: create a Power-Up at https://trello.com/power-ups/admin to get an
+API key, then open `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=DreamDash&key=<KEY>`
+to mint a token. Both are entered in Settings → Task Sync → Add Trello and stored in
+`TaskProvider.settings`.

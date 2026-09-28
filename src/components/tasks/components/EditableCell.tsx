@@ -370,7 +370,7 @@ export function EditableCell({
               });
               setIsEditing(false);
             }}
-            className="h-8 w-8 p-0 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+            className="h-8 w-8 p-0 text-positive-foreground hover:bg-positive"
           >
             <Check className="h-4 w-4" />
           </Button>
@@ -415,7 +415,7 @@ export function EditableCell({
               });
               setIsEditing(false);
             }}
-            className="h-8 w-8 p-0 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+            className="h-8 w-8 p-0 text-positive-foreground hover:bg-positive"
           >
             <Check className="h-4 w-4" />
           </Button>
@@ -475,7 +475,7 @@ export function EditableCell({
             size="sm"
             variant="ghost"
             onClick={handleSave}
-            className="h-8 w-8 p-0 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+            className="h-8 w-8 p-0 text-positive-foreground hover:bg-positive"
           >
             <Check className="h-4 w-4" />
           </Button>

@@ -12,11 +12,7 @@ export function CommandPaletteFab() {
   useEffect(() => {
     const handleScroll = () => {
       // Show the FAB when the user scrolls down more than 300px
-      if (window.scrollY > 300) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
+      setIsVisible(window.scrollY > 300);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -25,20 +21,17 @@ export function CommandPaletteFab() {
 
   const openCommandPalette = () => {
     // Simulate Cmd+K / Ctrl+K
-    const event = new KeyboardEvent("keydown", {
-      key: "k",
-      metaKey: true,
-      bubbles: true,
-    });
-    document.dispatchEvent(event);
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })
+    );
   };
 
   return (
     <button
       onClick={openCommandPalette}
       className={cn(
-        "fixed bottom-4 right-4 z-40 rounded-full bg-primary p-3 text-primary-foreground shadow-lg",
-        "hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+        "fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float",
+        "hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         "transition-all duration-300 ease-in-out",
         isVisible
           ? "translate-y-0 opacity-100"

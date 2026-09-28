@@ -834,7 +834,66 @@ model AgentProject {
   updatedAt      DateTime        @updatedAt
   activities     AgentActivity[]
 
+  // --- Project specs (managed from the Projets tab) ---
+  color       String? // one of the client tints, hex
+  station     String   @default("personal") // "personal" (perso) | "work" (client)
+  description String?
+  stack       String[] @default([]) // tools / tech associated (Next.js, Coolify, Stripe…)
+  archived    Boolean  @default(false)
+
+  // Sub-projects: "dehors" → admin panel, shop, ticketing
+  parentId String?
+  parent   AgentProject?  @relation("ProjectTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children AgentProject[] @relation("ProjectTree")
+
+  links    ProjectLink[]
+  contacts ProjectContact[]
+
   @@index([lastActivityAt])
+  @@index([parentId])
+  @@index([station])
+}
+
+// A link attached to a project: Figma file, Drive folder, live site, Claude
+// project, GitHub repo, Notion page…
+model ProjectLink {
+  id        String       @id @default(cuid())
+  projectId String
+  project   AgentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind      String       @default("other") // figma | drive | website | claude | github | trello | notion | coolify | other
+  label     String?
+  url       String
+  sortOrder Int          @default(0)
+
+  @@index([projectId])
+}
+
+// People: clients, collaborators, suppliers. Shown in the Contacts tab and
+// attachable to any number of projects.
+model Contact {
+  id        String           @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  role      String? // their job / relationship, e.g. "Designer", "Client"
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  projects  ProjectContact[]
+
+  @@index([name])
+}
+
+model ProjectContact {
+  projectId String
+  contactId String
+  role      String? // what they do on this project specifically
+  project   AgentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact   Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, contactId])
+  @@index([contactId])
 }
 
 // One turn of agent work, summarized. Appended each time Claude finishes a turn

@@ -305,13 +305,13 @@ export function TaskList({
         </div>
       </div>
 
-      <div className="flex-1 rounded-lg border bg-background">
+      <div className="flex-1 overflow-hidden rounded-[20px] bg-card shadow-tile">
         <div
           className="overflow-auto"
           style={{ maxHeight: "calc(100vh - 250px)" }}
         >
           <table className="min-w-full divide-y divide-border">
-            <thead className="sticky top-0 bg-muted">
+            <thead className="sticky top-0 bg-card">
               <tr>
                 <th
                   scope="col"
@@ -402,7 +402,7 @@ export function TaskList({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border bg-background">
+            <tbody className="divide-y divide-border bg-card">
               {sortedTasks.map((task) => (
                 <TaskRow
                   key={task.id}

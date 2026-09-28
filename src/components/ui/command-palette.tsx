@@ -255,24 +255,24 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <Command
               shouldFilter={false}
               className={cn(
-                "overflow-hidden rounded-lg border bg-white shadow-lg",
+                "overflow-hidden rounded-[24px] bg-card shadow-float",
                 "transform transition-all",
                 "data-[state=open]:animate-in data-[state=closed]:animate-out",
                 "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
               )}
             >
-              <div className="flex items-center border-b px-3">
-                <Search className="h-5 w-5 text-gray-400" />
+              <div className="flex items-center border-b border-border px-4">
+                <Search className="h-5 w-5 text-muted-foreground" />
                 <Command.Input
                   placeholder="Search, ask a question, or run a command"
-                  className="h-12 flex-1 px-3 text-base outline-none placeholder:text-gray-400"
+                  className="h-12 flex-1 px-3 text-base outline-none placeholder:text-muted-foreground"
                   value={search}
                   onValueChange={setSearch}
                 />
                 {search && (
                   <button
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-muted-foreground hover:text-foreground"
                     onClick={() => setSearch("")}
                     aria-label="Clear search"
                   >
@@ -280,13 +280,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   </button>
                 )}
                 {!search && (
-                  <kbd className="hidden items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400 sm:flex">
+                  <kbd className="hidden items-center gap-1 rounded bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:flex">
                     <span className="text-xs">⌘</span>
                     <span>K</span>
                   </kbd>
                 )}
                 <Dialog.Close
-                  className="ml-2 p-2 text-gray-400 hover:text-gray-600"
+                  className="ml-2 p-2 text-muted-foreground hover:text-foreground"
                   aria-label="Close command menu"
                 >
                   <X className="h-5 w-5" />
@@ -299,75 +299,75 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 {search.trim().length >= 3 && (
                   <Command.Item
                     value="ask-ai"
-                    className="mb-1 flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm aria-selected:bg-blue-50 aria-selected:text-blue-700"
+                    className="mb-1 flex cursor-pointer items-center gap-2 rounded-xl px-2 py-2 text-sm aria-selected:bg-tint-soft aria-selected:text-foreground"
                     onSelect={() => runAsk(search.trim())}
                   >
-                    <Sparkles className="h-4 w-4 shrink-0 text-blue-500" />
+                    <Sparkles className="h-4 w-4 shrink-0 text-foreground" />
                     <span className="truncate">
                       Ask AI:{" "}
                       <span className="font-medium">{search.trim()}</span>
                     </span>
-                    <kbd className="ml-auto shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                    <kbd className="ml-auto shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
                       ↵
                     </kbd>
                   </Command.Item>
                 )}
 
                 {!search && !showAllCommands && (
-                  <div className="px-2 py-3 text-sm text-gray-500">
+                  <div className="px-2 py-3 text-sm text-muted-foreground">
                     <p className="mb-2">
                       Start typing to search commands or try these:
                     </p>
                     <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <div
-                        className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-gray-100"
+                        className="flex cursor-pointer items-center gap-2 rounded-xl p-2 hover:bg-secondary"
                         onClick={() => {
                           executeCommand("navigation.calendar");
                           onOpenChange(false);
                         }}
                       >
-                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Go to Calendar</span>
-                        <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                        <kbd className="ml-auto rounded bg-secondary px-1.5 py-0.5 text-xs">
                           gc
                         </kbd>
                       </div>
                       <div
-                        className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-gray-100"
+                        className="flex cursor-pointer items-center gap-2 rounded-xl p-2 hover:bg-secondary"
                         onClick={() => {
                           executeCommand("navigation.tasks");
                           onOpenChange(false);
                         }}
                       >
-                        <ClipboardList className="h-4 w-4 text-gray-500" />
+                        <ClipboardList className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Go to Tasks</span>
-                        <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                        <kbd className="ml-auto rounded bg-secondary px-1.5 py-0.5 text-xs">
                           gt
                         </kbd>
                       </div>
                       <div
-                        className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-gray-100"
+                        className="flex cursor-pointer items-center gap-2 rounded-xl p-2 hover:bg-secondary"
                         onClick={() => {
                           executeCommand("navigation.focus");
                           onOpenChange(false);
                         }}
                       >
-                        <Zap className="h-4 w-4 text-gray-500" />
+                        <Zap className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Go to Focus</span>
-                        <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                        <kbd className="ml-auto rounded bg-secondary px-1.5 py-0.5 text-xs">
                           gf
                         </kbd>
                       </div>
                       <div
-                        className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-gray-100"
+                        className="flex cursor-pointer items-center gap-2 rounded-xl p-2 hover:bg-secondary"
                         onClick={() => {
                           executeCommand("navigation.settings");
                           onOpenChange(false);
                         }}
                       >
-                        <Settings className="h-4 w-4 text-gray-500" />
+                        <Settings className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Go to Settings</span>
-                        <kbd className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                        <kbd className="ml-auto rounded bg-secondary px-1.5 py-0.5 text-xs">
                           gs
                         </kbd>
                       </div>
@@ -376,7 +376,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     <div className="mt-4 flex justify-center">
                       <button
                         onClick={() => setShowAllCommands(true)}
-                        className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
+                        className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
                       >
                         <LayoutGrid className="h-4 w-4" />
                         Show all commands
@@ -397,13 +397,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                           <Command.Item
                             key={`${item.type}:${item.id}`}
                             value={`${item.type}:${item.id}`}
-                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm aria-selected:bg-blue-50 aria-selected:text-blue-700"
+                            className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-2 text-sm aria-selected:bg-tint-soft aria-selected:text-foreground"
                             onSelect={() => goTo(item.url)}
                           >
-                            <Icon className="h-4 w-4 shrink-0 text-gray-500" />
+                            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                             <span className="truncate">{item.title}</span>
                             {item.subtitle && (
-                              <span className="ml-auto truncate pl-2 text-xs capitalize text-gray-400">
+                              <span className="ml-auto truncate pl-2 text-xs capitalize text-muted-foreground">
                                 {item.subtitle}
                               </span>
                             )}
@@ -415,13 +415,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 )}
 
                 {searching && results.length === 0 && (
-                  <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500">
+                  <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" /> Searching…
                   </div>
                 )}
 
                 {!searching && (
-                  <Command.Empty className="py-6 text-center text-sm text-gray-500">
+                  <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
                     No results found. Try a different search term.
                   </Command.Empty>
                 )}
@@ -440,7 +440,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                           return (
                             <Command.Item
                               key={command.id}
-                              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm aria-selected:bg-blue-50 aria-selected:text-blue-700"
+                              className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-2 text-sm aria-selected:bg-tint-soft aria-selected:text-foreground"
                               onSelect={() => {
                                 executeCommand(command.id);
                                 onOpenChange(false);
@@ -449,7 +449,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                               {Icon && <Icon className="h-4 w-4" />}
                               <span>{command.title}</span>
                               {command.shortcut && (
-                                <kbd className="ml-auto text-xs text-gray-400">
+                                <kbd className="ml-auto text-xs text-muted-foreground">
                                   {formatShortcut(command.shortcut)}
                                 </kbd>
                               )}
@@ -499,21 +499,21 @@ function AskPanel({
   );
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-white shadow-lg">
-      <div className="flex items-center gap-2 border-b px-3 py-2.5">
+    <div className="overflow-hidden rounded-[24px] bg-card shadow-float">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <button
           onClick={onBack}
-          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
           aria-label="Back to search"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <Sparkles className="h-4 w-4 shrink-0 text-blue-500" />
-        <span className="truncate text-sm font-medium text-gray-900">
+        <Sparkles className="h-4 w-4 shrink-0 text-foreground" />
+        <span className="truncate text-sm font-medium text-foreground">
           {state.question}
         </span>
         <Dialog.Close
-          className="ml-auto p-1 text-gray-400 hover:text-gray-600"
+          className="ml-auto p-1 text-muted-foreground hover:text-foreground"
           aria-label="Close command menu"
         >
           <X className="h-4 w-4" />
@@ -522,13 +522,13 @@ function AskPanel({
 
       <div className="max-h-[60vh] overflow-y-auto p-4">
         {state.loading && (
-          <div className="flex items-start gap-2 py-2 text-sm text-gray-500">
+          <div className="flex items-start gap-2 py-2 text-sm text-muted-foreground">
             <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             <span>
               {state.sources.length === 0
                 ? "Recherche dans ton calendrier, tes tâches, tes notes…"
                 : "Lecture des ressources ci-dessous…"}
-              <span className="block text-xs text-gray-400">
+              <span className="block text-xs text-muted-foreground">
                 Le modèle tourne en local — compte une à deux minutes.
               </span>
             </span>
@@ -537,10 +537,10 @@ function AskPanel({
 
         {state.error && (
           <div className="py-2 text-sm">
-            <p className="text-red-600">{state.error}</p>
+            <p className="text-negative-foreground">{state.error}</p>
             <button
               onClick={onRetry}
-              className="mt-2 rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+              className="mt-2 rounded-xl px-2 py-1 text-xs font-medium text-foreground hover:bg-tint-soft"
             >
               Réessayer
             </button>
@@ -548,7 +548,7 @@ function AskPanel({
         )}
 
         {state.answer && (
-          <div className="text-sm leading-7 text-gray-800 [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2 [&_strong]:font-semibold">
+          <div className="text-sm leading-7 text-foreground [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2 [&_strong]:font-semibold">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -556,7 +556,7 @@ function AskPanel({
                   <button
                     type="button"
                     onClick={() => href && onNavigate(href)}
-                    className="mx-0.5 rounded bg-blue-50 px-1 align-baseline text-xs font-medium text-blue-600 hover:bg-blue-100"
+                    className="mx-0.5 rounded bg-tint-soft px-1 align-baseline text-xs font-medium text-foreground hover:bg-tint"
                   >
                     {children}
                   </button>
@@ -569,8 +569,8 @@ function AskPanel({
         )}
 
         {sources.length > 0 && (
-          <div className="mt-4 border-t pt-3">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+          <div className="mt-4 border-t border-border pt-3">
+            <p className="etiquette mb-3">
               Ressources consultées
             </p>
             <ul className="space-y-0.5">
@@ -582,24 +582,24 @@ function AskPanel({
                       type="button"
                       onClick={() => onNavigate(source.url)}
                       title={source.snippet}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-gray-100"
+                      className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-secondary"
                     >
                       <span
                         className={cn(
                           "w-6 shrink-0 text-xs tabular-nums",
                           source.cited
-                            ? "font-semibold text-blue-600"
-                            : "text-gray-400"
+                            ? "font-semibold text-foreground"
+                            : "text-muted-foreground"
                         )}
                       >
                         [{source.n}]
                       </span>
-                      <Icon className="h-4 w-4 shrink-0 text-gray-500" />
-                      <span className="truncate text-gray-800">
+                      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-foreground">
                         {source.title}
                       </span>
                       {source.subtitle && (
-                        <span className="ml-auto truncate pl-2 text-xs text-gray-400">
+                        <span className="ml-auto truncate pl-2 text-xs text-muted-foreground">
                           {source.subtitle}
                         </span>
                       )}

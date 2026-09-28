@@ -155,9 +155,9 @@ export function PasswordResetForm() {
   };
 
   return (
-    <Card className="mx-auto w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+    <Card className="mx-auto w-full max-w-[400px] rounded-tile">
+      <CardHeader className="pb-4">
+        <CardTitle>Reset password</CardTitle>
         <CardDescription>
           {token
             ? "Enter your new password below"
@@ -176,11 +176,11 @@ export function PasswordResetForm() {
                 id="password"
                 type="password"
                 {...registerReset("password")}
-                className={resetErrors.password ? "border-red-500" : ""}
+                className={resetErrors.password ? "ring-2 ring-destructive" : ""}
                 disabled={isLoading}
               />
               {resetErrors.password && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-negative-foreground">
                   {resetErrors.password.message}
                 </p>
               )}
@@ -192,11 +192,11 @@ export function PasswordResetForm() {
                 id="confirmPassword"
                 type="password"
                 {...registerReset("confirmPassword")}
-                className={resetErrors.confirmPassword ? "border-red-500" : ""}
+                className={resetErrors.confirmPassword ? "ring-2 ring-destructive" : ""}
                 disabled={isLoading}
               />
               {resetErrors.confirmPassword && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-negative-foreground">
                   {resetErrors.confirmPassword.message}
                 </p>
               )}
@@ -218,11 +218,11 @@ export function PasswordResetForm() {
                 type="email"
                 placeholder="name@example.com"
                 {...registerRequest("email")}
-                className={requestErrors.email ? "border-red-500" : ""}
+                className={requestErrors.email ? "ring-2 ring-destructive" : ""}
                 disabled={isLoading}
               />
               {requestErrors.email && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-negative-foreground">
                   {requestErrors.email.message}
                 </p>
               )}

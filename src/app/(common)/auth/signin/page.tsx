@@ -16,21 +16,28 @@ export default async function SignInPage() {
   const session = await getServerSession(authOptions);
 
   if (session) {
-    redirect("/calendar");
+    redirect("/dashboard");
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Sign in to DreamDash</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Manage your calendar and tasks efficiently
-          </p>
-        </div>
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="page flex h-20 items-center">
+        <span className="text-[22px] font-extrabold leading-none tracking-display">
+          DreamDash
+        </span>
+      </header>
+
+      <main className="page flex flex-1 flex-col items-center pb-16 pt-6 md:pt-14">
+        <h1 className="display text-center text-[44px] sm:text-[64px] md:text-[80px]">
+          Welcome back.
+        </h1>
+        <p className="mt-6 max-w-md text-center text-[15px] leading-relaxed text-muted-foreground">
+          Your personal command center — calendar, tasks, email and notes,
+          all in one place.
+        </p>
 
         <SignInForm />
-      </div>
+      </main>
     </div>
   );
 }

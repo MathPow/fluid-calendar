@@ -8,11 +8,11 @@ export default function WaitlistPage() {
   return (
     <div className="rounded-lg bg-muted p-6">
       <h2 className="mb-4 text-2xl font-bold">Beta Waitlist Management</h2>
-      <div className="mb-6 border-l-4 border-yellow-400 bg-yellow-50 p-4">
+      <div className="mb-6 rounded-2xl bg-pending p-4">
         <div className="flex">
           <div className="flex-shrink-0">
             <svg
-              className="h-5 w-5 text-yellow-400"
+              className="h-5 w-5 text-pending-foreground"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -24,23 +24,23 @@ export default function WaitlistPage() {
             </svg>
           </div>
           <div className="ml-3">
-            <p className="text-sm text-yellow-700">
+            <p className="text-sm text-pending-foreground">
               <strong>SAAS Feature Only:</strong> The Beta Waitlist Management
               feature is only available in the SAAS version of FluidCalendar.
             </p>
           </div>
         </div>
       </div>
-      <p className="mb-4 text-gray-700">
+      <p className="mb-4 text-foreground/80">
         The Beta Waitlist Management feature allows you to:
       </p>
-      <ul className="mb-6 list-disc space-y-2 pl-5 text-gray-700">
+      <ul className="mb-6 list-disc space-y-2 pl-5 text-foreground/80">
         <li>Manage a waitlist for your beta program</li>
         <li>Send invitations to users on the waitlist</li>
         <li>Track referrals and prioritize users</li>
         <li>Configure waitlist settings and email templates</li>
       </ul>
-      <p className="text-gray-700">
+      <p className="text-foreground/80">
         To access this feature, please upgrade to the SAAS version of Fluid
         Calendar.
       </p>
