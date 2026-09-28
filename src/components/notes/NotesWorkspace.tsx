@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-import { AudioLines, FileText, Zap } from "lucide-react";
+import { AudioLines, FileText, Mic, Zap } from "lucide-react";
 
 import { CommandsPanel } from "@/components/notes/CommandsPanel";
 import { NotesExplorer } from "@/components/notes/NotesExplorer";
 import { RecordingsPanel } from "@/components/notes/RecordingsPanel";
+import { SessionsWorkspace } from "@/components/sessions/SessionsWorkspace";
 
-type Tab = "notes" | "recordings" | "commands";
+type Tab = "notes" | "recordings" | "sessions" | "commands";
 
 /**
  * Notes tab shell with a sub-view switcher between the Obsidian vault notes,
@@ -23,7 +24,7 @@ export function NotesWorkspace() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "recordings" || t === "commands") setTab(t);
+    if (t === "recordings" || t === "sessions" || t === "commands") setTab(t);
   }, []);
 
   return (
@@ -43,6 +44,12 @@ export function NotesWorkspace() {
           label="Recordings"
         />
         <TabButton
+          active={tab === "sessions"}
+          onClick={() => setTab("sessions")}
+          icon={<Mic className="h-4 w-4" />}
+          label="Sessions"
+        />
+        <TabButton
           active={tab === "commands"}
           onClick={() => setTab("commands")}
           icon={<Zap className="h-4 w-4" />}
@@ -53,6 +60,7 @@ export function NotesWorkspace() {
       <div className="min-h-0 flex-1">
         {tab === "notes" && <NotesExplorer />}
         {tab === "recordings" && <RecordingsPanel />}
+        {tab === "sessions" && <SessionsWorkspace />}
         {tab === "commands" && <CommandsPanel />}
       </div>
     </div>

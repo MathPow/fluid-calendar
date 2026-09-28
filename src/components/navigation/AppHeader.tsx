@@ -10,10 +10,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Mail,
-  Mic,
   Search,
-  Target,
-  Users,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -26,18 +23,19 @@ interface NavLink {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
+  /** Other routes that live under this section (they keep it highlighted). */
+  also?: string[];
 }
 
+// Six sections. Focus lives under Tasks, Sessions under Notes, Contacts under
+// Projets — each of those pages carries its own segmented switch.
 const MENU: NavLink[] = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/calendar", label: "Calendar", icon: Calendar },
-  { href: "/tasks", label: "Tasks", icon: ListTodo },
+  { href: "/tasks", label: "Tasks", icon: ListTodo, also: ["/focus"] },
   { href: "/email", label: "Email", icon: Mail },
-  { href: "/notes", label: "Notes", icon: FileText },
-  { href: "/sessions", label: "Sessions", icon: Mic },
-  { href: "/focus", label: "Focus", icon: Target },
-  { href: "/projets", label: "Projets", icon: FolderGit2 },
-  { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/notes", label: "Notes", icon: FileText, also: ["/sessions"] },
+  { href: "/projets", label: "Projets", icon: FolderGit2, also: ["/contacts"] },
 ];
 
 /**
@@ -48,8 +46,10 @@ const MENU: NavLink[] = [
 export function AppHeader({ className }: { className?: string }) {
   const pathname = usePathname();
 
-  const isActive = (href: string) =>
-    pathname === href || pathname?.startsWith(href + "/");
+  const isActive = (link: NavLink) =>
+    [link.href, ...(link.also ?? [])].some(
+      (p) => pathname === p || pathname?.startsWith(p + "/")
+    );
 
   const openCommandPalette = () => {
     document.dispatchEvent(
@@ -59,17 +59,20 @@ export function AppHeader({ className }: { className?: string }) {
 
   const nav = (
     <>
-      {MENU.map(({ href, label, icon: Icon }) => (
+      {MENU.map((link) => {
+        const { href, label, icon: Icon } = link;
+        return (
         <Link
           key={href}
           href={href}
-          aria-current={isActive(href) ? "page" : undefined}
+          aria-current={isActive(link) ? "page" : undefined}
           className="segmented-item"
         >
           <Icon className="h-4 w-4 lg:hidden xl:block" strokeWidth={2} />
           <span>{label}</span>
         </Link>
-      ))}
+        );
+      })}
     </>
   );
 

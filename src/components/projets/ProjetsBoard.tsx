@@ -14,6 +14,7 @@ import { useStationStore } from "@/store/station";
 
 import { type ContactLite, ProjectDialog, type ProjectLite } from "./ProjectDialog";
 import { ProjectTile } from "./ProjectTile";
+import { SectionSwitch } from "./SectionSwitch";
 
 interface ProjetsBoardProps {
   projects: ProjectFull[];
@@ -80,9 +81,12 @@ export function ProjetsBoard({ projects, contacts }: ProjetsBoardProps) {
             )}
           </div>
         </div>
-        <Button size="lg" onClick={() => setDialog({ open: true, project: null })}>
-          <Plus /> Nouveau projet
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <SectionSwitch />
+          <Button size="lg" onClick={() => setDialog({ open: true, project: null })}>
+            <Plus /> Nouveau projet
+          </Button>
+        </div>
       </header>
       <div className="filet mt-8" />
 

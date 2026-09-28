@@ -1,9 +1,6 @@
-import { SessionsWorkspace } from "@/components/sessions/SessionsWorkspace";
+import { redirect } from "next/navigation";
 
+// Sessions now live as a tab of Notes; keep the old address working.
 export default function SessionsPage() {
-  return (
-    <div className="h-full">
-      <SessionsWorkspace />
-    </div>
-  );
+  redirect("/notes?tab=sessions");
 }

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { Kanban, ListTodo } from "lucide-react";
+import Link from "next/link";
+
+import { Kanban, ListTodo, Target } from "lucide-react";
 import { toast } from "sonner";
 
 import { ProjectSidebar } from "@/components/projects/ProjectSidebar";
@@ -159,6 +161,10 @@ export default function TasksPage() {
               <Kanban className="h-4 w-4" />
               Board
             </button>
+            <Link href="/focus" className="segmented-item">
+              <Target className="h-4 w-4" />
+              Focus
+            </Link>
           </div>
 
           {error && (

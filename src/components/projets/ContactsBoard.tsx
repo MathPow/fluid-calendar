@@ -16,6 +16,7 @@ import { useStationStore } from "@/store/station";
 
 import { ContactDialog } from "./ContactDialog";
 import type { ProjectLite } from "./ProjectDialog";
+import { SectionSwitch } from "./SectionSwitch";
 
 interface ContactsBoardProps {
   contacts: ContactFull[];
@@ -71,9 +72,12 @@ export function ContactsBoard({ contacts, projects }: ContactsBoardProps) {
             )}
           </div>
         </div>
-        <Button size="lg" onClick={() => setDialog({ open: true, contact: null })}>
-          <Plus /> Nouveau contact
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <SectionSwitch />
+          <Button size="lg" onClick={() => setDialog({ open: true, contact: null })}>
+            <Plus /> Nouveau contact
+          </Button>
+        </div>
       </header>
       <div className="filet mt-8" />
 
