@@ -166,7 +166,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     const url = new URL("/auth/signin", request.url);
-    url.searchParams.set("callbackUrl", encodeURI(request.url));
+    // Relative callback: request.url carries the container's internal host
+    // (0.0.0.0:3000) behind the proxy, which NextAuth would then refuse and
+    // drop the deep link. A path is resolved against NEXTAUTH_URL instead.
+    url.searchParams.set(
+      "callbackUrl",
+      request.nextUrl.pathname + request.nextUrl.search
+    );
     return NextResponse.redirect(url);
   }
 
