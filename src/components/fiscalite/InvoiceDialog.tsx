@@ -31,12 +31,15 @@ import {
   EXPENSE_CATEGORIES,
   GST_RATE,
   INCOME_CATEGORIES,
+  PERSONAL_EXPENSE_CATEGORIES,
+  PERSONAL_INCOME_CATEGORIES,
   QST_RATE,
   type TaxProfileLite,
   categoryOf,
   centsToInput,
   formatMoney,
   invoiceIssues,
+  isPersonal,
   parseMoney,
   taxesFor,
 } from "@/lib/fiscalite/meta";
@@ -224,15 +227,22 @@ export function InvoiceDialog({
     }));
   };
 
+  // Budget perso: personal categories, one amount, no tax fields.
+  const personal = isPersonal(profile);
   const partners = profile.legalForm === "senc" ? (profile.partners ?? []) : [];
-  const standard: { id: string; label: string; line?: string }[] =
-    form.direction === "revenu" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const standard: { id: string; label: string; line?: string }[] = personal
+    ? form.direction === "revenu"
+      ? PERSONAL_INCOME_CATEGORIES
+      : PERSONAL_EXPENSE_CATEGORIES
+    : form.direction === "revenu"
+      ? INCOME_CATEGORIES
+      : EXPENSE_CATEGORIES;
   // Accounts from an imported spreadsheet stay selectable as they are.
   const categories =
     form.category && !standard.some((c) => c.id === form.category)
       ? [...standard, { id: form.category, label: form.category }]
       : standard;
-  const category = form.direction === "depense" ? categoryOf(form.category) : undefined;
+  const category = form.direction === "depense" && !personal ? categoryOf(form.category) : undefined;
 
   const issues = useMemo(
     () =>
@@ -267,14 +277,21 @@ export function InvoiceDialog({
       direction: form.direction,
       date: form.date,
       party: form.party,
-      partyTaxNumber: form.direction === "depense" ? form.partyTaxNumber : null,
+      partyTaxNumber: form.direction === "depense" && !personal ? form.partyTaxNumber : null,
       number: form.number,
       description: form.description,
       category: form.category || null,
-      subtotalCents: cents.subtotal,
-      gstCents: cents.gst,
-      qstCents: cents.qst,
-      totalCents: cents.total || cents.subtotal + cents.gst + cents.qst,
+      ...(personal
+        ? (() => {
+            const total = cents.total || cents.subtotal + cents.gst + cents.qst;
+            return { subtotalCents: total, gstCents: 0, qstCents: 0, totalCents: total };
+          })()
+        : {
+            subtotalCents: cents.subtotal,
+            gstCents: cents.gst,
+            qstCents: cents.qst,
+            totalCents: cents.total || cents.subtotal + cents.gst + cents.qst,
+          }),
       notes: form.notes,
       paidBy: form.direction === "depense" && form.paidBy ? form.paidBy : null,
     };
@@ -332,7 +349,15 @@ export function InvoiceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editing ? "Modifier la facture" : "Nouvelle facture"}</DialogTitle>
+          <DialogTitle>
+            {personal
+              ? editing
+                ? "Modifier la transaction"
+                : "Nouvelle transaction"
+              : editing
+                ? "Modifier la facture"
+                : "Nouvelle facture"}
+          </DialogTitle>
           <DialogDescription>Pour {organisation.name}.</DialogDescription>
         </DialogHeader>
 
@@ -378,8 +403,18 @@ export function InvoiceDialog({
           <div className="grid grid-cols-2 gap-2">
             {(
               [
-                { id: "depense", label: "Dépense", hint: "Une facture que tu as payée", icon: ArrowUpRight },
-                { id: "revenu", label: "Revenu", hint: "Une facture que tu as émise", icon: ArrowDownLeft },
+                {
+                  id: "depense",
+                  label: "Dépense",
+                  hint: personal ? "Un achat, une facture à payer" : "Une facture que tu as payée",
+                  icon: ArrowUpRight,
+                },
+                {
+                  id: "revenu",
+                  label: "Revenu",
+                  hint: personal ? "Paie, remboursement, cadeau" : "Une facture que tu as émise",
+                  icon: ArrowDownLeft,
+                },
               ] as const
             ).map((d) => {
               const active = form.direction === d.id;
@@ -406,7 +441,15 @@ export function InvoiceDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="inv-party">{form.direction === "revenu" ? "Client" : "Fournisseur"}</Label>
+              <Label htmlFor="inv-party">
+                {personal
+                  ? form.direction === "revenu"
+                    ? "Source"
+                    : "Commerce"
+                  : form.direction === "revenu"
+                    ? "Client"
+                    : "Fournisseur"}
+              </Label>
               <Input id="inv-party" value={form.party} onChange={(e) => set("party", e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -415,7 +458,7 @@ export function InvoiceDialog({
                 <Input id="inv-date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="inv-number">No facture</Label>
+                <Label htmlFor="inv-number">{personal ? "No reçu" : "No facture"}</Label>
                 <Input id="inv-number" value={form.number} onChange={(e) => set("number", e.target.value)} />
               </div>
             </div>
@@ -446,10 +489,31 @@ export function InvoiceDialog({
               id="inv-desc"
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
-              placeholder={form.direction === "revenu" ? "Site web, billetterie juillet…" : "Hébergement Vercel, micro…"}
+              placeholder={
+                personal
+                  ? form.direction === "revenu"
+                    ? "Paie du 15, remboursement Interac…"
+                    : "Épicerie de la semaine, souper…"
+                  : form.direction === "revenu"
+                    ? "Site web, billetterie juillet…"
+                    : "Hébergement Vercel, micro…"
+              }
             />
           </div>
 
+          {personal ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-total">Montant</Label>
+              <Input
+                id="inv-total"
+                inputMode="decimal"
+                value={form.total}
+                onChange={(e) => set("total", e.target.value)}
+                placeholder="0.00"
+                className="text-[17px] font-semibold tabular-nums"
+              />
+            </div>
+          ) : (
           <div className="space-y-3 rounded-2xl bg-secondary/60 p-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {(
@@ -484,6 +548,7 @@ export function InvoiceDialog({
               </Button>
             </div>
           </div>
+          )}
 
           {form.direction === "depense" && partners.length > 0 && (
             <div className="space-y-2">
@@ -517,7 +582,7 @@ export function InvoiceDialog({
             </div>
           )}
 
-          {form.direction === "depense" && (
+          {form.direction === "depense" && !personal && (
             <div className="space-y-2">
               <Label htmlFor="inv-taxno">Nos TPS / TVQ du fournisseur</Label>
               <Input
@@ -536,7 +601,9 @@ export function InvoiceDialog({
               rows={2}
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              placeholder={category?.id === "repas" ? "Avec qui, pourquoi" : "Contexte pour ton comptable"}
+              placeholder={
+                personal ? "Note" : category?.id === "repas" ? "Avec qui, pourquoi" : "Contexte pour ton comptable"
+              }
             />
           </div>
 
@@ -568,7 +635,7 @@ export function InvoiceDialog({
             )}
             <Button type="submit" size="lg" disabled={submitting || reading}>
               {submitting && <Loader2 className="animate-spin" />}
-              {editing ? "Enregistrer" : "Classer la facture"}
+              {editing ? "Enregistrer" : personal ? "Ajouter" : "Classer la facture"}
             </Button>
           </div>
         </form>

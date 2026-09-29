@@ -29,7 +29,7 @@ export const InvoiceInput = z.object({
 export type InvoiceInputT = z.infer<typeof InvoiceInput>;
 
 export const TaxProfileInput = z.object({
-  legalForm: z.enum(["individuelle", "senc", "societe"]),
+  legalForm: z.enum(["individuelle", "senc", "societe", "personnel"]),
   partners: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
   partnerShares: z.array(z.number().min(0).max(100)).max(20).default([]),
   partnerContactIds: z.array(z.string().max(60)).max(20).default([]),

@@ -13,7 +13,7 @@ export const QST_RATE = 0.09975;
 export const SMALL_SUPPLIER_LIMIT_CENTS = 30_000_00;
 
 export type Direction = "depense" | "revenu";
-export type LegalForm = "individuelle" | "senc" | "societe";
+export type LegalForm = "individuelle" | "senc" | "societe" | "personnel";
 export type SalesTaxStatus = "petit" | "inscrit";
 export type FilingFrequency = "annuelle" | "trimestrielle" | "mensuelle";
 
@@ -33,7 +33,14 @@ export const LEGAL_FORMS: { id: LegalForm; label: string; hint: string }[] = [
     label: "Société (inc.)",
     hint: "Personne morale · T2 + CO-17, exercice à part",
   },
+  {
+    id: "personnel",
+    label: "Budget perso",
+    hint: "Pas une entreprise: tes revenus, tes dépenses, ton budget du mois",
+  },
 ];
+
+export const isPersonal = (profile: { legalForm: string }) => profile.legalForm === "personnel";
 
 export const SALES_TAX_STATUSES: { id: SalesTaxStatus; label: string; hint: string }[] = [
   { id: "petit", label: "Petit fournisseur", hint: "Pas inscrit, tu ne factures pas de taxes" },
@@ -131,12 +138,105 @@ export function categoryFromLabel(direction: string, label: string | null | unde
   return label.trim();
 }
 
+// ---------------------------------------------------------------------------
+// Personal budget
+// ---------------------------------------------------------------------------
+
+export interface BudgetCategory {
+  id: string;
+  label: string;
+  color: string;
+}
+
+export const PERSONAL_EXPENSE_CATEGORIES: BudgetCategory[] = [
+  { id: "p-logement", label: "Logement", color: "#a8ccff" },
+  { id: "p-epicerie", label: "Épicerie", color: "#9fe0bd" },
+  { id: "p-restos", label: "Restos et cafés", color: "#ffc2b8" },
+  { id: "p-transport", label: "Transport", color: "#ffd88a" },
+  { id: "p-abonnements", label: "Abonnements", color: "#c9b8f0" },
+  { id: "p-sante", label: "Santé et beauté", color: "#f5a3c7" },
+  { id: "p-loisirs", label: "Loisirs et sorties", color: "#8fd3f4" },
+  { id: "p-vetements", label: "Vêtements", color: "#b9d99a" },
+  { id: "p-maison", label: "Maison", color: "#e4c59e" },
+  { id: "p-cadeaux", label: "Cadeaux et dons", color: "#ffb3a7" },
+  { id: "p-voyages", label: "Voyages", color: "#7fc8c2" },
+  { id: "p-education", label: "Éducation", color: "#b3b8ff" },
+  { id: "p-impots", label: "Impôts et frais", color: "#d9d4cc" },
+  { id: "p-epargne", label: "Épargne et placements", color: "#6fcf97" },
+  { id: "p-autres", label: "Autres", color: "#cfcac2" },
+];
+
+export const PERSONAL_INCOME_CATEGORIES: BudgetCategory[] = [
+  { id: "p-salaire", label: "Salaire", color: "#6fcf97" },
+  { id: "p-retraits", label: "Retraits d'entreprise", color: "#a8ccff" },
+  { id: "p-remboursements", label: "Remboursements", color: "#ffd88a" },
+  { id: "p-autres-revenus", label: "Autres revenus", color: "#cfcac2" },
+];
+
+export function personalCategory(id: string | null | undefined): BudgetCategory | undefined {
+  return [...PERSONAL_EXPENSE_CATEGORIES, ...PERSONAL_INCOME_CATEGORIES].find((c) => c.id === id);
+}
+
+/** Monthly budget per expense category, in cents. */
+export type Budgets = Record<string, number>;
+
+export interface BudgetLine {
+  id: string;
+  label: string;
+  color: string;
+  spentCents: number;
+  budgetCents: number;
+}
+
+/** A month of personal spending against the budget. */
+export function monthSummary<T extends InvoiceLite>(invoices: T[], budgets: Budgets, month: string /* YYYY-MM */) {
+  const inMonth = invoices.filter((i) => String(typeof i.date === "string" ? i.date : i.date.toISOString()).startsWith(month));
+  const spent = new Map<string, number>();
+  let incomeCents = 0;
+  let expenseCents = 0;
+  for (const i of inMonth) {
+    const amount = i.totalCents || i.subtotalCents;
+    if (i.direction === "revenu") {
+      incomeCents += amount;
+      continue;
+    }
+    expenseCents += amount;
+    const key = i.category || "p-autres";
+    spent.set(key, (spent.get(key) ?? 0) + amount);
+  }
+  const lines: BudgetLine[] = PERSONAL_EXPENSE_CATEGORIES.map((c) => ({
+    id: c.id,
+    label: c.label,
+    color: c.color,
+    spentCents: spent.get(c.id) ?? 0,
+    budgetCents: budgets[c.id] ?? 0,
+  }));
+  // Categories outside the list (typed in a spreadsheet, a business one…).
+  for (const [id, cents] of spent) {
+    if (!lines.some((l) => l.id === id)) {
+      lines.push({ id, label: categoryLabel("depense", id), color: "#cfcac2", spentCents: cents, budgetCents: 0 });
+    }
+  }
+  const budgetCents = Object.values(budgets).reduce((a, b) => a + (b || 0), 0);
+  return {
+    invoices: inMonth,
+    incomeCents,
+    expenseCents,
+    budgetCents,
+    lines: lines
+      .filter((l) => l.spentCents || l.budgetCents)
+      .sort((a, b) => b.budgetCents - a.budgetCents || b.spentCents - a.spentCents),
+  };
+}
+
 export function categoryOf(id: string | null | undefined): ExpenseCategory | undefined {
   return EXPENSE_CATEGORIES.find((c) => c.id === id);
 }
 
 export function categoryLabel(direction: string, id: string | null | undefined): string {
   if (!id) return "Sans catégorie";
+  const personal = personalCategory(id);
+  if (personal) return personal.label;
   const list: { id: string; label: string }[] =
     direction === "revenu" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   return list.find((c) => c.id === id)?.label ?? id;
@@ -534,6 +634,11 @@ export interface InvoiceIssue {
 /** What to fix on one invoice before it's audit-proof. */
 export function invoiceIssues(inv: InvoiceLite, profile: TaxProfileLite): InvoiceIssue[] {
   const out: InvoiceIssue[] = [];
+  if (isPersonal(profile)) {
+    // A personal budget has no tax rules: only the category matters.
+    if (inv.direction === "depense" && !inv.category) out.push({ level: "info", text: "Choisis une catégorie pour ton budget." });
+    return out;
+  }
   const registered = profile.salesTaxStatus === "inscrit";
   if (!inv.hasFile) out.push({ level: "info", text: "Pas de pièce jointe: garde la facture 6 ans." });
 

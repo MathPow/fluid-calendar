@@ -28,7 +28,9 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 import {
+  type Budgets,
   DEFAULT_PROFILE,
+  isPersonal,
   FILING_FREQUENCIES,
   LEGAL_FORMS,
   SMALL_SUPPLIER_LIMIT_CENTS,
@@ -49,6 +51,7 @@ import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
 
 import { ExcelActions } from "./ExcelActions";
 import { InvoiceDialog } from "./InvoiceDialog";
+import { PersonalBudget } from "./PersonalBudget";
 import { PartnersTile } from "./PartnersTile";
 import { COMPANY_FIELDS, type ProfileView, TaxProfileDialog } from "./TaxProfileDialog";
 
@@ -129,6 +132,8 @@ export function FiscaliteBoard({
     () =>
       savedProfile ?? {
         ...DEFAULT_PROFILE,
+        // The personal bucket starts as a budget, not a business.
+        legalForm: org?.kind === "perso" ? "personnel" : DEFAULT_PROFILE.legalForm,
         organisationId: orgId ?? "",
         notes: null,
         tracked: true,
@@ -141,8 +146,9 @@ export function FiscaliteBoard({
           string | null
         >),
       },
-    [savedProfile, orgId]
+    [savedProfile, orgId, org?.kind]
   );
+  const personal = isPersonal(profile);
   const configured = !!savedProfile?.setUp;
   const missingIdentity = [
     !profile.legalName && "nom légal",
@@ -285,9 +291,11 @@ export function FiscaliteBoard({
             <Badge className="px-4 py-2 text-[13px]">
               {LEGAL_FORMS.find((f) => f.id === profile.legalForm)?.label}
             </Badge>
-            <Badge variant={registered ? "positive" : "default"} className="px-4 py-2 text-[13px]">
-              {registered ? "Inscrit TPS/TVQ" : "Petit fournisseur"}
-            </Badge>
+            {!personal && (
+              <Badge variant={registered ? "positive" : "default"} className="px-4 py-2 text-[13px]">
+                {registered ? "Inscrit TPS/TVQ" : "Petit fournisseur"}
+              </Badge>
+            )}
             {warnCount > 0 && (
               <Badge variant="pending" className="px-4 py-2 text-[13px]">
                 {warnCount} facture{warnCount > 1 ? "s" : ""} à corriger
@@ -327,7 +335,8 @@ export function FiscaliteBoard({
               {picker}
             </PopoverContent>
           </Popover>
-          <div className="segmented h-11">
+          {/* The budget has its own month picker. */}
+          <div className={cn("segmented h-11", personal && "hidden")}>
             <button type="button" className="segmented-item h-9 px-2" onClick={() => setYear(year - 1)} aria-label="Année précédente">
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -356,10 +365,12 @@ export function FiscaliteBoard({
         <Upload className="h-7 w-7 text-muted-foreground" />
         <div>
           <p className="text-[17px] font-semibold tracking-title">
-            Dépose une facture de {org.name}
+            {personal ? `Dépose un reçu (${org.name})` : `Dépose une facture de ${org.name}`}
           </p>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            PDF ou photo · émise ou reçue · les montants et les taxes sont lus automatiquement
+            {personal
+              ? "PDF ou photo · le montant et la date sont lus automatiquement"
+              : "PDF ou photo · émise ou reçue · les montants et les taxes sont lus automatiquement"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -386,6 +397,24 @@ export function FiscaliteBoard({
         />
       </div>
 
+      {personal ? (
+        <PersonalBudget
+          organisation={org}
+          invoices={orgInvoices}
+          budgets={(savedProfile?.budgets as Budgets | null | undefined) ?? {}}
+          onOpenInvoice={(invoice) => setDialog({ open: true, invoice, file: null })}
+          onEditProfile={() => setProfileOpen(true)}
+          onBudgetsSaved={(budgets) =>
+            setProfiles((prev) => {
+              const base = prev.find((p) => p.organisationId === profile.organisationId) ?? {
+                ...profile,
+                legalForm: "personnel",
+              };
+              return [...prev.filter((p) => p.organisationId !== profile.organisationId), { ...base, budgets }];
+            })
+          }
+        />
+      ) : (
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-6">
           {/* Year at a glance */}
@@ -705,6 +734,7 @@ export function FiscaliteBoard({
           </section>
         </aside>
       </div>
+      )}
 
       <InvoiceDialog
         open={dialog.open}
@@ -725,6 +755,7 @@ export function FiscaliteBoard({
         onOpenChange={setProfileOpen}
         organisation={org}
         profile={savedProfile}
+        defaultLegalForm={org.kind === "perso" ? "personnel" : undefined}
         onSaved={(p) => setProfiles((prev) => [...prev.filter((x) => x.organisationId !== p.organisationId), p])}
       />
     </div>

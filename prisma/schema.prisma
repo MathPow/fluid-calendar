@@ -1148,6 +1148,8 @@ model TaxProfile {
   // Contact (Contacts tab) of each associé, same order as `partners`; "" when
   // not linked. The names stay the key for movements, « Payé par » and Excel.
   partnerContactIds String[]   @default([])
+  // Budget perso: monthly budget per category id, in cents ({ "p-epicerie": 60000 }).
+  budgets         Json?
 
   // Company file: identification, contact, activity, accountant.
   legalName       String? // nom légal / raison sociale, as on the REQ

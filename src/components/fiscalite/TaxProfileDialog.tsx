@@ -57,6 +57,7 @@ export type ProfileView = TaxProfileLite & {
   partners: string[];
   partnerShares: number[];
   partnerContactIds?: string[];
+  budgets?: unknown;
   startedAt: string | null; // YYYY-MM-DD (or an ISO string from the API)
 } & { [K in CompanyField]: string | null };
 
@@ -66,6 +67,8 @@ interface TaxProfileDialogProps {
   organisation: { id: string; name: string };
   profile: ProfileView | null;
   onSaved: (profile: ProfileView) => void;
+  /** Form preselected when there's no profile yet ("personnel" for the Perso organisation). */
+  defaultLegalForm?: LegalForm;
 }
 
 function Choice<T extends string>({
@@ -145,6 +148,7 @@ export function TaxProfileDialog({
   organisation,
   profile,
   onSaved,
+  defaultLegalForm,
 }: TaxProfileDialogProps) {
   const [legalForm, setLegalForm] = useState<LegalForm>("individuelle");
   const [partners, setPartners] = useState<
@@ -177,13 +181,15 @@ export function TaxProfileDialog({
       >
   );
   const [submitting, setSubmitting] = useState(false);
+  // Budget perso: none of the company file applies.
+  const personal = legalForm === "personnel";
 
   useEffect(() => {
     if (!open) return;
     setLegalForm(
-      profile?.legalForm === "societe" || profile?.legalForm === "senc"
+      profile?.legalForm === "societe" || profile?.legalForm === "senc" || profile?.legalForm === "personnel"
         ? profile.legalForm
-        : "individuelle"
+        : (defaultLegalForm ?? "individuelle")
     );
     setPartners(
       (profile?.partners ?? []).map((name, i) => ({
@@ -210,7 +216,7 @@ export function TaxProfileDialog({
         ])
       ) as Record<CompanyField, string>
     );
-  }, [open, profile]);
+  }, [open, profile, defaultLegalForm]);
 
   const field = (f: CompanyField) => ({
     value: company[f],
@@ -304,6 +310,7 @@ export function TaxProfileDialog({
             submit();
           }}
         >
+          {!personal && (
           <Section title="Identification">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
@@ -360,6 +367,7 @@ export function TaxProfileDialog({
               </div>
             </div>
           </Section>
+          )}
 
           <Section title="Forme juridique">
             <Choice
@@ -509,6 +517,7 @@ export function TaxProfileDialog({
             )}
           </Section>
 
+          {!personal && (
           <Section title="TPS / TVQ">
             <Choice
               options={SALES_TAX_STATUSES}
@@ -557,7 +566,9 @@ export function TaxProfileDialog({
               </>
             )}
           </Section>
+          )}
 
+          {!personal && (
           <Section
             title="Coordonnées"
             hint="L'adresse du siège, telle qu'au Registraire des entreprises."
@@ -605,7 +616,9 @@ export function TaxProfileDialog({
               </div>
             </div>
           </Section>
+          )}
 
+          {!personal && (
           <Section title="Comptable et banque">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
@@ -642,6 +655,7 @@ export function TaxProfileDialog({
               </div>
             </div>
           </Section>
+          )}
 
           <Section title="Notes">
             <Textarea
