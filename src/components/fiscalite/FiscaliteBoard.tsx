@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useSearchParams } from "next/navigation";
+
 import {
   AlertTriangle,
   ArrowDownLeft,
@@ -115,6 +117,11 @@ export function FiscaliteBoard({
       localStorage.setItem(ORG_KEY, id);
     } catch {}
   };
+  // ?org= from the search palette (an invoice result) opens that company.
+  const urlOrg = useSearchParams().get("org");
+  useEffect(() => {
+    if (urlOrg && organisations.some((o) => o.id === urlOrg)) setOrgId(urlOrg);
+  }, [urlOrg, organisations]);
 
   const org = organisations.find((o) => o.id === orgId) ?? null;
   const savedProfile = profiles.find((p) => p.organisationId === orgId) ?? null;

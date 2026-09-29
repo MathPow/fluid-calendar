@@ -10,7 +10,17 @@ const LOG_SOURCE = "search-route";
 export const dynamic = "force-dynamic";
 
 export interface SearchResult {
-  type: "task" | "event" | "note" | "recording";
+  type:
+    | "project"
+    | "contact"
+    | "organisation"
+    | "task"
+    | "event"
+    | "invoice"
+    | "note"
+    | "recording"
+    | "machine"
+    | "ghost";
   id: string;
   title: string;
   subtitle?: string;
@@ -20,9 +30,10 @@ export interface SearchResult {
 const PER_TYPE = 5;
 
 /**
- * GET /api/search?q=... — unified content search across the app (tasks,
- * calendar events, Obsidian notes, recordings) for the signed-in user. Powers
- * the command palette's content results.
+ * GET /api/search?q=... — unified content search across the app: projects,
+ * contacts, organisations, tasks, calendar events, invoices (Fiscalité),
+ * Obsidian notes, recordings, machines and ghost blocks. Powers the command
+ * palette's content results; each result links to where it lives.
  */
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
@@ -36,7 +47,8 @@ export async function GET(request: NextRequest) {
   const contains = { contains: q, mode: "insensitive" as const };
 
   try {
-    const [tasks, events, recordings, notes] = await Promise.all([
+    const tag = q.toLowerCase();
+    const [tasks, events, recordings, notes, projects, contacts, organisations, invoices, machines, ghosts] = await Promise.all([
       prisma.task.findMany({
         where: {
           userId: auth.userId,
@@ -72,9 +84,97 @@ export async function GET(request: NextRequest) {
         take: PER_TYPE,
       }),
       searchNotes(q),
+      prisma.agentProject.findMany({
+        where: {
+          OR: [{ name: contains }, { slug: contains }, { description: contains }, { stack: { has: q } }],
+        },
+        select: { name: true, slug: true, archived: true, organisation: { select: { name: true } } },
+        orderBy: [{ archived: "asc" }, { lastActivityAt: "desc" }],
+        take: PER_TYPE,
+      }),
+      prisma.contact.findMany({
+        where: {
+          OR: [
+            { name: contains },
+            { company: contains },
+            { email: contains },
+            { phone: contains },
+            { role: contains },
+            { relationDetail: contains },
+            { notes: contains },
+            { tags: { has: tag } },
+            { links: { some: { value: contains } } },
+          ],
+        },
+        select: { id: true, name: true, company: true, role: true },
+        orderBy: [{ favorite: "desc" }, { name: "asc" }],
+        take: PER_TYPE,
+      }),
+      prisma.organisation.findMany({
+        where: {
+          OR: [
+            { name: contains },
+            { description: contains },
+            { taxProfile: { is: { OR: [{ legalName: contains }, { neq: contains }] } } },
+          ],
+        },
+        select: { id: true, name: true, kind: true, _count: { select: { projects: true } } },
+        take: PER_TYPE,
+      }),
+      prisma.invoice.findMany({
+        where: {
+          OR: [{ party: contains }, { number: contains }, { description: contains }, { notes: contains }],
+        },
+        select: {
+          id: true,
+          party: true,
+          number: true,
+          description: true,
+          direction: true,
+          date: true,
+          totalCents: true,
+          organisationId: true,
+          organisation: { select: { name: true } },
+        },
+        orderBy: { date: "desc" },
+        take: PER_TYPE,
+      }),
+      prisma.machine.findMany({
+        where: { OR: [{ name: contains }, { label: contains }] },
+        select: { id: true, name: true, label: true, kind: true },
+        take: PER_TYPE,
+      }),
+      prisma.routineBlock.findMany({
+        where: { title: contains, layer: { userId: auth.userId } },
+        select: { id: true, title: true, startTime: true, endTime: true, days: true, layer: { select: { name: true } } },
+        take: PER_TYPE,
+      }),
     ]);
 
+    const money = (cents: number) =>
+      new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(cents / 100);
     const results: SearchResult[] = [
+      ...projects.map((p) => ({
+        type: "project" as const,
+        id: p.slug,
+        title: p.name,
+        subtitle: [p.organisation?.name, p.archived ? "archivé" : null].filter(Boolean).join(" · ") || undefined,
+        url: `/projets/${p.slug}`,
+      })),
+      ...contacts.map((c) => ({
+        type: "contact" as const,
+        id: c.id,
+        title: c.name,
+        subtitle: [c.role, c.company].filter(Boolean).join(" · ") || undefined,
+        url: `/contacts?q=${encodeURIComponent(c.name)}`,
+      })),
+      ...organisations.map((o) => ({
+        type: "organisation" as const,
+        id: o.id,
+        title: o.name,
+        subtitle: `${o._count.projects} projet${o._count.projects > 1 ? "s" : ""}`,
+        url: `/projets?org=${o.id}`,
+      })),
       ...tasks.map((t) => ({
         type: "task" as const,
         id: t.id,
@@ -99,7 +199,32 @@ export async function GET(request: NextRequest) {
         subtitle: r.source,
         url: "/notes",
       })),
+      ...invoices.map((i) => ({
+        type: "invoice" as const,
+        id: i.id,
+        title: i.party || i.description || (i.number ? `Facture ${i.number}` : "Facture"),
+        subtitle: [
+          i.organisation.name,
+          `${i.direction === "revenu" ? "+" : "−"}${money(i.totalCents)}`,
+          i.date.toISOString().slice(0, 10),
+        ].join(" · "),
+        url: `/fiscalite?org=${i.organisationId}`,
+      })),
       ...notes,
+      ...machines.map((m) => ({
+        type: "machine" as const,
+        id: m.id,
+        title: m.label || m.name,
+        subtitle: m.label ? m.name : m.kind === "vps" ? "VPS" : undefined,
+        url: "/machines",
+      })),
+      ...ghosts.map((g) => ({
+        type: "ghost" as const,
+        id: g.id,
+        title: g.title,
+        subtitle: `${g.startTime}–${g.endTime} · ${g.layer.name}`,
+        url: "/calendar",
+      })),
     ];
 
     return NextResponse.json({ results });

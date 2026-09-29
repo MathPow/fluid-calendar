@@ -9,18 +9,23 @@ import { Command } from "cmdk";
 import {
   ArrowLeft,
   AudioLines,
+  Building2,
   Calendar,
   CalendarClock,
   CheckSquare,
   ClipboardList,
   FileText,
   FolderKanban,
+  Ghost,
   GitCommitHorizontal,
   LayoutGrid,
   Loader2,
+  Receipt,
   Search,
+  Server,
   Settings,
   Sparkles,
+  Users,
   X,
   Zap,
 } from "lucide-react";
@@ -37,7 +42,17 @@ interface CommandPaletteProps {
 }
 
 interface SearchResult {
-  type: "task" | "event" | "note" | "recording";
+  type:
+    | "project"
+    | "contact"
+    | "organisation"
+    | "task"
+    | "event"
+    | "invoice"
+    | "note"
+    | "recording"
+    | "machine"
+    | "ghost";
   id: string;
   title: string;
   subtitle?: string;
@@ -68,10 +83,16 @@ const RESULT_META: Record<
   SearchResult["type"],
   { label: string; icon: typeof CheckSquare }
 > = {
+  project: { label: "Projets", icon: FolderKanban },
+  contact: { label: "Contacts", icon: Users },
+  organisation: { label: "Organisations", icon: Building2 },
   task: { label: "Tasks", icon: CheckSquare },
   event: { label: "Calendar", icon: CalendarClock },
+  invoice: { label: "Factures", icon: Receipt },
   note: { label: "Notes", icon: FileText },
   recording: { label: "Recordings", icon: AudioLines },
+  machine: { label: "Machines", icon: Server },
+  ghost: { label: "Blocs fantômes", icon: Ghost },
 };
 
 /** Icons for every source type the ask endpoint can cite. */

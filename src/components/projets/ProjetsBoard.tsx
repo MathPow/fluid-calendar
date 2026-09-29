@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { useSearchParams } from "next/navigation";
 
 import {
   ArrowUpDown,
@@ -137,6 +139,11 @@ export function ProjetsBoard({
 
   // ---------------------------------------------------- Search & filters
   const [filters, setFilters] = useState<ProjectFilterState>(EMPTY_FILTERS);
+  // ?org= from the search palette narrows the board to that organisation.
+  const urlOrg = useSearchParams().get("org");
+  useEffect(() => {
+    if (urlOrg) setFilters({ ...EMPTY_FILTERS, organisations: [urlOrg] });
+  }, [urlOrg]);
   const filtering = filtersActive(filters);
 
   // Everything a search can hit, folded once per project: its own fields plus

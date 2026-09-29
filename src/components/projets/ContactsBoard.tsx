@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { AtSign, Building2, Pencil, Phone, Plus, Search, Star, Tag, User, X } from "lucide-react";
 import { toast } from "sonner";
@@ -47,6 +48,11 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
   const { currentStation } = useStationStore();
   const [contacts, setContacts] = useState<ContactFull[]>(initial);
   const [query, setQuery] = useState("");
+  // ?q= from the search palette opens the board already filtered.
+  const urlQuery = useSearchParams().get("q");
+  useEffect(() => {
+    if (urlQuery) setQuery(urlQuery);
+  }, [urlQuery]);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [type, setType] = useState<"all" | "person" | "company">("all");
   const [relation, setRelation] = useState<string>(ALL);
