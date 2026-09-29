@@ -8,15 +8,7 @@ import { Pencil, Plus, Server, TerminalSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -27,12 +19,9 @@ import {
 
 import { terminalUrl, timeAgoFr } from "@/lib/projets/meta";
 
-export interface MachineLite {
-  id: string;
-  name: string;
-  label: string | null;
-  ttydUrl: string | null;
-}
+import { MachineDialog, type MachineLite } from "./MachineDialog";
+
+export type { MachineLite };
 
 export interface LocationRow {
   id: string;
@@ -292,103 +281,5 @@ export function ProjectLocationsTile({
         }}
       />
     </section>
-  );
-}
-
-function MachineDialog({
-  open,
-  machine,
-  busy,
-  onClose,
-  onSave,
-}: {
-  open: boolean;
-  machine: MachineLite | null;
-  busy: boolean;
-  onClose: () => void;
-  onSave: (values: {
-    name: string;
-    label: string | null;
-    ttydUrl: string | null;
-  }) => void;
-}) {
-  const [name, setName] = useState(machine?.name ?? "");
-  const [label, setLabel] = useState(machine?.label ?? "");
-  const [ttydUrl, setTtydUrl] = useState(machine?.ttydUrl ?? "");
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {machine ? "Modifier la machine" : "Nouvelle machine"}
-          </DialogTitle>
-          <DialogDescription>
-            L&apos;adresse du terminal sert à ouvrir le bon ttyd, directement
-            dans le dossier du projet.
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          className="space-y-5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!name.trim()) return;
-            onSave({
-              name: name.trim(),
-              label: label.trim() || null,
-              ttydUrl: ttydUrl.trim() || null,
-            });
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="machine-name">Nom d&apos;hôte</Label>
-            <Input
-              id="machine-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="vps-dehors"
-              className="font-mono text-[13px]"
-            />
-            <p className="text-[12px] text-muted-foreground">
-              Celui que renvoie la commande <code>hostname</code> sur la machine
-              : le hook s&apos;en sert pour la reconnaître.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="machine-label">Nom affiché</Label>
-            <Input
-              id="machine-label"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="VPS Dehors"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="machine-ttyd">Adresse du terminal (ttyd)</Label>
-            <Input
-              id="machine-ttyd"
-              value={ttydUrl}
-              onChange={(e) => setTtydUrl(e.target.value)}
-              placeholder="https://vps-dehors.taila15d52.ts.net:7681/"
-              inputMode="url"
-              className="font-mono text-[13px]"
-            />
-          </div>
-          <div className="flex justify-end gap-2 border-t border-border pt-5">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={busy}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={busy || !name.trim()}>
-              Enregistrer
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }

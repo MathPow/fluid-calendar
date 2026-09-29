@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import { AudioLines, FileText, Loader2, Mic, Watch } from "lucide-react";
 
+import { MachinesStatus } from "@/components/dashboard/MachinesStatus";
 import { ProjectLauncher } from "@/components/dashboard/ProjectLauncher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -128,7 +129,9 @@ const isoWeek = (d: Date) => {
   const day = date.getUTCDay() || 7;
   date.setUTCDate(date.getUTCDate() + 4 - day);
   const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return Math.ceil(
+    ((date.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7
+  );
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -255,7 +258,8 @@ export function DashboardView() {
 
   const nextIsToday =
     nextEvent &&
-    startOfDay(new Date(nextEvent.start)).getTime() === startOfDay(now).getTime();
+    startOfDay(new Date(nextEvent.start)).getTime() ===
+      startOfDay(now).getTime();
   const nextWhen = nextEvent
     ? nextEvent.allDay
       ? nextIsToday
@@ -370,7 +374,8 @@ export function DashboardView() {
                     key={t.id}
                     className={cn(
                       "border-b border-border last:border-b-0",
-                      active && "-mx-3.5 my-1.5 rounded-chip border-b-0 bg-tint-soft px-3.5"
+                      active &&
+                        "-mx-3.5 my-1.5 rounded-chip border-b-0 bg-tint-soft px-3.5"
                     )}
                   >
                     <Link
@@ -378,7 +383,10 @@ export function DashboardView() {
                       className="flex items-baseline gap-3 py-3.5"
                     >
                       <span
-                        className={cn("rangee-num", active && "text-foreground/60")}
+                        className={cn(
+                          "rangee-num",
+                          active && "text-foreground/60"
+                        )}
                       >
                         {pad(i + 1)}
                       </span>
@@ -462,7 +470,9 @@ export function DashboardView() {
                                 e.feed?.color ?? "hsl(var(--tint-400))",
                             }}
                           />
-                          <span className="truncate">{e.feed?.name ?? "—"}</span>
+                          <span className="truncate">
+                            {e.feed?.name ?? "—"}
+                          </span>
                         </span>
                         <span className="text-right text-[13px] tabular-nums text-muted-foreground">
                           {e.allDay ? "All day" : timeLabel(e.start)}
@@ -488,7 +498,9 @@ export function DashboardView() {
                 <ol>
                   {recentChanges.map((c, i) => {
                     const Icon =
-                      c.kind === "note" ? FileText : recSourceIcon(c.source ?? "");
+                      c.kind === "note"
+                        ? FileText
+                        : recSourceIcon(c.source ?? "");
                     return (
                       <li
                         key={c.key}
@@ -522,6 +534,9 @@ export function DashboardView() {
           </Tabs>
         </div>
       </section>
+
+      {/* ------------------------------------------------------- Machines */}
+      <MachinesStatus />
     </div>
   );
 }

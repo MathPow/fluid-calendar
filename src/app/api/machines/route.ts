@@ -49,14 +49,20 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { name, label, ttydUrl } = parsed.data;
+  const { name, label, ttydUrl, statsUrl } = parsed.data;
   try {
     const machine = await prisma.machine.upsert({
       where: { name },
-      create: { name, label: label || null, ttydUrl: ttydUrl || null },
+      create: {
+        name,
+        label: label || null,
+        ttydUrl: ttydUrl || null,
+        statsUrl: statsUrl || null,
+      },
       update: {
         ...(label !== undefined ? { label: label || null } : {}),
         ...(ttydUrl !== undefined ? { ttydUrl: ttydUrl || null } : {}),
+        ...(statsUrl !== undefined ? { statsUrl: statsUrl || null } : {}),
       },
     });
     return NextResponse.json(machine, { status: 201 });

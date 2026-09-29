@@ -11,7 +11,17 @@ export const projectInclude = {
   // One row per machine the project lives on, most recently active first.
   locations: {
     orderBy: { lastSeenAt: "desc" },
-    include: { machine: { select: { id: true, name: true, label: true, ttydUrl: true } } },
+    include: {
+      machine: {
+        select: {
+          id: true,
+          name: true,
+          label: true,
+          ttydUrl: true,
+          statsUrl: true,
+        },
+      },
+    },
   },
   // Only the capsule's id: the bytes are served by /api/project-media/[id].
   media: { where: { capsule: true }, select: { id: true }, take: 1 },

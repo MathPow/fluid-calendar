@@ -15,8 +15,8 @@ import {
 } from "@/components/projets/ProjectStorePage";
 import { type ProjectTab, ProjectTabs } from "@/components/projets/ProjectTabs";
 import { ProjectTasksTile } from "@/components/projets/ProjectTasksTile";
-import { ShowcaseRunControl } from "@/components/projets/ShowcaseRunControl";
 import { ProjectMark } from "@/components/projets/ProjectTile";
+import { ShowcaseRunControl } from "@/components/projets/ShowcaseRunControl";
 import { LinkPill } from "@/components/projets/link-icons";
 import { Badge } from "@/components/ui/badge";
 
@@ -116,7 +116,13 @@ export default async function ProjetDetailPage({
   if (!project) notFound();
 
   const machines = await prisma.machine.findMany({
-    select: { id: true, name: true, label: true, ttydUrl: true },
+    select: {
+      id: true,
+      name: true,
+      label: true,
+      ttydUrl: true,
+      statsUrl: true,
+    },
     orderBy: { name: "asc" },
   });
 

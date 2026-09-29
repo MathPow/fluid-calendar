@@ -88,4 +88,11 @@ export const MachineInput = z.object({
     .refine((v) => v === "" || /^https?:\/\/\S+$/.test(v), "URL invalide")
     .nullable()
     .optional(),
+  statsUrl: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => v === "" || /^https?:\/\/\S+$/.test(v), "URL invalide")
+    .nullable()
+    .optional(),
 });

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/** PATCH /api/machines/[id] — rename, relabel, or set the web terminal address. */
+/** PATCH /api/machines/[id] — rename, relabel, or set the terminal and stats addresses. */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
@@ -37,6 +37,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         ...(f.name !== undefined ? { name: f.name } : {}),
         ...(f.label !== undefined ? { label: f.label || null } : {}),
         ...(f.ttydUrl !== undefined ? { ttydUrl: f.ttydUrl || null } : {}),
+        ...(f.statsUrl !== undefined ? { statsUrl: f.statsUrl || null } : {}),
       },
     });
     return NextResponse.json(machine);

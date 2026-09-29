@@ -1094,6 +1094,7 @@ model Machine {
   name      String            @unique
   label     String? // friendly name shown in the UI
   ttydUrl   String? // e.g. https://mathpow.taila15d52.ts.net:7681/
+  statsUrl  String? // Netdata address the server can reach, e.g. http://100.76.192.10:19999
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   locations ProjectLocation[]
