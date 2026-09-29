@@ -19,8 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { cn } from "@/lib/utils";
-
 import {
   DEFAULT_PROJECT_COLOR,
   ORG_KINDS,
@@ -28,8 +26,15 @@ import {
   PROJECT_COLORS,
 } from "@/lib/projets/meta";
 import type { OrganisationLite } from "@/lib/projets/queries";
+import { cn } from "@/lib/utils";
 
 import { ImageField } from "./ImageField";
+import {
+  type FormLink,
+  LinksEditor,
+  toFormLinks,
+  toLinkPayload,
+} from "./LinksEditor";
 
 interface OrganisationDialogProps {
   open: boolean;
@@ -37,8 +42,12 @@ interface OrganisationDialogProps {
   organisation?: OrganisationLite | null;
 }
 
-/** Create / edit an organisation: name, colour, perso-vs-client, description. */
-export function OrganisationDialog({ open, onOpenChange, organisation }: OrganisationDialogProps) {
+/** Create / edit an organisation: name, colour, type, description, links. */
+export function OrganisationDialog({
+  open,
+  onOpenChange,
+  organisation,
+}: OrganisationDialogProps) {
   const router = useRouter();
   const editing = !!organisation;
 
@@ -47,6 +56,7 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
   const [image, setImage] = useState<string | null>(null);
   const [kind, setKind] = useState<OrgKind>("client");
   const [description, setDescription] = useState("");
+  const [links, setLinks] = useState<FormLink[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -54,8 +64,13 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
     setName(organisation?.name ?? "");
     setColor(organisation?.color ?? DEFAULT_PROJECT_COLOR);
     setImage(organisation?.image ?? null);
-    setKind((ORG_KINDS.some((k) => k.id === organisation?.kind) ? organisation?.kind : "client") as OrgKind);
+    setKind(
+      (ORG_KINDS.some((k) => k.id === organisation?.kind)
+        ? organisation?.kind
+        : "client") as OrgKind
+    );
     setDescription(organisation?.description ?? "");
+    setLinks(toFormLinks(organisation?.links ?? []));
   }, [open, organisation]);
 
   const submit = async () => {
@@ -66,7 +81,9 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
     setSubmitting(true);
     try {
       const res = await fetch(
-        editing ? `/api/organisations/${organisation!.id}` : "/api/organisations",
+        editing
+          ? `/api/organisations/${organisation!.id}`
+          : "/api/organisations",
         {
           method: editing ? "PATCH" : "POST",
           headers: { "content-type": "application/json" },
@@ -76,12 +93,15 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
             image,
             kind,
             description: description.trim() || null,
+            links: toLinkPayload(links),
           }),
         }
       );
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
-      toast.success(editing ? "Organisation mise à jour." : "Organisation créée.");
+      toast.success(
+        editing ? "Organisation mise à jour." : "Organisation créée."
+      );
       onOpenChange(false);
       router.refresh();
     } catch (e) {
@@ -98,13 +118,17 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
     const n = organisation._count.projects;
     const ok = window.confirm(
       `Supprimer « ${organisation.name} » ?${
-        n > 0 ? ` Ses ${n} projet${n > 1 ? "s" : ""} retomberont dans Perso.` : ""
+        n > 0
+          ? ` Ses ${n} projet${n > 1 ? "s" : ""} retomberont dans Perso.`
+          : ""
       }`
     );
     if (!ok) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/organisations/${organisation.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/organisations/${organisation.id}`, {
+        method: "DELETE",
+      });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
       toast.success("Organisation supprimée.");
@@ -127,8 +151,8 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
             {editing ? "Modifier l'organisation" : "Nouvelle organisation"}
           </DialogTitle>
           <DialogDescription>
-            Une entreprise ou une marque qui regroupe plusieurs projets, comme DehorsQC ou
-            StayChum.
+            Une entreprise ou une marque qui regroupe plusieurs projets, comme
+            DehorsQC ou StayChum.
           </DialogDescription>
         </DialogHeader>
 
@@ -178,14 +202,19 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
                         : "border-transparent bg-secondary hover:bg-border/70"
                     )}
                   >
-                    <span className="block text-[14px] font-semibold tracking-title">{k.label}</span>
-                    <span className="block text-[12px] text-muted-foreground">{k.hint}</span>
+                    <span className="block text-[14px] font-semibold tracking-title">
+                      {k.label}
+                    </span>
+                    <span className="block text-[12px] text-muted-foreground">
+                      {k.hint}
+                    </span>
                   </button>
                 );
               })}
             </div>
             <p className="text-[12px] text-muted-foreground">
-              Perso compte dans le filtre Personal de l&apos;en-tête; les deux autres dans Work.
+              Perso compte dans le filtre Personal de l&apos;en-tête; les deux
+              autres dans Work.
             </p>
           </div>
 
@@ -207,7 +236,12 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
                     style={{ backgroundColor: c.hex }}
                     aria-pressed={active}
                   >
-                    {active && <Check className="h-4 w-4 text-[#19181c]" strokeWidth={3} />}
+                    {active && (
+                      <Check
+                        className="h-4 w-4 text-[#19181c]"
+                        strokeWidth={3}
+                      />
+                    )}
                   </button>
                 );
               })}
@@ -224,6 +258,12 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
               rows={2}
             />
           </div>
+
+          <LinksEditor
+            links={links}
+            onChange={setLinks}
+            hint="Site web, Instagram, Drive, tableau de bord Stripe…"
+          />
 
           <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:items-center">
             {editing && !organisation?.isDefault && (
@@ -247,7 +287,11 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
               Annuler
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Enregistrement…" : editing ? "Enregistrer" : "Créer"}
+              {submitting
+                ? "Enregistrement…"
+                : editing
+                  ? "Enregistrer"
+                  : "Créer"}
             </Button>
           </div>
         </form>

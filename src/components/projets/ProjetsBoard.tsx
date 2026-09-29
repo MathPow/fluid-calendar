@@ -26,6 +26,7 @@ import {
 } from "./ProjectDialog";
 import { ProjectTile } from "./ProjectTile";
 import { SectionSwitch } from "./SectionSwitch";
+import { LinkPill } from "./link-icons";
 
 interface ProjetsBoardProps {
   projects: ProjectFull[];
@@ -228,6 +229,18 @@ export function ProjetsBoard({
                 <p className="mt-2 max-w-2xl text-[14px] text-muted-foreground">
                   {org.description}
                 </p>
+              )}
+              {org.links.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {org.links.map((l) => (
+                    <LinkPill
+                      key={l.id}
+                      kind={l.kind}
+                      label={l.label}
+                      url={l.url}
+                    />
+                  ))}
+                </div>
               )}
               {list.length === 0 ? (
                 <p className="mt-4 rounded-[20px] bg-secondary/60 px-5 py-6 text-center text-[13px] text-muted-foreground">

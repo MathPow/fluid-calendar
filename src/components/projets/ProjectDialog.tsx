@@ -27,22 +27,22 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import { cn } from "@/lib/utils";
-
 import {
   DEFAULT_PROJECT_COLOR,
-  LINK_KINDS,
-  type LinkKind,
   PROJECT_COLORS,
   PROJECT_STATIONS,
   type ProjectStation,
-  guessLinkKind,
-  normalizeUrl,
 } from "@/lib/projets/meta";
 import type { OrganisationLite, ProjectFull } from "@/lib/projets/queries";
+import { cn } from "@/lib/utils";
 
 import { ImageField } from "./ImageField";
-import { LinkKindIcon } from "./link-icons";
+import {
+  type FormLink,
+  LinksEditor,
+  toFormLinks,
+  toLinkPayload,
+} from "./LinksEditor";
 
 export interface ProjectLite {
   id: string;
@@ -60,12 +60,6 @@ export interface ContactLite {
   company: string | null;
   role: string | null;
   email: string | null;
-}
-
-interface FormLink {
-  kind: LinkKind;
-  label: string;
-  url: string;
 }
 
 interface ProjectDialogProps {
@@ -140,27 +134,26 @@ export function ProjectDialog({
       setDescription(project.description ?? "");
       setPath(project.path ?? "");
       setStack(project.stack ?? []);
-      setLinks(
-        project.links.map((l) => ({
-          kind: (LINK_KINDS.some((k) => k.id === l.kind) ? l.kind : "other") as LinkKind,
-          label: l.label ?? "",
-          url: l.url,
-        }))
-      );
+      setLinks(toFormLinks(project.links));
       setContactIds(project.contacts.map((c) => c.contactId));
     } else {
       setName("");
       setColor(DEFAULT_PROJECT_COLOR);
       setImage(null);
-      const parentProject = parentId ? projects.find((p) => p.id === parentId) : null;
+      const parentProject = parentId
+        ? projects.find((p) => p.id === parentId)
+        : null;
       // A sub-project starts in its parent's station and colour.
       setStation(parentProject?.station === "work" ? "work" : "personal");
       setParent(parentId ?? NO_PARENT);
       // From an organisation's "+ Projet" button, or inherited from the parent.
       const preset = organisationId ?? parentProject?.organisationId ?? null;
       setOrganisation(preset ?? DEFAULT_ORG);
-      const presetOrg = preset ? organisations.find((o) => o.id === preset) : null;
-      if (presetOrg && !parentProject) setStation(presetOrg.station === "work" ? "work" : "personal");
+      const presetOrg = preset
+        ? organisations.find((o) => o.id === preset)
+        : null;
+      if (presetOrg && !parentProject)
+        setStation(presetOrg.station === "work" ? "work" : "personal");
       setColor(parentProject?.color ?? DEFAULT_PROJECT_COLOR);
       setDescription("");
       setPath("");
@@ -202,22 +195,6 @@ export function ProjectDialog({
     setStackDraft("");
   };
 
-  const updateLink = (i: number, patch: Partial<FormLink>) =>
-    setLinks((prev) => prev.map((l, j) => (j === i ? { ...l, ...patch } : l)));
-
-  // Typing a Figma / Drive / GitHub… URL picks the matching kind unless the
-  // user already chose a specific one.
-  const updateLinkUrl = (i: number, url: string) =>
-    setLinks((prev) =>
-      prev.map((l, j) => {
-        if (j !== i) return l;
-        const guessed = guessLinkKind(url);
-        const kind =
-          guessed && (l.kind === "website" || l.kind === "other") ? guessed : l.kind;
-        return { ...l, url, kind };
-      })
-    );
-
   const toggleContact = (id: string, on: boolean) =>
     setContactIds((prev) =>
       on ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id)
@@ -231,11 +208,16 @@ export function ProjectDialog({
       const res = await fetch("/api/contacts", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: n, email: newContactEmail.trim() || null }),
+        body: JSON.stringify({
+          name: n,
+          email: newContactEmail.trim() || null,
+        }),
       });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
       const c = (await res.json()) as ContactLite;
-      setContacts((prev) => [...prev, c].sort((a, b) => a.name.localeCompare(b.name)));
+      setContacts((prev) =>
+        [...prev, c].sort((a, b) => a.name.localeCompare(b.name))
+      );
       setContactIds((prev) => [...prev, c.id]);
       setNewContactName("");
       setNewContactEmail("");
@@ -254,12 +236,17 @@ export function ProjectDialog({
       toast.error("Donne un nom au projet.");
       return;
     }
-    const cleanLinks = links
-      .map((l) => ({ ...l, url: normalizeUrl(l.url) }))
-      .filter((l) => l.url);
     // Commit any tool still sitting in the draft field.
     const finalStack = stackDraft.trim()
-      ? Array.from(new Set([...stack, ...stackDraft.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)]))
+      ? Array.from(
+          new Set([
+            ...stack,
+            ...stackDraft
+              .split(/[,\n]/)
+              .map((s) => s.trim())
+              .filter(Boolean),
+          ])
+        )
       : stack;
 
     const body = {
@@ -272,21 +259,20 @@ export function ProjectDialog({
       description: description.trim() || null,
       path: path.trim() || null,
       stack: finalStack,
-      links: cleanLinks.map((l) => ({
-        kind: l.kind,
-        label: l.label.trim() || null,
-        url: l.url,
-      })),
+      links: toLinkPayload(links),
       contacts: contactIds.map((contactId) => ({ contactId })),
     };
 
     setSubmitting(true);
     try {
-      const res = await fetch(editing ? `/api/projets/${project!.id}` : "/api/projets", {
-        method: editing ? "PATCH" : "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const res = await fetch(
+        editing ? `/api/projets/${project!.id}` : "/api/projets",
+        {
+          method: editing ? "PATCH" : "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
         slug?: string;
@@ -301,7 +287,8 @@ export function ProjectDialog({
       toast.success(editing ? "Projet mis à jour." : "Projet créé.");
       onOpenChange(false);
       router.refresh();
-      if (!editing && data.slug) router.push(`/projets/${encodeURIComponent(data.slug)}`);
+      if (!editing && data.slug)
+        router.push(`/projets/${encodeURIComponent(data.slug)}`);
     } catch (e) {
       toast.error("Enregistrement impossible", {
         description: e instanceof Error ? e.message : undefined,
@@ -319,7 +306,9 @@ export function ProjectDialog({
     if (!ok) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/projets/${project.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/projets/${project.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
       toast.success("Projet supprimé.");
       onOpenChange(false);
@@ -338,7 +327,9 @@ export function ProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editing ? "Modifier le projet" : "Nouveau projet"}</DialogTitle>
+          <DialogTitle>
+            {editing ? "Modifier le projet" : "Nouveau projet"}
+          </DialogTitle>
           <DialogDescription>
             {editing
               ? "Nom, couleur, liens, outils et contacts du projet."
@@ -412,7 +403,12 @@ export function ProjectDialog({
                     style={{ backgroundColor: c.hex }}
                     aria-pressed={active}
                   >
-                    {active && <Check className="h-4 w-4 text-[#19181c]" strokeWidth={3} />}
+                    {active && (
+                      <Check
+                        className="h-4 w-4 text-[#19181c]"
+                        strokeWidth={3}
+                      />
+                    )}
                   </button>
                 );
               })}
@@ -429,17 +425,28 @@ export function ProjectDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {[...organisations]
-                    .sort((a, b) => Number(a.isDefault) - Number(b.isDefault) || a.sortOrder - b.sortOrder)
+                    .sort(
+                      (a, b) =>
+                        Number(a.isDefault) - Number(b.isDefault) ||
+                        a.sortOrder - b.sortOrder
+                    )
                     .map((o) => (
-                      <SelectItem key={o.id} value={o.isDefault ? DEFAULT_ORG : o.id}>
+                      <SelectItem
+                        key={o.id}
+                        value={o.isDefault ? DEFAULT_ORG : o.id}
+                      >
                         <span className="inline-flex items-center gap-2">
                           <span
                             className="h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: o.color ?? DEFAULT_PROJECT_COLOR }}
+                            style={{
+                              backgroundColor: o.color ?? DEFAULT_PROJECT_COLOR,
+                            }}
                           />
                           {o.name}
                           {o.isDefault && (
-                            <span className="text-muted-foreground">· par défaut</span>
+                            <span className="text-muted-foreground">
+                              · par défaut
+                            </span>
                           )}
                         </span>
                       </SelectItem>
@@ -454,13 +461,17 @@ export function ProjectDialog({
                   <SelectValue placeholder="Aucun" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_PARENT}>Aucun (projet principal)</SelectItem>
+                  <SelectItem value={NO_PARENT}>
+                    Aucun (projet principal)
+                  </SelectItem>
                   {parentOptions.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       <span className="inline-flex items-center gap-2">
                         <span
                           className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: p.color ?? DEFAULT_PROJECT_COLOR }}
+                          style={{
+                            backgroundColor: p.color ?? DEFAULT_PROJECT_COLOR,
+                          }}
                         />
                         {p.name}
                       </span>
@@ -494,75 +505,7 @@ export function ProjectDialog({
           </div>
 
           {/* Links */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Liens</Label>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  setLinks((prev) => [...prev, { kind: "website", label: "", url: "" }])
-                }
-              >
-                <Plus /> Ajouter un lien
-              </Button>
-            </div>
-            {links.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">
-                Figma, Drive, site web, projet Claude, GitHub…
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {links.map((l, i) => (
-                  <div
-                    key={i}
-                    className="grid gap-2 rounded-2xl bg-secondary/60 p-2 sm:grid-cols-[9.5rem_1fr_9rem_auto]"
-                  >
-                    <Select
-                      value={l.kind}
-                      onValueChange={(v) => updateLink(i, { kind: v as LinkKind })}
-                    >
-                      <SelectTrigger className="h-10 bg-card">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LINK_KINDS.map((k) => (
-                          <SelectItem key={k.id} value={k.id}>
-                            <span className="inline-flex items-center gap-2">
-                              <LinkKindIcon kind={k.id} className="h-3.5 w-3.5" />
-                              {k.label}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      value={l.url}
-                      onChange={(e) => updateLinkUrl(i, e.target.value)}
-                      placeholder="https://…"
-                      className="h-10 bg-card"
-                      inputMode="url"
-                    />
-                    <Input
-                      value={l.label}
-                      onChange={(e) => updateLink(i, { label: e.target.value })}
-                      placeholder="Libellé"
-                      className="h-10 bg-card"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setLinks((prev) => prev.filter((_, j) => j !== i))}
-                      className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-negative hover:text-negative-foreground"
-                      aria-label="Retirer le lien"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <LinksEditor links={links} onChange={setLinks} />
 
           {/* Stack */}
           <div className="space-y-3">
@@ -576,7 +519,9 @@ export function ProjectDialog({
                   {s}
                   <button
                     type="button"
-                    onClick={() => setStack((prev) => prev.filter((x) => x !== s))}
+                    onClick={() =>
+                      setStack((prev) => prev.filter((x) => x !== s))
+                    }
                     className="rounded-full p-0.5 text-muted-foreground hover:bg-card hover:text-foreground"
                     aria-label={`Retirer ${s}`}
                   >
@@ -641,7 +586,8 @@ export function ProjectDialog({
             )}
             {contacts.length === 0 ? (
               <p className="text-[13px] text-muted-foreground">
-                Aucun contact encore. Crée-en un ici ou dans l&apos;onglet Contacts.
+                Aucun contact encore. Crée-en un ici ou dans l&apos;onglet
+                Contacts.
               </p>
             ) : (
               <>
@@ -653,39 +599,44 @@ export function ProjectDialog({
                     className="h-10"
                   />
                 )}
-              <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-2xl bg-secondary/60 px-3">
-                {contacts
-                  .filter((c) => {
-                    const q = contactQuery.trim().toLowerCase();
-                    if (!q) return true;
-                    if (contactIds.includes(c.id)) return true; // keep picked ones visible
-                    return [c.name, c.company, c.role]
-                      .filter(Boolean)
-                      .some((v) => (v as string).toLowerCase().includes(q));
-                  })
-                  .map((c) => {
-                  const checked = contactIds.includes(c.id);
-                  return (
-                    <li key={c.id}>
-                      <label className="flex cursor-pointer items-center gap-3 py-2.5">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(v) => toggleContact(c.id, v === true)}
-                        />
-                        <span className="min-w-0 flex-1 truncate text-[14px]">
-                          {c.name}
-                          {(c.role || c.company) && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              · {[c.role, c.company].filter(Boolean).join(", ")}
+                <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-2xl bg-secondary/60 px-3">
+                  {contacts
+                    .filter((c) => {
+                      const q = contactQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      if (contactIds.includes(c.id)) return true; // keep picked ones visible
+                      return [c.name, c.company, c.role]
+                        .filter(Boolean)
+                        .some((v) => (v as string).toLowerCase().includes(q));
+                    })
+                    .map((c) => {
+                      const checked = contactIds.includes(c.id);
+                      return (
+                        <li key={c.id}>
+                          <label className="flex cursor-pointer items-center gap-3 py-2.5">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) =>
+                                toggleContact(c.id, v === true)
+                              }
+                            />
+                            <span className="min-w-0 flex-1 truncate text-[14px]">
+                              {c.name}
+                              {(c.role || c.company) && (
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  ·{" "}
+                                  {[c.role, c.company]
+                                    .filter(Boolean)
+                                    .join(", ")}
+                                </span>
+                              )}
                             </span>
-                          )}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
+                          </label>
+                        </li>
+                      );
+                    })}
+                </ul>
               </>
             )}
           </div>
@@ -713,7 +664,11 @@ export function ProjectDialog({
               Annuler
             </Button>
             <Button type="submit" disabled={submitting || creatingContact}>
-              {submitting ? "Enregistrement…" : editing ? "Enregistrer" : "Créer le projet"}
+              {submitting
+                ? "Enregistrement…"
+                : editing
+                  ? "Enregistrer"
+                  : "Créer le projet"}
             </Button>
           </div>
         </form>

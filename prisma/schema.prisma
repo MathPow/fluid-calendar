@@ -893,6 +893,7 @@ model Organisation {
   updatedAt   DateTime       @updatedAt
   projects    AgentProject[]
   calendars   CalendarFeed[]
+  links       OrganisationLink[]
 
   @@index([sortOrder])
 }
@@ -939,6 +940,20 @@ model ProjectLink {
   sortOrder Int          @default(0)
 
   @@index([projectId])
+}
+
+// A link attached to an organisation: its website, Drive, Instagram, Stripe
+// dashboard… Same kinds as project links.
+model OrganisationLink {
+  id             String       @id @default(cuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  kind           String       @default("other")
+  label          String?
+  url            String
+  sortOrder      Int          @default(0)
+
+  @@index([organisationId])
 }
 
 // People: clients, collaborators, suppliers. Shown in the Contacts tab and

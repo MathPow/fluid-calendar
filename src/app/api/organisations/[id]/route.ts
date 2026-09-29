@@ -37,11 +37,29 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     const org = await prisma.organisation.update({
       where: { id },
       data: {
+        // Like projects: when present, the links replace the existing set.
+        ...(f.links !== undefined
+          ? {
+              links: {
+                deleteMany: {},
+                create: f.links.map((l, i) => ({
+                  kind: l.kind,
+                  label: l.label || null,
+                  url: l.url,
+                  sortOrder: i,
+                })),
+              },
+            }
+          : {}),
         ...(f.name !== undefined ? { name: f.name } : {}),
         ...(f.color !== undefined ? { color: f.color } : {}),
         ...(f.image !== undefined ? { image: f.image || null } : {}),
-        ...(f.kind !== undefined ? { kind: f.kind, station: orgKindStation(f.kind) } : {}),
-        ...(f.description !== undefined ? { description: f.description || null } : {}),
+        ...(f.kind !== undefined
+          ? { kind: f.kind, station: orgKindStation(f.kind) }
+          : {}),
+        ...(f.description !== undefined
+          ? { description: f.description || null }
+          : {}),
       },
       select: organisationSelect,
     });
@@ -52,7 +70,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Mise à jour impossible" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Mise à jour impossible" },
+      { status: 500 }
+    );
   }
 }
 
@@ -61,7 +82,10 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
-  const org = await prisma.organisation.findUnique({ where: { id }, select: { isDefault: true } });
+  const org = await prisma.organisation.findUnique({
+    where: { id },
+    select: { isDefault: true },
+  });
   if (!org) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
   if (org.isDefault) {
     return NextResponse.json(
@@ -78,6 +102,9 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Suppression impossible" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Suppression impossible" },
+      { status: 500 }
+    );
   }
 }

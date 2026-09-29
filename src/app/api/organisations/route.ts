@@ -40,15 +40,28 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { name, color, image, kind = "client", description } = parsed.data;
+  const {
+    name,
+    color,
+    image,
+    kind = "client",
+    description,
+    links = [],
+  } = parsed.data;
 
   try {
     const base = slugify(name) || "organisation";
     let slug = base;
-    for (let i = 2; await prisma.organisation.findUnique({ where: { slug } }); i++) {
+    for (
+      let i = 2;
+      await prisma.organisation.findUnique({ where: { slug } });
+      i++
+    ) {
       slug = `${base}-${i}`;
     }
-    const last = await prisma.organisation.aggregate({ _max: { sortOrder: true } });
+    const last = await prisma.organisation.aggregate({
+      _max: { sortOrder: true },
+    });
     const org = await prisma.organisation.create({
       data: {
         slug,
@@ -58,6 +71,14 @@ export async function POST(request: NextRequest) {
         kind,
         station: orgKindStation(kind),
         description: description || null,
+        links: {
+          create: links.map((l, i) => ({
+            kind: l.kind,
+            label: l.label || null,
+            url: l.url,
+            sortOrder: i,
+          })),
+        },
         sortOrder: Math.min((last._max.sortOrder ?? 0) + 1, 98),
       },
       select: organisationSelect,

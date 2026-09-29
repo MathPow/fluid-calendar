@@ -75,6 +75,7 @@ export const OrganisationInput = z.object({
   image,
   kind: z.enum(ORG_KIND_IDS).optional(),
   description: z.string().trim().max(1000).nullable().optional(),
+  links: z.array(LinkInput).max(30).optional(),
 });
 
 export const MachineInput = z.object({

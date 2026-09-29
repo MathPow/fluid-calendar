@@ -69,6 +69,10 @@ export const organisationSelect = {
   description: true,
   isDefault: true,
   sortOrder: true,
+  links: {
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, kind: true, label: true, url: true },
+  },
   _count: { select: { projects: true } },
 } satisfies Prisma.OrganisationSelect;
 
