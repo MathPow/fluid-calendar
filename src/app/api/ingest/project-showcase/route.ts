@@ -30,6 +30,9 @@ const BodySchema = z.object({
     )
     .optional(),
   replaceImage: z.boolean().optional(),
+  // Organisation slug or name (DehorsQC, StayChum…). Only files a project that
+  // has none or sits in the default bucket; "?" just lists the choices.
+  organisation: z.string().min(1).optional(),
 });
 
 /** Same static token as /api/ingest/project-activity (PROJECT_INGEST_TOKEN). */
@@ -75,9 +78,39 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  const { project, path, html, description, image, replaceImage } = parsed.data;
+  const {
+    project,
+    path,
+    html,
+    description,
+    image,
+    replaceImage,
+    organisation,
+  } = parsed.data;
   if (Buffer.byteLength(html) > MAX_HTML_BYTES) {
     return NextResponse.json({ error: "Showcase too large" }, { status: 413 });
+  }
+
+  let org: { id: string; name: string } | null = null;
+  if (organisation) {
+    const orgs = await prisma.organisation.findMany({
+      select: { id: true, slug: true, name: true },
+      orderBy: { sortOrder: "asc" },
+    });
+    const wanted = organisation.toLowerCase();
+    org =
+      orgs.find((o) => o.slug === wanted || o.name.toLowerCase() === wanted) ??
+      null;
+    if (!org) {
+      return NextResponse.json(
+        {
+          error:
+            organisation === "?" ? "Organisations" : "Unknown organisation",
+          organisations: orgs.map((o) => ({ slug: o.slug, name: o.name })),
+        },
+        { status: 422 }
+      );
+    }
   }
 
   try {
@@ -92,7 +125,22 @@ export async function PUT(request: NextRequest) {
       },
       update: path ? { path } : {},
     });
+    // Never move a project the user already filed elsewhere; only rescue it
+    // from "no organisation" or the default bucket.
+    let orgKept: string | null = null;
+    let fileInOrg = false;
+    if (org && proj.organisationId !== org.id) {
+      const current = proj.organisationId
+        ? await prisma.organisation.findUnique({
+            where: { id: proj.organisationId },
+            select: { name: true, isDefault: true },
+          })
+        : null;
+      if (!current || current.isDefault) fileInOrg = true;
+      else orgKept = current.name;
+    }
     const fill = {
+      ...(org && fileInOrg ? { organisationId: org.id } : {}),
       ...(description && !proj.description ? { description } : {}),
       ...(image && (replaceImage || !proj.image) ? { image } : {}),
     };
@@ -110,6 +158,9 @@ export async function PUT(request: NextRequest) {
       {
         ok: true,
         projectId: proj.id,
+        ...(org
+          ? { organisation: orgKept ? `kept ${orgKept}` : org.name }
+          : {}),
         url: `/projets/${encodeURIComponent(proj.slug)}?vue=apercu`,
       },
       { status: 201 }
