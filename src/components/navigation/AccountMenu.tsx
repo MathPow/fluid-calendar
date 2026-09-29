@@ -18,7 +18,6 @@ import {
 
 import { useShortcutsStore } from "@/store/shortcuts";
 
-import { StationSwitcher } from "./StationSwitcher";
 
 /**
  * The account pill (avatar · name · chevron) and its menu, modelled on the
@@ -76,11 +75,6 @@ export function AccountMenu() {
               {session.user.email}
             </p>
           )}
-        </div>
-
-        <div className="mt-3 xl:hidden">
-          <p className="etiquette px-2 pb-2">Station</p>
-          <StationSwitcher className="w-full" />
         </div>
 
         <DropdownMenuSeparator className="my-3" />

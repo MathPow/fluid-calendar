@@ -111,7 +111,7 @@ export function AppHeader({ className }: { className?: string }) {
             <kbd className="hidden bg-card md:inline">⌘K</kbd>
           </button>
 
-          <StationSwitcher className="hidden xl:inline-flex" compact />
+          <StationSwitcher />
           <ThemeToggle />
           <AccountMenu />
         </div>
