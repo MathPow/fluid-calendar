@@ -1145,6 +1145,9 @@ model TaxProfile {
   // Share of the profit of each associé, in %, same order as `partners`.
   // Empty means equal parts.
   partnerShares   Float[]      @default([])
+  // Contact (Contacts tab) of each associé, same order as `partners`; "" when
+  // not linked. The names stay the key for movements, « Payé par » and Excel.
+  partnerContactIds String[]   @default([])
 
   // Company file: identification, contact, activity, accountant.
   legalName       String? // nom légal / raison sociale, as on the REQ

@@ -17,15 +17,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { cn } from "@/lib/utils";
-
 import {
   FILING_FREQUENCIES,
   LEGAL_FORMS,
-  SALES_TAX_STATUSES,
   type LegalForm,
+  SALES_TAX_STATUSES,
   type TaxProfileLite,
 } from "@/lib/fiscalite/meta";
+import { cn } from "@/lib/utils";
+
+import { ContactPicker, type PickerContact } from "../projets/ContactPicker";
 
 /** The company file fields, all optional free text. */
 export const COMPANY_FIELDS = [
@@ -55,6 +56,7 @@ export type ProfileView = TaxProfileLite & {
   setUp: boolean;
   partners: string[];
   partnerShares: number[];
+  partnerContactIds?: string[];
   startedAt: string | null; // YYYY-MM-DD (or an ISO string from the API)
 } & { [K in CompanyField]: string | null };
 
@@ -76,7 +78,12 @@ function Choice<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className={cn("grid gap-2", options.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+    <div
+      className={cn(
+        "grid gap-2",
+        options.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"
+      )}
+    >
       {options.map((o) => {
         const active = value === o.id;
         return (
@@ -87,11 +94,19 @@ function Choice<T extends string>({
             onClick={() => onChange(o.id)}
             className={cn(
               "rounded-2xl border-2 px-4 py-3 text-left transition-colors",
-              active ? "border-foreground bg-tint-soft" : "border-transparent bg-secondary hover:bg-border/70"
+              active
+                ? "border-foreground bg-tint-soft"
+                : "border-transparent bg-secondary hover:bg-border/70"
             )}
           >
-            <span className="block text-[14px] font-semibold tracking-title">{o.label}</span>
-            {o.hint && <span className="block text-[12px] text-muted-foreground">{o.hint}</span>}
+            <span className="block text-[14px] font-semibold tracking-title">
+              {o.label}
+            </span>
+            {o.hint && (
+              <span className="block text-[12px] text-muted-foreground">
+                {o.hint}
+              </span>
+            )}
           </button>
         );
       })}
@@ -99,12 +114,22 @@ function Choice<T extends string>({
   );
 }
 
-function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="space-y-4 border-t border-border pt-6 first:border-t-0 first:pt-0">
       <div>
         <h3 className="text-[16px] font-bold tracking-title">{title}</h3>
-        {hint && <p className="mt-0.5 text-[12px] text-muted-foreground">{hint}</p>}
+        {hint && (
+          <p className="mt-0.5 text-[12px] text-muted-foreground">{hint}</p>
+        )}
       </div>
       {children}
     </section>
@@ -114,30 +139,60 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 const digits = (v: string) => v.replace(/\D/g, "");
 
 /** The company file: identification, contact, tax setup, associés, accountant. */
-export function TaxProfileDialog({ open, onOpenChange, organisation, profile, onSaved }: TaxProfileDialogProps) {
+export function TaxProfileDialog({
+  open,
+  onOpenChange,
+  organisation,
+  profile,
+  onSaved,
+}: TaxProfileDialogProps) {
   const [legalForm, setLegalForm] = useState<LegalForm>("individuelle");
-  const [partners, setPartners] = useState<{ name: string; share: string }[]>([]);
+  const [partners, setPartners] = useState<
+    { name: string; share: string; contactId: string }[]
+  >([]);
+  const [contacts, setContacts] = useState<PickerContact[]>([]);
+
+  // The associés are picked among the Contacts.
+  useEffect(() => {
+    if (!open || contacts.length) return;
+    fetch("/api/contacts")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: PickerContact[]) => setContacts(rows))
+      .catch(() => {});
+  }, [open, contacts.length]);
   const [status, setStatus] = useState<"petit" | "inscrit">("petit");
   const [gstNumber, setGst] = useState("");
   const [qstNumber, setQst] = useState("");
-  const [frequency, setFrequency] = useState<"annuelle" | "trimestrielle" | "mensuelle">("annuelle");
+  const [frequency, setFrequency] = useState<
+    "annuelle" | "trimestrielle" | "mensuelle"
+  >("annuelle");
   const [yearEnd, setYearEnd] = useState("12-31");
   const [startedAt, setStartedAt] = useState("");
   const [notes, setNotes] = useState("");
   const [company, setCompany] = useState<Record<CompanyField, string>>(
-    () => Object.fromEntries(COMPANY_FIELDS.map((f) => [f, ""])) as Record<CompanyField, string>
+    () =>
+      Object.fromEntries(COMPANY_FIELDS.map((f) => [f, ""])) as Record<
+        CompanyField,
+        string
+      >
   );
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setLegalForm(
-      profile?.legalForm === "societe" || profile?.legalForm === "senc" ? profile.legalForm : "individuelle"
+      profile?.legalForm === "societe" || profile?.legalForm === "senc"
+        ? profile.legalForm
+        : "individuelle"
     );
     setPartners(
       (profile?.partners ?? []).map((name, i) => ({
         name,
-        share: profile?.partnerShares?.[i] != null ? String(profile.partnerShares[i]) : "",
+        share:
+          profile?.partnerShares?.[i] != null
+            ? String(profile.partnerShares[i])
+            : "",
+        contactId: profile?.partnerContactIds?.[i] ?? "",
       }))
     );
     setStatus(profile?.salesTaxStatus === "inscrit" ? "inscrit" : "petit");
@@ -149,7 +204,10 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
     setNotes(profile?.notes ?? "");
     setCompany(
       Object.fromEntries(
-        COMPANY_FIELDS.map((f) => [f, profile?.[f] ?? (f === "province" ? "QC" : "")])
+        COMPANY_FIELDS.map((f) => [
+          f,
+          profile?.[f] ?? (f === "province" ? "QC" : ""),
+        ])
       ) as Record<CompanyField, string>
     );
   }, [open, profile]);
@@ -162,17 +220,28 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
 
   const named = partners.filter((p) => p.name.trim());
   const shares = named.map((p) => Number(p.share.replace(",", ".")));
-  const sharesSet = named.length > 0 && named.every((p) => p.share.trim() !== "");
-  const shareTotal = shares.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0);
+  const sharesSet =
+    named.length > 0 && named.every((p) => p.share.trim() !== "");
+  const shareTotal = shares.reduce(
+    (a, b) => a + (Number.isFinite(b) ? b : 0),
+    0
+  );
 
   const warnings: string[] = [];
-  if (company.neq && digits(company.neq).length !== 10) warnings.push("Le NEQ compte 10 chiffres.");
+  if (company.neq && digits(company.neq).length !== 10)
+    warnings.push("Le NEQ compte 10 chiffres.");
   if (company.businessNumber && digits(company.businessNumber).length !== 9)
     warnings.push("Le NE fédéral compte 9 chiffres (le début du no TPS).");
-  if (gstNumber && company.businessNumber && !digits(gstNumber).startsWith(digits(company.businessNumber)))
+  if (
+    gstNumber &&
+    company.businessNumber &&
+    !digits(gstNumber).startsWith(digits(company.businessNumber))
+  )
     warnings.push("Le no TPS commence normalement par le NE fédéral.");
   if (legalForm === "senc" && sharesSet && Math.abs(shareTotal - 100) > 0.01)
-    warnings.push(`Les parts des associés totalisent ${shareTotal} %, pas 100 %.`);
+    warnings.push(
+      `Les parts des associés totalisent ${shareTotal} %, pas 100 %.`
+    );
 
   const submit = async () => {
     setSubmitting(true);
@@ -184,6 +253,8 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
           legalForm,
           partners: legalForm === "senc" ? named.map((p) => p.name.trim()) : [],
           partnerShares: legalForm === "senc" && sharesSet ? shares : [],
+          partnerContactIds:
+            legalForm === "senc" ? named.map((p) => p.contactId) : [],
           salesTaxStatus: status,
           gstNumber,
           qstNumber,
@@ -194,7 +265,9 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
           ...company,
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as ProfileView & { error?: string };
+      const data = (await res.json().catch(() => ({}))) as ProfileView & {
+        error?: string;
+      };
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
       toast.success("Profil enregistré.");
       onSaved(data);
@@ -214,10 +287,13 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Profil d&apos;entreprise · {organisation.name}</DialogTitle>
+          <DialogTitle>
+            Profil d&apos;entreprise · {organisation.name}
+          </DialogTitle>
           <DialogDescription>
-            Tout ce que ton comptable (et Revenu Québec) va te demander, au même endroit. Seules la
-            forme juridique et les taxes changent les calculs; le reste est ta fiche.
+            Tout ce que ton comptable (et Revenu Québec) va te demander, au même
+            endroit. Seules la forme juridique et les taxes changent les
+            calculs; le reste est ta fiche.
           </DialogDescription>
         </DialogHeader>
 
@@ -232,23 +308,47 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="tp-legal">Nom légal</Label>
-                <Input id="tp-legal" {...field("legalName")} placeholder={`${organisation.name} SENC`} />
+                <Input
+                  id="tp-legal"
+                  {...field("legalName")}
+                  placeholder={`${organisation.name} SENC`}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tp-neq">NEQ</Label>
-                <Input id="tp-neq" inputMode="numeric" {...field("neq")} placeholder="1234567890" />
+                <Input
+                  id="tp-neq"
+                  inputMode="numeric"
+                  {...field("neq")}
+                  placeholder="1234567890"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tp-bn">NE fédéral (ARC)</Label>
-                <Input id="tp-bn" inputMode="numeric" {...field("businessNumber")} placeholder="123456789" />
+                <Input
+                  id="tp-bn"
+                  inputMode="numeric"
+                  {...field("businessNumber")}
+                  placeholder="123456789"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tp-start">Début des activités</Label>
-                <Input id="tp-start" type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} />
+                <Input
+                  id="tp-start"
+                  type="date"
+                  value={startedAt}
+                  onChange={(e) => setStartedAt(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tp-naics">Code SCIAN</Label>
-                <Input id="tp-naics" inputMode="numeric" {...field("naicsCode")} placeholder="711190" />
+                <Input
+                  id="tp-naics"
+                  inputMode="numeric"
+                  {...field("naicsCode")}
+                  placeholder="711190"
+                />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="tp-activity">Activité</Label>
@@ -262,10 +362,15 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
           </Section>
 
           <Section title="Forme juridique">
-            <Choice options={LEGAL_FORMS} value={legalForm} onChange={setLegalForm} />
+            <Choice
+              options={LEGAL_FORMS}
+              value={legalForm}
+              onChange={setLegalForm}
+            />
             <p className="text-[12px] text-muted-foreground">
-              Pas de « inc. » ? Seul, c&apos;est une entreprise individuelle; à plusieurs sous un même
-              nom (contrat de société, REQ), c&apos;est une SENC.
+              Pas de « inc. » ? Seul, c&apos;est une entreprise individuelle; à
+              plusieurs sous un même nom (contrat de société, REQ), c&apos;est
+              une SENC.
             </p>
 
             {legalForm === "societe" && (
@@ -277,7 +382,9 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
                     inputMode="numeric"
                     value={dd}
                     onChange={(e) =>
-                      setYearEnd(`${mm}-${e.target.value.replace(/\D/g, "").slice(0, 2).padStart(2, "0")}`)
+                      setYearEnd(
+                        `${mm}-${e.target.value.replace(/\D/g, "").slice(0, 2).padStart(2, "0")}`
+                      )
                     }
                     className="w-20"
                   />
@@ -287,11 +394,14 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
                     onChange={(e) => setYearEnd(`${e.target.value}-${dd}`)}
                     className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-[14px]"
                   >
-                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => (
+                    {Array.from({ length: 12 }, (_, i) =>
+                      String(i + 1).padStart(2, "0")
+                    ).map((m) => (
                       <option key={m} value={m}>
-                        {new Intl.DateTimeFormat("fr-CA", { month: "long", timeZone: "UTC" }).format(
-                          new Date(Date.UTC(2026, Number(m) - 1, 1))
-                        )}
+                        {new Intl.DateTimeFormat("fr-CA", {
+                          month: "long",
+                          timeZone: "UTC",
+                        }).format(new Date(Date.UTC(2026, Number(m) - 1, 1)))}
                       </option>
                     ))}
                   </select>
@@ -304,35 +414,73 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
                 <Label>Associés et parts</Label>
                 <ul className="space-y-2">
                   {partners.map((p, i) => (
-                    <li key={i} className="flex items-center gap-2">
+                    <li
+                      key={i}
+                      className="flex flex-wrap items-center gap-2 sm:flex-nowrap"
+                    >
+                      <div className="min-w-0 flex-1 basis-full sm:basis-0">
+                        <ContactPicker
+                          contacts={contacts}
+                          value={p.contactId || null}
+                          fallbackLabel={p.name || undefined}
+                          onChange={(c) =>
+                            setPartners((prev) =>
+                              prev.map((x, j) =>
+                                j === i
+                                  ? {
+                                      ...x,
+                                      contactId: c.id,
+                                      // Keep an existing name: it keys the movements and « Payé par ».
+                                      name:
+                                        x.name.trim() || c.name.split(/\s+/)[0],
+                                    }
+                                  : x
+                              )
+                            )
+                          }
+                        />
+                      </div>
                       <Input
-                        aria-label="Nom"
+                        aria-label="Nom dans les comptes"
+                        title="Nom utilisé dans les mouvements, « Payé par » et l'Excel"
                         value={p.name}
                         onChange={(e) =>
-                          setPartners((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
+                          setPartners((prev) =>
+                            prev.map((x, j) =>
+                              j === i ? { ...x, name: e.target.value } : x
+                            )
+                          )
                         }
                         placeholder="Prénom"
-                        className="flex-1"
+                        className="w-28 flex-1 sm:flex-none"
                       />
-                      <div className="flex w-28 items-center gap-1">
+                      <div className="flex w-24 items-center gap-1">
                         <Input
                           aria-label="Part"
                           inputMode="decimal"
                           value={p.share}
                           onChange={(e) =>
-                            setPartners((prev) => prev.map((x, j) => (j === i ? { ...x, share: e.target.value } : x)))
+                            setPartners((prev) =>
+                              prev.map((x, j) =>
+                                j === i ? { ...x, share: e.target.value } : x
+                              )
+                            )
                           }
                           placeholder="50"
                           className="text-right tabular-nums"
                         />
-                        <span className="text-[13px] text-muted-foreground">%</span>
+                        <span className="text-[13px] text-muted-foreground">
+                          %
+                        </span>
                       </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         aria-label="Retirer"
-                        onClick={() => setPartners((prev) => prev.filter((_, j) => j !== i))}
+                        onClick={() =>
+                          setPartners((prev) => prev.filter((_, j) => j !== i))
+                        }
                       >
                         <X />
                       </Button>
@@ -343,52 +491,85 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
                   type="button"
                   variant="secondary"
                   size="sm"
-                  onClick={() => setPartners((prev) => [...prev, { name: "", share: "" }])}
+                  onClick={() =>
+                    setPartners((prev) => [
+                      ...prev,
+                      { name: "", share: "", contactId: "" },
+                    ])
+                  }
                 >
                   <Plus /> Associé
                 </Button>
                 <p className="text-[12px] text-muted-foreground">
-                  Les parts répartissent le bénéfice (RL-15). Laisse-les vides pour des parts égales.
+                  Choisis chaque associé dans tes contacts; le prénom à droite
+                  est celui des mouvements et de l&apos;Excel. Les parts
+                  répartissent le bénéfice (RL-15); vides = parts égales.
                 </p>
               </div>
             )}
           </Section>
 
           <Section title="TPS / TVQ">
-            <Choice options={SALES_TAX_STATUSES} value={status} onChange={setStatus} />
+            <Choice
+              options={SALES_TAX_STATUSES}
+              value={status}
+              onChange={setStatus}
+            />
             <p className="text-[12px] text-muted-foreground">
-              Obligatoire dès que tes ventes taxables dépassent 30 000 $ sur quatre trimestres. En
-              dessous, t&apos;inscrire quand même te laisse récupérer les taxes sur tes achats.
+              Obligatoire dès que tes ventes taxables dépassent 30 000 $ sur
+              quatre trimestres. En dessous, t&apos;inscrire quand même te
+              laisse récupérer les taxes sur tes achats.
             </p>
             {status === "inscrit" && (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="tp-gst">No TPS</Label>
-                    <Input id="tp-gst" value={gstNumber} onChange={(e) => setGst(e.target.value)} placeholder="123456789RT0001" />
+                    <Input
+                      id="tp-gst"
+                      value={gstNumber}
+                      onChange={(e) => setGst(e.target.value)}
+                      placeholder="123456789RT0001"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="tp-qst">No TVQ</Label>
-                    <Input id="tp-qst" value={qstNumber} onChange={(e) => setQst(e.target.value)} placeholder="1234567890TQ0001" />
+                    <Input
+                      id="tp-qst"
+                      value={qstNumber}
+                      onChange={(e) => setQst(e.target.value)}
+                      placeholder="1234567890TQ0001"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Fréquence des déclarations</Label>
-                  <Choice options={FILING_FREQUENCIES} value={frequency} onChange={setFrequency} />
+                  <Choice
+                    options={FILING_FREQUENCIES}
+                    value={frequency}
+                    onChange={setFrequency}
+                  />
                   <p className="text-[12px] text-muted-foreground">
-                    Sur ton avis d&apos;inscription (Mon dossier, Revenu Québec). Moins de 1,5 M$ de
-                    ventes: annuelle par défaut.
+                    Sur ton avis d&apos;inscription (Mon dossier, Revenu
+                    Québec). Moins de 1,5 M$ de ventes: annuelle par défaut.
                   </p>
                 </div>
               </>
             )}
           </Section>
 
-          <Section title="Coordonnées" hint="L'adresse du siège, telle qu'au Registraire des entreprises.">
+          <Section
+            title="Coordonnées"
+            hint="L'adresse du siège, telle qu'au Registraire des entreprises."
+          >
             <div className="grid gap-4 sm:grid-cols-6">
               <div className="space-y-2 sm:col-span-6">
                 <Label htmlFor="tp-address">Adresse</Label>
-                <Input id="tp-address" {...field("address")} placeholder="123, rue Saint-Joseph Est" />
+                <Input
+                  id="tp-address"
+                  {...field("address")}
+                  placeholder="123, rue Saint-Joseph Est"
+                />
               </div>
               <div className="space-y-2 sm:col-span-3">
                 <Label htmlFor="tp-city">Ville</Label>
@@ -400,7 +581,11 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="tp-postal">Code postal</Label>
-                <Input id="tp-postal" {...field("postalCode")} placeholder="G1K 3A1" />
+                <Input
+                  id="tp-postal"
+                  {...field("postalCode")}
+                  placeholder="G1K 3A1"
+                />
               </div>
               <div className="space-y-2 sm:col-span-3">
                 <Label htmlFor="tp-email">Courriel</Label>
@@ -412,7 +597,11 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
               </div>
               <div className="space-y-2 sm:col-span-6">
                 <Label htmlFor="tp-web">Site web</Label>
-                <Input id="tp-web" {...field("website")} placeholder="dehorsqc.com" />
+                <Input
+                  id="tp-web"
+                  {...field("website")}
+                  placeholder="dehorsqc.com"
+                />
               </div>
             </div>
           </Section>
@@ -421,19 +610,35 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="tp-acc">Comptable</Label>
-                <Input id="tp-acc" {...field("accountant")} placeholder="Nom ou cabinet" />
+                <Input
+                  id="tp-acc"
+                  {...field("accountant")}
+                  placeholder="Nom ou cabinet"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tp-acc-email">Courriel du comptable</Label>
-                <Input id="tp-acc-email" type="email" {...field("accountantEmail")} />
+                <Input
+                  id="tp-acc-email"
+                  type="email"
+                  {...field("accountantEmail")}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tp-acc-phone">Téléphone du comptable</Label>
-                <Input id="tp-acc-phone" type="tel" {...field("accountantPhone")} />
+                <Input
+                  id="tp-acc-phone"
+                  type="tel"
+                  {...field("accountantPhone")}
+                />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="tp-bank">Banque</Label>
-                <Input id="tp-bank" {...field("bank")} placeholder="Desjardins, compte d'entreprise" />
+                <Input
+                  id="tp-bank"
+                  {...field("bank")}
+                  placeholder="Desjardins, compte d'entreprise"
+                />
               </div>
             </div>
           </Section>
@@ -450,7 +655,10 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
           {warnings.length > 0 && (
             <ul className="space-y-1.5">
               {warnings.map((w) => (
-                <li key={w} className="rounded-xl bg-pending px-3 py-2 text-[13px] text-pending-foreground">
+                <li
+                  key={w}
+                  className="rounded-xl bg-pending px-3 py-2 text-[13px] text-pending-foreground"
+                >
                   {w}
                 </li>
               ))}

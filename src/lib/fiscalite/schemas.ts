@@ -32,6 +32,7 @@ export const TaxProfileInput = z.object({
   legalForm: z.enum(["individuelle", "senc", "societe"]),
   partners: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
   partnerShares: z.array(z.number().min(0).max(100)).max(20).default([]),
+  partnerContactIds: z.array(z.string().max(60)).max(20).default([]),
   startedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -58,12 +59,23 @@ export const TaxProfileInput = z.object({
   gstNumber: text(40),
   qstNumber: text(40),
   filingFrequency: z.enum(["annuelle", "trimestrielle", "mensuelle"]),
-  fiscalYearEnd: z.string().regex(/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, "Fin d'exercice invalide"),
+  fiscalYearEnd: z
+    .string()
+    .regex(
+      /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
+      "Fin d'exercice invalide"
+    ),
   notes: text(4000),
 });
 
 /** Files accepted in the drop zone. */
-export const INVOICE_MIMES = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"];
+export const INVOICE_MIMES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+];
 export const MAX_INVOICE_BYTES = 15 * 1024 * 1024;
 
 export const MovementInput = z.object({
@@ -76,4 +88,5 @@ export const MovementInput = z.object({
   notes: text(2000),
 });
 
-export const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+export const XLSX_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
