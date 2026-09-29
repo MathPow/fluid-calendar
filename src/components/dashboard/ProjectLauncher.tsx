@@ -8,16 +8,20 @@ import { ArrowUpRight, TerminalSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-import { DEFAULT_PROJECT_COLOR, initials } from "@/lib/projets/meta";
+import {
+  DEFAULT_PROJECT_COLOR,
+  initials,
+  terminalUrl,
+} from "@/lib/projets/meta";
 
 import { useStationStore } from "@/store/station";
 
 /**
  * Quick access to projects on the dashboard. Reads the projects managed in the
  * Projets tab; each tile opens the project page, and the small terminal button
- * opens the repo's web terminal at https://mathpow.taila15d52.ts.net:7681/
- * when the project has a folder. Until any project exists, the hard-coded
- * launcher list below is shown so the tab is never empty.
+ * opens the web terminal of the machine the project was last active on, in
+ * its folder there. Until any project exists, the hard-coded launcher list
+ * below is shown so the tab is never empty.
  */
 interface LauncherProject {
   id: string;
@@ -27,19 +31,91 @@ interface LauncherProject {
   station: string;
   parentId: string | null;
   path: string | null;
+  /** Most recently active first. */
+  locations?: {
+    path: string;
+    machine: { name: string; label: string | null; ttydUrl: string | null };
+  }[];
   image?: string | null;
   logo?: string | null;
 }
 
+// Used only when a project has a folder but no known machine yet.
 const TERMINAL_BASE = "https://mathpow.taila15d52.ts.net:7681/";
 
+/** Terminal of the latest machine that has one, else the legacy default. */
+function projectTerminal(
+  p: LauncherProject
+): { url: string; machine: string | null } | null {
+  for (const l of p.locations ?? []) {
+    const url = terminalUrl(l.machine.ttydUrl, l.path);
+    if (url) return { url, machine: l.machine.label || l.machine.name };
+  }
+  const url = p.path ? terminalUrl(TERMINAL_BASE, p.path) : null;
+  return url ? { url, machine: null } : null;
+}
+
 const FALLBACK: LauncherProject[] = [
-  { id: "orka", slug: "orka", name: "Orka", color: "#9fd5f0", station: "personal", parentId: null, path: "orka", logo: "/projects/staychum.svg" },
-  { id: "StayChum", slug: "StayChum", name: "StayChum", color: "#9fe0c4", station: "personal", parentId: null, path: "StayChum", logo: "/projects/staychum.svg" },
-  { id: "dreamdash", slug: "dreamdash", name: "DreamDash", color: "#a8ccff", station: "personal", parentId: null, path: "dreamdash", logo: "/projects/dreamdash.svg" },
-  { id: "meetily", slug: "meetily", name: "Meetily", color: "#cbb2f0", station: "personal", parentId: null, path: "meetily", logo: "/projects/meetily.svg" },
-  { id: "realsync-technologies", slug: "realsync-technologies", name: "RealSync", color: "#ffd166", station: "work", parentId: null, path: "realsync-technologies", logo: "/projects/realsync.svg" },
-  { id: "ttyd", slug: "ttyd", name: "SpySSH", color: "#bfd3a8", station: "personal", parentId: null, path: "ttyd", logo: "/projects/ttyd.svg" },
+  {
+    id: "orka",
+    slug: "orka",
+    name: "Orka",
+    color: "#9fd5f0",
+    station: "personal",
+    parentId: null,
+    path: "orka",
+    logo: "/projects/staychum.svg",
+  },
+  {
+    id: "StayChum",
+    slug: "StayChum",
+    name: "StayChum",
+    color: "#9fe0c4",
+    station: "personal",
+    parentId: null,
+    path: "StayChum",
+    logo: "/projects/staychum.svg",
+  },
+  {
+    id: "dreamdash",
+    slug: "dreamdash",
+    name: "DreamDash",
+    color: "#a8ccff",
+    station: "personal",
+    parentId: null,
+    path: "dreamdash",
+    logo: "/projects/dreamdash.svg",
+  },
+  {
+    id: "meetily",
+    slug: "meetily",
+    name: "Meetily",
+    color: "#cbb2f0",
+    station: "personal",
+    parentId: null,
+    path: "meetily",
+    logo: "/projects/meetily.svg",
+  },
+  {
+    id: "realsync-technologies",
+    slug: "realsync-technologies",
+    name: "RealSync",
+    color: "#ffd166",
+    station: "work",
+    parentId: null,
+    path: "realsync-technologies",
+    logo: "/projects/realsync.svg",
+  },
+  {
+    id: "ttyd",
+    slug: "ttyd",
+    name: "SpySSH",
+    color: "#bfd3a8",
+    station: "personal",
+    parentId: null,
+    path: "ttyd",
+    logo: "/projects/ttyd.svg",
+  },
 ];
 
 function Mark({ project }: { project: LauncherProject }) {
@@ -100,9 +176,8 @@ export function ProjectLauncher() {
       ) : (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {list.map((p) => {
-            const terminal = p.path
-              ? `${TERMINAL_BASE}?project=${encodeURIComponent(p.path.split("/").filter(Boolean).pop() ?? p.slug)}`
-              : null;
+            const found = projectTerminal(p);
+            const terminal = found?.url ?? null;
             const inner = (
               <>
                 <Mark project={p} />
@@ -117,11 +192,19 @@ export function ProjectLauncher() {
             return (
               <div key={p.id} className="relative">
                 {fromDb ? (
-                  <Link href={`/projets/${encodeURIComponent(p.slug)}`} className={tileClass}>
+                  <Link
+                    href={`/projets/${encodeURIComponent(p.slug)}`}
+                    className={tileClass}
+                  >
                     {inner}
                   </Link>
                 ) : (
-                  <a href={terminal ?? "#"} target="_blank" rel="noopener noreferrer" className={tileClass}>
+                  <a
+                    href={terminal ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={tileClass}
+                  >
                     {inner}
                   </a>
                 )}
@@ -130,7 +213,11 @@ export function ProjectLauncher() {
                     href={terminal}
                     target="_blank"
                     rel="noopener noreferrer"
-                    title="Ouvrir le terminal"
+                    title={
+                      found?.machine
+                        ? `Ouvrir le terminal · ${found.machine}`
+                        : "Ouvrir le terminal"
+                    }
                     className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 [div:hover>&]:opacity-100"
                   >
                     <TerminalSquare className="h-3.5 w-3.5" />

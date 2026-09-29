@@ -18,6 +18,7 @@ const BodySchema = z.object({
   summary: z.string().min(1),
   agent: z.string().optional(),
   source: z.string().optional(),
+  host: z.string().trim().min(1).max(120).optional(), // hostname of the machine
 });
 
 /**
@@ -47,7 +48,10 @@ export async function POST(request: NextRequest) {
       {},
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Ingest not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Ingest not configured" },
+      { status: 503 }
+    );
   }
 
   if (!tokenOk(request)) {
@@ -70,22 +74,38 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { project, path, summary, agent, source } = parsed.data;
+  const { project, path, summary, agent, source, host } = parsed.data;
 
   try {
-    const proj = await prisma.agentProject.upsert({
-      where: { slug: project },
-      create: {
-        slug: project,
-        name: project,
-        path: path ?? null,
-        lastActivityAt: new Date(),
-      },
-      update: {
-        lastActivityAt: new Date(),
-        ...(path ? { path } : {}),
-      },
-    });
+    // A folder already declared for that machine wins over the folder name, so
+    // a project can be called differently from one machine to the next.
+    const known =
+      host && path
+        ? await prisma.projectLocation.findFirst({
+            where: { path, machine: { name: host } },
+            select: { projectId: true },
+          })
+        : null;
+
+    const proj = known
+      ? await prisma.agentProject.update({
+          where: { id: known.projectId },
+          data: { lastActivityAt: new Date() },
+        })
+      : await prisma.agentProject.upsert({
+          where: { slug: project },
+          create: {
+            slug: project,
+            name: project,
+            path: path ?? null,
+            lastActivityAt: new Date(),
+          },
+          update: {
+            lastActivityAt: new Date(),
+            // With a host, the folder is kept per machine (ProjectLocation).
+            ...(path && !host ? { path } : {}),
+          },
+        });
 
     const activity = await prisma.agentActivity.create({
       data: {
@@ -93,8 +113,25 @@ export async function POST(request: NextRequest) {
         summary,
         agent: agent ?? null,
         source: source ?? null,
+        host: host ?? null,
       },
     });
+
+    // Remember where the project lives on that machine.
+    if (host && path) {
+      const machine = await prisma.machine.upsert({
+        where: { name: host },
+        create: { name: host },
+        update: {},
+      });
+      await prisma.projectLocation.upsert({
+        where: {
+          projectId_machineId: { projectId: proj.id, machineId: machine.id },
+        },
+        create: { projectId: proj.id, machineId: machine.id, path },
+        update: { path, lastSeenAt: new Date() },
+      });
+    }
 
     return NextResponse.json(
       { ok: true, activityId: activity.id },

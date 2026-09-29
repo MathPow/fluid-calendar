@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { AskBox } from "@/components/projets/AskBox";
 import { Avatar } from "@/components/projets/ImageField";
 import { ProjectDetailActions } from "@/components/projets/ProjectDetailActions";
+import { ProjectLocationsTile } from "@/components/projets/ProjectLocationsTile";
 import {
   ProjectStorePage,
   type StoreFact,
@@ -106,6 +107,11 @@ export default async function ProjetDetailPage({
     ]);
 
   if (!project) notFound();
+
+  const machines = await prisma.machine.findMany({
+    select: { id: true, name: true, label: true, ttydUrl: true },
+    orderBy: { name: "asc" },
+  });
 
   // The task list attached to this project (Tasks / Calendar tabs), its open
   // tasks, and the unattached lists that could be attached instead.
@@ -361,6 +367,18 @@ export default async function ProjetDetailPage({
               )}
             </div>
           </section>
+
+          {/* Every machine the project lives on, each with its terminal. */}
+          <ProjectLocationsTile
+            projectId={project.id}
+            locations={project.locations.map((l) => ({
+              id: l.id,
+              path: l.path,
+              lastSeenAt: l.lastSeenAt.toISOString(),
+              machine: l.machine,
+            }))}
+            machines={machines}
+          />
         </>
       ),
     },
@@ -507,9 +525,15 @@ export default async function ProjetDetailPage({
                 Dernière activité {timeAgoFr(project.lastActivityAt)}
               </Badge>
             )}
-            {project.path ? (
+            {project.locations.length > 1 ? (
               <span className="font-serif text-[15px] italic text-muted-foreground">
-                {project.path}
+                sur {project.locations.length} machines
+              </span>
+            ) : project.locations[0] || project.path ? (
+              <span className="font-serif text-[15px] italic text-muted-foreground">
+                {project.locations[0]
+                  ? `${project.locations[0].path} · ${project.locations[0].machine.label || project.locations[0].machine.name}`
+                  : project.path}
               </span>
             ) : null}
           </div>

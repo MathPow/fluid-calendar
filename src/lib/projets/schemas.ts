@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { LINK_KIND_IDS, ORG_KIND_IDS, RELATION_KIND_IDS, isAllowedImage } from "./meta";
+import {
+  LINK_KIND_IDS,
+  ORG_KIND_IDS,
+  RELATION_KIND_IDS,
+  isAllowedImage,
+} from "./meta";
 
 const image = z
   .string()
@@ -42,7 +47,14 @@ export type ProjectInputType = z.infer<typeof ProjectInput>;
 export const ContactInput = z.object({
   type: z.enum(["person", "company"]).optional(),
   name: z.string().trim().min(1, "Nom requis").max(120),
-  email: z.string().trim().email("Courriel invalide").max(200).or(z.literal("")).nullable().optional(),
+  email: z
+    .string()
+    .trim()
+    .email("Courriel invalide")
+    .max(200)
+    .or(z.literal(""))
+    .nullable()
+    .optional(),
   phone: z.string().trim().max(40).nullable().optional(),
   company: z.string().trim().max(120).nullable().optional(),
   role: z.string().trim().max(80).nullable().optional(),
@@ -63,4 +75,16 @@ export const OrganisationInput = z.object({
   image,
   kind: z.enum(ORG_KIND_IDS).optional(),
   description: z.string().trim().max(1000).nullable().optional(),
+});
+
+export const MachineInput = z.object({
+  name: z.string().trim().min(1, "Nom requis").max(120),
+  label: z.string().trim().max(80).nullable().optional(),
+  ttydUrl: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => v === "" || /^https?:\/\/\S+$/.test(v), "URL invalide")
+    .nullable()
+    .optional(),
 });

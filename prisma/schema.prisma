@@ -863,6 +863,8 @@ model AgentProject {
 
   links    ProjectLink[]
   contacts ProjectContact[]
+  // Where this project lives: one row per machine, with its path there.
+  locations ProjectLocation[]
   // The task list (Tasks tab) attached to this project, if any.
   taskProject Project?
   showcase ProjectShowcase?
@@ -984,6 +986,7 @@ model AgentActivity {
   summary   String // short markdown summary of what the agent did
   agent     String? // e.g. "claude"
   source    String? // e.g. "ttyd-web", "stop-hook"
+  host      String? // machine the turn ran on (hostname reported by the hook)
   createdAt DateTime     @default(now())
 
   @@index([projectId])
@@ -1043,4 +1046,30 @@ model RoutineBlock {
   updatedAt   DateTime      @updatedAt
 
   @@index([layerId])
+}
+
+// A computer or VPS where projects live. `name` is the hostname the activity
+// hook reports; `ttydUrl` is the base address of that machine's web terminal.
+model Machine {
+  id        String            @id @default(cuid())
+  name      String            @unique
+  label     String? // friendly name shown in the UI
+  ttydUrl   String? // e.g. https://mathpow.taila15d52.ts.net:7681/
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  locations ProjectLocation[]
+}
+
+// A project's folder on one machine. Filled by the activity hook, or by hand.
+model ProjectLocation {
+  id         String       @id @default(cuid())
+  projectId  String
+  machineId  String
+  path       String
+  lastSeenAt DateTime     @default(now())
+  project    AgentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  machine    Machine      @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, machineId])
+  @@index([machineId])
 }

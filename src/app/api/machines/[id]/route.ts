@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+
+import { authenticateRequest } from "@/lib/auth/api-auth";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+import { MachineInput } from "@/lib/projets/schemas";
+
+const LOG_SOURCE = "machines-api";
+
+export const dynamic = "force-dynamic";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+/** PATCH /api/machines/[id] — rename, relabel, or set the web terminal address. */
+export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const auth = await authenticateRequest(request, LOG_SOURCE);
+  if ("response" in auth) return auth.response;
+  const { id } = await params;
+  let json: unknown;
+  try {
+    json = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const parsed = MachineInput.partial().safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid body", details: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+  const f = parsed.data;
+  try {
+    const machine = await prisma.machine.update({
+      where: { id },
+      data: {
+        ...(f.name !== undefined ? { name: f.name } : {}),
+        ...(f.label !== undefined ? { label: f.label || null } : {}),
+        ...(f.ttydUrl !== undefined ? { ttydUrl: f.ttydUrl || null } : {}),
+      },
+    });
+    return NextResponse.json(machine);
+  } catch (error) {
+    logger.error(
+      "Failed to update machine",
+      { id, error: error instanceof Error ? error.message : String(error) },
+      LOG_SOURCE
+    );
+    return NextResponse.json(
+      { error: "Mise à jour impossible" },
+      { status: 500 }
+    );
+  }
+}
+
+/** DELETE /api/machines/[id] — also forgets the project locations on it. */
+export async function DELETE(request: NextRequest, { params }: Ctx) {
+  const auth = await authenticateRequest(request, LOG_SOURCE);
+  if ("response" in auth) return auth.response;
+  const { id } = await params;
+  try {
+    await prisma.machine.delete({ where: { id } });
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    logger.error(
+      "Failed to delete machine",
+      { id, error: error instanceof Error ? error.message : String(error) },
+      LOG_SOURCE
+    );
+    return NextResponse.json(
+      { error: "Suppression impossible" },
+      { status: 500 }
+    );
+  }
+}

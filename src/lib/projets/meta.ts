@@ -127,6 +127,18 @@ export function guessLinkKind(url: string): LinkKind | null {
   return null;
 }
 
+/**
+ * Address that opens a project's folder in a machine's web terminal (ttyd):
+ * the machine's base URL plus `?project=<folder name>`.
+ */
+export function terminalUrl(ttydUrl: string | null | undefined, path: string): string | null {
+  if (!ttydUrl) return null;
+  const folder = path.split("/").filter(Boolean).pop();
+  if (!folder) return null;
+  const base = ttydUrl.trim().replace(/[?#].*$/, "");
+  return `${base}${base.endsWith("/") ? "" : "/"}?project=${encodeURIComponent(folder)}`;
+}
+
 /** Prepend https:// when the user typed a bare domain. */
 export function normalizeUrl(input: string): string {
   const v = input.trim();
