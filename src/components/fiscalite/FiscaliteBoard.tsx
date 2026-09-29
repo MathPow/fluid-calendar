@@ -12,6 +12,7 @@ import {
   FilePlus2,
   Paperclip,
   Pencil,
+  SlidersHorizontal,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +20,8 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/projets/ImageField";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 
 import { cn } from "@/lib/utils";
 
@@ -64,10 +67,16 @@ const ORG_KEY = "fiscalite.org";
  * The Fiscalité tab: pick a company, drop its invoices, and read the guide
  * (deadlines, TPS/TVQ to remit, small-supplier threshold, what to fix).
  */
-export function FiscaliteBoard({ organisations, profiles: initialProfiles, invoices: initial }: FiscaliteBoardProps) {
-  const [orgId, setOrgId] = useState<string | null>(organisations[0]?.id ?? null);
+export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfiles, invoices: initial }: FiscaliteBoardProps) {
   const [invoices, setInvoices] = useState(initial);
   const [profiles, setProfiles] = useState(initialProfiles);
+  // Only the organisations flagged for Fiscalité (run for profit) get a tab.
+  const organisations = useMemo(
+    () => allOrgs.filter((o) => profiles.some((p) => p.organisationId === o.id && p.tracked)),
+    [allOrgs, profiles]
+  );
+  const [orgId, setOrgId] = useState<string | null>(organisations[0]?.id ?? null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "depense" | "revenu">("all");
   const [dragging, setDragging] = useState(false);
   const [dialog, setDialog] = useState<{ open: boolean; invoice?: InvoiceView | null; file?: File | null }>({
@@ -82,6 +91,10 @@ export function FiscaliteBoard({ organisations, profiles: initialProfiles, invoi
       if (saved && organisations.some((o) => o.id === saved)) setOrgId(saved);
     } catch {}
   }, [organisations]);
+  // Unflagging the company on screen moves to the next one.
+  useEffect(() => {
+    if (!organisations.some((o) => o.id === orgId)) setOrgId(organisations[0]?.id ?? null);
+  }, [organisations, orgId]);
   const pickOrg = (id: string) => {
     setOrgId(id);
     try {
@@ -92,8 +105,42 @@ export function FiscaliteBoard({ organisations, profiles: initialProfiles, invoi
   const org = organisations.find((o) => o.id === orgId) ?? null;
   const savedProfile = profiles.find((p) => p.organisationId === orgId) ?? null;
   const profile = useMemo(
-    () => savedProfile ?? { ...DEFAULT_PROFILE, organisationId: orgId ?? "", notes: null },
+    () =>
+      savedProfile ?? {
+        ...DEFAULT_PROFILE,
+        organisationId: orgId ?? "",
+        notes: null,
+        tracked: true,
+        setUp: false,
+      },
     [savedProfile, orgId]
+  );
+  const configured = !!savedProfile?.setUp;
+
+  const setTracked = async (organisationId: string, tracked: boolean) => {
+    try {
+      const res = await fetch(`/api/fiscalite/profiles/${organisationId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tracked }),
+      });
+      const data = (await res.json().catch(() => ({}))) as ProfileView & { error?: string };
+      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      setProfiles((prev) => [...prev.filter((p) => p.organisationId !== organisationId), data]);
+      if (tracked) pickOrg(organisationId);
+    } catch (e) {
+      toast.error("Modification impossible", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  };
+  const picker = (
+    <OrgPicker
+      organisations={allOrgs}
+      isTracked={(id) => organisations.some((o) => o.id === id)}
+      invoiceCount={(id) => invoices.filter((i) => i.organisationId === id).length}
+      onChange={setTracked}
+    />
   );
 
   const orgInvoices = useMemo(() => invoices.filter((i) => i.organisationId === orgId), [invoices, orgId]);
@@ -146,9 +193,12 @@ export function FiscaliteBoard({ organisations, profiles: initialProfiles, invoi
     return (
       <div className="page pb-16 pt-8 md:pt-12">
         <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">Fiscalité.</h1>
-        <p className="mt-6 text-muted-foreground">
-          Crée d&apos;abord une organisation de type « À moi » dans Projets pour y classer des factures.
+        <p className="mt-6 max-w-xl text-muted-foreground">
+          {allOrgs.length
+            ? "Choisis les organisations que tu exploites pour faire un profit: seules celles-là apparaissent ici."
+            : "Crée d'abord une organisation dans Projets pour y classer des factures."}
         </p>
+        {allOrgs.length > 0 && <div className="tile mt-8 max-w-xl p-4">{picker}</div>}
       </div>
     );
   }
@@ -212,6 +262,17 @@ export function FiscaliteBoard({ organisations, profiles: initialProfiles, invoi
               </button>
             ))}
           </div>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" aria-label="Choisir les organisations">
+                <SlidersHorizontal />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-3">
+              <p className="etiquette px-2 pb-2 pt-1">Organisations à but lucratif</p>
+              {picker}
+            </PopoverContent>
+          </Popover>
           <div className="segmented h-11">
             <button type="button" className="segmented-item h-9 px-2" onClick={() => setYear(year - 1)} aria-label="Année précédente">
               <ChevronLeft className="h-4 w-4" />
@@ -413,8 +474,8 @@ export function FiscaliteBoard({ organisations, profiles: initialProfiles, invoi
         </div>
 
         {/* Guide */}
-        <aside className={cn("space-y-6", !savedProfile && "order-first lg:order-none")}>
-          {!savedProfile ? (
+        <aside className={cn("space-y-6", !configured && "order-first lg:order-none")}>
+          {!configured ? (
             <section className="tile-ink p-6">
               <p className="etiquette text-background/60">Étape 1</p>
               <h2 className="mt-3 text-[22px] font-bold leading-tight tracking-title">
@@ -604,4 +665,47 @@ function tips(legalForm: string, registered: boolean): string[] {
   }
   out.push("Garde chaque facture et reçu 6 ans: c'est exactement ce que ce dossier fait.");
   return out;
+}
+
+/** One row per organisation, with a switch: flagged ones get a tab here. */
+function OrgPicker({
+  organisations,
+  isTracked,
+  invoiceCount,
+  onChange,
+}: {
+  organisations: Org[];
+  isTracked: (id: string) => boolean;
+  invoiceCount: (id: string) => number;
+  onChange: (id: string, tracked: boolean) => void;
+}) {
+  return (
+    <ul className="space-y-1">
+      {organisations.map((o) => {
+        const n = invoiceCount(o.id);
+        return (
+          <li key={o.id}>
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-secondary">
+              <Avatar
+                image={o.image}
+                fallback={o.name.charAt(0).toUpperCase()}
+                color={o.color ?? DEFAULT_PROJECT_COLOR}
+                shape="rounded"
+                className="h-7 w-7 rounded-lg text-[12px]"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-medium">{o.name}</span>
+                {n > 0 && (
+                  <span className="block text-[12px] text-muted-foreground">
+                    {n} facture{n > 1 ? "s" : ""}
+                  </span>
+                )}
+              </span>
+              <Switch checked={isTracked(o.id)} onCheckedChange={(v) => onChange(o.id, v)} />
+            </label>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }

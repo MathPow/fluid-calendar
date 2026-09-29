@@ -1124,6 +1124,11 @@ model TaxProfile {
   filingFrequency String       @default("annuelle") // "annuelle" | "trimestrielle" | "mensuelle"
   fiscalYearEnd   String       @default("12-31") // MM-DD
   notes           String?
+  // Shown in the Fiscalité tab. Only organisations run for profit get flagged.
+  tracked         Boolean      @default(true)
+  // False until the profile questions were answered (a row can exist just
+  // because the organisation was flagged).
+  setUp           Boolean      @default(true)
   updatedAt       DateTime     @updatedAt
 }
 

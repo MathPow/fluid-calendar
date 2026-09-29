@@ -26,7 +26,12 @@ import {
   type TaxProfileLite,
 } from "@/lib/fiscalite/meta";
 
-export type ProfileView = TaxProfileLite & { organisationId: string; notes: string | null };
+export type ProfileView = TaxProfileLite & {
+  organisationId: string;
+  notes: string | null;
+  tracked: boolean;
+  setUp: boolean;
+};
 
 interface TaxProfileDialogProps {
   open: boolean;

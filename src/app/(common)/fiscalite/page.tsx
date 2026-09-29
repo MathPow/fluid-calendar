@@ -7,9 +7,8 @@ export const dynamic = "force-dynamic";
 
 export default async function FiscalitePage() {
   const [organisations, profiles, invoices] = await Promise.all([
-    // Companies first (owned), then clients; the personal bucket isn't a business.
+    // Every organisation: the tab shows the ones flagged in their TaxProfile.
     prisma.organisation.findMany({
-      where: { kind: { not: "perso" } },
       select: { id: true, name: true, color: true, image: true, kind: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
