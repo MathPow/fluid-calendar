@@ -24,6 +24,14 @@ import {
   ProjectDialog,
   type ProjectLite,
 } from "./ProjectDialog";
+import {
+  EMPTY_FILTERS,
+  type FilterOption,
+  type ProjectFilterState,
+  ProjectFilters,
+  filtersActive,
+  fold,
+} from "./ProjectFilters";
 import { ProjectTile } from "./ProjectTile";
 import { SectionSwitch } from "./SectionSwitch";
 import { LinkPill } from "./link-icons";
@@ -114,6 +122,86 @@ export function ProjetsBoard({
     [projects]
   );
 
+  // ---------------------------------------------------- Search & filters
+  const [filters, setFilters] = useState<ProjectFilterState>(EMPTY_FILTERS);
+  const filtering = filtersActive(filters);
+
+  // Everything a search can hit, folded once per project: its own fields plus
+  // its sub-projects', so a match on a sub-project surfaces the parent.
+  const haystacks = useMemo(() => {
+    const own = (p: ProjectFull) =>
+      [
+        p.name,
+        p.slug,
+        p.description,
+        p.path,
+        p.organisation?.name,
+        ...p.stack,
+        ...p.links.flatMap((l) => [l.label, l.url]),
+        ...p.contacts.map((c) => c.contact.name),
+      ]
+        .filter(Boolean)
+        .join(" ");
+    const byId = new Map(projects.map((p) => [p.id, p]));
+    return new Map(
+      projects.map((p) => [
+        p.id,
+        fold(
+          [
+            own(p),
+            ...p.children.map((c) =>
+              byId.get(c.id) ? own(byId.get(c.id)!) : c.name
+            ),
+          ].join(" ")
+        ),
+      ])
+    );
+  }, [projects]);
+
+  const matches = (p: ProjectFull, orgId: string) => {
+    const words = fold(filters.query).split(/\s+/).filter(Boolean);
+    const hay = haystacks.get(p.id) ?? "";
+    return (
+      words.every((w) => hay.includes(w)) &&
+      (filters.organisations.length === 0 ||
+        filters.organisations.includes(orgId)) &&
+      (filters.stack.length === 0 ||
+        filters.stack.some((t) => p.stack.includes(t))) &&
+      (!filters.withShowcase || p.media.length > 0)
+    );
+  };
+
+  const visibleSections = sections.map((s) => ({
+    ...s,
+    projects: filtering
+      ? s.projects.filter((p) => matches(p, s.org.id))
+      : s.projects,
+  }));
+  const resultCount = visibleSections.reduce(
+    (n, s) => n + s.projects.length,
+    0
+  );
+
+  const filterOptions = useMemo(() => {
+    const top = sections.flatMap((s) => s.projects);
+    const stackCounts = new Map<string, number>();
+    for (const p of top)
+      for (const t of p.stack)
+        stackCounts.set(t, (stackCounts.get(t) ?? 0) + 1);
+    return {
+      organisations: sections.map(
+        (s): FilterOption => ({
+          id: s.org.id,
+          label: s.org.name,
+          count: s.projects.length,
+        })
+      ),
+      stack: [...stackCounts]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"))
+        .map(([t, count]): FilterOption => ({ id: t, label: t, count })),
+    };
+  }, [sections]);
+
   const anyVisible = sections.some((s) => s.projects.length > 0);
 
   return (
@@ -162,6 +250,14 @@ export function ProjetsBoard({
       {projects.length > 0 && (
         <div className="mt-8">
           <AskBox placeholder="Pose une question sur tous les projets…" />
+          <ProjectFilters
+            value={filters}
+            onChange={setFilters}
+            organisations={filterOptions.organisations}
+            machines={[]}
+            stack={filterOptions.stack}
+            resultCount={resultCount}
+          />
         </div>
       )}
 
@@ -175,10 +271,22 @@ export function ProjetsBoard({
             voir d&apos;autres.
           </p>
         </div>
+      ) : filtering && resultCount === 0 ? (
+        <div className="tile mt-8 px-6 py-16 text-center">
+          <p className="text-[15px] font-semibold tracking-title">
+            Aucun projet trouvé.
+          </p>
+          <p className="mx-auto mt-1 max-w-md text-[13px] text-muted-foreground">
+            Essaie un autre mot ou retire un filtre.
+          </p>
+        </div>
       ) : (
-        sections.map(({ org, projects: list }) => {
-          // Hide an empty organisation only while a station filter is on.
-          if (list.length === 0 && currentStation !== "both") return null;
+        visibleSections.map(({ org, projects: list }) => {
+          // Hide an empty organisation while a station filter or a search is on.
+          if (list.length === 0 && (currentStation !== "both" || filtering))
+            return null;
+          // Search results show in full, without the « Voir les N autres » fold.
+          const open = filtering || expanded.has(org.id);
           return (
             <section key={org.id} className="mt-10">
               <div className="flex flex-wrap items-center gap-3">
@@ -249,19 +357,15 @@ export function ProjetsBoard({
               ) : (
                 <>
                   <ul className="mt-5 grid gap-5 lg:grid-cols-2">
-                    {(expanded.has(org.id) ? list : list.slice(0, PREVIEW)).map(
-                      (p) => (
-                        <ProjectTile
-                          key={p.id}
-                          project={p}
-                          onEdit={(project) =>
-                            setDialog({ open: true, project })
-                          }
-                        />
-                      )
-                    )}
+                    {(open ? list : list.slice(0, PREVIEW)).map((p) => (
+                      <ProjectTile
+                        key={p.id}
+                        project={p}
+                        onEdit={(project) => setDialog({ open: true, project })}
+                      />
+                    ))}
                   </ul>
-                  {list.length > PREVIEW && (
+                  {!filtering && list.length > PREVIEW && (
                     <div className="mt-4 flex justify-center">
                       <Button
                         variant="outline"
