@@ -39,8 +39,9 @@ import {
   guessLinkKind,
   normalizeUrl,
 } from "@/lib/projets/meta";
-import type { ProjectFull } from "@/lib/projets/queries";
+import type { OrganisationLite, ProjectFull } from "@/lib/projets/queries";
 
+import { ImageField } from "./ImageField";
 import { LinkKindIcon } from "./link-icons";
 
 export interface ProjectLite {
@@ -50,6 +51,7 @@ export interface ProjectLite {
   color: string | null;
   parentId: string | null;
   station: string;
+  organisationId?: string | null;
 }
 
 export interface ContactLite {
@@ -73,11 +75,15 @@ interface ProjectDialogProps {
   project?: ProjectFull | null;
   /** Preselected parent when creating a sub-project. */
   parentId?: string | null;
+  /** Preselected organisation when creating from an organisation's section. */
+  organisationId?: string | null;
   projects: ProjectLite[];
+  organisations: OrganisationLite[];
   contacts: ContactLite[];
 }
 
 const NO_PARENT = "__none__";
+const DEFAULT_ORG = "__default__";
 
 /**
  * Create / edit a project: name, colour, perso-vs-client, parent, links,
@@ -89,7 +95,9 @@ export function ProjectDialog({
   onOpenChange,
   project,
   parentId,
+  organisationId,
   projects,
+  organisations,
   contacts: initialContacts,
 }: ProjectDialogProps) {
   const router = useRouter();
@@ -97,8 +105,10 @@ export function ProjectDialog({
 
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(DEFAULT_PROJECT_COLOR);
+  const [image, setImage] = useState<string | null>(null);
   const [station, setStation] = useState<ProjectStation>("personal");
   const [parent, setParent] = useState<string>(NO_PARENT);
+  const [organisation, setOrganisation] = useState<string>(DEFAULT_ORG);
   const [description, setDescription] = useState("");
   const [path, setPath] = useState("");
   const [stack, setStack] = useState<string[]>([]);
@@ -122,8 +132,10 @@ export function ProjectDialog({
     if (project) {
       setName(project.name);
       setColor(project.color ?? DEFAULT_PROJECT_COLOR);
+      setImage(project.image ?? null);
       setStation(project.station === "work" ? "work" : "personal");
       setParent(project.parentId ?? NO_PARENT);
+      setOrganisation(project.organisationId ?? DEFAULT_ORG);
       setDescription(project.description ?? "");
       setPath(project.path ?? "");
       setStack(project.stack ?? []);
@@ -138,10 +150,16 @@ export function ProjectDialog({
     } else {
       setName("");
       setColor(DEFAULT_PROJECT_COLOR);
+      setImage(null);
       const parentProject = parentId ? projects.find((p) => p.id === parentId) : null;
       // A sub-project starts in its parent's station and colour.
       setStation(parentProject?.station === "work" ? "work" : "personal");
       setParent(parentId ?? NO_PARENT);
+      // From an organisation's "+ Projet" button, or inherited from the parent.
+      const preset = organisationId ?? parentProject?.organisationId ?? null;
+      setOrganisation(preset ?? DEFAULT_ORG);
+      const presetOrg = preset ? organisations.find((o) => o.id === preset) : null;
+      if (presetOrg && !parentProject) setStation(presetOrg.station === "work" ? "work" : "personal");
       setColor(parentProject?.color ?? DEFAULT_PROJECT_COLOR);
       setDescription("");
       setPath("");
@@ -153,7 +171,7 @@ export function ProjectDialog({
     setNewContactOpen(false);
     setNewContactName("");
     setNewContactEmail("");
-  }, [open, project, parentId, projects]);
+  }, [open, project, parentId, organisationId, projects, organisations]);
 
   // A project can't be parented to itself or to one of its own children.
   const parentOptions = useMemo(() => {
@@ -245,8 +263,10 @@ export function ProjectDialog({
     const body = {
       name: name.trim(),
       color,
+      image,
       station,
       parentId: parent === NO_PARENT ? null : parent,
+      organisationId: organisation === DEFAULT_ORG ? null : organisation,
       description: description.trim() || null,
       path: path.trim() || null,
       stack: finalStack,
@@ -331,6 +351,15 @@ export function ProjectDialog({
             submit();
           }}
         >
+          <ImageField
+            value={image}
+            onChange={setImage}
+            fallback={name.trim() ? name.trim().charAt(0).toUpperCase() : "?"}
+            color={color}
+            shape="rounded"
+            label="Logo du projet"
+          />
+
           {/* Name + station */}
           <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="space-y-2">
@@ -388,8 +417,34 @@ export function ProjectDialog({
             </div>
           </div>
 
-          {/* Parent + path */}
+          {/* Organisation + parent + path */}
           <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Organisation</Label>
+              <Select value={organisation} onValueChange={setOrganisation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Perso" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[...organisations]
+                    .sort((a, b) => Number(a.isDefault) - Number(b.isDefault) || a.sortOrder - b.sortOrder)
+                    .map((o) => (
+                      <SelectItem key={o.id} value={o.isDefault ? DEFAULT_ORG : o.id}>
+                        <span className="inline-flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: o.color ?? DEFAULT_PROJECT_COLOR }}
+                          />
+                          {o.name}
+                          {o.isDefault && (
+                            <span className="text-muted-foreground">· par défaut</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>Projet parent</Label>
               <Select value={parent} onValueChange={setParent}>

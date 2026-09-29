@@ -47,14 +47,17 @@ export async function POST(request: NextRequest) {
   }
   const { links = [], contacts = [], stack = [], ...fields } = parsed.data;
 
+  let organisationId = fields.organisationId ?? null;
   if (fields.parentId) {
     const parent = await prisma.agentProject.findUnique({
       where: { id: fields.parentId },
-      select: { id: true },
+      select: { id: true, organisationId: true },
     });
     if (!parent) {
       return NextResponse.json({ error: "Projet parent introuvable" }, { status: 400 });
     }
+    // A sub-project lives in its parent's organisation unless told otherwise.
+    if (fields.organisationId === undefined) organisationId = parent.organisationId;
   }
 
   try {
@@ -64,10 +67,12 @@ export async function POST(request: NextRequest) {
         slug,
         name: fields.name,
         color: fields.color ?? null,
+        image: fields.image || null,
         station: fields.station ?? "personal",
         description: fields.description || null,
         path: fields.path || null,
         parentId: fields.parentId ?? null,
+        organisationId,
         stack,
         links: {
           create: links.map((l, i) => ({

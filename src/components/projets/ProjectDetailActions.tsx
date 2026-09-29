@@ -6,7 +6,7 @@ import { Pencil, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-import type { ProjectFull } from "@/lib/projets/queries";
+import type { OrganisationLite, ProjectFull } from "@/lib/projets/queries";
 
 import { type ContactLite, ProjectDialog, type ProjectLite } from "./ProjectDialog";
 
@@ -14,10 +14,12 @@ import { type ContactLite, ProjectDialog, type ProjectLite } from "./ProjectDial
 export function ProjectDetailActions({
   project,
   projects,
+  organisations,
   contacts,
 }: {
   project: ProjectFull;
   projects: ProjectLite[];
+  organisations: OrganisationLite[];
   contacts: ContactLite[];
 }) {
   const [mode, setMode] = useState<"closed" | "edit" | "child">("closed");
@@ -38,6 +40,7 @@ export function ProjectDetailActions({
         project={mode === "edit" ? project : null}
         parentId={mode === "child" ? project.id : null}
         projects={projects}
+        organisations={organisations}
         contacts={contacts}
       />
     </>

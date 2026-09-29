@@ -836,10 +836,16 @@ model AgentProject {
 
   // --- Project specs (managed from the Projets tab) ---
   color       String? // one of the client tints, hex
+  image       String? // data URL (resized client-side) or https URL
   station     String   @default("personal") // "personal" (perso) | "work" (client)
   description String?
   stack       String[] @default([]) // tools / tech associated (Next.js, Coolify, Stripe…)
   archived    Boolean  @default(false)
+
+  // The organisation this project belongs to (DehorsQC, StayChum…). Null means
+  // the default bucket for random personal projects.
+  organisationId String?
+  organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
 
   // Sub-projects: "dehors" → admin panel, shop, ticketing
   parentId String?
@@ -852,6 +858,26 @@ model AgentProject {
   @@index([lastActivityAt])
   @@index([parentId])
   @@index([station])
+  @@index([organisationId])
+}
+
+// An organisation groups projects: a company or a brand (DehorsQC, StayChum).
+// Exactly one is flagged default and collects projects without an organisation.
+model Organisation {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  name        String
+  color       String? // one of the client tints, hex
+  image       String? // data URL (resized client-side) or https URL
+  station     String         @default("personal") // "personal" | "work"
+  description String?
+  isDefault   Boolean        @default(false)
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  projects    AgentProject[]
+
+  @@index([sortOrder])
 }
 
 // A link attached to a project: Figma file, Drive folder, live site, Claude
@@ -877,8 +903,10 @@ model Contact {
   phone     String?
   company   String?
   role      String? // job / category, e.g. "Entrepreneur", "Pro", "Étudiant"
-  relation  String? // how you know them, e.g. "Ami", "Classe au cégep", "Partnership"
-  favorite  Boolean          @default(false)
+  relation       String? // category: ami | famille | collegue | ecole | client | partenaire | mentor | connaissance | autre
+  relationDetail String? // the precise wording, e.g. "Beau-père de Félix-Antoine"
+  image          String? // data URL (resized client-side) or https URL
+  favorite       Boolean          @default(false)
   tags      String[]         @default([]) // private keywords for search ("tristan clientèle"…)
   notes     String?
   createdAt DateTime         @default(now())

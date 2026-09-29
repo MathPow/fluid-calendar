@@ -8,6 +8,9 @@ import { slugify } from "./meta";
 export const projectInclude = {
   links: { orderBy: { sortOrder: "asc" } },
   contacts: { include: { contact: true } },
+  organisation: {
+    select: { id: true, name: true, slug: true, color: true, image: true, isDefault: true },
+  },
   parent: { select: { id: true, name: true, slug: true, color: true } },
   children: {
     orderBy: { name: "asc" },
@@ -39,6 +42,23 @@ export const contactInclude = {
 
 export type ContactFull = Prisma.ContactGetPayload<{
   include: typeof contactInclude;
+}>;
+
+export const organisationSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  color: true,
+  image: true,
+  station: true,
+  description: true,
+  isDefault: true,
+  sortOrder: true,
+  _count: { select: { projects: true } },
+} satisfies Prisma.OrganisationSelect;
+
+export type OrganisationLite = Prisma.OrganisationGetPayload<{
+  select: typeof organisationSelect;
 }>;
 
 /** A slug that isn't taken yet: "dehors", then "dehors-2", "dehors-3"… */

@@ -18,13 +18,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 import { cn } from "@/lib/utils";
 
-import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
+import { DEFAULT_PROJECT_COLOR, RELATION_KINDS, initials } from "@/lib/projets/meta";
 import type { ContactFull } from "@/lib/projets/queries";
 
+import { ImageField } from "./ImageField";
 import type { ProjectLite } from "./ProjectDialog";
 
 interface ContactDialogProps {
@@ -41,7 +49,10 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
-  const [relation, setRelation] = useState("");
+  const NO_RELATION = "__none__";
+  const [relation, setRelation] = useState<string>(NO_RELATION);
+  const [relationDetail, setRelationDetail] = useState("");
+  const [image, setImage] = useState<string | null>(null);
   const [favorite, setFavorite] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagDraft, setTagDraft] = useState("");
@@ -56,7 +67,9 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
     setName(contact?.name ?? "");
     setCompany(contact?.company ?? "");
     setRole(contact?.role ?? "");
-    setRelation(contact?.relation ?? "");
+    setRelation(contact?.relation ?? NO_RELATION);
+    setRelationDetail(contact?.relationDetail ?? "");
+    setImage(contact?.image ?? null);
     setFavorite(contact?.favorite ?? false);
     setTags(contact?.tags ?? []);
     setTagDraft("");
@@ -98,7 +111,9 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
           name: name.trim(),
           company: company.trim() || null,
           role: role.trim() || null,
-          relation: relation.trim() || null,
+          relation: relation === NO_RELATION ? null : relation,
+          relationDetail: relationDetail.trim() || null,
+          image,
           favorite,
           tags: finalTags,
           email: email.trim() || null,
@@ -165,6 +180,14 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
             submit();
           }}
         >
+          <ImageField
+            value={image}
+            onChange={setImage}
+            fallback={name.trim() ? initials(name) : "?"}
+            color="#a8ccff"
+            label="Photo de profil"
+          />
+
           <div className="space-y-2">
             <Label htmlFor="contact-name">Nom</Label>
             <div className="flex items-center gap-2">
@@ -212,13 +235,29 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
                 placeholder="Entrepreneur, Pro, Étudiant…"
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="contact-relation">Relation</Label>
+            <div className="space-y-2">
+              <Label>Relation</Label>
+              <Select value={relation} onValueChange={setRelation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_RELATION}>Non précisée</SelectItem>
+                  {RELATION_KINDS.map((k) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {k.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact-relation-detail">Précision</Label>
               <Input
-                id="contact-relation"
-                value={relation}
-                onChange={(e) => setRelation(e.target.value)}
-                placeholder="Ami, classe au cégep, partenaire, client…"
+                id="contact-relation-detail"
+                value={relationDetail}
+                onChange={(e) => setRelationDetail(e.target.value)}
+                placeholder="Beau-père de Félix-Antoine, classe au cégep…"
               />
             </div>
             <div className="space-y-2">

@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { AskBox } from "@/components/projets/AskBox";
 import { LinkPill } from "@/components/projets/link-icons";
 import { ProjectDetailActions } from "@/components/projets/ProjectDetailActions";
+import { Avatar } from "@/components/projets/ImageField";
 import { ProjectMark } from "@/components/projets/ProjectTile";
 import { Badge } from "@/components/ui/badge";
 
@@ -19,7 +20,7 @@ import {
   stationLabel,
   timeAgoFr,
 } from "@/lib/projets/meta";
-import { projectInclude } from "@/lib/projets/queries";
+import { organisationSelect, projectInclude } from "@/lib/projets/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function ProjetDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params; // Next already URL-decodes route params
-  const [project, projects, contacts] = await Promise.all([
+  const [project, projects, contacts, organisations] = await Promise.all([
     prisma.agentProject.findUnique({
       where: { slug },
       include: {
@@ -46,13 +47,22 @@ export default async function ProjetDetailPage({
     }),
     prisma.agentProject.findMany({
       where: { archived: false },
-      select: { id: true, name: true, slug: true, color: true, parentId: true, station: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        color: true,
+        parentId: true,
+        station: true,
+        organisationId: true,
+      },
       orderBy: { name: "asc" },
     }),
     prisma.contact.findMany({
       select: { id: true, name: true, company: true, role: true, email: true },
       orderBy: { name: "asc" },
     }),
+    prisma.organisation.findMany({ select: organisationSelect, orderBy: { sortOrder: "asc" } }),
   ]);
 
   if (!project) notFound();
@@ -73,7 +83,12 @@ export default async function ProjetDetailPage({
       <header className="mt-6 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-4">
-            <ProjectMark name={project.name} color={project.color} className="h-14 w-14 md:h-16 md:w-16" />
+            <ProjectMark
+              name={project.name}
+              color={project.color}
+              image={project.image}
+              className="h-14 w-14 md:h-16 md:w-16"
+            />
             <h1 className="display break-words text-[40px] sm:text-[56px] md:text-[72px]">
               {project.name}.
             </h1>
@@ -95,7 +110,12 @@ export default async function ProjetDetailPage({
             ) : null}
           </div>
         </div>
-        <ProjectDetailActions project={project} projects={projects} contacts={contacts} />
+        <ProjectDetailActions
+          project={project}
+          projects={projects}
+          organisations={organisations}
+          contacts={contacts}
+        />
       </header>
       <div className="filet mt-8" />
 
@@ -213,9 +233,12 @@ export default async function ProjetDetailPage({
                   key={contact.id}
                   className="flex items-center gap-3 border-b border-border py-3.5 last:border-b-0"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tint text-[12px] font-semibold text-[#19181c]">
-                    {initials(contact.name)}
-                  </span>
+                  <Avatar
+                    image={contact.image}
+                    fallback={initials(contact.name)}
+                    color="#a8ccff"
+                    className="h-9 w-9 text-[12px]"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-semibold tracking-title">
                       {contact.name}

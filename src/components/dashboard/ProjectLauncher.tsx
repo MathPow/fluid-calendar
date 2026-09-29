@@ -27,6 +27,7 @@ interface LauncherProject {
   station: string;
   parentId: string | null;
   path: string | null;
+  image?: string | null;
   logo?: string | null;
 }
 
@@ -43,12 +44,13 @@ const FALLBACK: LauncherProject[] = [
 
 function Mark({ project }: { project: LauncherProject }) {
   const [errored, setErrored] = useState(false);
-  if (project.logo && !errored) {
+  const src = project.image || project.logo;
+  if (src && !errored) {
     return (
-      // Plain <img> on purpose: next/image's optimizer rejects SVGs.
+      // Plain <img> on purpose: next/image's optimizer rejects SVGs and data URLs.
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={project.logo}
+        src={src}
         alt=""
         className="h-12 w-12 rounded-2xl object-contain"
         onError={() => setErrored(true)}

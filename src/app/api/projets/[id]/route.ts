@@ -83,12 +83,16 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           ...(fields.name !== undefined ? { name: fields.name } : {}),
           ...(slug ? { slug } : {}),
           ...(fields.color !== undefined ? { color: fields.color } : {}),
+          ...(fields.image !== undefined ? { image: fields.image || null } : {}),
           ...(fields.station !== undefined ? { station: fields.station } : {}),
           ...(fields.description !== undefined
             ? { description: fields.description || null }
             : {}),
           ...(fields.path !== undefined ? { path: fields.path || null } : {}),
           ...(fields.parentId !== undefined ? { parentId: fields.parentId } : {}),
+          ...(fields.organisationId !== undefined
+            ? { organisationId: fields.organisationId }
+            : {}),
           ...(fields.archived !== undefined ? { archived: fields.archived } : {}),
           ...(stack !== undefined ? { stack } : {}),
         },

@@ -50,6 +50,8 @@ export async function POST(request: NextRequest) {
         company: fields.company || null,
         role: fields.role || null,
         relation: fields.relation || null,
+        relationDetail: fields.relationDetail || null,
+        image: fields.image || null,
         favorite: fields.favorite ?? false,
         tags,
         notes: fields.notes || null,

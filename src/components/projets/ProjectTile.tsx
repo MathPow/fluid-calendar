@@ -18,18 +18,31 @@ import {
 } from "@/lib/projets/meta";
 import type { ProjectFull } from "@/lib/projets/queries";
 
+import { Avatar } from "./ImageField";
 import { LinkPill } from "./link-icons";
 
 /** Monogram square in the project's colour. */
 export function ProjectMark({
   name,
   color,
+  image,
   className,
 }: {
   name: string;
   color: string | null;
+  image?: string | null;
   className?: string;
 }) {
+  if (image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={image}
+        alt=""
+        className={cn("shrink-0 rounded-2xl object-cover", className ?? "h-11 w-11")}
+      />
+    );
+  }
   return (
     <span
       className={cn(
@@ -58,7 +71,7 @@ export function ProjectTile({
     <li className="tile flex flex-col p-7 md:p-8">
       <div className="flex items-start justify-between gap-4">
         <Link href={href} className="flex min-w-0 items-center gap-4">
-          <ProjectMark name={project.name} color={project.color} />
+          <ProjectMark name={project.name} color={project.color} image={project.image} />
           <div className="min-w-0">
             <p className="etiquette">
               {stationLabel(project.station)}
@@ -135,13 +148,13 @@ export function ProjectTile({
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex -space-x-2">
               {project.contacts.slice(0, 4).map(({ contact }) => (
-                <span
+                <Avatar
                   key={contact.id}
-                  title={contact.name}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-tint text-[11px] font-semibold text-[#19181c] ring-2 ring-card"
-                >
-                  {initials(contact.name)}
-                </span>
+                  image={contact.image}
+                  fallback={initials(contact.name)}
+                  color="#a8ccff"
+                  className="h-8 w-8 text-[11px] ring-2 ring-card"
+                />
               ))}
             </div>
             <span className="truncate text-[13px] text-muted-foreground">

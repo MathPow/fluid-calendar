@@ -25,6 +25,32 @@ export const LINK_KIND_IDS = LINK_KINDS.map((k) => k.id) as [
 export const linkKindLabel = (kind: string) =>
   LINK_KINDS.find((k) => k.id === kind)?.label ?? "Lien";
 
+/** How you know a contact. The precise wording lives in `relationDetail`. */
+export const RELATION_KINDS = [
+  { id: "ami", label: "Ami" },
+  { id: "famille", label: "Famille" },
+  { id: "collegue", label: "Collègue" },
+  { id: "ecole", label: "École" },
+  { id: "client", label: "Client" },
+  { id: "partenaire", label: "Partenaire" },
+  { id: "mentor", label: "Mentor" },
+  { id: "connaissance", label: "Connaissance" },
+  { id: "autre", label: "Autre" },
+] as const;
+
+export type RelationKind = (typeof RELATION_KINDS)[number]["id"];
+export const RELATION_KIND_IDS = RELATION_KINDS.map((k) => k.id) as [
+  RelationKind,
+  ...RelationKind[],
+];
+
+export const relationLabel = (kind: string | null | undefined) =>
+  RELATION_KINDS.find((k) => k.id === kind)?.label ?? kind ?? "";
+
+/** Accepts a resized data URL or an https image link, nothing else. */
+export const isAllowedImage = (v: string) =>
+  /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v) || /^https:\/\/\S+$/.test(v);
+
 /** The eight client tints from the design file. A colour never means a status. */
 export const PROJECT_COLORS = [
   { hex: "#a8ccff", name: "Bleu" },

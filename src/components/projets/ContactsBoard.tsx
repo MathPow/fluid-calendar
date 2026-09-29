@@ -19,12 +19,13 @@ import {
 
 import { cn } from "@/lib/utils";
 
-import { DEFAULT_PROJECT_COLOR, initials } from "@/lib/projets/meta";
+import { DEFAULT_PROJECT_COLOR, initials, relationLabel } from "@/lib/projets/meta";
 import type { ContactFull } from "@/lib/projets/queries";
 
 import { useStationStore } from "@/store/station";
 
 import { ContactDialog } from "./ContactDialog";
+import { Avatar } from "./ImageField";
 import type { ProjectLite } from "./ProjectDialog";
 import { SectionSwitch } from "./SectionSwitch";
 
@@ -84,7 +85,17 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
           if (!inStation) return false;
         }
         if (!q) return true;
-        return [c.name, c.company, c.role, c.relation, c.email, c.phone, c.notes, ...c.tags]
+        return [
+          c.name,
+          c.company,
+          c.role,
+          relationLabel(c.relation),
+          c.relationDetail,
+          c.email,
+          c.phone,
+          c.notes,
+          ...c.tags,
+        ]
           .filter(Boolean)
           .some((v) => (v as string).toLowerCase().includes(q));
       })
@@ -191,7 +202,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
               <SelectItem value={ALL}>Toutes les relations</SelectItem>
               {relations.map((r) => (
                 <SelectItem key={r} value={r}>
-                  {r}
+                  {relationLabel(r)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -250,14 +261,15 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
             {visible.map((c) => (
               <li key={c.id} className="tile flex flex-col p-6 md:p-7">
                 <div className="flex items-start gap-4">
-                  <span
+                  <Avatar
+                    image={c.image}
+                    fallback={initials(c.name)}
+                    color={c.favorite ? "#ffd166" : "#a8ccff"}
                     className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[14px] font-bold text-[#19181c]",
-                      c.favorite ? "bg-pending" : "bg-tint"
+                      "h-12 w-12 text-[14px]",
+                      c.favorite && "ring-2 ring-pending ring-offset-2 ring-offset-card"
                     )}
-                  >
-                    {initials(c.name)}
-                  </span>
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[18px] font-bold leading-tight tracking-title">
                       {c.name}
@@ -292,16 +304,26 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                   </div>
                 </div>
 
-                {(c.relation || c.tags.length > 0) && (
+                {(c.relation || c.relationDetail || c.tags.length > 0) && (
                   <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                    {!c.relation && c.relationDetail && (
+                      <span className="inline-flex items-center rounded-full bg-tint-soft px-3 py-1 text-[12px] font-medium">
+                        {c.relationDetail}
+                      </span>
+                    )}
                     {c.relation && (
                       <button
                         type="button"
                         onClick={() => setRelation(c.relation as string)}
-                        className="inline-flex items-center rounded-full bg-tint-soft px-3 py-1 text-[12px] font-medium transition-colors hover:bg-tint"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-tint-soft px-3 py-1 text-[12px] font-medium transition-colors hover:bg-tint"
                         title="Filtrer sur cette relation"
                       >
-                        {c.relation}
+                        {relationLabel(c.relation)}
+                        {c.relationDetail && (
+                          <span className="font-normal text-muted-foreground">
+                            · {c.relationDetail}
+                          </span>
+                        )}
                       </button>
                     )}
                     {c.tags.map((t) => (

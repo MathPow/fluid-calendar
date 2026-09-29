@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-import { LINK_KIND_IDS } from "./meta";
+import { LINK_KIND_IDS, RELATION_KIND_IDS, isAllowedImage } from "./meta";
+
+const image = z
+  .string()
+  .max(700_000, "Image trop lourde")
+  .refine(isAllowedImage, "Image invalide")
+  .nullable()
+  .optional();
 
 const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, "Couleur invalide");
 
@@ -18,10 +25,12 @@ export const ProjectContactInput = z.object({
 export const ProjectInput = z.object({
   name: z.string().trim().min(1, "Nom requis").max(120),
   color: hexColor.nullable().optional(),
+  image,
   station: z.enum(["personal", "work"]).optional(),
   description: z.string().trim().max(2000).nullable().optional(),
   path: z.string().trim().max(500).nullable().optional(),
   parentId: z.string().nullable().optional(),
+  organisationId: z.string().nullable().optional(),
   stack: z.array(z.string().trim().min(1).max(40)).max(30).optional(),
   links: z.array(LinkInput).max(30).optional(),
   contacts: z.array(ProjectContactInput).max(50).optional(),
@@ -36,7 +45,9 @@ export const ContactInput = z.object({
   phone: z.string().trim().max(40).nullable().optional(),
   company: z.string().trim().max(120).nullable().optional(),
   role: z.string().trim().max(80).nullable().optional(),
-  relation: z.string().trim().max(80).nullable().optional(),
+  relation: z.enum(RELATION_KIND_IDS).nullable().optional(),
+  relationDetail: z.string().trim().max(120).nullable().optional(),
+  image,
   favorite: z.boolean().optional(),
   tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
   notes: z.string().trim().max(4000).nullable().optional(),
@@ -44,3 +55,11 @@ export const ContactInput = z.object({
 });
 
 export type ContactInputType = z.infer<typeof ContactInput>;
+
+export const OrganisationInput = z.object({
+  name: z.string().trim().min(1, "Nom requis").max(80),
+  color: hexColor.nullable().optional(),
+  image,
+  station: z.enum(["personal", "work"]).optional(),
+  description: z.string().trim().max(1000).nullable().optional(),
+});

@@ -44,6 +44,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           ...(fields.company !== undefined ? { company: fields.company || null } : {}),
           ...(fields.role !== undefined ? { role: fields.role || null } : {}),
           ...(fields.relation !== undefined ? { relation: fields.relation || null } : {}),
+          ...(fields.relationDetail !== undefined
+            ? { relationDetail: fields.relationDetail || null }
+            : {}),
+          ...(fields.image !== undefined ? { image: fields.image || null } : {}),
           ...(fields.favorite !== undefined ? { favorite: fields.favorite } : {}),
           ...(tags !== undefined ? { tags } : {}),
           ...(fields.notes !== undefined ? { notes: fields.notes || null } : {}),
