@@ -8,8 +8,17 @@ import { slugify } from "./meta";
 export const projectInclude = {
   links: { orderBy: { sortOrder: "asc" } },
   contacts: { include: { contact: true } },
+  // Only the capsule's id: the bytes are served by /api/project-media/[id].
+  media: { where: { capsule: true }, select: { id: true }, take: 1 },
   organisation: {
-    select: { id: true, name: true, slug: true, color: true, image: true, isDefault: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      color: true,
+      image: true,
+      isDefault: true,
+    },
   },
   parent: { select: { id: true, name: true, slug: true, color: true } },
   children: {

@@ -7,8 +7,6 @@ import { Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { cn } from "@/lib/utils";
-
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
@@ -17,6 +15,7 @@ import {
   timeAgoFr,
 } from "@/lib/projets/meta";
 import type { ProjectFull } from "@/lib/projets/queries";
+import { cn } from "@/lib/utils";
 
 import { Avatar } from "./ImageField";
 import { LinkPill } from "./link-icons";
@@ -39,7 +38,10 @@ export function ProjectMark({
       <img
         src={image}
         alt=""
-        className={cn("shrink-0 rounded-2xl object-cover", className ?? "h-11 w-11")}
+        className={cn(
+          "shrink-0 rounded-2xl object-cover",
+          className ?? "h-11 w-11"
+        )}
       />
     );
   }
@@ -66,16 +68,36 @@ export function ProjectTile({
 }) {
   const href = `/projets/${encodeURIComponent(project.slug)}`;
   const latest = project.activities[0];
+  const capsule = project.media[0];
 
   return (
     <li className="tile flex flex-col p-7 md:p-8">
+      {capsule && (
+        <Link
+          href={href}
+          className="-mx-7 -mt-7 mb-6 block overflow-hidden rounded-t-[inherit] md:-mx-8 md:-mt-8"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/project-media/${capsule.id}`}
+            alt=""
+            loading="lazy"
+            className="aspect-[460/215] w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+          />
+        </Link>
+      )}
       <div className="flex items-start justify-between gap-4">
         <Link href={href} className="flex min-w-0 items-center gap-4">
-          <ProjectMark name={project.name} color={project.color} image={project.image} />
+          <ProjectMark
+            name={project.name}
+            color={project.color}
+            image={project.image}
+          />
           <div className="min-w-0">
             <p className="etiquette">
               {stationLabel(project.station)}
-              {project.lastActivityAt && ` · ${timeAgoFr(project.lastActivityAt)}`}
+              {project.lastActivityAt &&
+                ` · ${timeAgoFr(project.lastActivityAt)}`}
             </p>
             <h2 className="mt-1.5 truncate text-[24px] font-bold leading-[1.1] tracking-title">
               {project.name}.
@@ -127,9 +149,14 @@ export function ProjectTile({
                 <span className="rangee-num">{pad2(i + 1)}</span>
                 <span
                   className="relative top-[-1px] h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: c.color ?? project.color ?? DEFAULT_PROJECT_COLOR }}
+                  style={{
+                    backgroundColor:
+                      c.color ?? project.color ?? DEFAULT_PROJECT_COLOR,
+                  }}
                 />
-                <span className="min-w-0 flex-1 truncate text-[15px]">{c.name}</span>
+                <span className="min-w-0 flex-1 truncate text-[15px]">
+                  {c.name}
+                </span>
                 <span className="text-[12px] text-muted-foreground">
                   {c._count.activities > 0
                     ? `${c._count.activities} activité${c._count.activities > 1 ? "s" : ""}`
@@ -163,7 +190,8 @@ export function ProjectTile({
           </div>
         ) : (
           <span className="text-[13px] text-muted-foreground">
-            {project._count.activities} activité{project._count.activities > 1 ? "s" : ""}
+            {project._count.activities} activité
+            {project._count.activities > 1 ? "s" : ""}
           </span>
         )}
         <Button variant="outline" size="sm" asChild className="shrink-0">

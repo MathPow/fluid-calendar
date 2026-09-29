@@ -11,15 +11,42 @@ const LOG_SOURCE = "project-showcase-ingest";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Screenshots are inlined as data URLs, so pages run a few MB. Cap it well
-// below what Postgres TEXT allows so a runaway page can't bloat the DB.
-const MAX_HTML_BYTES = 20 * 1024 * 1024;
+const MAX_MEDIA = 24;
+const MAX_MEDIA_BYTES = 4 * 1024 * 1024;
+
+const DATA_URL =
+  /^data:(image\/(?:png|jpeg|webp|gif|avif));base64,([A-Za-z0-9+/=]+)$/;
+
+const MediaSchema = z.object({
+  name: z.string().min(1).max(80),
+  caption: z.string().max(200).optional(),
+  data: z.string().regex(DATA_URL),
+  capsule: z.boolean().optional(),
+  inGallery: z.boolean().optional(),
+});
 
 const BodySchema = z.object({
   project: z.string().min(1), // slug, same as the activity feed
   path: z.string().optional(),
-  html: z.string().min(1),
-  description: z.string().optional(), // only fills an empty description
+  // Short description (the Steam blurb). Fills an empty one unless replaceDescription.
+  description: z.string().max(600).optional(),
+  replaceDescription: z.boolean().optional(),
+  about: z.string().max(40_000).optional(),
+  status: z.string().max(40).optional(),
+  startedAt: z.string().date().optional(),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+  // Links are added when their URL isn't on the project yet; never removed.
+  links: z
+    .array(
+      z.object({
+        kind: z.string().min(1).max(20),
+        url: z.string().url(),
+        label: z.string().max(80).optional(),
+      })
+    )
+    .max(10)
+    .optional(),
+  media: z.array(MediaSchema).max(MAX_MEDIA).optional(),
   // Project avatar, typically the site's favicon. Fills an empty image only,
   // unless replaceImage is set.
   image: z
@@ -47,9 +74,11 @@ function tokenOk(request: NextRequest): boolean {
 }
 
 /**
- * PUT /api/ingest/project-showcase — store the HTML showcase of a project,
- * replacing the previous one. Creates the project if the slug is new.
- * Pushed by the /project-showcase Claude skill.
+ * PUT /api/ingest/project-showcase — store a project's store page (gallery,
+ * about text, facts). The gallery and page fields are replaced wholesale; the
+ * project's own fields (description, avatar, organisation, links) are only
+ * filled when empty so edits made in DreamDash win. Creates the project if
+ * the slug is new. Pushed by the /project-showcase Claude skill.
  */
 export async function PUT(request: NextRequest) {
   if (!process.env.PROJECT_INGEST_TOKEN) {
@@ -77,27 +106,35 @@ export async function PUT(request: NextRequest) {
       { status: 400 }
     );
   }
+  const body = parsed.data;
 
-  const {
-    project,
-    path,
-    html,
-    description,
-    image,
-    replaceImage,
-    organisation,
-  } = parsed.data;
-  if (Buffer.byteLength(html) > MAX_HTML_BYTES) {
-    return NextResponse.json({ error: "Showcase too large" }, { status: 413 });
+  const media = (body.media ?? []).map((m, i) => {
+    const [, mime, b64] = m.data.match(DATA_URL)!;
+    return {
+      name: m.name,
+      caption: m.caption ?? null,
+      mime,
+      data: Buffer.from(b64, "base64"),
+      capsule: m.capsule ?? false,
+      inGallery: m.inGallery ?? true,
+      sortOrder: i,
+    };
+  });
+  const tooBig = media.find((m) => m.data.length > MAX_MEDIA_BYTES);
+  if (tooBig) {
+    return NextResponse.json(
+      { error: `Media too large: ${tooBig.name}` },
+      { status: 413 }
+    );
   }
 
   let org: { id: string; name: string } | null = null;
-  if (organisation) {
+  if (body.organisation) {
     const orgs = await prisma.organisation.findMany({
       select: { id: true, slug: true, name: true },
       orderBy: { sortOrder: "asc" },
     });
-    const wanted = organisation.toLowerCase();
+    const wanted = body.organisation.toLowerCase();
     org =
       orgs.find((o) => o.slug === wanted || o.name.toLowerCase() === wanted) ??
       null;
@@ -105,7 +142,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            organisation === "?" ? "Organisations" : "Unknown organisation",
+            body.organisation === "?"
+              ? "Organisations"
+              : "Unknown organisation",
           organisations: orgs.map((o) => ({ slug: o.slug, name: o.name })),
         },
         { status: 422 }
@@ -115,16 +154,16 @@ export async function PUT(request: NextRequest) {
 
   try {
     const proj = await prisma.agentProject.upsert({
-      where: { slug: project },
+      where: { slug: body.project },
       create: {
-        slug: project,
-        name: project,
-        path: path ?? null,
-        description: description ?? null,
-        image: image ?? null,
+        slug: body.project,
+        name: body.project,
+        path: body.path ?? null,
       },
-      update: path ? { path } : {},
+      update: body.path ? { path: body.path } : {},
+      include: { links: { select: { url: true, sortOrder: true } } },
     });
+
     // Never move a project the user already filed elsewhere; only rescue it
     // from "no organisation" or the default bucket.
     let orgKept: string | null = null;
@@ -139,29 +178,63 @@ export async function PUT(request: NextRequest) {
       if (!current || current.isDefault) fileInOrg = true;
       else orgKept = current.name;
     }
-    const fill = {
-      ...(org && fileInOrg ? { organisationId: org.id } : {}),
-      ...(description && !proj.description ? { description } : {}),
-      ...(image && (replaceImage || !proj.image) ? { image } : {}),
-    };
-    if (Object.keys(fill).length > 0) {
-      await prisma.agentProject.update({ where: { id: proj.id }, data: fill });
-    }
 
-    await prisma.projectShowcase.upsert({
-      where: { projectId: proj.id },
-      create: { projectId: proj.id, html },
-      update: { html },
-    });
+    const known = new Set(proj.links.map((l) => l.url.replace(/\/$/, "")));
+    const newLinks = (body.links ?? []).filter(
+      (l) => !known.has(l.url.replace(/\/$/, ""))
+    );
+    const nextSort = Math.max(-1, ...proj.links.map((l) => l.sortOrder)) + 1;
+
+    const pageFields = {
+      about: body.about ?? null,
+      status: body.status ?? null,
+      startedAt: body.startedAt ? new Date(body.startedAt) : null,
+      tags: body.tags ?? [],
+    };
+
+    await prisma.$transaction([
+      prisma.agentProject.update({
+        where: { id: proj.id },
+        data: {
+          ...(body.description && (body.replaceDescription || !proj.description)
+            ? { description: body.description }
+            : {}),
+          ...(body.image && (body.replaceImage || !proj.image)
+            ? { image: body.image }
+            : {}),
+          ...(org && fileInOrg ? { organisationId: org.id } : {}),
+        },
+      }),
+      prisma.projectLink.createMany({
+        data: newLinks.map((l, i) => ({
+          projectId: proj.id,
+          kind: l.kind,
+          url: l.url,
+          label: l.label ?? null,
+          sortOrder: nextSort + i,
+        })),
+      }),
+      prisma.projectShowcase.upsert({
+        where: { projectId: proj.id },
+        create: { projectId: proj.id, ...pageFields },
+        update: pageFields,
+      }),
+      prisma.projectMedia.deleteMany({ where: { projectId: proj.id } }),
+      prisma.projectMedia.createMany({
+        data: media.map((m) => ({ projectId: proj.id, ...m })),
+      }),
+    ]);
 
     return NextResponse.json(
       {
         ok: true,
         projectId: proj.id,
+        media: media.length,
+        linksAdded: newLinks.length,
         ...(org
           ? { organisation: orgKept ? `kept ${orgKept}` : org.name }
           : {}),
-        url: `/projets/${encodeURIComponent(proj.slug)}?vue=apercu`,
+        url: `/projets/${encodeURIComponent(proj.slug)}`,
       },
       { status: 201 }
     );
