@@ -1,3 +1,5 @@
+import type { MailAccount } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
 import { decryptSecret } from "./crypto";
@@ -25,8 +27,28 @@ export async function loadAccount(
   const acct = await prisma.mailAccount.findFirst({
     where: { id: accountId, userId },
   });
-  if (!acct) return null;
+  return acct ? toLoaded(acct) : null;
+}
 
+/**
+ * Load every mail account of a user (optionally only the given ids), oldest
+ * first — used by the unified « Toutes les boîtes » view.
+ */
+export async function loadAccounts(
+  userId: string,
+  accountIds?: string[]
+): Promise<LoadedAccount[]> {
+  const accts = await prisma.mailAccount.findMany({
+    where: {
+      userId,
+      ...(accountIds ? { id: { in: accountIds } } : {}),
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  return accts.map(toLoaded);
+}
+
+function toLoaded(acct: MailAccount): LoadedAccount {
   const password = decryptSecret(acct.passwordEnc);
   return {
     id: acct.id,

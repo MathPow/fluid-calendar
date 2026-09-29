@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   AlertCircle,
+  ChevronLeft,
   Inbox,
+  Mails,
   Loader2,
   Mail,
   Paperclip,
@@ -69,19 +71,52 @@ const fmtDate = (iso: string | null) => {
     : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 };
 
+/** Pseudo account id for the unified « Toutes les boîtes » view. */
+const ALL = "all";
+
+/** Stable per-account colour dots (by connection order). */
+const ACCOUNT_DOTS = [
+  "bg-sky-500",
+  "bg-amber-500",
+  "bg-emerald-500",
+  "bg-rose-500",
+  "bg-violet-500",
+  "bg-teal-500",
+];
+
+/** A listed message, tagged with where it lives (uids clash across boxes). */
+interface ListedMessage extends MessageSummary {
+  accountId: string;
+  mailbox: string;
+}
+
+const keyOf = (m: ListedMessage) => `${m.accountId}:${m.mailbox}:${m.uid}`;
+
+const accountLabel = (a: Account) => a.displayName || a.email;
+
+/** Short chip label for the mobile switcher: display name or local part. */
+const shortLabel = (a: Account) => a.displayName || a.email.split("@")[0];
+
+/** The unified view only makes sense with two or more boxes. */
+const defaultTarget = (visible: Account[]) =>
+  visible.length >= 2 ? ALL : (visible[0]?.id ?? null);
+
 export function EmailClient() {
   const currentStation = useStationStore((s) => s.currentStation);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const accountsRef = useRef<Account[]>([]);
+  // An account id, or ALL for the merged inboxes.
   const [accountId, setAccountId] = useState<string | null>(null);
   const [folders, setFolders] = useState<string[]>([]);
   const [mailbox, setMailbox] = useState("INBOX");
 
-  const [messages, setMessages] = useState<MessageSummary[]>([]);
+  const [messages, setMessages] = useState<ListedMessage[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
+  const [failedBoxes, setFailedBoxes] = useState<string[]>([]);
   const [search, setSearch] = useState("");
 
-  const [selectedUid, setSelectedUid] = useState<number | null>(null);
+  const [selected, setSelected] = useState<ListedMessage | null>(null);
   const [detail, setDetail] = useState<MessageDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -92,20 +127,31 @@ export function EmailClient() {
   const loadAccounts = useCallback(async () => {
     const res = await fetch("/api/mail/accounts");
     const data = res.ok ? await res.json() : { accounts: [] };
-    setAccounts(data.accounts ?? []);
-    return data.accounts as Account[];
+    accountsRef.current = data.accounts ?? [];
+    setAccounts(accountsRef.current);
+    return accountsRef.current;
   }, []);
 
   const loadMessages = useCallback(
     async (acctId: string, box: string, q: string, withFolders: boolean) => {
       setLoadingList(true);
       setListError(null);
+      setFailedBoxes([]);
       try {
         const params = new URLSearchParams({
           accountId: acctId,
           mailbox: box,
           limit: "40",
         });
+        if (acctId === ALL) {
+          // Only the boxes visible under the active station.
+          const station = useStationStore.getState().currentStation;
+          const ids = accountsRef.current
+            .filter((a) => accountVisibleInStation(a.station, station))
+            .map((a) => a.id);
+          params.set("accounts", ids.join(","));
+          params.set("limit", "25");
+        }
         if (q.trim()) params.set("q", q.trim());
         if (withFolders) params.set("folders", "1");
         const res = await fetch(`/api/mail/messages?${params}`);
@@ -114,8 +160,21 @@ export function EmailClient() {
           throw new Error(e.error || "Failed to load mail");
         }
         const data = await res.json();
-        setMessages(data.messages ?? []);
+        const list: (MessageSummary & Partial<ListedMessage>)[] =
+          data.messages ?? [];
+        setMessages(
+          list.map((m) => ({
+            ...m,
+            accountId: m.accountId ?? acctId,
+            mailbox: m.mailbox ?? box,
+          }))
+        );
         if (data.folders) setFolders(data.folders);
+        if (Array.isArray(data.failed)) {
+          setFailedBoxes(
+            (data.failed as { email: string }[]).map((f) => f.email)
+          );
+        }
       } catch (err) {
         setListError(err instanceof Error ? err.message : "Failed to load mail");
         setMessages([]);
@@ -126,17 +185,19 @@ export function EmailClient() {
     []
   );
 
-  // Initial load — pick the first account visible under the active station.
+  // Initial load — « Toutes les boîtes » when several accounts are visible
+  // under the active station, otherwise the only one.
   useEffect(() => {
     (async () => {
       const accts = await loadAccounts();
       const station = useStationStore.getState().currentStation;
-      const first =
-        accts.find((a) => accountVisibleInStation(a.station, station)) ??
-        accts[0];
-      if (first) {
-        setAccountId(first.id);
-        await loadMessages(first.id, "INBOX", "", true);
+      const visible = accts.filter((a) =>
+        accountVisibleInStation(a.station, station)
+      );
+      const target = defaultTarget(visible) ?? accts[0]?.id ?? null;
+      if (target) {
+        setAccountId(target);
+        await loadMessages(target, "INBOX", "", target !== ALL);
       }
       setInitializing(false);
     })();
@@ -145,56 +206,62 @@ export function EmailClient() {
   const switchAccount = async (id: string) => {
     setAccountId(id);
     setMailbox("INBOX");
-    setSelectedUid(null);
+    setSelected(null);
     setDetail(null);
     setSearch("");
     setFolders([]);
-    await loadMessages(id, "INBOX", "", true);
+    await loadMessages(id, "INBOX", "", id !== ALL);
   };
 
   // Accounts shown under the active station (untagged always show).
   const visibleAccounts = accounts.filter((a) =>
     accountVisibleInStation(a.station, currentStation)
   );
+  const unified = accountId === ALL;
 
-  // If switching station hides the open account, jump to a visible one.
+  // If switching station hides the open account (or changes which boxes the
+  // unified view covers), jump to the station's default view.
   useEffect(() => {
     if (initializing || accounts.length === 0) return;
-    if (accountId && visibleAccounts.some((a) => a.id === accountId)) return;
-    const next = visibleAccounts[0];
+    if (!unified && accountId && visibleAccounts.some((a) => a.id === accountId))
+      return;
+    const next = defaultTarget(visibleAccounts);
     if (next) {
-      switchAccount(next.id);
+      switchAccount(next);
     } else {
       setAccountId(null);
       setMessages([]);
-      setSelectedUid(null);
+      setSelected(null);
       setDetail(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStation]);
 
   const switchMailbox = async (box: string) => {
-    if (!accountId) return;
+    if (!accountId || unified) return;
     setMailbox(box);
-    setSelectedUid(null);
+    setSelected(null);
     setDetail(null);
     await loadMessages(accountId, box, search, false);
   };
 
-  const selectMessage = async (uid: number) => {
-    if (!accountId) return;
-    setSelectedUid(uid);
+  const selectMessage = async (m: ListedMessage) => {
+    const key = keyOf(m);
+    setSelected(m);
     setDetail(null);
     setLoadingDetail(true);
     try {
-      const params = new URLSearchParams({ accountId, mailbox });
-      const res = await fetch(`/api/mail/messages/${uid}?${params}`);
+      const params = new URLSearchParams({
+        accountId: m.accountId,
+        mailbox: m.mailbox,
+      });
+      const res = await fetch(`/api/mail/messages/${m.uid}?${params}`);
       if (!res.ok) throw new Error("Failed to load message");
       const data = await res.json();
       setDetail(data.message);
       // Optimistically mark read in the list.
       setMessages((prev) =>
-        prev.map((m) => (m.uid === uid ? { ...m, seen: true } : m))
+        prev.map((x) => (keyOf(x) === key ? { ...x, seen: true } : x))
       );
     } catch {
       setDetail(null);
@@ -203,18 +270,32 @@ export function EmailClient() {
     }
   };
 
+  const closeMessage = () => {
+    setSelected(null);
+    setDetail(null);
+  };
+
   const runSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (accountId) loadMessages(accountId, mailbox, search, false);
   };
 
-  const startReply = (m: MessageDetail) => {
+  // New mail goes out from the open box, or the first visible one in the
+  // unified view (the From field lets the user change it).
+  const startCompose = () => {
+    const from =
+      (!unified && accountId) || visibleAccounts[0]?.id || accounts[0]?.id;
+    if (from) setCompose({ accountId: from, to: "", cc: "", subject: "", body: "" });
+  };
+
+  const startReply = (m: MessageDetail, fromAccountId: string) => {
     const original = m.text || "";
     const quoted = original
       .split("\n")
       .map((l) => `> ${l}`)
       .join("\n");
     setCompose({
+      accountId: fromAccountId,
       to: m.from[0]?.address || "",
       cc: "",
       subject: m.subject.startsWith("Re:") ? m.subject : `Re: ${m.subject}`,
@@ -223,6 +304,14 @@ export function EmailClient() {
       references: [...m.references, ...(m.messageId ? [m.messageId] : [])],
     });
   };
+
+  const dotFor = (id: string) =>
+    ACCOUNT_DOTS[
+      Math.max(
+        0,
+        accounts.findIndex((a) => a.id === id)
+      ) % ACCOUNT_DOTS.length
+    ];
 
   if (initializing) {
     return (
@@ -270,16 +359,18 @@ export function EmailClient() {
   }
 
   const activeAccount = accounts.find((a) => a.id === accountId);
+  const selectedAccount = selected
+    ? accounts.find((a) => a.id === selected.accountId)
+    : undefined;
+  const showAllEntry = visibleAccounts.length >= 2;
 
   return (
     <div className="flex h-full">
-      {/* Rail: accounts + folders */}
-      <div className="flex w-56 flex-none flex-col border-r border-border bg-card">
+      {/* Rail: accounts + folders (desktop) */}
+      <div className="hidden w-56 flex-none flex-col border-r border-border bg-card md:flex">
         <div className="p-3">
           <button
-            onClick={() =>
-              setCompose({ to: "", cc: "", subject: "", body: "" })
-            }
+            onClick={startCompose}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <PenSquare className="h-4 w-4" /> Compose
@@ -287,7 +378,24 @@ export function EmailClient() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2">
-          {folders.length > 0 ? (
+          {unified ? (
+            <div className="space-y-2 px-2 py-1.5">
+              <p className="etiquette">Boîtes de réception</p>
+              <ul className="space-y-1">
+                {visibleAccounts.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-2 text-xs text-muted-foreground"
+                  >
+                    <span
+                      className={cn("h-2 w-2 shrink-0 rounded-full", dotFor(a.id))}
+                    />
+                    <span className="truncate">{accountLabel(a)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : folders.length > 0 ? (
             <ul className="space-y-0.5">
               {folders.map((f) => (
                 <li key={f}>
@@ -320,6 +428,20 @@ export function EmailClient() {
               No accounts in this station.
             </p>
           )}
+          {showAllEntry && (
+            <button
+              onClick={() => switchAccount(ALL)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs",
+                unified
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              <Mails className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Toutes les boîtes</span>
+            </button>
+          )}
           {visibleAccounts.map((a) => (
             <button
               key={a.id}
@@ -331,7 +453,9 @@ export function EmailClient() {
                   : "text-muted-foreground hover:bg-accent"
               )}
             >
-              <Mail className="h-3.5 w-3.5 shrink-0" />
+              <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                <span className={cn("h-2 w-2 rounded-full", dotFor(a.id))} />
+              </span>
               <span className="truncate">{a.email}</span>
             </button>
           ))}
@@ -344,8 +468,64 @@ export function EmailClient() {
         </div>
       </div>
 
-      {/* Message list */}
-      <div className="flex w-80 flex-none flex-col border-r border-border">
+      {/* Message list (full width on mobile, hidden while reading) */}
+      <div
+        className={cn(
+          "w-full min-w-0 flex-none flex-col border-r border-border md:flex md:w-80",
+          selected ? "hidden" : "flex"
+        )}
+      >
+        {/* Mobile switcher: boxes as a scrollable segmented control */}
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2 md:hidden">
+          <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="segmented">
+              {showAllEntry && (
+                <button
+                  onClick={() => switchAccount(ALL)}
+                  aria-pressed={unified}
+                  className="segmented-item"
+                >
+                  Toutes les boîtes
+                </button>
+              )}
+              {visibleAccounts.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => switchAccount(a.id)}
+                  aria-pressed={a.id === accountId}
+                  className="segmented-item"
+                  title={a.email}
+                >
+                  <span className={cn("h-2 w-2 rounded-full", dotFor(a.id))} />
+                  {shortLabel(a)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={startCompose}
+            className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+            title="Compose"
+          >
+            <PenSquare className="h-4 w-4" />
+          </button>
+        </div>
+        {!unified && folders.length > 1 && (
+          <div className="border-b border-border px-3 py-1.5 md:hidden">
+            <select
+              value={mailbox}
+              onChange={(e) => switchMailbox(e.target.value)}
+              className="w-full bg-transparent text-sm outline-none"
+            >
+              {folders.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <form
           onSubmit={runSearch}
           className="flex items-center gap-2 border-b border-border px-3 py-2"
@@ -354,8 +534,10 @@ export function EmailClient() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search ${mailbox}…`}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            placeholder={
+              unified ? "Rechercher dans toutes les boîtes…" : `Search ${mailbox}…`
+            }
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           <button
             type="button"
@@ -368,6 +550,15 @@ export function EmailClient() {
             <RefreshCw className={cn("h-4 w-4", loadingList && "animate-spin")} />
           </button>
         </form>
+
+        {failedBoxes.length > 0 && !loadingList && (
+          <p className="flex items-center gap-1.5 border-b border-border px-3 py-1.5 text-xs text-destructive">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              Injoignable : {failedBoxes.join(", ")}
+            </span>
+          </p>
+        )}
 
         <div className="flex-1 overflow-y-auto">
           {loadingList ? (
@@ -385,71 +576,112 @@ export function EmailClient() {
             </p>
           ) : (
             <ul>
-              {messages.map((m) => (
-                <li key={m.uid}>
-                  <button
-                    onClick={() => selectMessage(m.uid)}
-                    className={cn(
-                      "flex w-full flex-col gap-0.5 border-b border-border px-3 py-2.5 text-left",
-                      selectedUid === m.uid
-                        ? "bg-primary/5"
-                        : "hover:bg-accent/50"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      {!m.seen && (
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-                      )}
-                      <span
-                        className={cn(
-                          "min-w-0 flex-1 truncate text-sm",
-                          !m.seen ? "font-semibold" : "font-medium"
-                        )}
-                      >
-                        {fmtAddr(m.from)}
-                      </span>
-                      {m.hasAttachments && (
-                        <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
-                      )}
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {fmtDate(m.date)}
-                      </span>
-                    </div>
-                    <span
+              {messages.map((m) => {
+                const acct = unified
+                  ? accounts.find((a) => a.id === m.accountId)
+                  : undefined;
+                return (
+                  <li key={keyOf(m)}>
+                    <button
+                      onClick={() => selectMessage(m)}
                       className={cn(
-                        "truncate text-sm",
-                        !m.seen ? "text-foreground" : "text-muted-foreground"
+                        "flex w-full flex-col gap-0.5 border-b border-border px-3 py-2.5 text-left",
+                        selected && keyOf(selected) === keyOf(m)
+                          ? "bg-primary/5"
+                          : "hover:bg-accent/50"
                       )}
                     >
-                      {m.subject}
-                    </span>
-                  </button>
-                </li>
-              ))}
+                      <div className="flex items-center gap-2">
+                        {!m.seen && (
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+                        )}
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 truncate text-sm",
+                            !m.seen ? "font-semibold" : "font-medium"
+                          )}
+                        >
+                          {fmtAddr(m.from)}
+                        </span>
+                        {m.hasAttachments && (
+                          <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {fmtDate(m.date)}
+                        </span>
+                      </div>
+                      <span
+                        className={cn(
+                          "truncate text-sm",
+                          !m.seen ? "text-foreground" : "text-muted-foreground"
+                        )}
+                      >
+                        {m.subject}
+                      </span>
+                      {acct && (
+                        <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 shrink-0 rounded-full",
+                              dotFor(acct.id)
+                            )}
+                          />
+                          <span className="truncate">{accountLabel(acct)}</span>
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
       </div>
 
-      {/* Reading pane */}
-      <div className="min-w-0 flex-1 overflow-y-auto">
-        {!selectedUid ? (
+      {/* Reading pane (replaces the list on mobile) */}
+      <div
+        className={cn(
+          "min-w-0 flex-1 overflow-y-auto md:block",
+          selected ? "block" : "hidden"
+        )}
+      >
+        {!selected ? (
           <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
             <Mail className="h-10 w-10 opacity-40" />
             <p className="mt-3 text-sm">
-              Select a message{activeAccount ? ` in ${activeAccount.email}` : ""}.
+              {unified
+                ? "Sélectionne un message."
+                : `Select a message${activeAccount ? ` in ${activeAccount.email}` : ""}.`}
             </p>
           </div>
         ) : loadingDetail ? (
-          <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading message…
+          <div className="flex h-full flex-col">
+            <BackBar onBack={closeMessage} />
+            <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading message…
+            </div>
           </div>
         ) : !detail ? (
-          <div className="flex h-full items-center justify-center text-sm text-destructive">
-            Couldn&apos;t load that message.
+          <div className="flex h-full flex-col">
+            <BackBar onBack={closeMessage} />
+            <div className="flex flex-1 items-center justify-center text-sm text-destructive">
+              Couldn&apos;t load that message.
+            </div>
           </div>
         ) : (
-          <MessageView detail={detail} onReply={() => startReply(detail)} />
+          <MessageView
+            detail={detail}
+            onBack={closeMessage}
+            onReply={() => startReply(detail, selected.accountId)}
+            account={
+              selectedAccount && (unified || accounts.length > 1)
+                ? {
+                    label: `${accountLabel(selectedAccount)} · ${selected.mailbox}`,
+                    dot: dotFor(selectedAccount.id),
+                  }
+                : undefined
+            }
+          />
         )}
       </div>
 
@@ -465,10 +697,13 @@ export function EmailClient() {
         />
       )}
 
-      {compose && accountId && (
+      {compose && (
         <ComposeModal
-          accountId={accountId}
-          fromEmail={activeAccount?.email ?? ""}
+          accounts={accounts.filter(
+            (a) =>
+              a.id === compose.accountId ||
+              accountVisibleInStation(a.station, currentStation)
+          )}
           initial={compose}
           onClose={() => setCompose(null)}
         />
@@ -477,18 +712,46 @@ export function EmailClient() {
   );
 }
 
+/** Mobile-only "back to the list" bar above the reading pane. */
+function BackBar({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="border-b border-border px-2 py-1.5 md:hidden">
+      <button
+        onClick={onBack}
+        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        <ChevronLeft className="h-4 w-4" /> Retour
+      </button>
+    </div>
+  );
+}
+
 function MessageView({
   detail,
+  onBack,
   onReply,
+  account,
 }: {
   detail: MessageDetail;
+  onBack: () => void;
   onReply: () => void;
+  /** Which box it came from — shown when several boxes are in play. */
+  account?: { label: string; dot: string };
 }) {
   return (
     <article className="flex h-full flex-col">
-      <div className="border-b border-border p-5">
+      <BackBar onBack={onBack} />
+      <div className="border-b border-border p-4 md:p-5">
+        {account && (
+          <p className="etiquette mb-2 flex min-w-0 items-center gap-1.5 normal-case tracking-normal">
+            <span className={cn("h-2 w-2 shrink-0 rounded-full", account.dot)} />
+            <span className="truncate">{account.label}</span>
+          </p>
+        )}
         <div className="mb-3 flex items-start justify-between gap-4">
-          <h1 className="text-lg font-semibold">{detail.subject}</h1>
+          <h1 className="min-w-0 break-words text-lg font-semibold">
+            {detail.subject}
+          </h1>
           <button
             onClick={onReply}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
@@ -547,6 +810,8 @@ function MessageView({
 }
 
 interface ComposeState {
+  /** Account the mail is sent from. */
+  accountId: string;
   to: string;
   cc: string;
   subject: string;
@@ -556,16 +821,15 @@ interface ComposeState {
 }
 
 function ComposeModal({
-  accountId,
-  fromEmail,
+  accounts,
   initial,
   onClose,
 }: {
-  accountId: string;
-  fromEmail: string;
+  accounts: Account[];
   initial: ComposeState;
   onClose: () => void;
 }) {
+  const [accountId, setAccountId] = useState(initial.accountId);
   const [to, setTo] = useState(initial.to);
   const [cc, setCc] = useState(initial.cc);
   const [showCc, setShowCc] = useState(Boolean(initial.cc));
@@ -616,7 +880,28 @@ function ComposeModal({
           </button>
         </div>
         <div className="space-y-px overflow-y-auto">
-          <Field label="From" value={fromEmail} readOnly />
+          {accounts.length > 1 ? (
+            <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
+              <span className="w-14 shrink-0 text-muted-foreground">From</span>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="min-w-0 flex-1 bg-transparent outline-none"
+              >
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <Field
+              label="From"
+              value={accounts.find((a) => a.id === accountId)?.email ?? ""}
+              readOnly
+            />
+          )}
           <FieldInput label="To" value={to} onChange={setTo} placeholder="recipient@example.com" />
           {showCc ? (
             <FieldInput label="Cc" value={cc} onChange={setCc} placeholder="cc@example.com" />
