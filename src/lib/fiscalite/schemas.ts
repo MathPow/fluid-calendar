@@ -42,6 +42,8 @@ export const TaxProfileInput = z.object({
   legalName: text(200),
   neq: text(20),
   businessNumber: text(20),
+  rqNumber: text(30),
+  payrollNumber: text(30),
   activity: text(500),
   naicsCode: text(10),
   address: text(200),

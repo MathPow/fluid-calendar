@@ -50,7 +50,7 @@ describe("fiscal years", () => {
       .filter((x) => x.kind === "taxes")
       .map((x) => iso(x.date));
     expect(d).toEqual(["2025-10-31", "2026-01-31", "2026-04-30", "2026-07-31"]);
-    const t2 = deadlinesFor(societe, 2026).find((x) => x.title.startsWith("Produire la T2"));
+    const t2 = deadlinesFor(societe, 2026).find((x) => x.title.startsWith("Produire la CO-17"));
     expect(iso(t2!.date)).toBe("2026-12-31");
   });
 });

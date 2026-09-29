@@ -540,7 +540,7 @@ export function FiscaliteBoard({
               <p className="mt-1 text-[13px] text-muted-foreground">
                 {profile.legalForm === "societe"
                   ? "Regroupées comme dans l'état des résultats de ta T2 / CO-17."
-                  : "Ce que tu reportes dans la T2125 (fédéral) et le TP-80 (Québec)."}
+                  : "Ce que tu reportes dans le TP-80 (Québec) et la T2125 (fédéral)."}
               </p>
               <ul className="mt-4 space-y-2">
                 {summary.byCategory.map((c) => (
@@ -595,16 +595,17 @@ export function FiscaliteBoard({
               </div>
               <dl className="mt-4 space-y-1.5 text-[13px]">
                 {profile.neq && <Row k="NEQ">{profile.neq}</Row>}
+                {profile.rqNumber && <Row k="No Revenu Québec">{profile.rqNumber}</Row>}
                 {profile.businessNumber && <Row k="NE fédéral">{profile.businessNumber}</Row>}
                 {profile.startedAt && (
                   <Row k="Depuis">{formatDay(new Date(`${profile.startedAt.slice(0, 10)}T00:00:00Z`))}</Row>
                 )}
                 <Row k="Déclarations">
                   {profile.legalForm === "societe"
-                    ? "T2 + CO-17"
+                    ? "CO-17 + T2"
                     : senc
-                      ? "TP-600 · associés: T2125 + TP-80"
-                      : "T1 (T2125) + TP-1 (TP-80)"}
+                      ? "TP-600 · associés: TP-80 + T2125"
+                      : "TP-1 (TP-80) + T1 (T2125)"}
                 </Row>
                 {profile.legalForm === "societe" && (
                   <Row k="Fin d'exercice">{formatDay(fiscalYearRange(profile, year).end, { short: true })}</Row>
@@ -625,8 +626,8 @@ export function FiscaliteBoard({
                       .join(", ") || "—"}
                   </Row>
                 )}
-                {registered && <Row k="No TPS">{profile.gstNumber || "—"}</Row>}
                 {registered && <Row k="No TVQ">{profile.qstNumber || "—"}</Row>}
+                {registered && <Row k="No TPS">{profile.gstNumber || "—"}</Row>}
                 {(profile.address || profile.city) && (
                   <Row k="Adresse">
                     {[profile.address, profile.city, profile.province, profile.postalCode].filter(Boolean).join(", ")}

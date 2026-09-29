@@ -1155,6 +1155,8 @@ model TaxProfile {
   legalName       String? // nom légal / raison sociale, as on the REQ
   neq             String? // numéro d'entreprise du Québec (10 digits)
   businessNumber  String? // NE fédéral (9 digits)
+  rqNumber        String? // numéro d'identification Revenu Québec (10 digits, + IC0001 for a société)
+  payrollNumber   String? // dossier employeur Revenu Québec (…RS0001), if there are employees
   startedAt       DateTime? // immatriculation / début des activités
   activity        String? // what the business does
   naicsCode       String? // code SCIAN

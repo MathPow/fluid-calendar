@@ -21,7 +21,7 @@ export const LEGAL_FORMS: { id: LegalForm; label: string; hint: string }[] = [
   {
     id: "individuelle",
     label: "Entreprise individuelle",
-    hint: "Travailleur autonome · T2125 + TP-80 dans ta déclaration perso",
+    hint: "Travailleur autonome · TP-80 (et T2125) dans ta déclaration perso",
   },
   {
     id: "senc",
@@ -31,7 +31,7 @@ export const LEGAL_FORMS: { id: LegalForm; label: string; hint: string }[] = [
   {
     id: "societe",
     label: "Société (inc.)",
-    hint: "Personne morale · T2 + CO-17, exercice à part",
+    hint: "Personne morale · CO-17 (et T2), exercice à part",
   },
   {
     id: "personnel",
@@ -375,8 +375,9 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
     });
     out.push({
       date: addMonths(end, 6),
-      title: "Produire la T2 (ARC) et la CO-17 (Revenu Québec)",
-      detail: "6 mois après la fin d'exercice. Avec les états financiers (IFRS/NCECF ou GIFI).",
+      title: "Produire la CO-17 (Revenu Québec) et la T2 (ARC)",
+      detail:
+        "6 mois après la fin d'exercice, avec les états financiers. La mise à jour annuelle du Registraire des entreprises se fait avec la CO-17.",
       kind: "impot",
     });
     out.push({
@@ -402,7 +403,7 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
     });
     out.push({
       date: ymd(year + 1, 6, 15),
-      title: "Chaque associé produit T1 + T2125 et TP-1 + TP-80",
+      title: "Chaque associé produit TP-1 + TP-80 et T1 + T2125",
       detail: "Avec sa part du bénéfice (RL-15) et ses propres dépenses non remboursées (ligne 9943).",
       kind: "impot",
     });
@@ -445,8 +446,18 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
     });
     out.push({
       date: ymd(year + 1, 6, 15),
-      title: "Produire T1 + T2125 et TP-1 + TP-80",
+      title: "Produire TP-1 + TP-80 (Québec) et T1 + T2125 (fédéral)",
       detail: "Date limite pour les travailleurs autonomes (et leur conjoint).",
+      kind: "impot",
+    });
+  }
+
+  if (profile.legalForm === "individuelle" || profile.legalForm === "senc") {
+    out.push({
+      date: ymd(year + 1, 6, 15),
+      title: "Mise à jour annuelle au Registraire des entreprises",
+      detail:
+        "Entre le 15 février et le 15 juin, dans les Services en ligne du REQ, avec les droits annuels. Sans elle, l'immatriculation peut être radiée. Vérifie la date sur ton avis.",
       kind: "impot",
     });
   }

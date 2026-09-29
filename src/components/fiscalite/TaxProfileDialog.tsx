@@ -33,6 +33,8 @@ export const COMPANY_FIELDS = [
   "legalName",
   "neq",
   "businessNumber",
+  "rqNumber",
+  "payrollNumber",
   "activity",
   "naicsCode",
   "address",
@@ -314,7 +316,7 @@ export function TaxProfileDialog({
           <Section title="Identification">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="tp-legal">Nom légal</Label>
+                <Label htmlFor="tp-legal">Nom légal (au Registraire des entreprises)</Label>
                 <Input
                   id="tp-legal"
                   {...field("legalName")}
@@ -331,16 +333,15 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-bn">NE fédéral (ARC)</Label>
+                <Label htmlFor="tp-rq">No d&apos;identification Revenu Québec</Label>
                 <Input
-                  id="tp-bn"
-                  inputMode="numeric"
-                  {...field("businessNumber")}
-                  placeholder="123456789"
+                  id="tp-rq"
+                  {...field("rqNumber")}
+                  placeholder="1234567890"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-start">Début des activités</Label>
+                <Label htmlFor="tp-start">Immatriculation au REQ</Label>
                 <Input
                   id="tp-start"
                   type="date"
@@ -349,7 +350,7 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-naics">Code SCIAN</Label>
+                <Label htmlFor="tp-naics">Code d&apos;activité (SCIAN)</Label>
                 <Input
                   id="tp-naics"
                   inputMode="numeric"
@@ -365,6 +366,28 @@ export function TaxProfileDialog({
                   placeholder="Événements extérieurs: billetterie, boutique en ligne, commandites"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="tp-rs">Dossier employeur (RS)</Label>
+                <Input
+                  id="tp-rs"
+                  {...field("payrollNumber")}
+                  placeholder="1234567890RS0001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tp-bn">NE fédéral (ARC)</Label>
+                <Input
+                  id="tp-bn"
+                  inputMode="numeric"
+                  {...field("businessNumber")}
+                  placeholder="123456789"
+                />
+              </div>
+              <p className="text-[12px] text-muted-foreground sm:col-span-2">
+                Le NEQ et l&apos;immatriculation viennent du Registraire des entreprises; le no
+                d&apos;identification et le dossier employeur (seulement si tu as des employés), de Mon
+                dossier pour les entreprises. Le NE fédéral sert à l&apos;ARC, et ton no TPS en découle.
+              </p>
             </div>
           </Section>
           )}
@@ -518,7 +541,7 @@ export function TaxProfileDialog({
           </Section>
 
           {!personal && (
-          <Section title="TPS / TVQ">
+          <Section title="TVQ / TPS">
             <Choice
               options={SALES_TAX_STATUSES}
               value={status}
@@ -526,21 +549,13 @@ export function TaxProfileDialog({
             />
             <p className="text-[12px] text-muted-foreground">
               Obligatoire dès que tes ventes taxables dépassent 30 000 $ sur
-              quatre trimestres. En dessous, t&apos;inscrire quand même te
-              laisse récupérer les taxes sur tes achats.
+              quatre trimestres. Au Québec, Revenu Québec gère les deux taxes:
+              une seule inscription, une seule déclaration. En dessous du seuil,
+              t&apos;inscrire quand même te laisse récupérer les taxes sur tes achats.
             </p>
             {status === "inscrit" && (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="tp-gst">No TPS</Label>
-                    <Input
-                      id="tp-gst"
-                      value={gstNumber}
-                      onChange={(e) => setGst(e.target.value)}
-                      placeholder="123456789RT0001"
-                    />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="tp-qst">No TVQ</Label>
                     <Input
@@ -548,6 +563,15 @@ export function TaxProfileDialog({
                       value={qstNumber}
                       onChange={(e) => setQst(e.target.value)}
                       placeholder="1234567890TQ0001"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tp-gst">No TPS</Label>
+                    <Input
+                      id="tp-gst"
+                      value={gstNumber}
+                      onChange={(e) => setGst(e.target.value)}
+                      placeholder="123456789RT0001"
                     />
                   </div>
                 </div>
