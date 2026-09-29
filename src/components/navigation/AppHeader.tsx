@@ -103,12 +103,11 @@ export function AppHeader({ className }: { className?: string }) {
           <button
             type="button"
             onClick={openCommandPalette}
-            className="flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-secondary px-3 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-border/70 hover:text-foreground 2xl:px-4"
-            title="Search (⌘K)"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-border/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            title="Search anything (⌘K)"
+            aria-label="Search anything"
           >
-            <Search className="h-4 w-4" />
-            <span className="hidden 2xl:inline">Search anything…</span>
-            <kbd className="hidden bg-card md:inline">⌘K</kbd>
+            <Search className="h-[18px] w-[18px]" />
           </button>
 
           <StationSwitcher />
