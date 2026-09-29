@@ -71,6 +71,7 @@ interface Form {
   qst: string;
   total: string;
   notes: string;
+  paidBy: string;
 }
 
 function emptyForm(): Form {
@@ -87,6 +88,7 @@ function emptyForm(): Form {
     qst: "",
     total: "",
     notes: "",
+    paidBy: "",
   };
 }
 
@@ -104,6 +106,7 @@ function fromInvoice(inv: InvoiceView): Form {
     qst: centsToInput(inv.qstCents),
     total: centsToInput(inv.totalCents),
     notes: inv.notes ?? "",
+    paidBy: inv.paidBy ?? "",
   };
 }
 
@@ -221,7 +224,14 @@ export function InvoiceDialog({
     }));
   };
 
-  const categories = form.direction === "revenu" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const partners = profile.legalForm === "senc" ? (profile.partners ?? []) : [];
+  const standard: { id: string; label: string; line?: string }[] =
+    form.direction === "revenu" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  // Accounts from an imported spreadsheet stay selectable as they are.
+  const categories =
+    form.category && !standard.some((c) => c.id === form.category)
+      ? [...standard, { id: form.category, label: form.category }]
+      : standard;
   const category = form.direction === "depense" ? categoryOf(form.category) : undefined;
 
   const issues = useMemo(
@@ -266,6 +276,7 @@ export function InvoiceDialog({
       qstCents: cents.qst,
       totalCents: cents.total || cents.subtotal + cents.gst + cents.qst,
       notes: form.notes,
+      paidBy: form.direction === "depense" && form.paidBy ? form.paidBy : null,
     };
     setSubmitting(true);
     try {
@@ -421,7 +432,7 @@ export function InvoiceDialog({
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.label}
-                    {"line" in c && c.line ? ` · ligne ${c.line}` : ""}
+                    {c.line ? ` · ligne ${c.line}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -473,6 +484,38 @@ export function InvoiceDialog({
               </Button>
             </div>
           </div>
+
+          {form.direction === "depense" && partners.length > 0 && (
+            <div className="space-y-2">
+              <Label>Payé par</Label>
+              <div className="flex flex-wrap gap-2">
+                {[{ id: "", label: "La SENC (compte d'entreprise)" }, ...partners.map((p) => ({ id: p, label: p }))].map(
+                  (o) => (
+                    <button
+                      key={o.id || "_senc"}
+                      type="button"
+                      aria-pressed={form.paidBy === o.id}
+                      onClick={() => set("paidBy", o.id)}
+                      className={cn(
+                        "rounded-full border-2 px-4 py-1.5 text-[13px] font-medium transition-colors",
+                        form.paidBy === o.id
+                          ? "border-foreground bg-tint-soft"
+                          : "border-transparent bg-secondary hover:bg-border/70"
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  )
+                )}
+              </div>
+              {form.paidBy && (
+                <p className="text-[12px] text-muted-foreground">
+                  Payé de sa poche: ça reste une dépense de la SENC, et ça compte comme une avance que la
+                  SENC doit rembourser à {form.paidBy}.
+                </p>
+              )}
+            </div>
+          )}
 
           {form.direction === "depense" && (
             <div className="space-y-2">

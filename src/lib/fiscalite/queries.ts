@@ -18,6 +18,7 @@ export const invoiceSelect = {
   qstCents: true,
   totalCents: true,
   notes: true,
+  paidBy: true,
   createdAt: true,
   file: { select: { name: true, mime: true, size: true } },
 } satisfies Prisma.InvoiceSelect;
@@ -35,4 +36,22 @@ export function toInvoiceView(row: InvoiceRow): InvoiceView {
     createdAt: row.createdAt.toISOString(),
     hasFile: !!row.file,
   };
+}
+
+export const movementSelect = {
+  id: true,
+  organisationId: true,
+  date: true,
+  kind: true,
+  partner: true,
+  amountCents: true,
+  account: true,
+  notes: true,
+} satisfies Prisma.PartnerMovementSelect;
+
+type MovementRow = Prisma.PartnerMovementGetPayload<{ select: typeof movementSelect }>;
+export type MovementView = Omit<MovementRow, "date"> & { date: string };
+
+export function toMovementView(row: MovementRow): MovementView {
+  return { ...row, date: row.date.toISOString().slice(0, 10) };
 }

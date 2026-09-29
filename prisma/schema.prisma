@@ -110,7 +110,7 @@ model CalendarFeed {
   enabled           Boolean           @default(true)
   station           String? // "personal" | "work" | null — for the station filter
   organisationId    String? // group the calendar under an organisation in the sidebar
-  organisation      Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  organisation      Organisation?     @relation(fields: [organisationId], references: [id], onDelete: SetNull)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   lastSync          DateTime?
@@ -754,12 +754,12 @@ model WorkSession {
   // Proper nouns to get right: company names, project names, the speakers.
   // One term per line, optionally "term = context note". Fed to whisper as
   // `hotwords` + an initial `prompt`, so it must be set BEFORE compiling.
-  lexicon String?
+  lexicon  String?
   // Forced transcription language (ISO-639-1). Skips whisper's autodetect, which
   // drifts on long bilingual calls. Null = autodetect.
   language String?
   // Whisper model override, e.g. "deepdml/faster-whisper-large-v3-turbo-ct2".
-  model String?
+  model    String?
 
   // --- Direction for the agent ---
   brief   String? // free-form: what we decided, what Claude should do with it
@@ -861,14 +861,14 @@ model AgentProject {
   parent   AgentProject?  @relation("ProjectTree", fields: [parentId], references: [id], onDelete: SetNull)
   children AgentProject[] @relation("ProjectTree")
 
-  links    ProjectLink[]
-  contacts ProjectContact[]
+  links        ProjectLink[]
+  contacts     ProjectContact[]
   // Where this project lives: one row per machine, with its path there.
-  locations ProjectLocation[]
+  locations    ProjectLocation[]
   // The task list (Tasks tab) attached to this project, if any.
-  taskProject Project?
-  showcase ProjectShowcase?
-  media    ProjectMedia[]
+  taskProject  Project?
+  showcase     ProjectShowcase?
+  media        ProjectMedia[]
   // Queued /project-showcase runs, executed by the host runner.
   showcaseRuns ShowcaseRun[]
 
@@ -881,24 +881,25 @@ model AgentProject {
 // An organisation groups projects: a company or a brand (DehorsQC, StayChum).
 // Exactly one is flagged default and collects projects without an organisation.
 model Organisation {
-  id          String         @id @default(cuid())
-  slug        String         @unique
-  name        String
-  color       String? // one of the client tints, hex
-  image       String? // data URL (resized client-side) or https URL
-  kind        String         @default("client") // "owned" (mine / I have a stake) | "client" | "perso"
-  station     String         @default("personal") // derived from kind: perso → personal, else work
-  description String?
-  isDefault   Boolean        @default(false)
-  sortOrder   Int            @default(0)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  projects    AgentProject[]
-  calendars   CalendarFeed[]
+  id               String             @id @default(cuid())
+  slug             String             @unique
+  name             String
+  color            String? // one of the client tints, hex
+  image            String? // data URL (resized client-side) or https URL
+  kind             String             @default("client") // "owned" (mine / I have a stake) | "client" | "perso"
+  station          String             @default("personal") // derived from kind: perso → personal, else work
+  description      String?
+  isDefault        Boolean            @default(false)
+  sortOrder        Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  projects         AgentProject[]
+  calendars        CalendarFeed[]
   // Fiscalité tab: the company's tax setup and its invoices.
-  taxProfile  TaxProfile?
-  invoices    Invoice[]
-  links       OrganisationLink[]
+  taxProfile       TaxProfile?
+  invoices         Invoice[]
+  partnerMovements PartnerMovement[]
+  links            OrganisationLink[]
 
   @@index([sortOrder])
 }
@@ -982,22 +983,22 @@ model OrganisationLink {
 // People: clients, collaborators, suppliers. Shown in the Contacts tab and
 // attachable to any number of projects.
 model Contact {
-  id        String           @id @default(cuid())
-  type      String           @default("person") // "person" | "company"
-  name      String
-  email     String?
-  phone     String?
-  company   String?
-  role      String? // job / category, e.g. "Entrepreneur", "Pro", "Étudiant"
+  id             String           @id @default(cuid())
+  type           String           @default("person") // "person" | "company"
+  name           String
+  email          String?
+  phone          String?
+  company        String?
+  role           String? // job / category, e.g. "Entrepreneur", "Pro", "Étudiant"
   relation       String? // category: ami | famille | collegue | ecole | client | partenaire | mentor | connaissance | autre
   relationDetail String? // the precise wording, e.g. "Beau-père de Félix-Antoine"
   image          String? // data URL (resized client-side) or https URL
   favorite       Boolean          @default(false)
-  tags      String[]         @default([]) // private keywords for search ("tristan clientèle"…)
-  notes     String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  projects  ProjectContact[]
+  tags           String[]         @default([]) // private keywords for search ("tristan clientèle"…)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  projects       ProjectContact[]
 
   @@index([name])
   @@index([favorite])
@@ -1117,13 +1118,15 @@ model ProjectLocation {
 model TaxProfile {
   organisationId  String       @id
   organisation    Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  legalForm       String       @default("individuelle") // "individuelle" (travailleur autonome, T2125 / TP-80) | "societe" (inc., T2 / CO-17)
+  legalForm       String       @default("individuelle") // "individuelle" (travailleur autonome, T2125 / TP-80) | "senc" (TP-600, parts aux associés) | "societe" (inc., T2 / CO-17)
   salesTaxStatus  String       @default("petit") // "petit" (petit fournisseur, not registered) | "inscrit"
   gstNumber       String? // TPS, 123456789RT0001
   qstNumber       String? // TVQ, 1234567890TQ0001
   filingFrequency String       @default("annuelle") // "annuelle" | "trimestrielle" | "mensuelle"
   fiscalYearEnd   String       @default("12-31") // MM-DD
   notes           String?
+  // SENC: the associés, by first name ("Mathys", "Félix").
+  partners        String[]     @default([])
   // Shown in the Fiscalité tab. Only organisations run for profit get flagged.
   tracked         Boolean      @default(true)
   // False until the profile questions were answered (a row can exist just
@@ -1151,6 +1154,9 @@ model Invoice {
   qstCents       Int          @default(0)
   totalCents     Int          @default(0)
   notes          String?
+  // SENC: the associé who paid it out of pocket (an advance to the société).
+  // Null means the company's own account paid.
+  paidBy         String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   file           InvoiceFile?
@@ -1166,4 +1172,22 @@ model InvoiceFile {
   size      Int
   data      Bytes
   text      String? // text pulled from the PDF, kept for search
+}
+
+// SENC: money moving between an associé and the société, besides invoices an
+// associé paid himself. "avance" (associé → société), "remboursement"
+// (société → associé), "retrait" (the associé's draw on profits).
+model PartnerMovement {
+  id             String       @id @default(cuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  date           DateTime
+  kind           String // "avance" | "remboursement" | "retrait"
+  partner        String
+  amountCents    Int
+  account        String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId, date])
 }

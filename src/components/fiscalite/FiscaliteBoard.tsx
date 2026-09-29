@@ -37,14 +37,17 @@ import {
   formatDay,
   formatMoney,
   invoiceIssues,
+  partnerSummaries,
   smallSupplierTest,
   summarize,
 } from "@/lib/fiscalite/meta";
-import type { InvoiceView } from "@/lib/fiscalite/queries";
+import type { InvoiceView, MovementView } from "@/lib/fiscalite/queries";
 import { INVOICE_MIMES, MAX_INVOICE_BYTES } from "@/lib/fiscalite/schemas";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
 
+import { ExcelActions } from "./ExcelActions";
 import { InvoiceDialog } from "./InvoiceDialog";
+import { PartnersTile } from "./PartnersTile";
 import { type ProfileView, TaxProfileDialog } from "./TaxProfileDialog";
 
 interface Org {
@@ -59,6 +62,7 @@ interface FiscaliteBoardProps {
   organisations: Org[];
   profiles: ProfileView[];
   invoices: InvoiceView[];
+  movements: MovementView[];
 }
 
 const ORG_KEY = "fiscalite.org";
@@ -67,9 +71,19 @@ const ORG_KEY = "fiscalite.org";
  * The Fiscalité tab: pick a company, drop its invoices, and read the guide
  * (deadlines, TPS/TVQ to remit, small-supplier threshold, what to fix).
  */
-export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfiles, invoices: initial }: FiscaliteBoardProps) {
+export function FiscaliteBoard({
+  organisations: allOrgs,
+  profiles: initialProfiles,
+  invoices: initial,
+  movements: initialMovements,
+}: FiscaliteBoardProps) {
   const [invoices, setInvoices] = useState(initial);
   const [profiles, setProfiles] = useState(initialProfiles);
+  const [movements, setMovements] = useState(initialMovements);
+  // Server refreshes (after an Excel import) replace the local copies.
+  useEffect(() => setInvoices(initial), [initial]);
+  useEffect(() => setProfiles(initialProfiles), [initialProfiles]);
+  useEffect(() => setMovements(initialMovements), [initialMovements]);
   // Only the organisations flagged for Fiscalité (run for profit) get a tab.
   const organisations = useMemo(
     () => allOrgs.filter((o) => profiles.some((p) => p.organisationId === o.id && p.tracked)),
@@ -112,6 +126,7 @@ export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfil
         notes: null,
         tracked: true,
         setUp: false,
+        partners: [] as string[],
       },
     [savedProfile, orgId]
   );
@@ -157,6 +172,18 @@ export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfil
   const summary = useMemo(() => summarize(yearInvoices, profile), [yearInvoices, profile]);
   const supplier = useMemo(() => smallSupplierTest(orgInvoices), [orgInvoices]);
   const registered = profile.salesTaxStatus === "inscrit";
+  const senc = profile.legalForm === "senc";
+  const yearMovements = useMemo(
+    () =>
+      movements
+        .filter((m) => m.organisationId === orgId && fiscalYearOf(profile, new Date(m.date)) === year)
+        .sort((a, b) => b.date.localeCompare(a.date)),
+    [movements, orgId, profile, year]
+  );
+  const partnerRows = useMemo(
+    () => partnerSummaries(profile.partners ?? [], yearInvoices, yearMovements, summary.profitCents),
+    [profile.partners, yearInvoices, yearMovements, summary.profitCents]
+  );
 
   const deadlines = useMemo(() => {
     const now = Date.now() - 86_400_000;
@@ -370,7 +397,10 @@ export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfil
           {/* Invoice list */}
           <section className="tile p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[20px] font-bold tracking-title">Factures</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-[20px] font-bold tracking-title">Factures</h2>
+                <ExcelActions organisation={org} year={year} />
+              </div>
               <div className="segmented">
                 {(
                   [
@@ -419,6 +449,7 @@ export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfil
                           <span className="block truncate text-[12px] text-muted-foreground">
                             {formatDay(new Date(inv.date), { short: true })} · {categoryLabel(inv.direction, inv.category)}
                             {inv.number ? ` · no ${inv.number}` : ""}
+                            {inv.paidBy ? ` · payé par ${inv.paidBy}` : ""}
                           </span>
                           {warn.length > 0 && (
                             <span className="mt-1 flex items-center gap-1 text-[12px] text-pending-foreground">
@@ -504,7 +535,11 @@ export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfil
               </div>
               <dl className="mt-4 space-y-1.5 text-[13px]">
                 <Row k="Déclarations">
-                  {profile.legalForm === "societe" ? "T2 + CO-17" : "T1 (T2125) + TP-1 (TP-80)"}
+                  {profile.legalForm === "societe"
+                    ? "T2 + CO-17"
+                    : senc
+                      ? "TP-600 · associés: T2125 + TP-80"
+                      : "T1 (T2125) + TP-1 (TP-80)"}
                 </Row>
                 {profile.legalForm === "societe" && (
                   <Row k="Fin d'exercice">{formatDay(fiscalYearRange(profile, year).end, { short: true })}</Row>
@@ -514,6 +549,7 @@ export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfil
                     ? `Inscrit · ${FILING_FREQUENCIES.find((f) => f.id === profile.filingFrequency)?.label.toLowerCase()}`
                     : "Petit fournisseur"}
                 </Row>
+                {senc && <Row k="Associés">{(profile.partners ?? []).join(", ") || "—"}</Row>}
                 {registered && <Row k="No TPS">{profile.gstNumber || "—"}</Row>}
                 {registered && <Row k="No TVQ">{profile.qstNumber || "—"}</Row>}
               </dl>
@@ -541,6 +577,17 @@ export function FiscaliteBoard({ organisations: allOrgs, profiles: initialProfil
               ))}
             </ul>
           </section>
+
+          {(senc || yearMovements.length > 0) && (
+            <PartnersTile
+              organisationId={org.id}
+              partners={profile.partners ?? []}
+              summaries={partnerRows}
+              movements={yearMovements}
+              onAdded={(m) => setMovements((prev) => [m, ...prev])}
+              onDeleted={(id) => setMovements((prev) => prev.filter((m) => m.id !== id))}
+            />
+          )}
 
           {!registered && (
             <section className="tile p-6">
@@ -640,7 +687,14 @@ function Row({ k, children }: { k: string; children: React.ReactNode }) {
 
 function tips(legalForm: string, registered: boolean): string[] {
   const out: string[] = [];
-  if (legalForm === "societe") {
+  if (legalForm === "senc") {
+    out.push(
+      "La SENC ne paie pas d'impôt: son bénéfice est partagé entre les associés (RL-15), et chacun l'ajoute à ses revenus avec RRQ et RQAP. Mettez chacun 25 à 30 % de votre part de côté.",
+      "Les retraits ne sont pas une dépense: c'est ta part des profits qui sort. L'impôt se calcule sur la part du bénéfice, retirée ou pas.",
+      "Une dépense payée de ta poche pour la SENC: note-la « Payé par » toi; la SENC la déduit et te la doit. Une dépense que tu gardes à ta charge, tu la déduis toi-même (ligne 9943).",
+      "Un contrat de société écrit (parts, qui fait quoi, sortie d'un associé) vous évitera bien des chicanes."
+    );
+  } else if (legalForm === "societe") {
     out.push(
       "La société paie son propre impôt (autour de 12 % au Québec avec la déduction pour petite entreprise, si elle y a droit). Toi, tu es imposé sur ce que tu te verses.",
       "Salaire ou dividendes: le salaire crée des cotisations RRQ et des T4/RL-1 à produire; le dividende est plus simple mais ne cotise pas. C'est LA question à poser à ton comptable.",

@@ -13,7 +13,7 @@ export const QST_RATE = 0.09975;
 export const SMALL_SUPPLIER_LIMIT_CENTS = 30_000_00;
 
 export type Direction = "depense" | "revenu";
-export type LegalForm = "individuelle" | "societe";
+export type LegalForm = "individuelle" | "senc" | "societe";
 export type SalesTaxStatus = "petit" | "inscrit";
 export type FilingFrequency = "annuelle" | "trimestrielle" | "mensuelle";
 
@@ -22,6 +22,11 @@ export const LEGAL_FORMS: { id: LegalForm; label: string; hint: string }[] = [
     id: "individuelle",
     label: "Entreprise individuelle",
     hint: "Travailleur autonome · T2125 + TP-80 dans ta déclaration perso",
+  },
+  {
+    id: "senc",
+    label: "SENC",
+    hint: "Société en nom collectif · TP-600, chaque associé déclare sa part",
   },
   {
     id: "societe",
@@ -94,6 +99,38 @@ export const INCOME_CATEGORIES = [
   { id: "autres-revenus", label: "Autres revenus" },
 ];
 
+/** Spreadsheet account names that mean one of our categories. */
+const CATEGORY_ALIASES: Record<string, string> = {
+  equipements: "immobilisation",
+  equipement: "immobilisation",
+  marketing: "publicite",
+  gaz: "vehicule",
+  essence: "vehicule",
+  "email professionnel": "logiciels",
+  "nom de domaine": "logiciels",
+  serveur: "logiciels",
+  hebergement: "logiciels",
+  comptable: "honoraires",
+};
+
+const fold = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/**
+ * A spreadsheet "Compte" → our category id. Unknown names are kept as they
+ * are: a custom category, deductible at 100 %.
+ */
+export function categoryFromLabel(direction: string, label: string | null | undefined): string | null {
+  if (!label?.trim()) return null;
+  const key = fold(label);
+  const list: { id: string; label: string }[] =
+    direction === "revenu" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const hit = list.find((c) => fold(c.label) === key || c.id === key);
+  if (hit) return hit.id;
+  if (direction !== "revenu" && CATEGORY_ALIASES[key]) return CATEGORY_ALIASES[key];
+  return label.trim();
+}
+
 export function categoryOf(id: string | null | undefined): ExpenseCategory | undefined {
   return EXPENSE_CATEGORIES.find((c) => c.id === id);
 }
@@ -150,6 +187,7 @@ export function taxesFor(subtotalCents: number) {
 
 export interface TaxProfileLite {
   legalForm: string;
+  partners?: string[];
   salesTaxStatus: string;
   gstNumber: string | null;
   qstNumber: string | null;
@@ -194,6 +232,7 @@ function addDays(date: Date, n: number) {
  * always uses the calendar year; a société uses its own year-end.
  */
 export function fiscalYearRange(profile: TaxProfileLite, year: number) {
+  // A SENC of individuals closes on December 31 like its associés.
   const [mm, dd] =
     profile.legalForm === "societe"
       ? (profile.fiscalYearEnd || "12-31").split("-").map(Number)
@@ -246,6 +285,40 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
       kind: "paie",
       conditional: true,
     });
+  } else if (profile.legalForm === "senc") {
+    out.push({
+      date: ymd(year + 1, 3, 31),
+      title: "Produire la TP-600 et remettre les RL-15 aux associés",
+      detail:
+        "Déclaration de renseignements de la SENC (Revenu Québec). La T5013 fédérale seulement si elle est requise (gros revenus ou actifs, associé société…).",
+      kind: "impot",
+    });
+    out.push({
+      date: ymd(year + 1, 4, 30),
+      title: "Chaque associé paie son solde d'impôt",
+      detail: "La SENC ne paie pas d'impôt: chacun paie sur sa part du bénéfice (plus RRQ / RQAP).",
+      kind: "impot",
+    });
+    out.push({
+      date: ymd(year + 1, 6, 15),
+      title: "Chaque associé produit T1 + T2125 et TP-1 + TP-80",
+      detail: "Avec sa part du bénéfice (RL-15) et ses propres dépenses non remboursées (ligne 9943).",
+      kind: "impot",
+    });
+    for (const [m, d] of [
+      [3, 15],
+      [6, 15],
+      [9, 15],
+      [12, 15],
+    ] as const) {
+      out.push({
+        date: ymd(year, m, d),
+        title: "Acompte provisionnel (chaque associé)",
+        detail: "Si l'impôt d'un associé à payer dépasse 1 800 $. Chacun reçoit ses propres avis.",
+        kind: "acompte",
+        conditional: true,
+      });
+    }
   } else {
     for (const [m, d] of [
       [3, 15],
@@ -280,6 +353,8 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
   if (registered) {
     const freq = profile.filingFrequency as FilingFrequency;
     if (freq === "annuelle") {
+      // The April 30 / June 15 rule is for individuals; a SENC or a société
+      // files three months after its year-end.
       if (profile.legalForm === "individuelle") {
         out.push({
           date: ymd(year + 1, 4, 30),
@@ -459,7 +534,7 @@ export interface InvoiceIssue {
 export function invoiceIssues(inv: InvoiceLite, profile: TaxProfileLite): InvoiceIssue[] {
   const out: InvoiceIssue[] = [];
   const registered = profile.salesTaxStatus === "inscrit";
-  if (!inv.hasFile) out.push({ level: "warn", text: "Pas de pièce jointe: garde la facture 6 ans." });
+  if (!inv.hasFile) out.push({ level: "info", text: "Pas de pièce jointe: garde la facture 6 ans." });
 
   const sum = inv.subtotalCents + inv.gstCents + inv.qstCents;
   if (inv.totalCents && Math.abs(sum - inv.totalCents) > 2) {
@@ -498,4 +573,73 @@ export function invoiceIssues(inv: InvoiceLite, profile: TaxProfileLite): Invoic
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// SENC: associés
+// ---------------------------------------------------------------------------
+
+export type MovementKind = "avance" | "remboursement" | "retrait";
+
+export const MOVEMENT_KINDS: { id: MovementKind; label: string; hint: string }[] = [
+  { id: "avance", label: "Avance", hint: "L'associé met de l'argent dans la SENC" },
+  { id: "remboursement", label: "Remboursement", hint: "La SENC rembourse l'associé" },
+  { id: "retrait", label: "Retrait", hint: "L'associé se verse une part des profits" },
+];
+
+export interface MovementLite {
+  id: string;
+  date: string | Date;
+  kind: string;
+  partner: string;
+  amountCents: number;
+  account: string | null;
+  notes: string | null;
+}
+
+export interface PartnerSummary {
+  partner: string;
+  /** Invoices he paid out of pocket. */
+  paidCents: number;
+  advancedCents: number;
+  reimbursedCents: number;
+  /** What the SENC owes him (negative: he owes the SENC). */
+  balanceCents: number;
+  drawsCents: number;
+  /** Equal share of the estimated profit. */
+  profitShareCents: number;
+}
+
+export function partnerSummaries(
+  partners: string[],
+  invoices: (InvoiceLite & { paidBy?: string | null })[],
+  movements: MovementLite[],
+  profitCents: number
+): PartnerSummary[] {
+  const names = Array.from(
+    new Set([
+      ...partners,
+      ...invoices.map((i) => i.paidBy).filter((p): p is string => !!p),
+      ...movements.map((m) => m.partner),
+    ])
+  );
+  const n = partners.length || names.length || 1;
+  return names.map((partner) => {
+    const paidCents = invoices
+      .filter((i) => i.direction === "depense" && i.paidBy === partner)
+      .reduce((a, i) => a + i.totalCents, 0);
+    const sum = (kind: string) =>
+      movements.filter((m) => m.partner === partner && m.kind === kind).reduce((a, m) => a + m.amountCents, 0);
+    const advancedCents = sum("avance");
+    const reimbursedCents = sum("remboursement");
+    return {
+      partner,
+      paidCents,
+      advancedCents,
+      reimbursedCents,
+      balanceCents: paidCents + advancedCents - reimbursedCents,
+      drawsCents: sum("retrait"),
+      profitShareCents: partners.includes(partner) ? Math.round(profitCents / n) : 0,
+    };
+  });
 }

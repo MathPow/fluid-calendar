@@ -23,6 +23,7 @@ import {
   FILING_FREQUENCIES,
   LEGAL_FORMS,
   SALES_TAX_STATUSES,
+  type LegalForm,
   type TaxProfileLite,
 } from "@/lib/fiscalite/meta";
 
@@ -31,6 +32,7 @@ export type ProfileView = TaxProfileLite & {
   notes: string | null;
   tracked: boolean;
   setUp: boolean;
+  partners: string[];
 };
 
 interface TaxProfileDialogProps {
@@ -76,7 +78,8 @@ function Choice<T extends string>({
 
 /** How a company is set up for tax: the answers the whole guide hangs on. */
 export function TaxProfileDialog({ open, onOpenChange, organisation, profile, onSaved }: TaxProfileDialogProps) {
-  const [legalForm, setLegalForm] = useState<"individuelle" | "societe">("individuelle");
+  const [legalForm, setLegalForm] = useState<LegalForm>("individuelle");
+  const [partners, setPartners] = useState("");
   const [status, setStatus] = useState<"petit" | "inscrit">("petit");
   const [gstNumber, setGst] = useState("");
   const [qstNumber, setQst] = useState("");
@@ -87,7 +90,10 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
 
   useEffect(() => {
     if (!open) return;
-    setLegalForm(profile?.legalForm === "societe" ? "societe" : "individuelle");
+    setLegalForm(
+      profile?.legalForm === "societe" || profile?.legalForm === "senc" ? profile.legalForm : "individuelle"
+    );
+    setPartners((profile?.partners ?? []).join(", "));
     setStatus(profile?.salesTaxStatus === "inscrit" ? "inscrit" : "petit");
     setGst(profile?.gstNumber ?? "");
     setQst(profile?.qstNumber ?? "");
@@ -104,6 +110,13 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           legalForm,
+          partners:
+            legalForm === "senc"
+              ? partners
+                  .split(/[,;\n]/)
+                  .map((p) => p.trim())
+                  .filter(Boolean)
+              : [],
           salesTaxStatus: status,
           gstNumber,
           qstNumber,
@@ -149,10 +162,26 @@ export function TaxProfileDialog({ open, onOpenChange, organisation, profile, on
             <Label>1 · Comment l&apos;entreprise est constituée</Label>
             <Choice options={LEGAL_FORMS} value={legalForm} onChange={setLegalForm} />
             <p className="text-[12px] text-muted-foreground">
-              Pas de « inc. » ni de NEQ de société ? C&apos;est une entreprise individuelle, même
-              immatriculée au REQ sous un nom.
+              Pas de « inc. » ? Seul, c&apos;est une entreprise individuelle; à plusieurs sous un même
+              nom (contrat de société, REQ), c&apos;est une SENC.
             </p>
           </div>
+
+          {legalForm === "senc" && (
+            <div className="space-y-2">
+              <Label htmlFor="tp-partners">Associés</Label>
+              <Input
+                id="tp-partners"
+                value={partners}
+                onChange={(e) => setPartners(e.target.value)}
+                placeholder="Mathys, Félix"
+              />
+              <p className="text-[12px] text-muted-foreground">
+                Séparés par des virgules. Sert pour « Payé par » sur les dépenses, les avances et la
+                part de bénéfice de chacun (parts égales).
+              </p>
+            </div>
+          )}
 
           {legalForm === "societe" && (
             <div className="space-y-2">
