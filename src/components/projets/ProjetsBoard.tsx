@@ -139,6 +139,11 @@ export function ProjetsBoard({
         ...p.stack,
         ...p.links.flatMap((l) => [l.label, l.url]),
         ...p.contacts.map((c) => c.contact.name),
+        ...p.locations.flatMap((l) => [
+          l.path,
+          l.machine.name,
+          l.machine.label,
+        ]),
       ]
         .filter(Boolean)
         .join(" ");
@@ -165,6 +170,8 @@ export function ProjetsBoard({
       words.every((w) => hay.includes(w)) &&
       (filters.organisations.length === 0 ||
         filters.organisations.includes(orgId)) &&
+      (filters.machines.length === 0 ||
+        p.locations.some((l) => filters.machines.includes(l.machine.id))) &&
       (filters.stack.length === 0 ||
         filters.stack.some((t) => p.stack.includes(t))) &&
       (!filters.withShowcase || p.media.length > 0)
@@ -184,6 +191,17 @@ export function ProjetsBoard({
 
   const filterOptions = useMemo(() => {
     const top = sections.flatMap((s) => s.projects);
+    const machineCounts = new Map<string, { label: string; count: number }>();
+    for (const p of top)
+      for (const l of p.locations) {
+        const m = machineCounts.get(l.machine.id);
+        if (m) m.count++;
+        else
+          machineCounts.set(l.machine.id, {
+            label: l.machine.label || l.machine.name,
+            count: 1,
+          });
+      }
     const stackCounts = new Map<string, number>();
     for (const p of top)
       for (const t of p.stack)
@@ -196,6 +214,11 @@ export function ProjetsBoard({
           count: s.projects.length,
         })
       ),
+      machines: [...machineCounts]
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(
+          ([id, m]): FilterOption => ({ id, label: m.label, count: m.count })
+        ),
       stack: [...stackCounts]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"))
         .map(([t, count]): FilterOption => ({ id: t, label: t, count })),
@@ -254,7 +277,7 @@ export function ProjetsBoard({
             value={filters}
             onChange={setFilters}
             organisations={filterOptions.organisations}
-            machines={[]}
+            machines={filterOptions.machines}
             stack={filterOptions.stack}
             resultCount={resultCount}
           />
