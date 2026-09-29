@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { LINK_KIND_IDS, RELATION_KIND_IDS, isAllowedImage } from "./meta";
+import { LINK_KIND_IDS, ORG_KIND_IDS, RELATION_KIND_IDS, isAllowedImage } from "./meta";
 
 const image = z
   .string()
@@ -60,6 +60,6 @@ export const OrganisationInput = z.object({
   name: z.string().trim().min(1, "Nom requis").max(80),
   color: hexColor.nullable().optional(),
   image,
-  station: z.enum(["personal", "work"]).optional(),
+  kind: z.enum(ORG_KIND_IDS).optional(),
   description: z.string().trim().max(1000).nullable().optional(),
 });

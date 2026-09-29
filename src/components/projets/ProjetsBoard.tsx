@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { AskBox } from "@/components/projets/AskBox";
-import { DEFAULT_PROJECT_COLOR, initials, stationLabel } from "@/lib/projets/meta";
+import { DEFAULT_PROJECT_COLOR, initials, orgKindLabel } from "@/lib/projets/meta";
 import type { OrganisationLite, ProjectFull } from "@/lib/projets/queries";
 
 import { useStationStore } from "@/store/station";
@@ -72,9 +72,11 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
     const top = projects.filter(
       (p) => !p.parentId && (currentStation === "both" || p.station === currentStation)
     );
+    const kindRank = (k: string) => (k === "owned" ? 0 : k === "client" ? 1 : 2);
     const ordered = [...organisations].sort(
       (a, b) =>
         Number(a.isDefault) - Number(b.isDefault) ||
+        kindRank(a.kind) - kindRank(b.kind) ||
         a.sortOrder - b.sortOrder ||
         a.name.localeCompare(b.name, "fr")
     );
@@ -170,7 +172,7 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
                 <div className="min-w-0">
                   <h2 className="text-[24px] font-bold leading-none tracking-title">{org.name}</h2>
                   <p className="mt-1 text-[12px] text-muted-foreground">
-                    {stationLabel(org.station)} · {list.length} projet{list.length > 1 ? "s" : ""}
+                    {orgKindLabel(org.kind)} · {list.length} projet{list.length > 1 ? "s" : ""}
                     {org.isDefault && " · par défaut"}
                   </p>
                 </div>

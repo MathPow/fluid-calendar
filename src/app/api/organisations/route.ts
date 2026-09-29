@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { slugify } from "@/lib/projets/meta";
+import { orgKindStation, slugify } from "@/lib/projets/meta";
 import { organisationSelect } from "@/lib/projets/queries";
 import { OrganisationInput } from "@/lib/projets/schemas";
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { name, color, image, station, description } = parsed.data;
+  const { name, color, image, kind = "client", description } = parsed.data;
 
   try {
     const base = slugify(name) || "organisation";
@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
         name,
         color: color ?? null,
         image: image || null,
-        station: station ?? "work",
+        kind,
+        station: orgKindStation(kind),
         description: description || null,
         sortOrder: Math.min((last._max.sortOrder ?? 0) + 1, 98),
       },

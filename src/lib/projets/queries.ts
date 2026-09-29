@@ -50,6 +50,7 @@ export const organisationSelect = {
   name: true,
   color: true,
   image: true,
+  kind: true,
   station: true,
   description: true,
   isDefault: true,

@@ -871,7 +871,8 @@ model Organisation {
   name        String
   color       String? // one of the client tints, hex
   image       String? // data URL (resized client-side) or https URL
-  station     String         @default("personal") // "personal" | "work"
+  kind        String         @default("client") // "owned" (mine / I have a stake) | "client" | "perso"
+  station     String         @default("personal") // derived from kind: perso → personal, else work
   description String?
   isDefault   Boolean        @default(false)
   sortOrder   Int            @default(0)

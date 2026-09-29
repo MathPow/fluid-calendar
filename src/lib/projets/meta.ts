@@ -25,6 +25,22 @@ export const LINK_KIND_IDS = LINK_KINDS.map((k) => k.id) as [
 export const linkKindLabel = (kind: string) =>
   LINK_KINDS.find((k) => k.id === kind)?.label ?? "Lien";
 
+/** What an organisation is to you. Drives the Perso / Client station filter. */
+export const ORG_KINDS = [
+  { id: "owned", label: "Mon entreprise", hint: "La mienne, ou j'y ai des parts", station: "work" },
+  { id: "client", label: "Client", hint: "Je travaille pour eux", station: "work" },
+  { id: "perso", label: "Perso", hint: "Projets personnels", station: "personal" },
+] as const;
+
+export type OrgKind = (typeof ORG_KINDS)[number]["id"];
+export const ORG_KIND_IDS = ORG_KINDS.map((k) => k.id) as [OrgKind, ...OrgKind[]];
+
+export const orgKindLabel = (kind: string | null | undefined) =>
+  ORG_KINDS.find((k) => k.id === kind)?.label ?? "Client";
+
+export const orgKindStation = (kind: string | null | undefined): ProjectStation =>
+  ORG_KINDS.find((k) => k.id === kind)?.station ?? "work";
+
 /** How you know a contact. The precise wording lives in `relationDetail`. */
 export const RELATION_KINDS = [
   { id: "ami", label: "Ami" },

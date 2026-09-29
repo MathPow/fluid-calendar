@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { orgKindStation } from "@/lib/projets/meta";
 import { organisationSelect } from "@/lib/projets/queries";
 import { OrganisationInput } from "@/lib/projets/schemas";
 
@@ -39,7 +40,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         ...(f.name !== undefined ? { name: f.name } : {}),
         ...(f.color !== undefined ? { color: f.color } : {}),
         ...(f.image !== undefined ? { image: f.image || null } : {}),
-        ...(f.station !== undefined ? { station: f.station } : {}),
+        ...(f.kind !== undefined ? { kind: f.kind, station: orgKindStation(f.kind) } : {}),
         ...(f.description !== undefined ? { description: f.description || null } : {}),
       },
       select: organisationSelect,

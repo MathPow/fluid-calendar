@@ -23,9 +23,9 @@ import { cn } from "@/lib/utils";
 
 import {
   DEFAULT_PROJECT_COLOR,
+  ORG_KINDS,
+  type OrgKind,
   PROJECT_COLORS,
-  PROJECT_STATIONS,
-  type ProjectStation,
 } from "@/lib/projets/meta";
 import type { OrganisationLite } from "@/lib/projets/queries";
 
@@ -45,7 +45,7 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(DEFAULT_PROJECT_COLOR);
   const [image, setImage] = useState<string | null>(null);
-  const [station, setStation] = useState<ProjectStation>("work");
+  const [kind, setKind] = useState<OrgKind>("client");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,7 +54,7 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
     setName(organisation?.name ?? "");
     setColor(organisation?.color ?? DEFAULT_PROJECT_COLOR);
     setImage(organisation?.image ?? null);
-    setStation(organisation?.station === "personal" ? "personal" : "work");
+    setKind((ORG_KINDS.some((k) => k.id === organisation?.kind) ? organisation?.kind : "client") as OrgKind);
     setDescription(organisation?.description ?? "");
   }, [open, organisation]);
 
@@ -74,7 +74,7 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
             name: name.trim(),
             color,
             image,
-            station,
+            kind,
             description: description.trim() || null,
           }),
         }
@@ -148,34 +148,45 @@ export function OrganisationDialog({ open, onOpenChange, organisation }: Organis
             label="Logo"
           />
 
-          <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div className="space-y-2">
-              <Label htmlFor="org-name">Nom</Label>
-              <Input
-                id="org-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="DehorsQC"
-                autoFocus
-                className="text-[17px] font-semibold tracking-title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <div className="segmented">
-                {PROJECT_STATIONS.map((s) => (
+          <div className="space-y-2">
+            <Label htmlFor="org-name">Nom</Label>
+            <Input
+              id="org-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="DehorsQC"
+              autoFocus
+              className="text-[17px] font-semibold tracking-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Type</Label>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {ORG_KINDS.map((k) => {
+                const active = kind === k.id;
+                return (
                   <button
-                    key={s.id}
+                    key={k.id}
                     type="button"
-                    className="segmented-item"
-                    data-active={station === s.id}
-                    onClick={() => setStation(s.id)}
+                    onClick={() => setKind(k.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "rounded-2xl border-2 px-4 py-3 text-left transition-colors",
+                      active
+                        ? "border-foreground bg-tint-soft"
+                        : "border-transparent bg-secondary hover:bg-border/70"
+                    )}
                   >
-                    {s.label}
+                    <span className="block text-[14px] font-semibold tracking-title">{k.label}</span>
+                    <span className="block text-[12px] text-muted-foreground">{k.hint}</span>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
+            <p className="text-[12px] text-muted-foreground">
+              Perso compte dans le filtre Personal de l&apos;en-tête; les deux autres dans Work.
+            </p>
           </div>
 
           <div className="space-y-2">
