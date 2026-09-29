@@ -13,12 +13,22 @@ export const taskProjectInclude = {
       slug: true,
       name: true,
       color: true,
-      organisation: { select: { id: true, name: true, color: true } },
+      organisation: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          isDefault: true,
+          sortOrder: true,
+        },
+      },
     },
   },
 } satisfies Prisma.ProjectInclude;
 
-export type TaskProjectRow = Prisma.ProjectGetPayload<{ include: typeof taskProjectInclude }>;
+export type TaskProjectRow = Prisma.ProjectGetPayload<{
+  include: typeof taskProjectInclude;
+}>;
 
 /** What the API returns: linked lists take the Projets project's name and colour. */
 export function presentTaskProject<T extends TaskProjectRow>(p: T) {

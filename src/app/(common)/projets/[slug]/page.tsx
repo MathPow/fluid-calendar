@@ -23,7 +23,6 @@ import {
   DEFAULT_PROJECT_COLOR,
   initials,
   pad2,
-  stationLabel,
   timeAgoFr,
 } from "@/lib/projets/meta";
 import { organisationSelect, projectInclude } from "@/lib/projets/queries";
@@ -288,9 +287,7 @@ export default async function ProjetDetailPage({
                           {c.name}
                         </span>
                         <span className="text-[12px] text-muted-foreground">
-                          {stationLabel(c.station)}
-                          {c.lastActivityAt &&
-                            ` · ${timeAgoFr(c.lastActivityAt)}`}
+                          {c.lastActivityAt && timeAgoFr(c.lastActivityAt)}
                         </span>
                       </Link>
                     </li>
@@ -497,9 +494,11 @@ export default async function ProjetDetailPage({
             </h1>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <Badge className="px-4 py-2 text-[13px]">
-              {stationLabel(project.station)}
-            </Badge>
+            {project.organisation && (
+              <Badge className="px-4 py-2 text-[13px]">
+                {project.organisation.name}
+              </Badge>
+            )}
             <Badge className="px-4 py-2 text-[13px]">
               {activityCount} activité{activityCount > 1 ? "s" : ""}
             </Badge>

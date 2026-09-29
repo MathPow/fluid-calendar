@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { isSaasEnabled } from "@/lib/config";
+import { groupTaskProjects } from "@/lib/projets/group-task-projects";
 import { cn } from "@/lib/utils";
 
 import { useProjectStore } from "@/store/project";
@@ -143,6 +144,8 @@ export function ProjectSidebar() {
     (project) => project.status === ProjectStatus.ARCHIVED
   );
 
+  const byOrganisation = groupTaskProjects(activeProjects);
+
   // Count non-completed tasks with no project
   const unassignedTasksCount = tasks.filter(
     (task) => !task.projectId && task.status !== TaskStatus.COMPLETED
@@ -204,9 +207,18 @@ export function ProjectSidebar() {
             <div className="p-2 text-sm text-destructive">{error.message}</div>
           ) : (
             <div className="space-y-4">
-              {activeProjects.length > 0 && (
-                <div className="space-y-1">
-                  {activeProjects.map((project) => (
+              {byOrganisation.map((group) => (
+                <div key={group.key} className="space-y-1">
+                  <div className="etiquette flex items-center gap-2 py-2">
+                    {group.color && (
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: group.color }}
+                      />
+                    )}
+                    <span className="truncate">{group.name}</span>
+                  </div>
+                  {group.projects.map((project) => (
                     <ProjectItem
                       key={project.id}
                       project={project}
@@ -218,13 +230,11 @@ export function ProjectSidebar() {
                     />
                   ))}
                 </div>
-              )}
+              ))}
 
               {archivedProjects.length > 0 && (
                 <div className="space-y-1">
-                  <div className="etiquette py-2">
-                    Archived
-                  </div>
+                  <div className="etiquette py-2">Archived</div>
                   {archivedProjects.map((project) => (
                     <ProjectItem
                       key={project.id}

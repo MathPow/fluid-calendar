@@ -6,12 +6,7 @@ import { Pencil } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 
-import {
-  DEFAULT_PROJECT_COLOR,
-  initials,
-  stationLabel,
-  timeAgoFr,
-} from "@/lib/projets/meta";
+import { DEFAULT_PROJECT_COLOR, initials, timeAgoFr } from "@/lib/projets/meta";
 import type { ProjectFull } from "@/lib/projets/queries";
 import { cn } from "@/lib/utils";
 
@@ -95,13 +90,18 @@ export function ProjectTile({
             <h2 className="truncate text-[19px] font-bold leading-tight tracking-title">
               {project.name}.
             </h2>
-            <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
-              {stationLabel(project.station)}
-              {project.lastActivityAt &&
-                ` · ${timeAgoFr(project.lastActivityAt)}`}
-              {activities > 0 &&
-                ` · ${activities} activité${activities > 1 ? "s" : ""}`}
-            </p>
+            {/* No perso/client label: the organisation heading already says it. */}
+            {(project.lastActivityAt || activities > 0) && (
+              <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                {[
+                  project.lastActivityAt && timeAgoFr(project.lastActivityAt),
+                  activities > 0 &&
+                    `${activities} activité${activities > 1 ? "s" : ""}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
           </div>
         </Link>
         <button

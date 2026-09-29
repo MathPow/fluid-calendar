@@ -18,7 +18,13 @@ export interface Project {
     slug: string;
     name: string;
     color: string | null;
-    organisation?: { id: string; name: string; color: string | null } | null;
+    organisation?: {
+      id: string;
+      name: string;
+      color: string | null;
+      isDefault?: boolean;
+      sortOrder?: number;
+    } | null;
   } | null;
   _count?: {
     tasks: number;

@@ -4,18 +4,26 @@ import { useMemo, useState } from "react";
 
 import { Building2, ChevronDown, ChevronUp, Pencil, Plus } from "lucide-react";
 
+import { AskBox } from "@/components/projets/AskBox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { AskBox } from "@/components/projets/AskBox";
-import { DEFAULT_PROJECT_COLOR, initials, orgKindLabel } from "@/lib/projets/meta";
+import {
+  DEFAULT_PROJECT_COLOR,
+  initials,
+  orgKindLabel,
+} from "@/lib/projets/meta";
 import type { OrganisationLite, ProjectFull } from "@/lib/projets/queries";
 
 import { useStationStore } from "@/store/station";
 
 import { Avatar } from "./ImageField";
 import { OrganisationDialog } from "./OrganisationDialog";
-import { type ContactLite, ProjectDialog, type ProjectLite } from "./ProjectDialog";
+import {
+  type ContactLite,
+  ProjectDialog,
+  type ProjectLite,
+} from "./ProjectDialog";
 import { ProjectTile } from "./ProjectTile";
 import { SectionSwitch } from "./SectionSwitch";
 
@@ -31,7 +39,11 @@ interface ProjetsBoardProps {
  * everything unassigned. Sub-projects are listed inside their parent's tile.
  * The Perso / Client switch in the header filters the projects.
  */
-export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoardProps) {
+export function ProjetsBoard({
+  projects,
+  organisations,
+  contacts,
+}: ProjetsBoardProps) {
   const { currentStation } = useStationStore();
   const [dialog, setDialog] = useState<{
     open: boolean;
@@ -70,9 +82,12 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
   // Sections in display order: named organisations first, the default last.
   const sections = useMemo(() => {
     const top = projects.filter(
-      (p) => !p.parentId && (currentStation === "both" || p.station === currentStation)
+      (p) =>
+        !p.parentId &&
+        (currentStation === "both" || p.station === currentStation)
     );
-    const kindRank = (k: string) => (k === "owned" ? 0 : k === "client" ? 1 : 2);
+    const kindRank = (k: string) =>
+      k === "owned" ? 0 : k === "client" ? 1 : 2;
     const ordered = [...organisations].sort(
       (a, b) =>
         Number(a.isDefault) - Number(b.isDefault) ||
@@ -85,18 +100,16 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
       org,
       projects: top.filter((p) =>
         org.isDefault
-          ? !p.organisationId || !known.has(p.organisationId) || p.organisationId === org.id
+          ? !p.organisationId ||
+            !known.has(p.organisationId) ||
+            p.organisationId === org.id
           : p.organisationId === org.id
       ),
     }));
   }, [projects, organisations, currentStation]);
 
   const counts = useMemo(
-    () => ({
-      perso: projects.filter((p) => !p.parentId && p.station === "personal").length,
-      client: projects.filter((p) => !p.parentId && p.station === "work").length,
-      sub: projects.filter((p) => p.parentId).length,
-    }),
+    () => ({ sub: projects.filter((p) => p.parentId).length }),
     [projects]
   );
 
@@ -106,13 +119,13 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
     <div className="page pb-16 pt-8 md:pt-12">
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">Projets.</h1>
+          <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">
+            Projets.
+          </h1>
           <div className="mt-6 flex flex-wrap gap-2">
             <Badge className="px-4 py-2 text-[13px]">
-              {organisations.length} organisation{organisations.length > 1 ? "s" : ""}
-            </Badge>
-            <Badge className="px-4 py-2 text-[13px]">
-              {counts.perso} perso · {counts.client} client{counts.client > 1 ? "s" : ""}
+              {organisations.length} organisation
+              {organisations.length > 1 ? "s" : ""}
             </Badge>
             {counts.sub > 0 && (
               <Badge className="px-4 py-2 text-[13px]">
@@ -135,7 +148,10 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
           >
             <Building2 /> Organisation
           </Button>
-          <Button size="lg" onClick={() => setDialog({ open: true, project: null })}>
+          <Button
+            size="lg"
+            onClick={() => setDialog({ open: true, project: null })}
+          >
             <Plus /> Nouveau projet
           </Button>
         </div>
@@ -150,9 +166,12 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
 
       {projects.length > 0 && !anyVisible ? (
         <div className="tile mt-8 px-6 py-16 text-center">
-          <p className="text-[15px] font-semibold tracking-title">Aucun projet dans cette station.</p>
+          <p className="text-[15px] font-semibold tracking-title">
+            Aucun projet dans cette station.
+          </p>
           <p className="mx-auto mt-1 max-w-md text-[13px] text-muted-foreground">
-            Passe le sélecteur Perso / Client / Both dans l&apos;en-tête pour en voir d&apos;autres.
+            Passe le sélecteur Perso / Client / Both dans l&apos;en-tête pour en
+            voir d&apos;autres.
           </p>
         </div>
       ) : (
@@ -170,16 +189,21 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
                   className="h-11 w-11 text-[13px]"
                 />
                 <div className="min-w-0">
-                  <h2 className="text-[24px] font-bold leading-none tracking-title">{org.name}</h2>
+                  <h2 className="text-[24px] font-bold leading-none tracking-title">
+                    {org.name}
+                  </h2>
                   <p className="mt-1 text-[12px] text-muted-foreground">
-                    {orgKindLabel(org.kind)} · {list.length} projet{list.length > 1 ? "s" : ""}
+                    {orgKindLabel(org.kind)} · {list.length} projet
+                    {list.length > 1 ? "s" : ""}
                     {org.isDefault && " · par défaut"}
                   </p>
                 </div>
                 <div className="ml-auto flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => setOrgDialog({ open: true, organisation: org })}
+                    onClick={() =>
+                      setOrgDialog({ open: true, organisation: org })
+                    }
                     className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     aria-label={`Modifier ${org.name}`}
                   >
@@ -201,7 +225,9 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
                 </div>
               </div>
               {org.description && (
-                <p className="mt-2 max-w-2xl text-[14px] text-muted-foreground">{org.description}</p>
+                <p className="mt-2 max-w-2xl text-[14px] text-muted-foreground">
+                  {org.description}
+                </p>
               )}
               {list.length === 0 ? (
                 <p className="mt-4 rounded-[20px] bg-secondary/60 px-5 py-6 text-center text-[13px] text-muted-foreground">
@@ -210,13 +236,17 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
               ) : (
                 <>
                   <ul className="mt-5 grid gap-5 lg:grid-cols-2">
-                    {(expanded.has(org.id) ? list : list.slice(0, PREVIEW)).map((p) => (
-                      <ProjectTile
-                        key={p.id}
-                        project={p}
-                        onEdit={(project) => setDialog({ open: true, project })}
-                      />
-                    ))}
+                    {(expanded.has(org.id) ? list : list.slice(0, PREVIEW)).map(
+                      (p) => (
+                        <ProjectTile
+                          key={p.id}
+                          project={p}
+                          onEdit={(project) =>
+                            setDialog({ open: true, project })
+                          }
+                        />
+                      )
+                    )}
                   </ul>
                   {list.length > PREVIEW && (
                     <div className="mt-4 flex justify-center">
@@ -231,7 +261,8 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
                           </>
                         ) : (
                           <>
-                            <ChevronDown /> Voir les {list.length - PREVIEW} autres
+                            <ChevronDown /> Voir les {list.length - PREVIEW}{" "}
+                            autres
                           </>
                         )}
                       </Button>

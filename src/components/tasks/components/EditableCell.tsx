@@ -2,16 +2,18 @@ import { useEffect, useRef, useState } from "react";
 
 // Import missing functions
 import { isThisWeek, isThisYear, isToday, isTomorrow } from "date-fns";
+import { Check, TriangleAlert, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { Check, TriangleAlert, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -23,6 +25,7 @@ import {
   newDate,
   newDateFromYMD,
 } from "@/lib/date-utils";
+import { groupTaskProjects } from "@/lib/projets/group-task-projects";
 
 import { useProjectStore } from "@/store/project";
 
@@ -455,16 +458,23 @@ export function EditableCell({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">No project</SelectItem>
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: project.color || "var(--muted)" }}
-                  />
-                  <span>{project.name}</span>
-                </div>
-              </SelectItem>
+            {groupTaskProjects(projects).map((group) => (
+              <SelectGroup key={group.key}>
+                <SelectLabel className="etiquette">{group.name}</SelectLabel>
+                {group.projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{
+                          backgroundColor: project.color || "var(--muted)",
+                        }}
+                      />
+                      <span>{project.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             ))}
           </SelectContent>
         </Select>
