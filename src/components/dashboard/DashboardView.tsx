@@ -9,6 +9,7 @@ import { AudioLines, FileText, Loader2, Mic, Watch } from "lucide-react";
 
 import { MachinesStatus } from "@/components/dashboard/MachinesStatus";
 import { ProjectLauncher } from "@/components/dashboard/ProjectLauncher";
+import { NewsTile } from "@/components/notifications/NewsTile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -353,6 +354,9 @@ export function DashboardView() {
           </p>
         </div>
       </section>
+
+      {/* ------------------------------------------------------ Nouvelles */}
+      <NewsTile />
 
       {/* ------------------------------------------- Tasks + tabbed dossier */}
       <section className="mt-5 grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">

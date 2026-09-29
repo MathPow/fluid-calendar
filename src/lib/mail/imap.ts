@@ -198,9 +198,7 @@ export async function getMessage(
 
       return {
         ...toSummary(msg as never),
-        cc: addrList(
-          (msg.envelope as { cc?: unknown } | undefined)?.cc ?? []
-        ),
+        cc: addrList((msg.envelope as { cc?: unknown } | undefined)?.cc ?? []),
         html: typeof parsed.html === "string" ? parsed.html : null,
         text: parsed.text ?? null,
         messageId: parsed.messageId ?? null,
@@ -214,5 +212,85 @@ export async function getMessage(
     } finally {
       lock.release();
     }
+  });
+}
+
+export interface ReplyToSent {
+  uid: number;
+  messageId: string | null;
+  subject: string;
+  from: Address[];
+  date: string | null;
+  /** Subject of the message of yours it answers. */
+  repliesTo: string;
+}
+
+/**
+ * Messages in INBOX from the last `days` that answer one of the messages sent
+ * from this account in the last `sentDays` (their In-Reply-To is one of our
+ * Message-IDs). Envelopes only; one connection.
+ */
+export async function listRepliesToSent(
+  acct: MailAccountConn,
+  days = 2,
+  sentDays = 45
+): Promise<ReplyToSent[]> {
+  return withClient(acct, async (client) => {
+    const boxes = await client.list();
+    const sent =
+      boxes.find((b) => b.specialUse === "\\Sent") ??
+      boxes.find((b) => /^(sent|sent messages|sent items|envoy)/i.test(b.name));
+    if (!sent) return [];
+
+    const since = (d: number) => new Date(Date.now() - d * 86_400_000);
+    const ours = new Map<string, string>();
+    let lock = await client.getMailboxLock(sent.path);
+    try {
+      const uids =
+        (await client.search({ since: since(sentDays) }, { uid: true })) || [];
+      if (uids.length) {
+        for await (const msg of client.fetch(
+          uids.slice(-500),
+          { envelope: true },
+          { uid: true }
+        )) {
+          const id = msg.envelope?.messageId;
+          if (id) ours.set(id, msg.envelope?.subject || "(sans objet)");
+        }
+      }
+    } finally {
+      lock.release();
+    }
+    if (ours.size === 0) return [];
+
+    const replies: ReplyToSent[] = [];
+    lock = await client.getMailboxLock("INBOX");
+    try {
+      const uids =
+        (await client.search({ since: since(days) }, { uid: true })) || [];
+      if (uids.length) {
+        for await (const msg of client.fetch(
+          uids.slice(-300),
+          { uid: true, envelope: true },
+          { uid: true }
+        )) {
+          const parent = msg.envelope?.inReplyTo;
+          if (!parent || !ours.has(parent)) continue;
+          replies.push({
+            uid: msg.uid,
+            messageId: msg.envelope?.messageId ?? null,
+            subject: msg.envelope?.subject || "(sans objet)",
+            from: addrList(msg.envelope?.from),
+            date: msg.envelope?.date
+              ? new Date(msg.envelope.date).toISOString()
+              : null,
+            repliesTo: ours.get(parent)!,
+          });
+        }
+      }
+    } finally {
+      lock.release();
+    }
+    return replies;
   });
 }

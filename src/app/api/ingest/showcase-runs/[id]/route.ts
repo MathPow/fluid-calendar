@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { logger } from "@/lib/logger";
+import { notify, ownerUserId } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { ingestTokenOk, tailLog } from "@/lib/projets/showcase-runs";
 
@@ -22,7 +23,10 @@ type Ctx = { params: Promise<{ id: string }> };
 /** PATCH /api/ingest/showcase-runs/[id] — the runner reports how a run ended. */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   if (!process.env.PROJECT_INGEST_TOKEN) {
-    return NextResponse.json({ error: "Ingest not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Ingest not configured" },
+      { status: 503 }
+    );
   }
   if (!ingestTokenOk(request)) {
     logger.warn("showcase-runs report rejected: bad token", {}, LOG_SOURCE);
@@ -47,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
   const run = await prisma.showcaseRun.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, projectId: true },
   });
   if (!run) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -61,5 +65,29 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     },
   });
   logger.info("showcase run finished", { runId: id, status }, LOG_SOURCE);
+
+  // Tell the owner, under the bell (and on the phone when it failed).
+  const project = await prisma.agentProject.findUnique({
+    where: { id: run.projectId },
+    select: { slug: true, name: true },
+  });
+  const userId = await ownerUserId();
+  if (project && userId) {
+    await notify(userId, {
+      kind: status === "done" ? "showcase_done" : "showcase_failed",
+      source: "projets",
+      important: status === "failed",
+      title:
+        status === "done"
+          ? `Présentation de ${project.name} prête`
+          : `Présentation de ${project.name} : échec`,
+      body:
+        status === "failed"
+          ? (error || "Échec sans message.").slice(0, 300)
+          : null,
+      url: `/projets/${encodeURIComponent(project.slug)}`,
+      dedupeKey: `showcase-run:${id}`,
+    });
+  }
   return NextResponse.json({ ok: true });
 }

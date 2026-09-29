@@ -4,21 +4,21 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "FluidCalendar", body: event.data.text() };
+    data = { title: "DreamDash", body: event.data.text() };
   }
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: "/icon-192x192.png",
       badge: "/icon-192x192.png",
-      data: { url: data.url ?? "/calendar" },
+      data: { url: data.url ?? "/dashboard" },
     })
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url ?? "/calendar";
+  const url = event.notification.data?.url ?? "/dashboard";
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })

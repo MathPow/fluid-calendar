@@ -15,6 +15,8 @@ import {
   Users,
 } from "lucide-react";
 
+import { NotificationBell } from "@/components/notifications/NotificationBell";
+
 import { cn } from "@/lib/utils";
 
 import { AccountMenu } from "./AccountMenu";
@@ -114,6 +116,7 @@ export function AppHeader({ className }: { className?: string }) {
             <Search className="h-[18px] w-[18px]" />
           </button>
 
+          <NotificationBell />
           <StationSwitcher />
           <ThemeToggle />
           <AccountMenu />

@@ -19,7 +19,10 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest) {
   if (!process.env.PROJECT_INGEST_TOKEN) {
-    return NextResponse.json({ error: "Ingest not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Ingest not configured" },
+      { status: 503 }
+    );
   }
   if (!ingestTokenOk(request)) {
     logger.warn("showcase-runs claim rejected: bad token", {}, LOG_SOURCE);

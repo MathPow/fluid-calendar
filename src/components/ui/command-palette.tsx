@@ -291,27 +291,29 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   value={search}
                   onValueChange={setSearch}
                 />
-                {search && (
+                {/* One ×: it clears the text first, then closes (Esc does too). */}
+                {search ? (
                   <button
-                    className="text-muted-foreground hover:text-foreground"
+                    className="ml-2 p-2 text-muted-foreground hover:text-foreground"
                     onClick={() => setSearch("")}
                     aria-label="Clear search"
                   >
                     <X className="h-5 w-5" />
                   </button>
+                ) : (
+                  <>
+                    <kbd className="hidden items-center gap-1 rounded bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:flex">
+                      <span className="text-xs">⌘</span>
+                      <span>K</span>
+                    </kbd>
+                    <Dialog.Close
+                      className="ml-2 p-2 text-muted-foreground hover:text-foreground"
+                      aria-label="Close command menu"
+                    >
+                      <X className="h-5 w-5" />
+                    </Dialog.Close>
+                  </>
                 )}
-                {!search && (
-                  <kbd className="hidden items-center gap-1 rounded bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:flex">
-                    <span className="text-xs">⌘</span>
-                    <span>K</span>
-                  </kbd>
-                )}
-                <Dialog.Close
-                  className="ml-2 p-2 text-muted-foreground hover:text-foreground"
-                  aria-label="Close command menu"
-                >
-                  <X className="h-5 w-5" />
-                </Dialog.Close>
               </div>
 
               <Command.List className="max-h-[300px] overflow-y-auto p-2">
@@ -591,9 +593,7 @@ function AskPanel({
 
         {sources.length > 0 && (
           <div className="mt-4 border-t border-border pt-3">
-            <p className="etiquette mb-3">
-              Ressources consultées
-            </p>
+            <p className="etiquette mb-3">Ressources consultées</p>
             <ul className="space-y-0.5">
               {sources.map((source) => {
                 const Icon = SOURCE_ICONS[source.type] ?? FileText;
