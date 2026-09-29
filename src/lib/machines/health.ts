@@ -12,17 +12,20 @@ export type Health = Level | "off" | "none";
 
 export type Metric = "cpu" | "ram" | "disk" | "temp" | "gpuTemp";
 
-export const LIMITS: Record<Metric, { warn: number; bad: number }> = {
+// No `warn`: the metric goes straight from fine to red. A disk that fills up
+// slowly is not worth a yellow dot for weeks, only a red one when it's urgent.
+export const LIMITS: Record<Metric, { warn?: number; bad: number }> = {
   cpu: { warn: 70, bad: 90 },
   ram: { warn: 75, bad: 90 },
-  disk: { warn: 80, bad: 92 },
+  disk: { bad: 92 },
   temp: { warn: 75, bad: 90 },
   gpuTemp: { warn: 75, bad: 85 },
 };
 
 export function levelOf(metric: Metric, value: number): Level {
   const { warn, bad } = LIMITS[metric];
-  return value >= bad ? "bad" : value >= warn ? "warn" : "ok";
+  if (value >= bad) return "bad";
+  return warn !== undefined && value >= warn ? "warn" : "ok";
 }
 
 export interface Issue {
