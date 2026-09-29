@@ -78,16 +78,9 @@ export async function POST(request: NextRequest) {
         image: fields.image || null,
         station: fields.station ?? "personal",
         description: fields.description || null,
-        path: fields.path || fields.location?.path || null,
-        ...(fields.location
-          ? {
-              locations: {
-                create: {
-                  machineId: fields.location.machineId,
-                  path: fields.location.path,
-                },
-              },
-            }
+        path: fields.path || fields.locations?.[0]?.path || null,
+        ...(fields.locations?.length
+          ? { locations: { create: fields.locations.map((l) => ({ machineId: l.machineId, path: l.path })) } }
           : {}),
         parentId: fields.parentId ?? null,
         organisationId,

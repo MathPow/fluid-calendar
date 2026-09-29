@@ -105,8 +105,8 @@ export function ProjectDialog({
   const [parent, setParent] = useState<string>(NO_PARENT);
   const [organisation, setOrganisation] = useState<string>(DEFAULT_ORG);
   const [description, setDescription] = useState("");
-  const [path, setPath] = useState("");
-  const [machineId, setMachineId] = useState<string>(NO_MACHINE);
+  // Where it lives: one row per machine (a project can be cloned on several).
+  const [locations, setLocations] = useState<{ machineId: string; path: string }[]>([]);
   const [machines, setMachines] = useState<
     { id: string; name: string; label: string | null; kind?: string }[]
   >([]);
@@ -146,10 +146,14 @@ export function ProjectDialog({
       setParent(project.parentId ?? NO_PARENT);
       setOrganisation(project.organisationId ?? DEFAULT_ORG);
       setDescription(project.description ?? "");
-      // The most recent machine it lives on, else the legacy path alone.
-      const loc = project.locations[0];
-      setMachineId(loc?.machine.id ?? NO_MACHINE);
-      setPath(loc?.path ?? project.path ?? "");
+      // Every machine it lives on, else the legacy path alone.
+      setLocations(
+        project.locations.length
+          ? project.locations.map((l) => ({ machineId: l.machine.id, path: l.path }))
+          : project.path
+            ? [{ machineId: NO_MACHINE, path: project.path }]
+            : []
+      );
       setStack(project.stack ?? []);
       setLinks(toFormLinks(project.links));
       setContactIds(project.contacts.map((c) => c.contactId));
@@ -173,8 +177,7 @@ export function ProjectDialog({
         setStation(presetOrg.station === "work" ? "work" : "personal");
       setColor(parentProject?.color ?? DEFAULT_PROJECT_COLOR);
       setDescription("");
-      setPath("");
-      setMachineId(NO_MACHINE);
+      setLocations([]);
       setStack([]);
       setLinks([]);
       setContactIds([]);
@@ -254,6 +257,10 @@ export function ProjectDialog({
       toast.error("Donne un nom au projet.");
       return;
     }
+    if (locations.some((l) => l.path.trim() && l.machineId === NO_MACHINE)) {
+      toast.error("Choisis la machine de chaque dossier.");
+      return;
+    }
     // Commit any tool still sitting in the draft field.
     const finalStack = stackDraft.trim()
       ? Array.from(
@@ -275,10 +282,10 @@ export function ProjectDialog({
       parentId: parent === NO_PARENT ? null : parent,
       organisationId: organisation === DEFAULT_ORG ? null : organisation,
       description: description.trim() || null,
-      path: path.trim() || null,
-      ...(machineId !== NO_MACHINE && path.trim()
-        ? { location: { machineId, path: path.trim() } }
-        : {}),
+      path: locations.find((l) => l.path.trim())?.path.trim() || null,
+      locations: locations
+        .filter((l) => l.machineId !== NO_MACHINE && l.path.trim())
+        .map((l) => ({ machineId: l.machineId, path: l.path.trim() })),
       stack: finalStack,
       links: toLinkPayload(links),
       contacts: contactIds.map((contactId) => ({ contactId })),
@@ -501,34 +508,72 @@ export function ProjectDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Machine</Label>
-              <Select value={machineId} onValueChange={setMachineId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Aucune" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_MACHINE}>Aucune machine</SelectItem>
-                  {machines.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.label || m.name}
-                      {m.kind === "vps" && (
-                        <span className="text-muted-foreground"> · VPS</span>
-                      )}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="project-path">Dossier sur la machine</Label>
-              <Input
-                id="project-path"
-                value={path}
-                onChange={(e) => setPath(e.target.value)}
-                placeholder="/home/uguiso/repos/dehors"
-                className="font-mono text-[13px]"
-              />
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Machines et dossiers</Label>
+              {locations.length === 0 && (
+                <p className="text-[12px] text-muted-foreground">
+                  Sur quelle machine vit ce projet, et dans quel dossier.
+                </p>
+              )}
+              {locations.map((loc, i) => {
+                const taken = new Set(locations.filter((_, j) => j !== i).map((l) => l.machineId));
+                const update = (patch: Partial<typeof loc>) =>
+                  setLocations((prev) => prev.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+                return (
+                  <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Select value={loc.machineId} onValueChange={(v) => update({ machineId: v })}>
+                      <SelectTrigger className="sm:w-[200px] sm:shrink-0">
+                        <SelectValue placeholder="Machine" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_MACHINE}>Choisir une machine</SelectItem>
+                        {machines.map((m) => (
+                          <SelectItem key={m.id} value={m.id} disabled={taken.has(m.id)}>
+                            {m.label || m.name}
+                            {m.kind === "vps" && <span className="text-muted-foreground"> · VPS</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <Input
+                        aria-label="Dossier sur la machine"
+                        value={loc.path}
+                        onChange={(e) => update({ path: e.target.value })}
+                        placeholder="/home/uguiso/repos/dehors"
+                        className="min-w-0 flex-1 font-mono text-[13px]"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Retirer"
+                        onClick={() => setLocations((prev) => prev.filter((_, j) => j !== i))}
+                      >
+                        <X />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={machines.length > 0 && locations.length >= machines.length}
+                onClick={() =>
+                  setLocations((prev) => [
+                    ...prev,
+                    {
+                      machineId:
+                        machines.find((m) => !prev.some((l) => l.machineId === m.id))?.id ?? NO_MACHINE,
+                      path: prev[prev.length - 1]?.path ?? "",
+                    },
+                  ])
+                }
+              >
+                <Plus /> Machine
+              </Button>
             </div>
           </div>
 

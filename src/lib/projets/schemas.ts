@@ -35,13 +35,17 @@ export const ProjectInput = z.object({
   station: z.enum(["personal", "work"]).optional(),
   description: z.string().trim().max(2000).nullable().optional(),
   path: z.string().trim().max(500).nullable().optional(),
-  // Where the project lives: one machine + its folder there (a ProjectLocation).
-  location: z
-    .object({
-      machineId: z.string().min(1),
-      path: z.string().trim().min(1, "Chemin requis").max(500),
-    })
-    .nullable()
+  // Where the project lives: machine + its folder there, one row per machine
+  // (ProjectLocation). When present, replaces the whole list.
+  locations: z
+    .array(
+      z.object({
+        machineId: z.string().min(1),
+        path: z.string().trim().min(1, "Chemin requis").max(500),
+      })
+    )
+    .max(20)
+    .refine((l) => new Set(l.map((x) => x.machineId)).size === l.length, "Une machine est en double")
     .optional(),
   parentId: z.string().nullable().optional(),
   organisationId: z.string().nullable().optional(),

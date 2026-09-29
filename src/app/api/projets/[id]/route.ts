@@ -110,22 +110,20 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         },
       });
 
-      // The machine + folder chosen in the dialog: upsert that location.
-      if (fields.location) {
-        await tx.projectLocation.upsert({
-          where: {
-            projectId_machineId: {
-              projectId: id,
-              machineId: fields.location.machineId,
-            },
-          },
-          create: {
-            projectId: id,
-            machineId: fields.location.machineId,
-            path: fields.location.path,
-          },
-          update: { path: fields.location.path },
+      // The machines + folders from the dialog: the list replaces the old one
+      // (upserts keep each row's lastSeenAt from the activity hook).
+      if (fields.locations !== undefined) {
+        const keep = fields.locations.map((l) => l.machineId);
+        await tx.projectLocation.deleteMany({
+          where: { projectId: id, machineId: { notIn: keep } },
         });
+        for (const l of fields.locations) {
+          await tx.projectLocation.upsert({
+            where: { projectId_machineId: { projectId: id, machineId: l.machineId } },
+            create: { projectId: id, machineId: l.machineId, path: l.path },
+            update: { path: l.path },
+          });
+        }
       }
 
       if (links !== undefined) {
