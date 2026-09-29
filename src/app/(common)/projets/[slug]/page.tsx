@@ -15,6 +15,7 @@ import {
 } from "@/components/projets/ProjectStorePage";
 import { type ProjectTab, ProjectTabs } from "@/components/projets/ProjectTabs";
 import { ProjectTasksTile } from "@/components/projets/ProjectTasksTile";
+import { ShowcaseRunControl } from "@/components/projets/ShowcaseRunControl";
 import { ProjectMark } from "@/components/projets/ProjectTile";
 import { LinkPill } from "@/components/projets/link-icons";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,12 @@ import {
   timeAgoFr,
 } from "@/lib/projets/meta";
 import { organisationSelect, projectInclude } from "@/lib/projets/queries";
+import {
+  type ShowcaseRunStatus,
+  type ShowcaseRunView,
+  expireStaleShowcaseRuns,
+  showcaseRunSelect,
+} from "@/lib/projets/showcase-runs";
 
 export const dynamic = "force-dynamic";
 
@@ -114,8 +121,10 @@ export default async function ProjetDetailPage({
   });
 
   // The task list attached to this project (Tasks / Calendar tabs), its open
-  // tasks, and the unattached lists that could be attached instead.
-  const [taskList, candidateLists] = await Promise.all([
+  // tasks, and the unattached lists that could be attached instead. Plus the
+  // latest /project-showcase run for the Présentation tab.
+  await expireStaleShowcaseRuns(project.id);
+  const [taskList, candidateLists, lastRun] = await Promise.all([
     prisma.project.findUnique({
       where: { agentProjectId: project.id },
       select: {
@@ -137,7 +146,19 @@ export default async function ProjetDetailPage({
       select: { id: true, name: true, _count: { select: { tasks: true } } },
       orderBy: { name: "asc" },
     }),
+    prisma.showcaseRun.findFirst({
+      where: { projectId: project.id },
+      orderBy: { createdAt: "desc" },
+      select: showcaseRunSelect,
+    }),
   ]);
+  const showcaseRun: ShowcaseRunView | null = lastRun && {
+    ...lastRun,
+    status: lastRun.status as ShowcaseRunStatus,
+    createdAt: lastRun.createdAt.toISOString(),
+    startedAt: lastRun.startedAt?.toISOString() ?? null,
+    finishedAt: lastRun.finishedAt?.toISOString() ?? null,
+  };
   const openTasks = (taskList?.tasks ?? []).filter(
     (t) => t.status !== "completed"
   );
@@ -172,25 +193,37 @@ export default async function ProjetDetailPage({
     },
   ].filter((f): f is StoreFact => Boolean(f));
 
-  // Tabs keep the page calm: the store page first when there is one.
+  // Tabs keep the page calm: the store page first when there is one. Without
+  // one, the Présentation tab comes after the Fiche and offers to generate it.
+  const runControl = (
+    <ShowcaseRunControl
+      projectId={project.id}
+      hasPath={Boolean(project.path)}
+      hasShowcase={Boolean(showcase)}
+      initialRun={showcaseRun}
+      layout={showcase ? "bar" : "empty"}
+    />
+  );
+  const presentationTab: ProjectTab = {
+    value: "presentation",
+    label: "Présentation",
+    content: showcase ? (
+      <>
+        {runControl}
+        <ProjectStorePage
+          media={media}
+          description={project.description}
+          facts={facts}
+          tags={showcase.tags}
+          about={showcase.about}
+        />
+      </>
+    ) : (
+      runControl
+    ),
+  };
   const tabs: ProjectTab[] = [
-    ...(showcase
-      ? [
-          {
-            value: "presentation",
-            label: "Présentation",
-            content: (
-              <ProjectStorePage
-                media={media}
-                description={project.description}
-                facts={facts}
-                tags={showcase.tags}
-                about={showcase.about}
-              />
-            ),
-          },
-        ]
-      : []),
+    ...(showcase ? [presentationTab] : []),
     {
       value: "fiche",
       label: "Fiche",
@@ -382,6 +415,7 @@ export default async function ProjetDetailPage({
         </>
       ),
     },
+    ...(showcase ? [] : [presentationTab]),
     {
       value: "taches",
       label: "Tâches",

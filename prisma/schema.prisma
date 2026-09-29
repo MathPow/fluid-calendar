@@ -869,6 +869,8 @@ model AgentProject {
   taskProject Project?
   showcase ProjectShowcase?
   media    ProjectMedia[]
+  // Queued /project-showcase runs, executed by the host runner.
+  showcaseRuns ShowcaseRun[]
 
   @@index([lastActivityAt])
   @@index([parentId])
@@ -926,6 +928,24 @@ model ProjectMedia {
   createdAt DateTime     @default(now())
 
   @@index([projectId])
+}
+
+// A request to (re)build a project's store page with the /project-showcase
+// skill. DreamDash (in Docker) only queues it; a runner on the host claims it
+// through /api/ingest/showcase-runs and runs Claude Code headless in `path`.
+model ShowcaseRun {
+  id         String       @id @default(cuid())
+  projectId  String
+  project    AgentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status     String       @default("queued") // queued | running | done | failed
+  log        String? // tail of the runner output, ≤ 20 KB
+  error      String?
+  createdAt  DateTime     @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
 }
 
 // A link attached to a project: Figma file, Drive folder, live site, Claude
