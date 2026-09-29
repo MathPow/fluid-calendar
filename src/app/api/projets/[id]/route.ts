@@ -25,7 +25,8 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     where: { id },
     include: projectInclude,
   });
-  if (!project) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!project)
+    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
   return NextResponse.json(project);
 }
 
@@ -58,7 +59,8 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { id: true, name: true, slug: true },
   });
-  if (!existing) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!existing)
+    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
   if (fields.parentId) {
     if (await wouldCreateCycle(id, fields.parentId)) {
@@ -74,8 +76,12 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       // Keep the slug stable unless the project was auto-named by the bridge
       // (slug === name) and the user is now giving it a real name.
       const renameSlug =
-        fields.name && fields.name !== existing.name && existing.slug === existing.name;
-      const slug = renameSlug ? await uniqueSlug(fields.name as string, id) : undefined;
+        fields.name &&
+        fields.name !== existing.name &&
+        existing.slug === existing.name;
+      const slug = renameSlug
+        ? await uniqueSlug(fields.name as string, id)
+        : undefined;
 
       await tx.agentProject.update({
         where: { id },
@@ -83,20 +89,44 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           ...(fields.name !== undefined ? { name: fields.name } : {}),
           ...(slug ? { slug } : {}),
           ...(fields.color !== undefined ? { color: fields.color } : {}),
-          ...(fields.image !== undefined ? { image: fields.image || null } : {}),
+          ...(fields.image !== undefined
+            ? { image: fields.image || null }
+            : {}),
           ...(fields.station !== undefined ? { station: fields.station } : {}),
           ...(fields.description !== undefined
             ? { description: fields.description || null }
             : {}),
           ...(fields.path !== undefined ? { path: fields.path || null } : {}),
-          ...(fields.parentId !== undefined ? { parentId: fields.parentId } : {}),
+          ...(fields.parentId !== undefined
+            ? { parentId: fields.parentId }
+            : {}),
           ...(fields.organisationId !== undefined
             ? { organisationId: fields.organisationId }
             : {}),
-          ...(fields.archived !== undefined ? { archived: fields.archived } : {}),
+          ...(fields.archived !== undefined
+            ? { archived: fields.archived }
+            : {}),
           ...(stack !== undefined ? { stack } : {}),
         },
       });
+
+      // The machine + folder chosen in the dialog: upsert that location.
+      if (fields.location) {
+        await tx.projectLocation.upsert({
+          where: {
+            projectId_machineId: {
+              projectId: id,
+              machineId: fields.location.machineId,
+            },
+          },
+          create: {
+            projectId: id,
+            machineId: fields.location.machineId,
+            path: fields.location.path,
+          },
+          update: { path: fields.location.path },
+        });
+      }
 
       if (links !== undefined) {
         await tx.projectLink.deleteMany({ where: { projectId: id } });
@@ -139,7 +169,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Mise à jour impossible" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Mise à jour impossible" },
+      { status: 500 }
+    );
   }
 }
 
@@ -157,6 +190,9 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Suppression impossible" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Suppression impossible" },
+      { status: 500 }
+    );
   }
 }

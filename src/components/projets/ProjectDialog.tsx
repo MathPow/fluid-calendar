@@ -76,6 +76,7 @@ interface ProjectDialogProps {
   contacts: ContactLite[];
 }
 
+const NO_MACHINE = "__none__";
 const NO_PARENT = "__none__";
 const DEFAULT_ORG = "__default__";
 
@@ -105,6 +106,19 @@ export function ProjectDialog({
   const [organisation, setOrganisation] = useState<string>(DEFAULT_ORG);
   const [description, setDescription] = useState("");
   const [path, setPath] = useState("");
+  const [machineId, setMachineId] = useState<string>(NO_MACHINE);
+  const [machines, setMachines] = useState<
+    { id: string; name: string; label: string | null; kind?: string }[]
+  >([]);
+
+  // Machines to pick where the project lives (Machines tab).
+  useEffect(() => {
+    if (!open || machines.length) return;
+    fetch("/api/machines")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setMachines)
+      .catch(() => {});
+  }, [open, machines.length]);
   const [stack, setStack] = useState<string[]>([]);
   const [stackDraft, setStackDraft] = useState("");
   const [links, setLinks] = useState<FormLink[]>([]);
@@ -132,7 +146,10 @@ export function ProjectDialog({
       setParent(project.parentId ?? NO_PARENT);
       setOrganisation(project.organisationId ?? DEFAULT_ORG);
       setDescription(project.description ?? "");
-      setPath(project.path ?? "");
+      // The most recent machine it lives on, else the legacy path alone.
+      const loc = project.locations[0];
+      setMachineId(loc?.machine.id ?? NO_MACHINE);
+      setPath(loc?.path ?? project.path ?? "");
       setStack(project.stack ?? []);
       setLinks(toFormLinks(project.links));
       setContactIds(project.contacts.map((c) => c.contactId));
@@ -157,6 +174,7 @@ export function ProjectDialog({
       setColor(parentProject?.color ?? DEFAULT_PROJECT_COLOR);
       setDescription("");
       setPath("");
+      setMachineId(NO_MACHINE);
       setStack([]);
       setLinks([]);
       setContactIds([]);
@@ -258,6 +276,9 @@ export function ProjectDialog({
       organisationId: organisation === DEFAULT_ORG ? null : organisation,
       description: description.trim() || null,
       path: path.trim() || null,
+      ...(machineId !== NO_MACHINE && path.trim()
+        ? { location: { machineId, path: path.trim() } }
+        : {}),
       stack: finalStack,
       links: toLinkPayload(links),
       contacts: contactIds.map((contactId) => ({ contactId })),
@@ -481,12 +502,31 @@ export function ProjectDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="project-path">Dossier (repo)</Label>
+              <Label>Machine</Label>
+              <Select value={machineId} onValueChange={setMachineId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucune" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_MACHINE}>Aucune machine</SelectItem>
+                  {machines.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label || m.name}
+                      {m.kind === "vps" && (
+                        <span className="text-muted-foreground"> · VPS</span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="project-path">Dossier sur la machine</Label>
               <Input
                 id="project-path"
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
-                placeholder="~/repos/dehors"
+                placeholder="/home/uguiso/repos/dehors"
                 className="font-mono text-[13px]"
               />
             </div>
