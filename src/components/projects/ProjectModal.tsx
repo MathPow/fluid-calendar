@@ -12,6 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 import { useProjectStore } from "@/store/project";
@@ -19,6 +26,9 @@ import { useProjectStore } from "@/store/project";
 import { Project, ProjectStatus } from "@/types/project";
 
 import { DeleteProjectDialog } from "./DeleteProjectDialog";
+import { useLinkOptions } from "./ProjectPicker";
+
+const NO_LINK = "__none__";
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -31,6 +41,8 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#E5E7EB");
+  const [agentProjectId, setAgentProjectId] = useState<string>(NO_LINK);
+  const { options } = useLinkOptions(isOpen);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -39,7 +51,9 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
       setName(project.name);
       setDescription(project.description || "");
       setColor(project.color || "#E5E7EB");
+      setAgentProjectId(project.agentProjectId ?? NO_LINK);
     } else if (!project && isOpen) {
+      setAgentProjectId(NO_LINK);
       setName("");
       setDescription("");
       setColor("#E5E7EB");
@@ -57,6 +71,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           name: name.trim(),
           description: description.trim() || undefined,
           color: color === "#E5E7EB" ? undefined : color,
+          agentProjectId: agentProjectId === NO_LINK ? null : agentProjectId,
         });
       } else {
         await createProject({
@@ -64,6 +79,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           description: description.trim() || undefined,
           color: color === "#E5E7EB" ? undefined : color,
           status: ProjectStatus.ACTIVE,
+          agentProjectId: agentProjectId === NO_LINK ? null : agentProjectId,
         });
       }
       onClose();
@@ -121,6 +137,39 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
                   style={{ backgroundColor: color }}
                 />
               </div>
+            </div>
+
+            <div>
+              <Label>Projet lié (onglet Projets)</Label>
+              <Select value={agentProjectId} onValueChange={setAgentProjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value={NO_LINK}>Aucun</SelectItem>
+                  {(options?.projets ?? [])
+                    .filter((p) => !p.taskProjectId || p.taskProjectId === project?.id)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="inline-flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: p.color ?? "#a8ccff" }}
+                          />
+                          {p.name}
+                          {p.organisation && (
+                            <span className="text-muted-foreground">· {p.organisation.name}</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {agentProjectId !== NO_LINK && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Le nom et la couleur affichés viennent du projet lié.
+                </p>
+              )}
             </div>
 
             <div className="flex justify-between pt-4">

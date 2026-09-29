@@ -23,13 +23,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
+import { ProjectPicker } from "@/components/projects/ProjectPicker";
+
 import { StepsEditor } from "./components/StepsEditor";
 
 import { format, newDate } from "@/lib/date-utils";
 import { RecurrenceConverterFactory } from "@/lib/task-sync/recurrence/recurrence-converter-factory";
 import { cn } from "@/lib/utils";
 
-import { useProjectStore } from "@/store/project";
 
 import {
   EnergyLevel,
@@ -90,7 +91,6 @@ export function TaskModal({
   onCreateTag,
   initialProjectId,
 }: TaskModalProps) {
-  const { projects } = useProjectStore();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [steps, setSteps] = useState<TaskStepInput[]>([]);
@@ -448,26 +448,7 @@ export function TaskModal({
 
           <div>
             <Label htmlFor="project">Project</Label>
-            <Select
-              value={projectId || "none"}
-              onValueChange={(value) =>
-                setProjectId(value === "none" ? null : value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="No Project" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Project</SelectItem>
-                {projects
-                  .filter((p) => p.status === "active")
-                  .map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <ProjectPicker id="project" value={projectId} onChange={setProjectId} />
           </div>
 
           <div>

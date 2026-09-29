@@ -193,6 +193,11 @@ model Project {
   userId String?
   user   User?   @relation(fields: [userId], references: [id])
 
+  // The project of the Projets tab this task list belongs to (one to one).
+  // Name and colour shown in Tasks / Calendar come from it when set.
+  agentProjectId String?       @unique
+  agentProject   AgentProject? @relation(fields: [agentProjectId], references: [id], onDelete: SetNull)
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -857,6 +862,8 @@ model AgentProject {
 
   links    ProjectLink[]
   contacts ProjectContact[]
+  // The task list (Tasks tab) attached to this project, if any.
+  taskProject Project?
   showcase ProjectShowcase?
   media    ProjectMedia[]
 

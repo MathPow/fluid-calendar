@@ -4,6 +4,8 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
+import { presentTaskProject, taskProjectInclude } from "@/lib/projets/task-link";
+
 import { ProjectStatus } from "@/types/project";
 
 const LOG_SOURCE = "projects-route";
@@ -33,17 +35,13 @@ export async function GET(request: NextRequest) {
           ],
         }),
       },
-      include: {
-        _count: {
-          select: { tasks: true },
-        },
-      },
+      include: taskProjectInclude,
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    return NextResponse.json(projects);
+    return NextResponse.json(projects.map(presentTaskProject));
   } catch (error) {
     logger.error(
       "Error fetching projects:",
@@ -72,17 +70,14 @@ export async function POST(request: NextRequest) {
         description: json.description,
         color: json.color,
         status: json.status || ProjectStatus.ACTIVE,
+        agentProjectId: typeof json.agentProjectId === "string" ? json.agentProjectId : null,
         // Associate the project with the current user
         userId,
       },
-      include: {
-        _count: {
-          select: { tasks: true },
-        },
-      },
+      include: taskProjectInclude,
     });
 
-    return NextResponse.json(project);
+    return NextResponse.json(presentTaskProject(project));
   } catch (error) {
     logger.error(
       "Error creating project:",

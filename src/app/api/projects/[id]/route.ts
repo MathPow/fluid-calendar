@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { presentTaskProject, taskProjectInclude } from "@/lib/projets/task-link";
 
 const LOG_SOURCE = "project-route";
 
@@ -26,10 +27,8 @@ export async function GET(
         userId,
       },
       include: {
+        ...taskProjectInclude,
         tasks: true,
-        _count: {
-          select: { tasks: true },
-        },
       },
     });
 
@@ -37,7 +36,7 @@ export async function GET(
       return new NextResponse("Project not found", { status: 404 });
     }
 
-    return NextResponse.json(project);
+    return NextResponse.json(presentTaskProject(project));
   } catch (error) {
     logger.error(
       "Error fetching project:",
@@ -76,15 +75,14 @@ export async function PUT(
         description: json.description,
         color: json.color,
         status: json.status,
+        ...(json.agentProjectId === null || typeof json.agentProjectId === "string"
+          ? { agentProjectId: json.agentProjectId }
+          : {}),
       },
-      include: {
-        _count: {
-          select: { tasks: true },
-        },
-      },
+      include: taskProjectInclude,
     });
 
-    return NextResponse.json(project);
+    return NextResponse.json(presentTaskProject(project));
   } catch (error) {
     logger.error(
       "Error updating project:",
@@ -118,11 +116,7 @@ export async function DELETE(
         // Ensure the project belongs to the current user
         userId,
       },
-      include: {
-        _count: {
-          select: { tasks: true },
-        },
-      },
+      include: taskProjectInclude,
     });
 
     if (!project) {

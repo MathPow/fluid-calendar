@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { FolderOpen, Pencil, Plus, RefreshCw } from "lucide-react";
+import Link from "next/link";
+
+import { FolderGit2, FolderOpen, Pencil, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -321,6 +323,16 @@ function ProjectItem({
         />
       )}
       <span className="project-name flex-1 truncate">{project.name}</span>
+      {project.agentProject && (
+        <Link
+          href={`/projets/${encodeURIComponent(project.agentProject.slug)}`}
+          onClick={(e) => e.stopPropagation()}
+          className="rounded-full p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-100"
+          title={`Ouvrir ${project.agentProject.name} dans Projets`}
+        >
+          <FolderGit2 className="h-3.5 w-3.5" />
+        </Link>
+      )}
       <span className="text-xs text-muted-foreground">{taskCount}</span>
 
       {hasMappings && (

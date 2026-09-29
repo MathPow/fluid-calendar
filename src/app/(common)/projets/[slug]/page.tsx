@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { AskBox } from "@/components/projets/AskBox";
 import { Avatar } from "@/components/projets/ImageField";
 import { ProjectDetailActions } from "@/components/projets/ProjectDetailActions";
+import { ProjectTasksTile } from "@/components/projets/ProjectTasksTile";
 import {
   ProjectStorePage,
   type StoreFact,
@@ -102,6 +103,33 @@ export default async function ProjetDetailPage({
     ]);
 
   if (!project) notFound();
+
+  // The task list attached to this project (Tasks / Calendar tabs), its open
+  // tasks, and the unattached lists that could be attached instead.
+  const [taskList, candidateLists] = await Promise.all([
+    prisma.project.findUnique({
+      where: { agentProjectId: project.id },
+      select: {
+        id: true,
+        tasks: {
+          orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            dueDate: true,
+            steps: { select: { done: true }, orderBy: { sortOrder: "asc" } },
+          },
+        },
+      },
+    }),
+    prisma.project.findMany({
+      where: { agentProjectId: null, status: "active" },
+      select: { id: true, name: true, _count: { select: { tasks: true } } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+  const openTasks = (taskList?.tasks ?? []).filter((t) => t.status !== "completed");
 
   const color = project.color ?? DEFAULT_PROJECT_COLOR;
   const activityCount = project._count.activities;
@@ -369,6 +397,32 @@ export default async function ProjetDetailPage({
           )}
         </div>
       </section>
+
+      {/* -------------------------------------------------------- Tâches */}
+      <ProjectTasksTile
+        agentProjectId={project.id}
+        list={
+          taskList
+            ? {
+                id: taskList.id,
+                openCount: openTasks.length,
+                doneCount: taskList.tasks.length - openTasks.length,
+              }
+            : null
+        }
+        tasks={openTasks.slice(0, 10).map((t) => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+          steps: t.steps,
+        }))}
+        candidates={candidateLists.map((c) => ({
+          id: c.id,
+          name: c.name,
+          taskCount: c._count.tasks,
+        }))}
+      />
 
       {/* ------------------------------------------------------ Journal */}
       <div className="mt-5">
