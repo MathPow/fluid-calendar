@@ -41,7 +41,6 @@ import {
   fold,
 } from "./ProjectFilters";
 import { ProjectTile } from "./ProjectTile";
-import { SectionSwitch } from "./SectionSwitch";
 import { LinkPill } from "./link-icons";
 
 interface ProjetsBoardProps {
@@ -261,7 +260,6 @@ export function ProjetsBoard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <SectionSwitch />
           <Button
             variant="outline"
             size="lg"
