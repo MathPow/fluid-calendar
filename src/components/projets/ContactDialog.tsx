@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Trash2 } from "lucide-react";
+import { Star, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
+import { cn } from "@/lib/utils";
 
 import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
 import type { ContactFull } from "@/lib/projets/queries";
@@ -39,6 +41,10 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
+  const [relation, setRelation] = useState("");
+  const [favorite, setFavorite] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagDraft, setTagDraft] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -50,11 +56,25 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
     setName(contact?.name ?? "");
     setCompany(contact?.company ?? "");
     setRole(contact?.role ?? "");
+    setRelation(contact?.relation ?? "");
+    setFavorite(contact?.favorite ?? false);
+    setTags(contact?.tags ?? []);
+    setTagDraft("");
     setEmail(contact?.email ?? "");
     setPhone(contact?.phone ?? "");
     setNotes(contact?.notes ?? "");
     setProjectIds(contact?.projects.map((p) => p.projectId) ?? []);
   }, [open, contact]);
+
+  const addTags = () => {
+    const parts = tagDraft
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!parts.length) return;
+    setTags((prev) => Array.from(new Set([...prev, ...parts])).slice(0, 50));
+    setTagDraft("");
+  };
 
   const toggleProject = (id: string, on: boolean) =>
     setProjectIds((prev) =>
@@ -66,6 +86,9 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
       toast.error("Donne un nom au contact.");
       return;
     }
+    const finalTags = tagDraft.trim()
+      ? Array.from(new Set([...tags, ...tagDraft.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)]))
+      : tags;
     setSubmitting(true);
     try {
       const res = await fetch(editing ? `/api/contacts/${contact!.id}` : "/api/contacts", {
@@ -75,6 +98,9 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
           name: name.trim(),
           company: company.trim() || null,
           role: role.trim() || null,
+          relation: relation.trim() || null,
+          favorite,
+          tags: finalTags,
           email: email.trim() || null,
           phone: phone.trim() || null,
           notes: notes.trim() || null,
@@ -141,14 +167,30 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
         >
           <div className="space-y-2">
             <Label htmlFor="contact-name">Nom</Label>
-            <Input
-              id="contact-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Marie-Ève Tremblay"
-              autoFocus
-              className="text-[17px] font-semibold tracking-title"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id="contact-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Marie-Ève Tremblay"
+                autoFocus
+                className="text-[17px] font-semibold tracking-title"
+              />
+              <button
+                type="button"
+                onClick={() => setFavorite((v) => !v)}
+                aria-pressed={favorite}
+                title={favorite ? "Retirer des favoris" : "Mettre en favori"}
+                className={cn(
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] transition-colors",
+                  favorite
+                    ? "bg-pending text-pending-foreground"
+                    : "bg-input text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Star className={cn("h-5 w-5", favorite && "fill-current")} />
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
@@ -162,12 +204,21 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contact-role">Rôle</Label>
+              <Label htmlFor="contact-role">Job / catégorie</Label>
               <Input
                 id="contact-role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                placeholder="Cliente, designer, dev…"
+                placeholder="Entrepreneur, Pro, Étudiant…"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="contact-relation">Relation</Label>
+              <Input
+                id="contact-relation"
+                value={relation}
+                onChange={(e) => setRelation(e.target.value)}
+                placeholder="Ami, classe au cégep, partenaire, client…"
               />
             </div>
             <div className="space-y-2">
@@ -190,6 +241,47 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
                 placeholder="514 555-0199"
               />
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="contact-tags">Mots-clés privés</Label>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1.5 text-[13px] font-medium"
+                  >
+                    {t}
+                    <button
+                      type="button"
+                      onClick={() => setTags((prev) => prev.filter((x) => x !== t))}
+                      className="rounded-full p-0.5 text-muted-foreground hover:bg-card hover:text-foreground"
+                      aria-label={`Retirer ${t}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <Input
+              id="contact-tags"
+              value={tagDraft}
+              onChange={(e) => setTagDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  addTags();
+                }
+              }}
+              onBlur={addTags}
+              placeholder="tristan clientèle, podcast, lévis… (Entrée pour ajouter)"
+            />
+            <p className="text-[12px] text-muted-foreground">
+              Pour toi seulement : des repères que la recherche retrouve, sans être affichés en
+              grand sur la fiche.
+            </p>
           </div>
 
           <div className="space-y-2">

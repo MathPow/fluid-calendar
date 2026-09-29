@@ -36,6 +36,9 @@ export const ContactInput = z.object({
   phone: z.string().trim().max(40).nullable().optional(),
   company: z.string().trim().max(120).nullable().optional(),
   role: z.string().trim().max(80).nullable().optional(),
+  relation: z.string().trim().max(80).nullable().optional(),
+  favorite: z.boolean().optional(),
+  tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
   notes: z.string().trim().max(4000).nullable().optional(),
   projectIds: z.array(z.string().min(1)).max(100).optional(),
 });

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { projectIds = [], ...fields } = parsed.data;
+  const { projectIds = [], tags = [], ...fields } = parsed.data;
 
   try {
     const contact = await prisma.contact.create({
@@ -49,6 +49,9 @@ export async function POST(request: NextRequest) {
         phone: fields.phone || null,
         company: fields.company || null,
         role: fields.role || null,
+        relation: fields.relation || null,
+        favorite: fields.favorite ?? false,
+        tags,
         notes: fields.notes || null,
         projects: { create: projectIds.map((projectId) => ({ projectId })) },
       },

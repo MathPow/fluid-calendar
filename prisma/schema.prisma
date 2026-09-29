@@ -876,13 +876,17 @@ model Contact {
   email     String?
   phone     String?
   company   String?
-  role      String? // their job / relationship, e.g. "Designer", "Client"
+  role      String? // job / category, e.g. "Entrepreneur", "Pro", "Étudiant"
+  relation  String? // how you know them, e.g. "Ami", "Classe au cégep", "Partnership"
+  favorite  Boolean          @default(false)
+  tags      String[]         @default([]) // private keywords for search ("tristan clientèle"…)
   notes     String?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
   projects  ProjectContact[]
 
   @@index([name])
+  @@index([favorite])
 }
 
 model ProjectContact {

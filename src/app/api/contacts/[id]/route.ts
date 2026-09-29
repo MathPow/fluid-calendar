@@ -31,7 +31,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { status: 400 }
     );
   }
-  const { projectIds, ...fields } = parsed.data;
+  const { projectIds, tags, ...fields } = parsed.data;
 
   try {
     const contact = await prisma.$transaction(async (tx) => {
@@ -43,6 +43,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           ...(fields.phone !== undefined ? { phone: fields.phone || null } : {}),
           ...(fields.company !== undefined ? { company: fields.company || null } : {}),
           ...(fields.role !== undefined ? { role: fields.role || null } : {}),
+          ...(fields.relation !== undefined ? { relation: fields.relation || null } : {}),
+          ...(fields.favorite !== undefined ? { favorite: fields.favorite } : {}),
+          ...(tags !== undefined ? { tags } : {}),
           ...(fields.notes !== undefined ? { notes: fields.notes || null } : {}),
         },
       });
