@@ -11,14 +11,27 @@ export default async function ProjetsPage() {
     prisma.agentProject.findMany({
       where: { archived: false },
       include: projectInclude,
-      orderBy: [{ lastActivityAt: "desc" }, { name: "asc" }],
+      orderBy: [
+        { sortOrder: "asc" },
+        { lastActivityAt: { sort: "desc", nulls: "last" } },
+        { name: "asc" },
+      ],
     }),
     prisma.contact.findMany({
       select: { id: true, name: true, company: true, role: true, email: true },
       orderBy: { name: "asc" },
     }),
-    prisma.organisation.findMany({ select: organisationSelect, orderBy: { sortOrder: "asc" } }),
+    prisma.organisation.findMany({
+      select: organisationSelect,
+      orderBy: { sortOrder: "asc" },
+    }),
   ]);
 
-  return <ProjetsBoard projects={projects} organisations={organisations} contacts={contacts} />;
+  return (
+    <ProjetsBoard
+      projects={projects}
+      organisations={organisations}
+      contacts={contacts}
+    />
+  );
 }

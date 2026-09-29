@@ -41,6 +41,7 @@ import {
   fold,
 } from "./ProjectFilters";
 import { ProjectTile } from "./ProjectTile";
+import { ReorderDialog } from "./ReorderDialog";
 import { LinkPill } from "./link-icons";
 
 interface ProjetsBoardProps {
@@ -67,6 +68,10 @@ export function ProjetsBoard({
     organisationId?: string | null;
   }>({ open: false });
   const [orderOpen, setOrderOpen] = useState(false);
+  const [projectOrder, setProjectOrder] = useState<{
+    org: OrganisationLite;
+    projects: ProjectFull[];
+  } | null>(null);
   const [orgDialog, setOrgDialog] = useState<{
     open: boolean;
     organisation?: OrganisationLite | null;
@@ -347,6 +352,17 @@ export function ProjetsBoard({
                   </p>
                 </div>
                 <div className="ml-auto flex items-center gap-1">
+                  {list.length > 1 && !filtering && (
+                    <button
+                      type="button"
+                      onClick={() => setProjectOrder({ org, projects: list })}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                      aria-label={`Réorganiser les projets de ${org.name}`}
+                      title="Réorganiser les projets"
+                    >
+                      <ArrowUpDown className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() =>
@@ -439,6 +455,14 @@ export function ProjetsBoard({
         projects={lite}
         organisations={organisations}
         contacts={contacts}
+      />
+      <ReorderDialog
+        open={!!projectOrder}
+        onOpenChange={(open) => !open && setProjectOrder(null)}
+        title={`Projets de ${projectOrder?.org.name ?? ""}`}
+        description="Cet ordre s'applique ici et dans la liste de l'accueil (les 4 premiers)."
+        items={projectOrder?.projects ?? []}
+        endpoint="/api/projets/order"
       />
       <OrganisationOrderDialog
         open={orderOpen}

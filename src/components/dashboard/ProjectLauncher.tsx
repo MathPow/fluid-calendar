@@ -1,239 +1,217 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
 import { ArrowUpRight, TerminalSquare } from "lucide-react";
 
+import { Avatar } from "@/components/projets/ImageField";
+import { ProjectMark } from "@/components/projets/ProjectTile";
 import { Button } from "@/components/ui/button";
 
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
   terminalUrl,
+  timeAgoFr,
 } from "@/lib/projets/meta";
 
 import { useStationStore } from "@/store/station";
 
-/**
- * Quick access to projects on the dashboard. Reads the projects managed in the
- * Projets tab; each tile opens the project page, and the small terminal button
- * opens the web terminal of the machine the project was last active on, in
- * its folder there. Until any project exists, the hard-coded launcher list
- * below is shown so the tab is never empty.
- */
+/** How many projects each organisation shows on the dashboard. */
+const TOP = 4;
+
 interface LauncherProject {
   id: string;
   slug: string;
   name: string;
   color: string | null;
+  image: string | null;
+  description: string | null;
   station: string;
   parentId: string | null;
-  path: string | null;
+  organisationId: string | null;
+  lastActivityAt: string | null;
   /** Most recently active first. */
-  locations?: {
+  locations: {
     path: string;
     machine: { name: string; label: string | null; ttydUrl: string | null };
   }[];
-  image?: string | null;
-  logo?: string | null;
 }
 
-// Used only when a project has a folder but no known machine yet.
-const TERMINAL_BASE = "https://mathpow.taila15d52.ts.net:7681/";
+interface LauncherOrganisation {
+  id: string;
+  name: string;
+  color: string | null;
+  image: string | null;
+  isDefault: boolean;
+}
 
-/** Terminal of the latest machine that has one, else the legacy default. */
+/** Terminal of the most recent machine that has one. */
 function projectTerminal(
   p: LauncherProject
-): { url: string; machine: string | null } | null {
+): { url: string; machine: string } | null {
   for (const l of p.locations ?? []) {
     const url = terminalUrl(l.machine.ttydUrl, l.path);
     if (url) return { url, machine: l.machine.label || l.machine.name };
   }
-  const url = p.path ? terminalUrl(TERMINAL_BASE, p.path) : null;
-  return url ? { url, machine: null } : null;
+  return null;
 }
 
-const FALLBACK: LauncherProject[] = [
-  {
-    id: "orka",
-    slug: "orka",
-    name: "Orka",
-    color: "#9fd5f0",
-    station: "personal",
-    parentId: null,
-    path: "orka",
-    logo: "/projects/staychum.svg",
-  },
-  {
-    id: "StayChum",
-    slug: "StayChum",
-    name: "StayChum",
-    color: "#9fe0c4",
-    station: "personal",
-    parentId: null,
-    path: "StayChum",
-    logo: "/projects/staychum.svg",
-  },
-  {
-    id: "dreamdash",
-    slug: "dreamdash",
-    name: "DreamDash",
-    color: "#a8ccff",
-    station: "personal",
-    parentId: null,
-    path: "dreamdash",
-    logo: "/projects/dreamdash.svg",
-  },
-  {
-    id: "meetily",
-    slug: "meetily",
-    name: "Meetily",
-    color: "#cbb2f0",
-    station: "personal",
-    parentId: null,
-    path: "meetily",
-    logo: "/projects/meetily.svg",
-  },
-  {
-    id: "realsync-technologies",
-    slug: "realsync-technologies",
-    name: "RealSync",
-    color: "#ffd166",
-    station: "work",
-    parentId: null,
-    path: "realsync-technologies",
-    logo: "/projects/realsync.svg",
-  },
-  {
-    id: "ttyd",
-    slug: "ttyd",
-    name: "SpySSH",
-    color: "#bfd3a8",
-    station: "personal",
-    parentId: null,
-    path: "ttyd",
-    logo: "/projects/ttyd.svg",
-  },
-];
-
-function Mark({ project }: { project: LauncherProject }) {
-  const [errored, setErrored] = useState(false);
-  const src = project.image || project.logo;
-  if (src && !errored) {
-    return (
-      // Plain <img> on purpose: next/image's optimizer rejects SVGs and data URLs.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt=""
-        className="h-12 w-12 rounded-2xl object-contain"
-        onError={() => setErrored(true)}
-      />
-    );
-  }
-  return (
-    <div
-      className="flex h-12 w-12 items-center justify-center rounded-2xl text-[15px] font-extrabold text-[#19181c]"
-      style={{ backgroundColor: project.color ?? DEFAULT_PROJECT_COLOR }}
-    >
-      {initials(project.name)}
-    </div>
-  );
-}
-
+/**
+ * Dashboard « Projects » tab: each organisation, in the user's order, with its
+ * first four projects (the order set with « Réorganiser » in Projets, else the
+ * most recently active). A row opens the project; the terminal icon opens its
+ * folder in the machine's web terminal.
+ */
 export function ProjectLauncher() {
   const { currentStation } = useStationStore();
-  const [projects, setProjects] = useState<LauncherProject[] | null>(null);
+  const [data, setData] = useState<{
+    projects: LauncherProject[];
+    organisations: LauncherOrganisation[];
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/projets")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((rows: LauncherProject[]) => {
-        if (!cancelled) setProjects(rows.filter((p) => !p.parentId));
+    const json = (r: Response) => (r.ok ? r.json() : []);
+    Promise.all([
+      fetch("/api/projets").then(json),
+      fetch("/api/organisations").then(json),
+    ])
+      .then(([projects, organisations]) => {
+        if (!cancelled) setData({ projects, organisations });
       })
       .catch(() => {
-        if (!cancelled) setProjects([]);
+        if (!cancelled) setData({ projects: [], organisations: [] });
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const fromDb = (projects?.length ?? 0) > 0;
-  const list = (fromDb ? projects! : FALLBACK).filter(
-    (p) => currentStation === "both" || p.station === currentStation
-  );
+  const groups = useMemo(() => {
+    if (!data) return [];
+    const top = data.projects.filter(
+      (p) =>
+        !p.parentId &&
+        (currentStation === "both" || p.station === currentStation)
+    );
+    const known = new Set(
+      data.organisations.filter((o) => !o.isDefault).map((o) => o.id)
+    );
+    // Organisations arrive in the user's order; projects in theirs.
+    return data.organisations
+      .map((org) => ({
+        org,
+        projects: top.filter((p) =>
+          org.isDefault
+            ? !p.organisationId || !known.has(p.organisationId)
+            : p.organisationId === org.id
+        ),
+      }))
+      .filter((g) => g.projects.length > 0);
+  }, [data, currentStation]);
+
+  if (!data) {
+    return (
+      <p className="py-8 text-center text-[13px] text-muted-foreground">
+        Chargement…
+      </p>
+    );
+  }
 
   return (
     <div>
-      {list.length === 0 ? (
+      {groups.length === 0 ? (
         <p className="py-8 text-center text-[13px] text-muted-foreground">
           Aucun projet dans cette station.
         </p>
       ) : (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-          {list.map((p) => {
-            const found = projectTerminal(p);
-            const terminal = found?.url ?? null;
-            const inner = (
-              <>
-                <Mark project={p} />
-                <span className="flex items-center gap-0.5 text-center text-[13px] font-medium">
-                  {p.name}
-                  <ArrowUpRight className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        <div className="space-y-7">
+          {groups.map(({ org, projects }) => (
+            <section key={org.id}>
+              <div className="flex items-center gap-2.5">
+                <Avatar
+                  image={org.image}
+                  fallback={initials(org.name)}
+                  color={org.color ?? DEFAULT_PROJECT_COLOR}
+                  shape="rounded"
+                  className="h-7 w-7 text-[10px]"
+                />
+                <h3 className="text-[15px] font-bold tracking-title">
+                  {org.name}
+                </h3>
+                <span className="text-[12px] text-muted-foreground">
+                  {projects.length}
                 </span>
-              </>
-            );
-            const tileClass =
-              "group relative flex flex-col items-center gap-3 rounded-[20px] bg-secondary p-4 transition-[background-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-card hover:shadow-tile";
-            return (
-              <div key={p.id} className="relative">
-                {fromDb ? (
-                  <Link
-                    href={`/projets/${encodeURIComponent(p.slug)}`}
-                    className={tileClass}
-                  >
-                    {inner}
-                  </Link>
-                ) : (
-                  <a
-                    href={terminal ?? "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={tileClass}
-                  >
-                    {inner}
-                  </a>
-                )}
-                {fromDb && terminal && (
-                  <a
-                    href={terminal}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={
-                      found?.machine
-                        ? `Ouvrir le terminal · ${found.machine}`
-                        : "Ouvrir le terminal"
-                    }
-                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 [div:hover>&]:opacity-100"
-                  >
-                    <TerminalSquare className="h-3.5 w-3.5" />
-                  </a>
-                )}
               </div>
-            );
-          })}
+              <ol className="mt-2">
+                {projects.slice(0, TOP).map((p) => {
+                  const terminal = projectTerminal(p);
+                  return (
+                    <li
+                      key={p.id}
+                      className="group flex items-center gap-3 border-b border-border last:border-b-0"
+                    >
+                      <Link
+                        href={`/projets/${encodeURIComponent(p.slug)}`}
+                        className="flex min-w-0 flex-1 items-center gap-3 py-3"
+                      >
+                        <ProjectMark
+                          name={p.name}
+                          color={p.color}
+                          image={p.image}
+                          className="h-9 w-9 rounded-xl text-[12px]"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-1 text-[15px] font-semibold tracking-title">
+                            <span className="truncate">{p.name}</span>
+                            <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                          </span>
+                          {p.description && (
+                            <span className="block truncate text-[13px] text-muted-foreground">
+                              {p.description}
+                            </span>
+                          )}
+                        </span>
+                        {p.lastActivityAt && (
+                          <span className="hidden shrink-0 text-[12px] text-muted-foreground sm:block">
+                            {timeAgoFr(p.lastActivityAt)}
+                          </span>
+                        )}
+                      </Link>
+                      {terminal && (
+                        <a
+                          href={terminal.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Terminal sur ${terminal.machine}`}
+                          aria-label={`Terminal de ${p.name}`}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        >
+                          <TerminalSquare className="h-4 w-4" />
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+              {projects.length > TOP && (
+                <Link
+                  href="/projets"
+                  className="mt-1 inline-block text-[12px] font-medium text-muted-foreground hover:text-foreground"
+                >
+                  + {projects.length - TOP} autre
+                  {projects.length - TOP > 1 ? "s" : ""}
+                </Link>
+              )}
+            </section>
+          ))}
         </div>
       )}
-      <p className="mt-5 flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
-        <span>
-          {fromDb
-            ? "Chaque tuile ouvre le dossier du projet; l'icône terminal lance son shell."
-            : "Chaque tuile ouvre le terminal du projet dans un nouvel onglet."}
-        </span>
+      <p className="mt-6 flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
+        <span>L&apos;ordre se règle dans Projets avec « Réorganiser ».</span>
         <Button variant="outline" size="sm" asChild>
           <Link href="/projets">Tous les projets</Link>
         </Button>

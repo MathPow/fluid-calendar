@@ -22,7 +22,11 @@ export async function GET(request: NextRequest) {
       ...(station === "personal" || station === "work" ? { station } : {}),
     },
     include: projectInclude,
-    orderBy: [{ lastActivityAt: "desc" }, { name: "asc" }],
+    orderBy: [
+      { sortOrder: "asc" },
+      { lastActivityAt: { sort: "desc", nulls: "last" } },
+      { name: "asc" },
+    ],
   });
   return NextResponse.json(projects);
 }
@@ -54,10 +58,14 @@ export async function POST(request: NextRequest) {
       select: { id: true, organisationId: true },
     });
     if (!parent) {
-      return NextResponse.json({ error: "Projet parent introuvable" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Projet parent introuvable" },
+        { status: 400 }
+      );
     }
     // A sub-project lives in its parent's organisation unless told otherwise.
-    if (fields.organisationId === undefined) organisationId = parent.organisationId;
+    if (fields.organisationId === undefined)
+      organisationId = parent.organisationId;
   }
 
   try {

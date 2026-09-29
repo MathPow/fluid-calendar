@@ -851,6 +851,9 @@ model AgentProject {
   description String?
   stack       String[] @default([]) // tools / tech associated (Next.js, Coolify, Stripe…)
   archived    Boolean  @default(false)
+  // Position among its organisation's projects (Projets ▸ Réorganiser; also
+  // the order of the dashboard list). Ties fall back to the latest activity.
+  sortOrder   Int      @default(0)
 
   // The organisation this project belongs to (DehorsQC, StayChum…). Null means
   // the default bucket for random personal projects.
