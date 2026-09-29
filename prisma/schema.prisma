@@ -995,7 +995,7 @@ model Contact {
   phone          String?
   company        String?
   role           String? // job / category, e.g. "Entrepreneur", "Pro", "Étudiant"
-  relation       String? // category: ami | famille | collegue | ecole | client | partenaire | mentor | connaissance | autre
+  relation       String? // category: ami | famille | collegue | ecole | client | partenaire | fournisseur | mentor | connaissance | autre
   relationDetail String? // the precise wording, e.g. "Beau-père de Félix-Antoine"
   image          String? // data URL (resized client-side) or https URL
   favorite       Boolean          @default(false)

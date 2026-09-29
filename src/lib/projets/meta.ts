@@ -75,6 +75,7 @@ export const RELATION_KINDS = [
   { id: "ecole", label: "École" },
   { id: "client", label: "Client" },
   { id: "partenaire", label: "Partenaire" },
+  { id: "fournisseur", label: "Fournisseur" },
   { id: "mentor", label: "Mentor" },
   { id: "connaissance", label: "Connaissance" },
   { id: "autre", label: "Autre" },
