@@ -82,30 +82,32 @@ export function FeedManager() {
   }, []);
 
   const groups = useMemo(() => {
-    const named = [...organisations]
-      .filter((o) => !o.isDefault)
-      .sort(
-        (a, b) =>
-          a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "fr")
-      );
-    const perso = organisations.find((o) => o.isDefault) ?? null;
-    const known = new Set(named.map((o) => o.id));
-    const sections = named.map((org) => ({
-      key: org.id,
+    // Organisations in the user's order (Projets ▸ Réorganiser); the default
+    // one collects calendars without an organisation, wherever it sits.
+    const ordered = [...organisations].sort(
+      (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "fr")
+    );
+    const known = new Set(ordered.filter((o) => !o.isDefault).map((o) => o.id));
+    const sections = ordered.map((org) => ({
+      key: org.isDefault ? "perso" : org.id,
       title: org.name,
       color: org.color,
       image: org.image,
-      feeds: feeds.filter((f) => f.organisationId === org.id),
+      feeds: org.isDefault
+        ? feeds.filter((f) => !f.organisationId || !known.has(f.organisationId))
+        : feeds.filter((f) => f.organisationId === org.id),
     }));
-    sections.push({
-      key: "perso",
-      title: perso?.name ?? "Perso",
-      color: perso?.color ?? "#ffd166",
-      image: perso?.image ?? null,
-      feeds: feeds.filter(
-        (f) => !f.organisationId || !known.has(f.organisationId)
-      ),
-    });
+    if (!ordered.some((o) => o.isDefault)) {
+      sections.push({
+        key: "perso",
+        title: "Perso",
+        color: "#ffd166",
+        image: null,
+        feeds: feeds.filter(
+          (f) => !f.organisationId || !known.has(f.organisationId)
+        ),
+      });
+    }
     return sections.filter((s) => s.feeds.length > 0 || s.key === "perso");
   }, [feeds, organisations]);
 

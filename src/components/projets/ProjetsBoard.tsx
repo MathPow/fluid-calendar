@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react";
 
-import { Building2, ChevronDown, ChevronUp, Pencil, Plus } from "lucide-react";
+import {
+  ArrowUpDown,
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Plus,
+} from "lucide-react";
 
 import { AskBox } from "@/components/projets/AskBox";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +26,7 @@ import { useStationStore } from "@/store/station";
 
 import { Avatar } from "./ImageField";
 import { OrganisationDialog } from "./OrganisationDialog";
+import { OrganisationOrderDialog } from "./OrganisationOrderDialog";
 import {
   type ContactLite,
   ProjectDialog,
@@ -59,6 +67,7 @@ export function ProjetsBoard({
     project?: ProjectFull | null;
     organisationId?: string | null;
   }>({ open: false });
+  const [orderOpen, setOrderOpen] = useState(false);
   const [orgDialog, setOrgDialog] = useState<{
     open: boolean;
     organisation?: OrganisationLite | null;
@@ -97,11 +106,11 @@ export function ProjetsBoard({
     );
     const kindRank = (k: string) =>
       k === "owned" ? 0 : k === "client" ? 1 : 2;
+    // The user's order (« Réorganiser »); type then name only break ties.
     const ordered = [...organisations].sort(
       (a, b) =>
-        Number(a.isDefault) - Number(b.isDefault) ||
-        kindRank(a.kind) - kindRank(b.kind) ||
         a.sortOrder - b.sortOrder ||
+        kindRank(a.kind) - kindRank(b.kind) ||
         a.name.localeCompare(b.name, "fr")
     );
     const known = new Set(organisations.map((o) => o.id));
@@ -260,6 +269,15 @@ export function ProjetsBoard({
           >
             <Building2 /> Organisation
           </Button>
+          {organisations.length > 1 && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setOrderOpen(true)}
+            >
+              <ArrowUpDown /> Réorganiser
+            </Button>
+          )}
           <Button
             size="lg"
             onClick={() => setDialog({ open: true, project: null })}
@@ -423,6 +441,11 @@ export function ProjetsBoard({
         projects={lite}
         organisations={organisations}
         contacts={contacts}
+      />
+      <OrganisationOrderDialog
+        open={orderOpen}
+        onOpenChange={setOrderOpen}
+        organisations={sections.map((s) => s.org)}
       />
       <OrganisationDialog
         open={orgDialog.open}

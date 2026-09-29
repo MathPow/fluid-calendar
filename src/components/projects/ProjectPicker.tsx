@@ -25,10 +25,20 @@ export interface LinkOptions {
     color: string | null;
     parentId: string | null;
     station: string;
-    organisation: { id: string; name: string; isDefault: boolean; sortOrder: number } | null;
+    organisation: {
+      id: string;
+      name: string;
+      isDefault: boolean;
+      sortOrder: number;
+    } | null;
     taskProjectId: string | null;
   }[];
-  lists: { id: string; name: string; color: string | null; _count: { tasks: number } }[];
+  lists: {
+    id: string;
+    name: string;
+    color: string | null;
+    _count: { tasks: number };
+  }[];
 }
 
 /** Loads the Projets-tab projects and the unattached task lists. */
@@ -70,12 +80,15 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
 
   const groups = useMemo(() => {
     if (!options) return [];
-    const byOrg = new Map<string, { title: string; rank: number; items: LinkOptions["projets"] }>();
+    const byOrg = new Map<
+      string,
+      { title: string; rank: number; items: LinkOptions["projets"] }
+    >();
     for (const p of options.projets) {
       const key = p.organisation?.id ?? "perso";
       const g = byOrg.get(key) ?? {
         title: p.organisation?.name ?? "Perso",
-        rank: p.organisation ? (p.organisation.isDefault ? 1000 : p.organisation.sortOrder) : 1000,
+        rank: p.organisation ? p.organisation.sortOrder : 1000,
         items: [],
       };
       g.items.push(p);
@@ -85,8 +98,13 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
       .sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title, "fr"))
       .map((g) => {
         // Parents first, each followed by its sub-projects.
-        const tops = g.items.filter((p) => !p.parentId || !g.items.some((x) => x.id === p.parentId));
-        const ordered = tops.flatMap((t) => [t, ...g.items.filter((c) => c.parentId === t.id)]);
+        const tops = g.items.filter(
+          (p) => !p.parentId || !g.items.some((x) => x.id === p.parentId)
+        );
+        const ordered = tops.flatMap((t) => [
+          t,
+          ...g.items.filter((c) => c.parentId === t.id),
+        ]);
         return { ...g, items: ordered };
       });
   }, [options]);
@@ -126,13 +144,18 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
             <SelectSeparator />
             <SelectLabel>{g.title}</SelectLabel>
             {g.items.map((p) => (
-              <SelectItem key={p.id} value={p.taskProjectId ?? `${AGENT}${p.id}`}>
+              <SelectItem
+                key={p.id}
+                value={p.taskProjectId ?? `${AGENT}${p.id}`}
+              >
                 <span className="inline-flex items-center gap-2">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: p.color ?? "#a8ccff" }}
                   />
-                  {p.parentId && <span className="text-muted-foreground">↳</span>}
+                  {p.parentId && (
+                    <span className="text-muted-foreground">↳</span>
+                  )}
                   {p.name}
                 </span>
               </SelectItem>

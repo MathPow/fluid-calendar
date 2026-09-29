@@ -9,8 +9,8 @@ export type TaskProjectGroup = {
 
 /**
  * Task lists grouped by the organisation of their Projets project, in the
- * Projets tab's order: organisations by sortOrder, the default one last, and
- * lists not linked to a Projets project at the very end.
+ * Projets tab's order (organisations by sortOrder, as arranged with
+ * « Réorganiser »), lists not linked to a Projets project at the very end.
  */
 export function groupTaskProjects(projects: Project[]): TaskProjectGroup[] {
   const groups = new Map<
@@ -26,7 +26,8 @@ export function groupTaskProjects(projects: Project[]): TaskProjectGroup[] {
         key,
         name: org?.name ?? "Sans organisation",
         color: org?.color ?? null,
-        rank: org ? [org.isDefault ? 1 : 0, org.sortOrder ?? 0] : [2, 0],
+        // The user's organisation order; unlinked lists at the very end.
+        rank: org ? [0, org.sortOrder ?? 0] : [1, 0],
         projects: [],
       };
       groups.set(key, group);

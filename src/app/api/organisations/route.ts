@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   if ("response" in auth) return auth.response;
   const rows = await prisma.organisation.findMany({
     select: organisationSelect,
-    orderBy: [{ isDefault: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
   return NextResponse.json(rows);
 }
