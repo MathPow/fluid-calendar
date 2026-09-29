@@ -6,6 +6,7 @@ export interface CalendarFeed {
   color?: string;
   enabled: boolean;
   station?: string | null; // "personal" | "work" | null
+  organisationId?: string | null;
   lastSync?: Date;
   error?: string;
   caldavPath?: string;

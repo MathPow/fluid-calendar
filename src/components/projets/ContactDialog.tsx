@@ -60,6 +60,7 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [projectIds, setProjectIds] = useState<string[]>([]);
+  const [projectQuery, setProjectQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -77,6 +78,7 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
     setPhone(contact?.phone ?? "");
     setNotes(contact?.notes ?? "");
     setProjectIds(contact?.projects.map((p) => p.projectId) ?? []);
+    setProjectQuery("");
   }, [open, contact]);
 
   const addTags = () => {
@@ -339,8 +341,25 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
             {projects.length === 0 ? (
               <p className="text-[13px] text-muted-foreground">Aucun projet à rattacher.</p>
             ) : (
+              <>
+                {projects.length > 6 && (
+                  <Input
+                    value={projectQuery}
+                    onChange={(e) => setProjectQuery(e.target.value)}
+                    placeholder={`Chercher parmi ${projects.length} projets…`}
+                    className="h-10"
+                  />
+                )}
               <ul className="max-h-52 divide-y divide-border overflow-y-auto rounded-2xl bg-secondary/60 px-3">
-                {projects.map((p) => (
+                {projects
+                  .filter((p) => {
+                    const q = projectQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    if (projectIds.includes(p.id)) return true;
+                    const parent = p.parentId ? projects.find((x) => x.id === p.parentId)?.name : "";
+                    return `${p.name} ${parent ?? ""}`.toLowerCase().includes(q);
+                  })
+                  .map((p) => (
                   <li key={p.id}>
                     <label className="flex cursor-pointer items-center gap-3 py-2.5">
                       <Checkbox
@@ -364,6 +383,7 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
                   </li>
                 ))}
               </ul>
+              </>
             )}
           </div>
 

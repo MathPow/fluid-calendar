@@ -8,6 +8,19 @@ import { cn } from "@/lib/utils";
 
 import { Priority, TaskStatus } from "@/types/task";
 
+/** Ink on light backgrounds, paper on dark ones — whatever the theme. */
+function readableOn(background: string | undefined): string | undefined {
+  if (!background) return undefined;
+  const m = background.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return undefined; // hsl(var(--…)) and friends: leave the theme colour
+  let hex = m[1];
+  if (hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return luminance > 0.45 ? "#19181c" : "#ffffff";
+}
+
 interface CalendarEventContentProps {
   eventInfo: EventContentArg;
 }
@@ -34,6 +47,7 @@ export const CalendarEventContent = memo(function CalendarEventContent({
   const duration = endTime - startTime;
 
   const isOverdue = isTask && isTaskOverdue({ dueDate, status });
+  const textColor = readableOn(eventInfo.backgroundColor || eventInfo.event.backgroundColor);
 
   return (
     <div
@@ -41,7 +55,6 @@ export const CalendarEventContent = memo(function CalendarEventContent({
       className={cn(
         "flex h-full flex-col justify-start gap-1 overflow-hidden text-[11px]",
         isTask && "border-l-4",
-        isTask && "text-foreground/80",
         isTask && priority && priorityColors[priority as Priority],
         isTask &&
           !priority && {
@@ -49,9 +62,10 @@ export const CalendarEventContent = memo(function CalendarEventContent({
             "border-pending-foreground": status === TaskStatus.IN_PROGRESS,
             "border-muted-foreground": status === TaskStatus.TODO,
           },
-        isOverdue && "border-destructive font-medium text-negative-foreground",
-        status === TaskStatus.COMPLETED && "text-muted-foreground line-through"
+        isOverdue && "border-destructive font-medium",
+        status === TaskStatus.COMPLETED && "line-through opacity-60"
       )}
+      style={textColor ? { color: textColor } : undefined}
     >
       <div className="flex w-full items-center gap-1.5">
         {isTask ? (

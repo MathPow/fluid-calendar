@@ -63,7 +63,16 @@ export async function PATCH(
     const userId = auth.userId;
 
     const { id } = await params;
-    const updates = await request.json();
+    const body = (await request.json()) as Record<string, unknown>;
+    // Only the fields the sidebar edits; never let a client set sync internals.
+    const updates: Record<string, unknown> = {};
+    if (typeof body.name === "string" && body.name.trim()) updates.name = body.name.trim().slice(0, 100);
+    if (typeof body.color === "string" || body.color === null) updates.color = body.color;
+    if (typeof body.enabled === "boolean") updates.enabled = body.enabled;
+    if (body.station === null || body.station === "personal" || body.station === "work")
+      updates.station = body.station;
+    if (body.organisationId === null || typeof body.organisationId === "string")
+      updates.organisationId = body.organisationId;
     const updated = await prisma.calendarFeed.update({
       where: {
         id,

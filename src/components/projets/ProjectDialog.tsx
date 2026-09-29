@@ -117,6 +117,7 @@ export function ProjectDialog({
   const [contactIds, setContactIds] = useState<string[]>([]);
   const [contacts, setContacts] = useState<ContactLite[]>(initialContacts);
   const [newContactOpen, setNewContactOpen] = useState(false);
+  const [contactQuery, setContactQuery] = useState("");
   const [newContactName, setNewContactName] = useState("");
   const [newContactEmail, setNewContactEmail] = useState("");
   const [creatingContact, setCreatingContact] = useState(false);
@@ -169,6 +170,7 @@ export function ProjectDialog({
     }
     setStackDraft("");
     setNewContactOpen(false);
+    setContactQuery("");
     setNewContactName("");
     setNewContactEmail("");
   }, [open, project, parentId, organisationId, projects, organisations]);
@@ -642,8 +644,26 @@ export function ProjectDialog({
                 Aucun contact encore. Crée-en un ici ou dans l&apos;onglet Contacts.
               </p>
             ) : (
+              <>
+                {contacts.length > 6 && (
+                  <Input
+                    value={contactQuery}
+                    onChange={(e) => setContactQuery(e.target.value)}
+                    placeholder={`Chercher parmi ${contacts.length} contacts…`}
+                    className="h-10"
+                  />
+                )}
               <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-2xl bg-secondary/60 px-3">
-                {contacts.map((c) => {
+                {contacts
+                  .filter((c) => {
+                    const q = contactQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    if (contactIds.includes(c.id)) return true; // keep picked ones visible
+                    return [c.name, c.company, c.role]
+                      .filter(Boolean)
+                      .some((v) => (v as string).toLowerCase().includes(q));
+                  })
+                  .map((c) => {
                   const checked = contactIds.includes(c.id);
                   return (
                     <li key={c.id}>
@@ -666,6 +686,7 @@ export function ProjectDialog({
                   );
                 })}
               </ul>
+              </>
             )}
           </div>
 

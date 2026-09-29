@@ -108,6 +108,8 @@ model CalendarFeed {
   color             String? // Add back color field
   enabled           Boolean           @default(true)
   station           String? // "personal" | "work" | null — for the station filter
+  organisationId    String? // group the calendar under an organisation in the sidebar
+  organisation      Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   lastSync          DateTime?
@@ -876,6 +878,7 @@ model Organisation {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   projects    AgentProject[]
+  calendars   CalendarFeed[]
 
   @@index([sortOrder])
 }

@@ -57,6 +57,8 @@ export default async function HomePage() {
       type: feed.type as "GOOGLE" | "OUTLOOK" | "CALDAV",
       color: feed.color || undefined,
       enabled: feed.enabled,
+      station: feed.station,
+      organisationId: feed.organisationId,
       createdAt: feed.createdAt,
       updatedAt: feed.updatedAt,
       lastSync: feed.lastSync || undefined,
