@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { Building2, Pencil, Plus } from "lucide-react";
+import { Building2, ChevronDown, ChevronUp, Pencil, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,16 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
     open: boolean;
     organisation?: OrganisationLite | null;
   }>({ open: false });
+  // Sections show their first few projects; the rest unfold on demand.
+  const PREVIEW = 4;
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const lite: ProjectLite[] = useMemo(
     () =>
@@ -196,15 +206,36 @@ export function ProjetsBoard({ projects, organisations, contacts }: ProjetsBoard
                   Aucun projet ici pour l&apos;instant.
                 </p>
               ) : (
-                <ul className="mt-5 grid gap-5 lg:grid-cols-2">
-                  {list.map((p) => (
-                    <ProjectTile
-                      key={p.id}
-                      project={p}
-                      onEdit={(project) => setDialog({ open: true, project })}
-                    />
-                  ))}
-                </ul>
+                <>
+                  <ul className="mt-5 grid gap-5 lg:grid-cols-2">
+                    {(expanded.has(org.id) ? list : list.slice(0, PREVIEW)).map((p) => (
+                      <ProjectTile
+                        key={p.id}
+                        project={p}
+                        onEdit={(project) => setDialog({ open: true, project })}
+                      />
+                    ))}
+                  </ul>
+                  {list.length > PREVIEW && (
+                    <div className="mt-4 flex justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => toggleExpanded(org.id)}
+                        aria-expanded={expanded.has(org.id)}
+                      >
+                        {expanded.has(org.id) ? (
+                          <>
+                            <ChevronUp /> Réduire
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown /> Voir les {list.length - PREVIEW} autres
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           );
