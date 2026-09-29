@@ -192,7 +192,7 @@ export function ContactDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{editing ? "Modifier le contact" : "Nouveau contact"}</DialogTitle>
           <DialogDescription>

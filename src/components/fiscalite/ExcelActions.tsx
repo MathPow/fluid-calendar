@@ -115,7 +115,7 @@ export function ExcelActions({ organisation, year }: { organisation: { id: strin
       </div>
 
       <Dialog open={!!summary} onOpenChange={(o) => !o && !busy && setSummary(null)}>
-        <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Importer dans {organisation.name}</DialogTitle>
             <DialogDescription>

@@ -145,7 +145,7 @@ export function OrganisationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {editing ? "Modifier l'organisation" : "Nouvelle organisation"}

@@ -406,7 +406,7 @@ export function EventModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] flex-col p-0 sm:max-w-[500px]">
+        <DialogContent className="flex flex-col overflow-y-hidden p-0 md:p-0 sm:max-w-[500px]">
           {isSubmitting && <LoadingOverlay />}
           <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6">
             <DialogTitle>{event?.id ? "Edit Event" : "New Event"}</DialogTitle>
@@ -438,7 +438,7 @@ export function EventModal({
 
           <form
             onSubmit={handleSubmit}
-            className="space-y-4 overflow-y-auto px-6 pb-6"
+            className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-6"
           >
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>

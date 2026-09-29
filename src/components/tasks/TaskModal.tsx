@@ -238,13 +238,13 @@ export function TaskModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[500px]">
+      <DialogContent className="flex flex-col overflow-y-hidden sm:max-w-[500px]">
         {isSubmitting && <LoadingOverlay />}
         <DialogHeader>
           <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-4 overflow-y-auto">
           <div>
             <Label htmlFor="title">Title</Label>
             <Input
