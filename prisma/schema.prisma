@@ -902,6 +902,7 @@ model ProjectLink {
 // attachable to any number of projects.
 model Contact {
   id        String           @id @default(cuid())
+  type      String           @default("person") // "person" | "company"
   name      String
   email     String?
   phone     String?
@@ -919,6 +920,7 @@ model Contact {
 
   @@index([name])
   @@index([favorite])
+  @@index([type])
 }
 
 model ProjectContact {

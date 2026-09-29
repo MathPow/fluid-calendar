@@ -38,6 +38,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       await tx.contact.update({
         where: { id },
         data: {
+          ...(fields.type !== undefined ? { type: fields.type } : {}),
           ...(fields.name !== undefined ? { name: fields.name } : {}),
           ...(fields.email !== undefined ? { email: fields.email || null } : {}),
           ...(fields.phone !== undefined ? { phone: fields.phone || null } : {}),

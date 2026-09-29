@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
   try {
     const contact = await prisma.contact.create({
       data: {
+        type: fields.type ?? "person",
         name: fields.name,
         email: fields.email || null,
         phone: fields.phone || null,

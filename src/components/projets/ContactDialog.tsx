@@ -29,7 +29,13 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { cn } from "@/lib/utils";
 
-import { DEFAULT_PROJECT_COLOR, RELATION_KINDS, initials } from "@/lib/projets/meta";
+import {
+  CONTACT_TYPES,
+  type ContactType,
+  DEFAULT_PROJECT_COLOR,
+  RELATION_KINDS,
+  initials,
+} from "@/lib/projets/meta";
 import type { ContactFull } from "@/lib/projets/queries";
 
 import { ImageField } from "./ImageField";
@@ -40,12 +46,21 @@ interface ContactDialogProps {
   onOpenChange: (open: boolean) => void;
   contact?: ContactFull | null;
   projects: ProjectLite[];
+  /** Names of company contacts, suggested in a person's Entreprise field. */
+  companyNames?: string[];
 }
 
-export function ContactDialog({ open, onOpenChange, contact, projects }: ContactDialogProps) {
+export function ContactDialog({
+  open,
+  onOpenChange,
+  contact,
+  projects,
+  companyNames = [],
+}: ContactDialogProps) {
   const router = useRouter();
   const editing = !!contact;
 
+  const [type, setType] = useState<ContactType>("person");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
@@ -65,6 +80,7 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
 
   useEffect(() => {
     if (!open) return;
+    setType(contact?.type === "company" ? "company" : "person");
     setName(contact?.name ?? "");
     setCompany(contact?.company ?? "");
     setRole(contact?.role ?? "");
@@ -110,8 +126,9 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
         method: editing ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          type,
           name: name.trim(),
-          company: company.trim() || null,
+          company: type === "company" ? null : company.trim() || null,
           role: role.trim() || null,
           relation: relation === NO_RELATION ? null : relation,
           relationDetail: relationDetail.trim() || null,
@@ -171,9 +188,23 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
         <DialogHeader>
           <DialogTitle>{editing ? "Modifier le contact" : "Nouveau contact"}</DialogTitle>
           <DialogDescription>
-            Un client, un collaborateur, un fournisseur — rattachable à plusieurs projets.
+            Une personne ou une entreprise — rattachable à plusieurs projets.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="segmented w-fit">
+          {CONTACT_TYPES.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="segmented-item"
+              data-active={type === t.id}
+              onClick={() => setType(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
         <form
           className="space-y-6"
@@ -186,8 +217,9 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
             value={image}
             onChange={setImage}
             fallback={name.trim() ? initials(name) : "?"}
-            color="#a8ccff"
-            label="Photo de profil"
+            color={type === "company" ? "#bfd3a8" : "#a8ccff"}
+            shape={type === "company" ? "rounded" : "round"}
+            label={type === "company" ? "Logo" : "Photo de profil"}
           />
 
           <div className="space-y-2">
@@ -197,7 +229,7 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
                 id="contact-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Marie-Ève Tremblay"
+                placeholder={type === "company" ? "Studio Verve" : "Marie-Ève Tremblay"}
                 autoFocus
                 className="text-[17px] font-semibold tracking-title"
               />
@@ -219,22 +251,36 @@ export function ContactDialog({ open, onOpenChange, contact, projects }: Contact
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="contact-company">Entreprise</Label>
-              <Input
-                id="contact-company"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Studio Verve"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact-role">Job / catégorie</Label>
+            {type === "person" && (
+              <div className="space-y-2">
+                <Label htmlFor="contact-company">Entreprise</Label>
+                <Input
+                  id="contact-company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Studio Verve"
+                  list="contact-company-suggestions"
+                />
+                {companyNames.length > 0 && (
+                  <datalist id="contact-company-suggestions">
+                    {companyNames.map((n) => (
+                      <option key={n} value={n} />
+                    ))}
+                  </datalist>
+                )}
+              </div>
+            )}
+            <div className={cn("space-y-2", type === "company" && "sm:col-span-2")}>
+              <Label htmlFor="contact-role">
+                {type === "company" ? "Secteur / catégorie" : "Job / catégorie"}
+              </Label>
               <Input
                 id="contact-role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                placeholder="Entrepreneur, Pro, Étudiant…"
+                placeholder={
+                  type === "company" ? "Tech, événementiel, immobilier…" : "Entrepreneur, Pro, Étudiant…"
+                }
               />
             </div>
             <div className="space-y-2">

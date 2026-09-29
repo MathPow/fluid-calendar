@@ -41,6 +41,13 @@ export const orgKindLabel = (kind: string | null | undefined) =>
 export const orgKindStation = (kind: string | null | undefined): ProjectStation =>
   ORG_KINDS.find((k) => k.id === kind)?.station ?? "work";
 
+/** A contact is a person or a company. */
+export const CONTACT_TYPES = [
+  { id: "person", label: "Personne" },
+  { id: "company", label: "Entreprise" },
+] as const;
+export type ContactType = (typeof CONTACT_TYPES)[number]["id"];
+
 /** How you know a contact. The precise wording lives in `relationDetail`. */
 export const RELATION_KINDS = [
   { id: "ami", label: "Ami" },

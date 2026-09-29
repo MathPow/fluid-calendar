@@ -40,6 +40,7 @@ export const ProjectInput = z.object({
 export type ProjectInputType = z.infer<typeof ProjectInput>;
 
 export const ContactInput = z.object({
+  type: z.enum(["person", "company"]).optional(),
   name: z.string().trim().min(1, "Nom requis").max(120),
   email: z.string().trim().email("Courriel invalide").max(200).or(z.literal("")).nullable().optional(),
   phone: z.string().trim().max(40).nullable().optional(),

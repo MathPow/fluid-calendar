@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { AtSign, Pencil, Phone, Plus, Search, Star, Tag, X } from "lucide-react";
+import { AtSign, Building2, Pencil, Phone, Plus, Search, Star, Tag, User, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
   const [contacts, setContacts] = useState<ContactFull[]>(initial);
   const [query, setQuery] = useState("");
   const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [type, setType] = useState<"all" | "person" | "company">("all");
   const [relation, setRelation] = useState<string>(ALL);
   const [job, setJob] = useState<string>(ALL);
   const [dialog, setDialog] = useState<{ open: boolean; contact?: ContactFull | null }>({
@@ -76,6 +77,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
     return contacts
       .filter((c) => {
         if (onlyFavorites && !c.favorite) return false;
+        if (type !== "all" && c.type !== type) return false;
         if (relation !== ALL && c.relation !== relation) return false;
         if (job !== ALL && c.role !== job) return false;
         if (currentStation !== "both" && c.projects.length > 0) {
@@ -102,10 +104,16 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
       .sort(
         (a, b) => Number(b.favorite) - Number(a.favorite) || a.name.localeCompare(b.name, "fr")
       );
-  }, [contacts, currentStation, query, onlyFavorites, relation, job, stationOf]);
+  }, [contacts, currentStation, query, onlyFavorites, type, relation, job, stationOf]);
 
   const favoriteCount = contacts.filter((c) => c.favorite).length;
-  const filtersActive = onlyFavorites || relation !== ALL || job !== ALL || query.trim() !== "";
+  const companyCount = contacts.filter((c) => c.type === "company").length;
+  const companyNames = useMemo(
+    () => contacts.filter((c) => c.type === "company").map((c) => c.name).sort(),
+    [contacts]
+  );
+  const filtersActive =
+    onlyFavorites || type !== "all" || relation !== ALL || job !== ALL || query.trim() !== "";
 
   const toggleFavorite = async (c: ContactFull) => {
     const next = !c.favorite;
@@ -128,6 +136,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
   const resetFilters = () => {
     setQuery("");
     setOnlyFavorites(false);
+    setType("all");
     setRelation(ALL);
     setJob(ALL);
   };
@@ -139,7 +148,8 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
           <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">Contacts.</h1>
           <div className="mt-6 flex flex-wrap gap-2">
             <Badge className="px-4 py-2 text-[13px]">
-              {contacts.length} contact{contacts.length > 1 ? "s" : ""}
+              {contacts.length - companyCount} personne{contacts.length - companyCount > 1 ? "s" : ""}
+              {companyCount > 0 && ` · ${companyCount} entreprise${companyCount > 1 ? "s" : ""}`}
             </Badge>
             {favoriteCount > 0 && (
               <Badge variant="pending" className="px-4 py-2 text-[13px]">
@@ -172,6 +182,18 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
               placeholder="Nom, entreprise, mot-clé, note…"
               className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
             />
+          </div>
+
+          <div className="segmented h-11">
+            <button type="button" className="segmented-item" data-active={type === "all"} onClick={() => setType("all")}>
+              Tous
+            </button>
+            <button type="button" className="segmented-item" data-active={type === "person"} onClick={() => setType("person")}>
+              <User className="h-3.5 w-3.5" /> Personnes
+            </button>
+            <button type="button" className="segmented-item" data-active={type === "company"} onClick={() => setType("company")}>
+              <Building2 className="h-3.5 w-3.5" /> Entreprises
+            </button>
           </div>
 
           <button
@@ -264,7 +286,8 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                   <Avatar
                     image={c.image}
                     fallback={initials(c.name)}
-                    color={c.favorite ? "#ffd166" : "#a8ccff"}
+                    color={c.type === "company" ? "#bfd3a8" : c.favorite ? "#ffd166" : "#a8ccff"}
+                    shape={c.type === "company" ? "rounded" : "round"}
                     className={cn(
                       "h-12 w-12 text-[14px]",
                       c.favorite && "ring-2 ring-pending ring-offset-2 ring-offset-card"
@@ -274,8 +297,12 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                     <p className="truncate text-[18px] font-bold leading-tight tracking-title">
                       {c.name}
                     </p>
-                    <p className="mt-1 truncate text-[13px] text-muted-foreground">
-                      {[c.role, c.company].filter(Boolean).join(" · ") || "—"}
+                    <p className="mt-1 flex items-center gap-1 truncate text-[13px] text-muted-foreground">
+                      {c.type === "company" && <Building2 className="h-3.5 w-3.5 shrink-0" />}
+                      <span className="truncate">
+                        {[c.role, c.type === "company" ? null : c.company].filter(Boolean).join(" · ") ||
+                          (c.type === "company" ? "Entreprise" : "—")}
+                      </span>
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center">
@@ -402,6 +429,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
         onOpenChange={(open) => setDialog((d) => ({ ...d, open }))}
         contact={dialog.contact}
         projects={projects}
+        companyNames={companyNames}
       />
     </div>
   );
