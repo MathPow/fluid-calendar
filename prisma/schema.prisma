@@ -895,6 +895,9 @@ model Organisation {
   updatedAt   DateTime       @updatedAt
   projects    AgentProject[]
   calendars   CalendarFeed[]
+  // Fiscalité tab: the company's tax setup and its invoices.
+  taxProfile  TaxProfile?
+  invoices    Invoice[]
   links       OrganisationLink[]
 
   @@index([sortOrder])
@@ -1107,4 +1110,55 @@ model ProjectLocation {
 
   @@unique([projectId, machineId])
   @@index([machineId])
+}
+
+// Fiscalité tab: how a company is set up for tax purposes (Québec / Canada).
+// Drives the deadlines and the advice the guide shows.
+model TaxProfile {
+  organisationId  String       @id
+  organisation    Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  legalForm       String       @default("individuelle") // "individuelle" (travailleur autonome, T2125 / TP-80) | "societe" (inc., T2 / CO-17)
+  salesTaxStatus  String       @default("petit") // "petit" (petit fournisseur, not registered) | "inscrit"
+  gstNumber       String? // TPS, 123456789RT0001
+  qstNumber       String? // TVQ, 1234567890TQ0001
+  filingFrequency String       @default("annuelle") // "annuelle" | "trimestrielle" | "mensuelle"
+  fiscalYearEnd   String       @default("12-31") // MM-DD
+  notes           String?
+  updatedAt       DateTime     @updatedAt
+}
+
+// An invoice dropped in the Fiscalité tab: one you issued (revenu) or one you
+// paid (dépense). Amounts are in cents. The file lives in InvoiceFile so lists
+// never load the bytes.
+model Invoice {
+  id             String       @id @default(cuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  direction      String       @default("depense") // "depense" | "revenu"
+  date           DateTime
+  party          String? // supplier or client
+  partyTaxNumber String? // supplier's TPS/TVQ number, needed to claim the ITC/ITR
+  number         String? // invoice number
+  description    String?
+  category       String? // key of EXPENSE_CATEGORIES (T2125 lines)
+  subtotalCents  Int          @default(0)
+  gstCents       Int          @default(0)
+  qstCents       Int          @default(0)
+  totalCents     Int          @default(0)
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  file           InvoiceFile?
+
+  @@index([organisationId, date])
+}
+
+model InvoiceFile {
+  invoiceId String  @id
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  name      String
+  mime      String
+  size      Int
+  data      Bytes
+  text      String? // text pulled from the PDF, kept for search
 }

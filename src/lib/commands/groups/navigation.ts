@@ -4,6 +4,7 @@ import {
   Calendar,
   ClipboardList,
   FolderGit2,
+  Receipt,
   Settings,
   Users,
   Zap,
@@ -44,6 +45,17 @@ export function useNavigationCommands(): Command[] {
       shortcut: "gf",
       perform: (router?: AppRouterInstance) => {
         if (router) router.push("/focus");
+      },
+    },
+    {
+      id: "navigation.fiscalite",
+      title: "Go to Fiscalité",
+      keywords: ["navigation", "fiscalite", "factures", "invoices", "taxes", "impots"],
+      icon: Receipt,
+      section: "navigation",
+      shortcut: "gi",
+      perform: (router?: AppRouterInstance) => {
+        if (router) router.push("/fiscalite");
       },
     },
     {

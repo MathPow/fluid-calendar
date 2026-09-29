@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Mail,
+  Receipt,
   Search,
 } from "lucide-react";
 
@@ -27,7 +28,7 @@ interface NavLink {
   also?: string[];
 }
 
-// Six sections. Focus lives under Tasks, Sessions under Notes, Contacts under
+// Seven sections. Focus lives under Tasks, Sessions under Notes, Contacts under
 // Projets — each of those pages carries its own segmented switch.
 const MENU: NavLink[] = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
@@ -36,6 +37,7 @@ const MENU: NavLink[] = [
   { href: "/email", label: "Email", icon: Mail },
   { href: "/notes", label: "Notes", icon: FileText, also: ["/sessions"] },
   { href: "/projets", label: "Projets", icon: FolderGit2, also: ["/contacts"] },
+  { href: "/fiscalite", label: "Fiscalité", icon: Receipt },
 ];
 
 /**
