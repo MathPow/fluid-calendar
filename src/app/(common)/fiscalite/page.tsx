@@ -25,7 +25,11 @@ export default async function FiscalitePage() {
   return (
     <FiscaliteBoard
       organisations={organisations}
-      profiles={profiles.map((p) => ({ ...p, updatedAt: undefined }))}
+      profiles={profiles.map((p) => ({
+        ...p,
+        updatedAt: undefined,
+        startedAt: p.startedAt ? p.startedAt.toISOString().slice(0, 10) : null,
+      }))}
       invoices={invoices.map(toInvoiceView)}
       movements={movements.map(toMovementView)}
     />

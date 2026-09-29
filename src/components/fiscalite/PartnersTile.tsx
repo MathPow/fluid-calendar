@@ -91,7 +91,9 @@ export function PartnersTile({ organisationId, partners, summaries, movements, o
                 <dd className="text-right tabular-nums">−{formatMoney(s.reimbursedCents)}</dd>
                 <dt>Retraits</dt>
                 <dd className="text-right tabular-nums">{formatMoney(s.drawsCents)}</dd>
-                <dt className="font-medium text-foreground">Part du bénéfice</dt>
+                <dt className="font-medium text-foreground">
+                  Part du bénéfice ({Math.round(s.sharePct * 10) / 10} %)
+                </dt>
                 <dd className="text-right font-medium tabular-nums text-foreground">
                   {formatMoney(s.profitShareCents)}
                 </dd>

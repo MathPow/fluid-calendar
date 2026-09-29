@@ -53,6 +53,10 @@ export interface ExportInput {
   legalForm: string;
   salesTaxStatus: string;
   partners: string[];
+  /** % per associé, same order; empty = equal parts. */
+  partnerShares?: number[];
+  /** Company file lines for the Identification sheet (label → value). */
+  identity?: [string, string | null | undefined][];
   invoices: ExportInvoice[];
   movements: ExportMovement[];
 }
@@ -123,9 +127,15 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
     id.getCell("A6").value = "Associés:";
     id.getCell("B6").value = input.partners.join(", ");
   }
+  const lines = (input.identity ?? []).filter(([, v]) => v);
+  lines.forEach(([label, value], i) => {
+    id.getCell(`A${8 + i}`).value = `${label}:`;
+    id.getCell(`B${8 + i}`).value = value;
+  });
+  const idNote = 9 + lines.length;
   note(
     id,
-    "A8:E9",
+    `A${idNote}:E${idNote + 1}`,
     "Exporté de DreamDash (onglet Fiscalité). Réimporte ce fichier après l'avoir modifié: les lignes sont fusionnées avec celles déjà classées."
   );
 
@@ -292,15 +302,21 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
   }
   if (senc && input.partners.length) {
     r += 2;
-    er.getCell(`B${r}`).value = "Part de chaque associé (parts égales)";
+    const shares =
+      input.partnerShares?.length === input.partners.length
+        ? input.partnerShares
+        : input.partners.map(() => 100 / input.partners.length);
+    er.getCell(`B${r}`).value = "Part de chaque associé (RL-15)";
     er.getCell(`B${r}`).font = { bold: true };
     r++;
-    for (const p of input.partners) {
+    input.partners.forEach((p, i) => {
       er.getCell(`B${r}`).value = p;
-      er.getCell(`E${r}`).value = { formula: `E${profitRow}/${input.partners.length}` };
+      er.getCell(`D${r}`).value = shares[i] / 100;
+      er.getCell(`D${r}`).numFmt = "0.##%";
+      er.getCell(`E${r}`).value = { formula: `E${profitRow}*D${r}` };
       er.getCell(`E${r}`).numFmt = MONEY;
       r++;
-    }
+    });
   }
 
   // Taxes Annuel -----------------------------------------------------------

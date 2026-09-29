@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
   });
   if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
 
-  const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[] };
+  const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[], partnerShares: [] as number[] };
+  const t = org.taxProfile;
   const { start, end } = fiscalYearRange(profile, year);
   const range = { gte: start, lte: end };
   const [invoices, movements] = await Promise.all([
@@ -41,6 +42,24 @@ export async function GET(request: NextRequest) {
     legalForm: profile.legalForm,
     salesTaxStatus: profile.salesTaxStatus,
     partners: profile.partners ?? [],
+    partnerShares: profile.partnerShares ?? [],
+    identity: t
+      ? [
+          ["Nom légal", t.legalName],
+          ["NEQ", t.neq],
+          ["NE fédéral", t.businessNumber],
+          ["No TPS", t.gstNumber],
+          ["No TVQ", t.qstNumber],
+          ["Début des activités", t.startedAt?.toISOString().slice(0, 10)],
+          ["Activité", t.activity],
+          ["Code SCIAN", t.naicsCode],
+          ["Adresse", [t.address, t.city, t.province, t.postalCode].filter(Boolean).join(", ") || null],
+          ["Courriel", t.email],
+          ["Téléphone", t.phone],
+          ["Site web", t.website],
+          ["Comptable", [t.accountant, t.accountantEmail, t.accountantPhone].filter(Boolean).join(" · ") || null],
+        ]
+      : [],
     invoices: invoices.map((i) => ({ ...i, date: ymd(i.date) })),
     movements: movements.map((m) => ({ ...m, date: ymd(m.date) })),
   });

@@ -48,7 +48,7 @@ import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
 import { ExcelActions } from "./ExcelActions";
 import { InvoiceDialog } from "./InvoiceDialog";
 import { PartnersTile } from "./PartnersTile";
-import { type ProfileView, TaxProfileDialog } from "./TaxProfileDialog";
+import { COMPANY_FIELDS, type ProfileView, TaxProfileDialog } from "./TaxProfileDialog";
 
 interface Org {
   id: string;
@@ -127,10 +127,23 @@ export function FiscaliteBoard({
         tracked: true,
         setUp: false,
         partners: [] as string[],
+        partnerShares: [] as number[],
+        startedAt: null,
+        ...(Object.fromEntries(COMPANY_FIELDS.map((f) => [f, f === "province" ? "QC" : null])) as Record<
+          (typeof COMPANY_FIELDS)[number],
+          string | null
+        >),
       },
     [savedProfile, orgId]
   );
   const configured = !!savedProfile?.setUp;
+  const missingIdentity = [
+    !profile.legalName && "nom légal",
+    !profile.neq && "NEQ",
+    profile.salesTaxStatus === "inscrit" && !profile.gstNumber && "no TPS",
+    profile.salesTaxStatus === "inscrit" && !profile.qstNumber && "no TVQ",
+    !profile.address && "adresse",
+  ].filter((v): v is string => !!v);
 
   const setTracked = async (organisationId: string, tracked: boolean) => {
     try {
@@ -181,8 +194,15 @@ export function FiscaliteBoard({
     [movements, orgId, profile, year]
   );
   const partnerRows = useMemo(
-    () => partnerSummaries(profile.partners ?? [], yearInvoices, yearMovements, summary.profitCents),
-    [profile.partners, yearInvoices, yearMovements, summary.profitCents]
+    () =>
+      partnerSummaries(
+        profile.partners ?? [],
+        yearInvoices,
+        yearMovements,
+        summary.profitCents,
+        profile.partnerShares ?? []
+      ),
+    [profile.partners, profile.partnerShares, yearInvoices, yearMovements, summary.profitCents]
   );
 
   const deadlines = useMemo(() => {
@@ -517,23 +537,32 @@ export function FiscaliteBoard({
                 (formulaires, échéances, taxes à remettre).
               </p>
               <Button variant="secondary" className="mt-5" onClick={() => setProfileOpen(true)}>
-                Remplir le profil fiscal
+                Remplir le profil
               </Button>
             </section>
           ) : (
             <section className="tile p-6">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="etiquette">Profil fiscal</p>
-                  <h2 className="mt-2 text-[18px] font-bold tracking-title">
-                    {LEGAL_FORMS.find((f) => f.id === profile.legalForm)?.label}
+                <div className="min-w-0">
+                  <p className="etiquette">Profil d&apos;entreprise</p>
+                  <h2 className="mt-2 truncate text-[18px] font-bold tracking-title">
+                    {profile.legalName || org.name}
                   </h2>
+                  <p className="text-[13px] text-muted-foreground">
+                    {LEGAL_FORMS.find((f) => f.id === profile.legalForm)?.label}
+                    {profile.activity ? ` · ${profile.activity}` : ""}
+                  </p>
                 </div>
                 <Button size="sm" variant="secondary" onClick={() => setProfileOpen(true)}>
                   <Pencil /> Modifier
                 </Button>
               </div>
               <dl className="mt-4 space-y-1.5 text-[13px]">
+                {profile.neq && <Row k="NEQ">{profile.neq}</Row>}
+                {profile.businessNumber && <Row k="NE fédéral">{profile.businessNumber}</Row>}
+                {profile.startedAt && (
+                  <Row k="Depuis">{formatDay(new Date(`${profile.startedAt.slice(0, 10)}T00:00:00Z`))}</Row>
+                )}
                 <Row k="Déclarations">
                   {profile.legalForm === "societe"
                     ? "T2 + CO-17"
@@ -549,10 +578,47 @@ export function FiscaliteBoard({
                     ? `Inscrit · ${FILING_FREQUENCIES.find((f) => f.id === profile.filingFrequency)?.label.toLowerCase()}`
                     : "Petit fournisseur"}
                 </Row>
-                {senc && <Row k="Associés">{(profile.partners ?? []).join(", ") || "—"}</Row>}
+                {senc && (
+                  <Row k="Associés">
+                    {(profile.partners ?? [])
+                      .map((p, i) =>
+                        profile.partnerShares?.length === profile.partners?.length
+                          ? `${p} ${profile.partnerShares[i]} %`
+                          : p
+                      )
+                      .join(", ") || "—"}
+                  </Row>
+                )}
                 {registered && <Row k="No TPS">{profile.gstNumber || "—"}</Row>}
                 {registered && <Row k="No TVQ">{profile.qstNumber || "—"}</Row>}
+                {(profile.address || profile.city) && (
+                  <Row k="Adresse">
+                    {[profile.address, profile.city, profile.province, profile.postalCode].filter(Boolean).join(", ")}
+                  </Row>
+                )}
+                {profile.email && <Row k="Courriel">{profile.email}</Row>}
+                {profile.phone && <Row k="Téléphone">{profile.phone}</Row>}
+                {profile.accountant && (
+                  <Row k="Comptable">
+                    {profile.accountantEmail ? (
+                      <a href={`mailto:${profile.accountantEmail}`} className="underline underline-offset-2">
+                        {profile.accountant}
+                      </a>
+                    ) : (
+                      profile.accountant
+                    )}
+                  </Row>
+                )}
               </dl>
+              {missingIdentity.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setProfileOpen(true)}
+                  className="mt-4 w-full rounded-xl bg-secondary px-3 py-2 text-left text-[12px] text-muted-foreground hover:bg-border/70"
+                >
+                  À compléter: {missingIdentity.join(", ")}
+                </button>
+              )}
             </section>
           )}
 

@@ -188,6 +188,7 @@ export function taxesFor(subtotalCents: number) {
 export interface TaxProfileLite {
   legalForm: string;
   partners?: string[];
+  partnerShares?: number[];
   salesTaxStatus: string;
   gstNumber: string | null;
   qstNumber: string | null;
@@ -606,15 +607,17 @@ export interface PartnerSummary {
   /** What the SENC owes him (negative: he owes the SENC). */
   balanceCents: number;
   drawsCents: number;
-  /** Equal share of the estimated profit. */
+  /** His part of the estimated profit (by share, else equal parts). */
   profitShareCents: number;
+  sharePct: number;
 }
 
 export function partnerSummaries(
   partners: string[],
   invoices: (InvoiceLite & { paidBy?: string | null })[],
   movements: MovementLite[],
-  profitCents: number
+  profitCents: number,
+  shares: number[] = []
 ): PartnerSummary[] {
   const names = Array.from(
     new Set([
@@ -639,7 +642,12 @@ export function partnerSummaries(
       reimbursedCents,
       balanceCents: paidCents + advancedCents - reimbursedCents,
       drawsCents: sum("retrait"),
-      profitShareCents: partners.includes(partner) ? Math.round(profitCents / n) : 0,
+      ...(() => {
+        const i = partners.indexOf(partner);
+        if (i < 0) return { profitShareCents: 0, sharePct: 0 };
+        const pct = shares.length === partners.length ? shares[i] : 100 / n;
+        return { profitShareCents: Math.round((profitCents * pct) / 100), sharePct: pct };
+      })(),
     };
   });
 }

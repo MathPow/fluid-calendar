@@ -31,6 +31,29 @@ export type InvoiceInputT = z.infer<typeof InvoiceInput>;
 export const TaxProfileInput = z.object({
   legalForm: z.enum(["individuelle", "senc", "societe"]),
   partners: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+  partnerShares: z.array(z.number().min(0).max(100)).max(20).default([]),
+  startedAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional()
+    .transform((v) => (v ? new Date(`${v}T00:00:00Z`) : null)),
+  legalName: text(200),
+  neq: text(20),
+  businessNumber: text(20),
+  activity: text(500),
+  naicsCode: text(10),
+  address: text(200),
+  city: text(100),
+  province: z.string().trim().max(10).default("QC"),
+  postalCode: text(10),
+  email: text(200),
+  phone: text(40),
+  website: text(200),
+  bank: text(200),
+  accountant: text(200),
+  accountantEmail: text(200),
+  accountantPhone: text(40),
   salesTaxStatus: z.enum(["petit", "inscrit"]),
   gstNumber: text(40),
   qstNumber: text(40),

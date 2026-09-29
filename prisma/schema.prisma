@@ -1128,6 +1128,28 @@ model TaxProfile {
   notes           String?
   // SENC: the associés, by first name ("Mathys", "Félix").
   partners        String[]     @default([])
+  // Share of the profit of each associé, in %, same order as `partners`.
+  // Empty means equal parts.
+  partnerShares   Float[]      @default([])
+
+  // Company file: identification, contact, activity, accountant.
+  legalName       String? // nom légal / raison sociale, as on the REQ
+  neq             String? // numéro d'entreprise du Québec (10 digits)
+  businessNumber  String? // NE fédéral (9 digits)
+  startedAt       DateTime? // immatriculation / début des activités
+  activity        String? // what the business does
+  naicsCode       String? // code SCIAN
+  address         String?
+  city            String?
+  province        String       @default("QC")
+  postalCode      String?
+  email           String?
+  phone           String?
+  website         String?
+  bank            String? // institution + account, for the accountant
+  accountant      String? // name / firm
+  accountantEmail String?
+  accountantPhone String?
   // Shown in the Fiscalité tab. Only organisations run for profit get flagged.
   tracked         Boolean      @default(true)
   // False until the profile questions were answered (a row can exist just
