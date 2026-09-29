@@ -90,6 +90,7 @@ model User {
   mailAccounts         MailAccount[]
   voiceCommands        VoiceCommand[]
   workSessions         WorkSession[]
+  calendarLayers       CalendarLayer[]
 }
 
 model VerificationToken {
@@ -1002,4 +1003,44 @@ model TaskStep {
   createdAt   DateTime  @default(now())
 
   @@index([taskId, sortOrder])
+}
+
+// A calendar layer ("calque"): a weekly routine drawn behind the real
+// calendar, e.g. « Semaine type » with work, sleep and workout blocks. Real
+// events and scheduled tasks override it where they overlap.
+model CalendarLayer {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  visible   Boolean        @default(true)
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  blocks    RoutineBlock[]
+
+  @@index([userId])
+}
+
+// One recurring block of a layer: the same wall-clock hours on each of its
+// weekdays, in the user's time zone. endTime <= startTime means it ends the
+// next day (sleep 23:00 → 07:00).
+model RoutineBlock {
+  id          String        @id @default(cuid())
+  layerId     String
+  layer       CalendarLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+  title       String
+  kind        String        @default("other") // work | sleep | sport | perso | other
+  color       String? // hex; falls back to the kind's colour
+  days        Int[] // 0 = Sunday … 6 = Saturday
+  startTime   String // "HH:mm"
+  endTime     String // "HH:mm"
+  // The auto-scheduler may place tasks inside this block. When any visible
+  // block is schedulable, tasks are only placed inside such blocks.
+  schedulable Boolean       @default(false)
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([layerId])
 }

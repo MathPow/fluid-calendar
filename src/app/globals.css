@@ -461,3 +461,28 @@
   font-weight: 500 !important;
   opacity: 1 !important;
 }
+
+/* Routine layer (« Semaine type »): background blocks behind the events. */
+.fc .fc-bg-event.calendar-routine {
+  opacity: 0.5;
+}
+.dark .fc .fc-bg-event.calendar-routine {
+  opacity: 0.22;
+}
+.fc .fc-bg-event.calendar-routine .fc-event-title {
+  margin: 4px 7px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  color: #19181c;
+}
+.dark .fc .fc-bg-event.calendar-routine .fc-event-title {
+  color: hsl(var(--foreground));
+}
+.fc .fc-bg-event.calendar-routine-busy {
+  opacity: 0.16;
+}
+.fc .fc-event.calendar-routine-edit {
+  outline: 1.5px dashed rgb(25 24 28 / 0.35);
+  outline-offset: -2px;
+}

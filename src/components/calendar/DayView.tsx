@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   DatesSetArg,
@@ -19,8 +19,9 @@ import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { newDate } from "@/lib/date-utils";
 
 import { useCalendarStore } from "@/store/calendar";
+import { useRoutineStore, visibleBlocks } from "@/store/routine";
 import { useSettingsStore } from "@/store/settings";
-import { useStationStore, accountVisibleInStation } from "@/store/station";
+import { accountVisibleInStation, useStationStore } from "@/store/station";
 import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, ExtendedEventProps } from "@/types/calendar";
@@ -29,6 +30,11 @@ import { Task, TaskStatus } from "@/types/task";
 import { CalendarEventContent } from "./CalendarEventContent";
 import { EventModal } from "./EventModal";
 import { EventQuickView } from "./EventQuickView";
+import {
+  draftFromSelection,
+  moveRoutineBlock,
+  routineCalendarEvents,
+} from "./routine-events";
 
 interface DayViewProps {
   currentDate: Date;
@@ -65,19 +71,62 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [isTask, setIsTask] = useState(false);
   const eventModalStore = useEventModalStore();
-  const [clickedElement, setClickedElement] = useState<HTMLElement | null>(null);
+  const [clickedElement, setClickedElement] = useState<HTMLElement | null>(
+    null
+  );
 
   // Update events when the calendar view changes
   const currentStation = useStationStore((st) => st.currentStation);
 
+  // Routine layer (« Semaine type »): drawn behind the events, or editable
+  // on its own in « Dessiner » mode.
+  const routineLayers = useRoutineStore((s) => s.layers);
+  const routineEditing = useRoutineStore((s) => s.editing);
+  const [range, setRange] = useState<{ start: Date; end: Date }>();
+  const routineEvents = useMemo(
+    () =>
+      range
+        ? routineCalendarEvents(
+            visibleBlocks(routineLayers),
+            range.start,
+            range.end,
+            events,
+            routineEditing
+          )
+        : [],
+    [range, routineLayers, events, routineEditing]
+  );
+  const calendarEvents = useMemo(
+    () =>
+      routineEditing
+        ? // Real events stay visible as a faint backdrop while drawing.
+          [
+            ...events
+              .filter((e) => !e.allDay)
+              .map((e) => ({
+                ...e,
+                display: "background",
+                backgroundColor: "#8a8580",
+                classNames: ["calendar-routine-busy"],
+              })),
+            ...routineEvents,
+          ]
+        : [...events, ...routineEvents],
+    [events, routineEvents, routineEditing]
+  );
+
   const handleDatesSet = useCallback(
     async (arg: DatesSetArg) => {
+      setRange({ start: arg.start, end: arg.end });
       const items = getAllCalendarItems(arg.start, arg.end);
       const formattedItems = items
         .filter((item) => {
           if (item.feedId === "tasks") return true;
           const feed = feeds.find((f) => f.id === item.feedId);
-          return feed?.enabled && accountVisibleInStation(feed.station, currentStation);
+          return (
+            feed?.enabled &&
+            accountVisibleInStation(feed.station, currentStation)
+          );
         })
         .map((item) => ({
           id: item.id,
@@ -155,6 +204,10 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
   }, [currentDate]);
 
   const handleEventClick = (info: EventClickArg) => {
+    if (info.event.extendedProps.isRoutine) {
+      useRoutineStore.getState().openBlock(info.event.extendedProps.block);
+      return;
+    }
     const item = info.event.extendedProps;
     const itemId = info.event.id;
     const isTask = item.isTask;
@@ -178,6 +231,15 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
   };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
+    if (useRoutineStore.getState().editing) {
+      if (!selectInfo.allDay) {
+        useRoutineStore
+          .getState()
+          .openNewBlock(draftFromSelection(selectInfo.start, selectInfo.end));
+      }
+      calendarRef.current?.getApi().unselect();
+      return;
+    }
     const start = selectInfo.start;
     const end = selectInfo.allDay ? start : selectInfo.end;
 
@@ -266,10 +328,14 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
       const start = event.start;
       const end = event.end ?? event.start ?? undefined;
       if (!start) return revert();
+      if (event.extendedProps.isRoutine) return moveRoutineBlock(event, revert);
 
       try {
         if (event.extendedProps.isTask) {
-          await updateTask(event.id, { scheduledStart: start, scheduledEnd: end ?? undefined });
+          await updateTask(event.id, {
+            scheduledStart: start,
+            scheduledEnd: end ?? undefined,
+          });
         } else {
           await updateEvent(event.id, { start, end: end ?? undefined });
         }
@@ -286,10 +352,14 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
       const start = event.start;
       const end = event.end ?? event.start ?? undefined;
       if (!start) return revert();
+      if (event.extendedProps.isRoutine) return moveRoutineBlock(event, revert);
 
       try {
         if (event.extendedProps.isTask) {
-          await updateTask(event.id, { scheduledStart: start, scheduledEnd: end ?? undefined });
+          await updateTask(event.id, {
+            scheduledStart: start,
+            scheduledEnd: end ?? undefined,
+          });
         } else {
           await updateEvent(event.id, { start, end: end ?? undefined });
         }
@@ -301,7 +371,13 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
   );
 
   const renderEventContent = useCallback(
-    (arg: EventContentArg) => <CalendarEventContent eventInfo={arg} />,
+    (arg: EventContentArg) =>
+      // Routine blocks behind the events: just their name.
+      arg.event.display === "background" ? (
+        <div className="fc-event-title">{arg.event.title}</div>
+      ) : (
+        <CalendarEventContent eventInfo={arg} />
+      ),
     []
   );
 
@@ -313,7 +389,7 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
         initialView="timeGridDay"
         headerToolbar={false}
         initialDate={currentDate}
-        events={events}
+        events={calendarEvents}
         nowIndicator={true}
         allDaySlot={true}
         slotMinTime="00:00:00"
@@ -338,13 +414,18 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
           hour12: userSettings.timeFormat === "12h",
         }}
         firstDay={userSettings.weekStartDay === "monday" ? 1 : 0}
-        businessHours={{
-          daysOfWeek: calendarSettings.workingHours.enabled
-            ? calendarSettings.workingHours.days
-            : [0, 1, 2, 3, 4, 5, 6],
-          startTime: calendarSettings.workingHours.start,
-          endTime: calendarSettings.workingHours.end,
-        }}
+        // A visible « Semaine type » already says when you work.
+        businessHours={
+          visibleBlocks(routineLayers).length > 0
+            ? false
+            : {
+                daysOfWeek: calendarSettings.workingHours.enabled
+                  ? calendarSettings.workingHours.days
+                  : [0, 1, 2, 3, 4, 5, 6],
+                startTime: calendarSettings.workingHours.start,
+                endTime: calendarSettings.workingHours.end,
+              }
+        }
         dayHeaderFormat={{
           weekday: "long",
           month: "long",

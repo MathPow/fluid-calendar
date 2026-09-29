@@ -15,6 +15,7 @@ import {
   toZonedTime,
 } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
+import { type RoutineBlockLite, expandRoutine } from "@/lib/routine";
 
 import { useSettingsStore } from "@/store/settings";
 
@@ -50,6 +51,10 @@ export interface TimeSlotManager {
 export class TimeSlotManagerImpl implements TimeSlotManager {
   private slotScorer: SlotScorer;
   private timeZone: string;
+  // Schedulable blocks of the user's visible routine layers (« Semaine
+  // type »). When there are any, they replace the work hours.
+  private routineBlocks: RoutineBlockLite[] | null = null;
+  private routineZone: string = "UTC";
 
   constructor(
     private settings: AutoScheduleSettings,
@@ -75,12 +80,44 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
     this.slotScorer.updateScheduledTasks(scheduledTasks);
   }
 
+  /** Load the schedulable routine blocks once per manager (i.e. per run). */
+  private async loadRoutine(userId: string): Promise<void> {
+    if (this.routineBlocks) return;
+    const [blocks, userSettings] = await Promise.all([
+      prisma.routineBlock.findMany({
+        where: { schedulable: true, layer: { userId, visible: true } },
+      }),
+      prisma.userSettings.findUnique({
+        where: { userId },
+        select: { timeZone: true },
+      }),
+    ]);
+    this.routineBlocks = blocks;
+    this.routineZone = userSettings?.timeZone || this.timeZone || "UTC";
+  }
+
+  /** True when the slot fits entirely inside one schedulable routine block. */
+  private isWithinRoutine(slot: TimeSlot): boolean {
+    const occurrences = expandRoutine(
+      this.routineBlocks ?? [],
+      slot.start,
+      slot.end,
+      this.routineZone
+    );
+    return occurrences.some((o) => o.start <= slot.start && o.end >= slot.end);
+  }
+
+  private get usesRoutine(): boolean {
+    return (this.routineBlocks?.length ?? 0) > 0;
+  }
+
   async findAvailableSlots(
     task: Task,
     startDate: Date,
     endDate: Date,
     userId: string
   ): Promise<TimeSlot[]> {
+    await this.loadRoutine(userId);
     // Only load scheduled tasks from the database on the first call
     // For subsequent calls, we'll use the in-memory scheduled tasks
     // that have been updated by addScheduledTaskConflict
@@ -127,6 +164,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   }
 
   async isSlotAvailable(slot: TimeSlot, userId: string): Promise<boolean> {
+    await this.loadRoutine(userId);
     // Check if the slot is within work hours
     if (!this.isWithinWorkHours(slot)) {
       return false;
@@ -277,6 +315,13 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   }
 
   private filterByWorkHours(slots: TimeSlot[]): TimeSlot[] {
+    if (this.usesRoutine) {
+      return slots.filter((slot) => {
+        const inside = this.isWithinRoutine(slot);
+        if (inside) slot.isWithinWorkHours = true;
+        return inside;
+      });
+    }
     const filteredSlots = slots.filter((slot) => {
       // Convert UTC to local time for comparison
       const localStart = toZonedTime(slot.start, this.timeZone);
@@ -303,6 +348,7 @@ export class TimeSlotManagerImpl implements TimeSlotManager {
   }
 
   private isWithinWorkHours(slot: TimeSlot): boolean {
+    if (this.usesRoutine) return this.isWithinRoutine(slot);
     const localStart = toZonedTime(slot.start, this.timeZone);
     const localEnd = toZonedTime(slot.end, this.timeZone);
 

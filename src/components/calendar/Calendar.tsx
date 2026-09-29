@@ -3,35 +3,39 @@
 import { useEffect } from "react";
 
 import dynamic from "next/dynamic";
+
 import {
-  Calendar as CalendarIcon,
   CalendarCheck,
   CalendarDays,
+  Calendar as CalendarIcon,
   CalendarPlus,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
   Columns3,
   Menu,
+  PenLine,
 } from "lucide-react";
 
 import { DayView } from "@/components/calendar/DayView";
 import { FeedManager } from "@/components/calendar/FeedManager";
 import { MonthView } from "@/components/calendar/MonthView";
 import { MultiMonthView } from "@/components/calendar/MultiMonthView";
+import { RoutineBlockDialog } from "@/components/calendar/RoutineBlockDialog";
+import { RoutineLayers } from "@/components/calendar/RoutineLayers";
 import { WeekView } from "@/components/calendar/WeekView";
 
-import { addDays, formatDate, newDate, subDays } from "@/lib/date-utils";
-import { isSaasEnabled } from "@/lib/config";
-import { cn } from "@/lib/utils";
-
 import { useEventModalStore } from "@/lib/commands/groups/calendar";
+import { isSaasEnabled } from "@/lib/config";
+import { addDays, formatDate, newDate, subDays } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
 
 import {
   useCalendarStore,
   useCalendarUIStore,
   useViewStore,
 } from "@/store/calendar";
+import { useRoutineStore } from "@/store/routine";
 import { useTaskStore } from "@/store/task";
 
 import { CalendarEvent, CalendarFeed } from "@/types/calendar";
@@ -58,6 +62,13 @@ export function Calendar({
   const { scheduleAllTasks: handleAutoSchedule } = useTaskStore();
   const { setFeeds, setEvents } = useCalendarStore();
   const eventModal = useEventModalStore();
+  const routineEditing = useRoutineStore((s) => s.editing);
+
+  useEffect(() => {
+    useRoutineStore.getState().load();
+    // Leave « Dessiner » mode when leaving the calendar.
+    return () => useRoutineStore.getState().setEditing(false);
+  }, []);
 
   useEffect(() => {
     if (initialFeeds.length > 0) setFeeds(initialFeeds);
@@ -136,6 +147,7 @@ export function Calendar({
         <div className="flex h-full flex-col">
           <div className="flex-1 overflow-y-auto">
             <FeedManager />
+            <RoutineLayers />
           </div>
         </div>
       </aside>
@@ -216,6 +228,26 @@ export function Calendar({
           </button>
         </header>
 
+        {routineEditing && (
+          <div className="flex flex-none items-center gap-3 border-b border-border bg-tint-soft px-4 py-2.5 md:px-5">
+            <PenLine className="h-4 w-4 shrink-0" />
+            <p className="min-w-0 flex-1 text-[13px] leading-snug">
+              <span className="font-semibold">Semaine type.</span>{" "}
+              <span className="text-muted-foreground">
+                Glisse dans la grille pour créer un bloc, déplace-le ou
+                étire-le. Touche un bloc pour le modifier.
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => useRoutineStore.getState().setEditing(false)}
+              className="shrink-0 rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-semibold text-background"
+            >
+              Terminer
+            </button>
+          </div>
+        )}
+
         {/* Calendar Grid — extra bottom padding on mobile for the bottom nav */}
         <div className="flex-1 overflow-hidden pb-16 md:pb-0">
           {view === "day" ? (
@@ -238,9 +270,7 @@ export function Calendar({
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-0.5 py-3",
                 "text-xs font-medium transition-colors",
-                view === key
-                  ? "text-foreground"
-                  : "text-muted-foreground"
+                view === key ? "text-foreground" : "text-muted-foreground"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -257,6 +287,7 @@ export function Calendar({
           </button>
         </nav>
       </main>
+      <RoutineBlockDialog />
     </div>
   );
 }
