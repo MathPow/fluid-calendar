@@ -29,6 +29,9 @@ import { cn } from "@/lib/utils";
 
 import { useCalendarStore } from "@/store/calendar";
 import { useOrganisationsStore } from "@/store/organisations";
+import { useRoutineStore } from "@/store/routine";
+
+import { draftFromSelection } from "./routine-events";
 import { useSettingsStore } from "@/store/settings";
 
 import { CalendarEvent } from "@/types/calendar";
@@ -407,6 +410,30 @@ export function EventModal({
           {isSubmitting && <LoadingOverlay />}
           <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6">
             <DialogTitle>{event?.id ? "Edit Event" : "New Event"}</DialogTitle>
+            {!event?.id && !isAllDay && (
+              <div className="segmented mt-3 self-start">
+                <button type="button" className="segmented-item" data-active="true">
+                  Événement
+                </button>
+                <button
+                  type="button"
+                  className="segmented-item"
+                  title="Une suggestion de temps (sommeil, travail, sport…) qui se répète chaque semaine derrière tes événements"
+                  onClick={() => {
+                    // Same range, as a weekly ghost block instead.
+                    const draft = {
+                      ...draftFromSelection(startDate, endDate),
+                      ...(title.trim() ? { title: title.trim() } : {}),
+                    };
+                    resetState();
+                    onClose();
+                    useRoutineStore.getState().openNewBlock(draft);
+                  }}
+                >
+                  Bloc fantôme
+                </button>
+              </div>
+            )}
           </DialogHeader>
 
           <form

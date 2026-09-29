@@ -38,6 +38,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useCalendarStore } from "@/store/calendar";
+import { useRoutineStore } from "@/store/routine";
 import { useViewStore } from "@/store/calendar";
 
 import { CalendarFeed } from "@/types/calendar";
@@ -189,11 +190,11 @@ export function FeedManager() {
   );
 
   return (
-    <div className="flex h-full flex-col bg-card">
+    <div className="flex flex-col bg-card">
       <div className="border-b border-border py-4">
         <MiniCalendar currentDate={currentDate} onDateClick={setDate} />
       </div>
-      <div className="flex-1 space-y-5 overflow-y-auto p-4">
+      <div className="space-y-5 p-4">
         <div className="flex items-center justify-between">
           <h3 className="etiquette">Calendriers</h3>
           <button
@@ -213,6 +214,8 @@ export function FeedManager() {
             Aucun calendrier pour l&apos;instant
           </p>
         )}
+
+        <GhostRow />
 
         {groups.map((group) => (
           <div key={group.key} className="space-y-1">
@@ -390,6 +393,31 @@ export function FeedManager() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The ghost blocks (« Semaine type » layers) as one line of the calendar list:
+ * one checkbox hides or shows them all. Per-layer switches live under Calques.
+ */
+function GhostRow() {
+  const layers = useRoutineStore((s) => s.layers);
+  const setAllVisible = useRoutineStore((s) => s.setAllVisible);
+  const blocks = layers.reduce((n, l) => n + l.blocks.length, 0);
+  if (!blocks) return null;
+  const visible = layers.some((l) => l.visible && l.blocks.length > 0);
+  return (
+    <div className="flex items-center gap-3 rounded-xl p-2 hover:bg-secondary">
+      <Checkbox
+        checked={visible}
+        onCheckedChange={() => setAllVisible(!visible)}
+        className="h-4 w-4"
+        aria-label="Afficher les blocs fantômes"
+      />
+      <span className="h-3 w-3 flex-shrink-0 rounded-full border-2 border-dashed border-muted-foreground/60" />
+      <span className="min-w-0 flex-1 truncate text-sm text-foreground">Blocs fantômes</span>
+      <span className="text-[11px] text-muted-foreground">{blocks}</span>
     </div>
   );
 }

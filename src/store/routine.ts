@@ -25,6 +25,8 @@ interface RoutineState {
   closeDialog: () => void;
 
   toggleLayer: (id: string) => Promise<void>;
+  /** Show or hide every layer at once (the « Blocs fantômes » switch). */
+  setAllVisible: (visible: boolean) => Promise<void>;
   createLayer: (name: string) => Promise<void>;
   renameLayer: (id: string, name: string) => Promise<void>;
   deleteLayer: (id: string) => Promise<void>;
@@ -87,6 +89,19 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
           l.id === id ? { ...l, visible: !visible } : l
         ),
       });
+      toast.error((e as Error).message);
+    }
+  },
+
+  setAllVisible: async (visible) => {
+    const changed = get().layers.filter((l) => l.visible !== visible);
+    if (!changed.length) return;
+    const ids = new Set(changed.map((l) => l.id));
+    set({ layers: get().layers.map((l) => (ids.has(l.id) ? { ...l, visible } : l)) });
+    try {
+      await Promise.all(changed.map((l) => send(`/api/routine/layers/${l.id}`, "PATCH", { visible })));
+    } catch (e) {
+      set({ layers: get().layers.map((l) => (ids.has(l.id) ? { ...l, visible: !visible } : l)) });
       toast.error((e as Error).message);
     }
   },

@@ -97,7 +97,7 @@ export function RoutineLayers() {
       <div className="flex items-center gap-2 px-1">
         <Layers className="h-4 w-4 text-muted-foreground" />
         <span className="flex-1 text-[13px] font-semibold tracking-title">
-          Calques
+          Blocs fantômes · calques
         </span>
         <button
           type="button"
