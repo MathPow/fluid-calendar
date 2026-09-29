@@ -72,27 +72,24 @@ export function ProjectTile({
 
   return (
     <li className="tile flex flex-col p-7 md:p-8">
-      {capsule && (
-        <Link
-          href={href}
-          className="-mx-7 -mt-7 mb-6 block overflow-hidden rounded-t-[inherit] md:-mx-8 md:-mt-8"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/api/project-media/${capsule.id}`}
-            alt=""
-            loading="lazy"
-            className="aspect-[460/215] w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
-          />
-        </Link>
-      )}
       <div className="flex items-start justify-between gap-4">
         <Link href={href} className="flex min-w-0 items-center gap-4">
-          <ProjectMark
-            name={project.name}
-            color={project.color}
-            image={project.image}
-          />
+          {capsule ? (
+            // A small capsule, Steam-list style: keeps tiles the same height.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/api/project-media/${capsule.id}`}
+              alt=""
+              loading="lazy"
+              className="h-11 w-[94px] shrink-0 rounded-xl object-cover"
+            />
+          ) : (
+            <ProjectMark
+              name={project.name}
+              color={project.color}
+              image={project.image}
+            />
+          )}
           <div className="min-w-0">
             <p className="etiquette">
               {stationLabel(project.station)}

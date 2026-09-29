@@ -86,7 +86,7 @@ export function ProjectStorePage({
 
   return (
     <>
-      <section className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* ------------------------------------------------ Viewer + strip */}
         <div className="tile-ink min-w-0 p-3 md:p-4">
           {current ? (
