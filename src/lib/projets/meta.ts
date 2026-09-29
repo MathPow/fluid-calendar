@@ -27,19 +27,38 @@ export const linkKindLabel = (kind: string) =>
 
 /** What an organisation is to you. Drives the Perso / Client station filter. */
 export const ORG_KINDS = [
-  { id: "owned", label: "Mon entreprise", hint: "La mienne, ou j'y ai des parts", station: "work" },
-  { id: "client", label: "Client", hint: "Je travaille pour eux", station: "work" },
-  { id: "perso", label: "Perso", hint: "Projets personnels", station: "personal" },
+  {
+    id: "owned",
+    label: "Mon entreprise",
+    hint: "La mienne, ou j'y ai des parts",
+    station: "work",
+  },
+  {
+    id: "client",
+    label: "Client",
+    hint: "Je travaille pour eux",
+    station: "work",
+  },
+  {
+    id: "perso",
+    label: "Perso",
+    hint: "Projets personnels",
+    station: "personal",
+  },
 ] as const;
 
 export type OrgKind = (typeof ORG_KINDS)[number]["id"];
-export const ORG_KIND_IDS = ORG_KINDS.map((k) => k.id) as [OrgKind, ...OrgKind[]];
+export const ORG_KIND_IDS = ORG_KINDS.map((k) => k.id) as [
+  OrgKind,
+  ...OrgKind[],
+];
 
 export const orgKindLabel = (kind: string | null | undefined) =>
   ORG_KINDS.find((k) => k.id === kind)?.label ?? "Client";
 
-export const orgKindStation = (kind: string | null | undefined): ProjectStation =>
-  ORG_KINDS.find((k) => k.id === kind)?.station ?? "work";
+export const orgKindStation = (
+  kind: string | null | undefined
+): ProjectStation => ORG_KINDS.find((k) => k.id === kind)?.station ?? "work";
 
 /** A contact is a person or a company. */
 export const CONTACT_TYPES = [
@@ -72,7 +91,8 @@ export const relationLabel = (kind: string | null | undefined) =>
 
 /** Accepts a resized data URL or an https image link, nothing else. */
 export const isAllowedImage = (v: string) =>
-  /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v) || /^https:\/\/\S+$/.test(v);
+  /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v) ||
+  /^https:\/\/\S+$/.test(v);
 
 /** The eight client tints from the design file. A colour never means a status. */
 export const PROJECT_COLORS = [
@@ -87,6 +107,25 @@ export const PROJECT_COLORS = [
 ] as const;
 
 export const DEFAULT_PROJECT_COLOR = PROJECT_COLORS[0].hex;
+
+export const isHexColor = (v: string) => /^#[0-9a-f]{6}$/i.test(v);
+
+/**
+ * Ink or white, whichever reads better on `hex` (WCAG contrast). Custom brand
+ * colours can be dark, where the usual ink initials would disappear.
+ */
+export function readableTextOn(hex: string | null | undefined): string {
+  if (!hex || !isHexColor(hex)) return "#19181c";
+  const channel = (i: number) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+  const ink = 0.0103; // relative luminance of #19181c
+  const onInk = (l + 0.05) / (ink + 0.05);
+  const onWhite = 1.05 / (l + 0.05);
+  return onInk >= onWhite ? "#19181c" : "#ffffff";
+}
 
 export type ProjectStation = "personal" | "work";
 
@@ -118,11 +157,13 @@ export function guessLinkKind(url: string): LinkKind | null {
     return null;
   }
   if (host.includes("figma.com")) return "figma";
-  if (host.includes("drive.google.com") || host.includes("docs.google.com")) return "drive";
+  if (host.includes("drive.google.com") || host.includes("docs.google.com"))
+    return "drive";
   if (host.includes("claude.ai")) return "claude";
   if (host.includes("github.com")) return "github";
   if (host.includes("trello.com")) return "trello";
-  if (host.includes("notion.so") || host.includes("notion.site")) return "notion";
+  if (host.includes("notion.so") || host.includes("notion.site"))
+    return "notion";
   if (host.includes("coolify")) return "coolify";
   return null;
 }
@@ -131,7 +172,10 @@ export function guessLinkKind(url: string): LinkKind | null {
  * Address that opens a project's folder in a machine's web terminal (ttyd):
  * the machine's base URL plus `?project=<folder name>`.
  */
-export function terminalUrl(ttydUrl: string | null | undefined, path: string): string | null {
+export function terminalUrl(
+  ttydUrl: string | null | undefined,
+  path: string
+): string | null {
   if (!ttydUrl) return null;
   const folder = path.split("/").filter(Boolean).pop();
   if (!folder) return null;

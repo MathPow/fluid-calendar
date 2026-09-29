@@ -30,9 +30,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import {
+  DEFAULT_PROJECT_COLOR,
+  initials,
+  readableTextOn,
+} from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
-
-import { DEFAULT_PROJECT_COLOR, initials } from "@/lib/projets/meta";
 
 import { useCalendarStore } from "@/store/calendar";
 import { useViewStore } from "@/store/calendar";
@@ -61,7 +64,8 @@ export function FeedManager() {
   const [syncingFeeds, setSyncingFeeds] = useState<Set<string>>(new Set());
   const [syncingAll, setSyncingAll] = useState(false);
   const [organisations, setOrganisations] = useState<OrganisationRow[]>([]);
-  const { feeds, removeFeed, toggleFeed, syncFeed, loadFromDatabase } = useCalendarStore();
+  const { feeds, removeFeed, toggleFeed, syncFeed, loadFromDatabase } =
+    useCalendarStore();
   const { date: currentDate, setDate } = useViewStore();
 
   useEffect(() => {
@@ -80,7 +84,10 @@ export function FeedManager() {
   const groups = useMemo(() => {
     const named = [...organisations]
       .filter((o) => !o.isDefault)
-      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "fr"));
+      .sort(
+        (a, b) =>
+          a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "fr")
+      );
     const perso = organisations.find((o) => o.isDefault) ?? null;
     const known = new Set(named.map((o) => o.id));
     const sections = named.map((org) => ({
@@ -95,13 +102,19 @@ export function FeedManager() {
       title: perso?.name ?? "Perso",
       color: perso?.color ?? "#ffd166",
       image: perso?.image ?? null,
-      feeds: feeds.filter((f) => !f.organisationId || !known.has(f.organisationId)),
+      feeds: feeds.filter(
+        (f) => !f.organisationId || !known.has(f.organisationId)
+      ),
     });
     return sections.filter((s) => s.feeds.length > 0 || s.key === "perso");
   }, [feeds, organisations]);
 
   const patchFeed = useCallback(
-    async (feed: CalendarFeed, patch: Record<string, unknown>, done: string) => {
+    async (
+      feed: CalendarFeed,
+      patch: Record<string, unknown>,
+      done: string
+    ) => {
       try {
         const res = await fetch(`/api/feeds/${feed.id}`, {
           method: "PATCH",
@@ -131,7 +144,12 @@ export function FeedManager() {
 
   const handleRemoveFeed = useCallback(
     async (feed: CalendarFeed) => {
-      if (!window.confirm(`Supprimer le calendrier « ${feed.name} » et ses événements ?`)) return;
+      if (
+        !window.confirm(
+          `Supprimer le calendrier « ${feed.name} » et ses événements ?`
+        )
+      )
+        return;
       try {
         await removeFeed(feed.id);
       } catch (error) {
@@ -182,7 +200,9 @@ export function FeedManager() {
             className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-40"
             title="Rafraîchir tous les calendriers"
           >
-            <RefreshCw className={cn("h-4 w-4", syncingAll && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-4 w-4", syncingAll && "animate-spin")}
+            />
           </button>
         </div>
 
@@ -197,20 +217,33 @@ export function FeedManager() {
             <div className="flex items-center gap-2 px-1">
               {group.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={group.image} alt="" className="h-5 w-5 rounded-md object-cover" />
+                <img
+                  src={group.image}
+                  alt=""
+                  className="h-5 w-5 rounded-md object-cover"
+                />
               ) : (
                 <span
-                  className="flex h-5 w-5 items-center justify-center rounded-md text-[9px] font-extrabold text-[#19181c]"
-                  style={{ backgroundColor: group.color ?? DEFAULT_PROJECT_COLOR }}
+                  className="flex h-5 w-5 items-center justify-center rounded-md text-[9px] font-extrabold"
+                  style={{
+                    backgroundColor: group.color ?? DEFAULT_PROJECT_COLOR,
+                    color: readableTextOn(group.color ?? DEFAULT_PROJECT_COLOR),
+                  }}
                 >
                   {initials(group.title)}
                 </span>
               )}
-              <span className="text-[13px] font-semibold tracking-title">{group.title}</span>
-              <span className="text-[11px] text-muted-foreground">{group.feeds.length}</span>
+              <span className="text-[13px] font-semibold tracking-title">
+                {group.title}
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                {group.feeds.length}
+              </span>
             </div>
             {group.feeds.length === 0 ? (
-              <p className="px-1 text-[12px] text-muted-foreground">Aucun calendrier.</p>
+              <p className="px-1 text-[12px] text-muted-foreground">
+                Aucun calendrier.
+              </p>
             ) : (
               group.feeds.map((feed) => (
                 <div
@@ -225,7 +258,9 @@ export function FeedManager() {
                     />
                     <div
                       className="h-3 w-3 flex-shrink-0 rounded-full"
-                      style={{ backgroundColor: feed.color || "hsl(var(--primary))" }}
+                      style={{
+                        backgroundColor: feed.color || "hsl(var(--primary))",
+                      }}
                     />
                     <span className="calendar-name min-w-0 truncate text-sm text-foreground">
                       {feed.name}
@@ -257,7 +292,10 @@ export function FeedManager() {
                       title="Rafraîchir"
                     >
                       <RefreshCw
-                        className={cn("h-3.5 w-3.5", syncingFeeds.has(feed.id) && "animate-spin")}
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          syncingFeeds.has(feed.id) && "animate-spin"
+                        )}
                       />
                     </button>
                     <DropdownMenu>
@@ -288,11 +326,16 @@ export function FeedManager() {
                                 )
                               }
                             >
-                              <DropdownMenuRadioItem value={NONE}>Perso</DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value={NONE}>
+                                Perso
+                              </DropdownMenuRadioItem>
                               {organisations
                                 .filter((o) => !o.isDefault)
                                 .map((o) => (
-                                  <DropdownMenuRadioItem key={o.id} value={o.id}>
+                                  <DropdownMenuRadioItem
+                                    key={o.id}
+                                    value={o.id}
+                                  >
                                     {o.name}
                                   </DropdownMenuRadioItem>
                                 ))}
@@ -304,7 +347,9 @@ export function FeedManager() {
                             <User /> Station
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
-                            <DropdownMenuLabel>Visible quand le sélecteur est sur…</DropdownMenuLabel>
+                            <DropdownMenuLabel>
+                              Visible quand le sélecteur est sur…
+                            </DropdownMenuLabel>
                             <DropdownMenuRadioGroup
                               value={feed.station ?? NONE}
                               onValueChange={(v) =>
@@ -315,9 +360,15 @@ export function FeedManager() {
                                 )
                               }
                             >
-                              <DropdownMenuRadioItem value={NONE}>Toujours</DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem value="personal">Perso</DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem value="work">Client</DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value={NONE}>
+                                Toujours
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="personal">
+                                Perso
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="work">
+                                Client
+                              </DropdownMenuRadioItem>
                             </DropdownMenuRadioGroup>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>

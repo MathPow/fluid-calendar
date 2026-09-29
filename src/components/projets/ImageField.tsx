@@ -5,13 +5,17 @@ import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { readableTextOn } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
 /**
  * Shrinks an image file to a square JPEG data URL (cover crop, `size` px).
  * Done in the browser so nothing big ever reaches the server or the DB.
  */
-export async function fileToSquareDataUrl(file: File, size = 320): Promise<string> {
+export async function fileToSquareDataUrl(
+  file: File,
+  size = 320
+): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const side = Math.min(bitmap.width, bitmap.height);
   const sx = (bitmap.width - side) / 2;
@@ -79,10 +83,15 @@ export function ImageField({
           type="button"
           onClick={() => input.current?.click()}
           className={cn(
-            "group relative flex items-center justify-center overflow-hidden text-[#19181c] transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            "group relative flex items-center justify-center overflow-hidden transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             radius
           )}
-          style={{ width: size, height: size, backgroundColor: value ? undefined : color ?? undefined }}
+          style={{
+            width: size,
+            height: size,
+            backgroundColor: value ? undefined : (color ?? undefined),
+            color: readableTextOn(color),
+          }}
           title={value ? "Changer la photo" : "Ajouter une photo"}
           disabled={busy}
         >
@@ -115,7 +124,13 @@ export function ImageField({
       </div>
       <div className="text-[13px] text-muted-foreground">
         <p className="font-medium text-foreground">{label}</p>
-        <p>{busy ? "Traitement…" : value ? "Clique pour changer." : "Clique pour ajouter. Recadrée en carré, 320 px."}</p>
+        <p>
+          {busy
+            ? "Traitement…"
+            : value
+              ? "Clique pour changer."
+              : "Clique pour ajouter. Recadrée en carré, 320 px."}
+        </p>
       </div>
       <input
         ref={input}
@@ -156,11 +171,14 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center font-bold text-[#19181c]",
+        "flex shrink-0 items-center justify-center font-bold",
         radius,
         className
       )}
-      style={{ backgroundColor: color ?? undefined }}
+      style={{
+        backgroundColor: color ?? undefined,
+        color: readableTextOn(color),
+      }}
       aria-hidden
     >
       {fallback}

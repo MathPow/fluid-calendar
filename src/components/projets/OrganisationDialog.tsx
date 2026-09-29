@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Check, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -23,11 +23,11 @@ import {
   DEFAULT_PROJECT_COLOR,
   ORG_KINDS,
   type OrgKind,
-  PROJECT_COLORS,
 } from "@/lib/projets/meta";
 import type { OrganisationLite } from "@/lib/projets/queries";
 import { cn } from "@/lib/utils";
 
+import { ColorField } from "./ColorField";
 import { ImageField } from "./ImageField";
 import {
   type FormLink,
@@ -220,32 +220,7 @@ export function OrganisationDialog({
 
           <div className="space-y-2">
             <Label>Couleur</Label>
-            <div className="flex flex-wrap gap-2.5">
-              {PROJECT_COLORS.map((c) => {
-                const active = color.toLowerCase() === c.hex;
-                return (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    title={c.name}
-                    onClick={() => setColor(c.hex)}
-                    className={cn(
-                      "flex h-11 w-14 items-center justify-center rounded-[14px] border-2 transition-transform hover:scale-105",
-                      active ? "border-foreground" : "border-transparent"
-                    )}
-                    style={{ backgroundColor: c.hex }}
-                    aria-pressed={active}
-                  >
-                    {active && (
-                      <Check
-                        className="h-4 w-4 text-[#19181c]"
-                        strokeWidth={3}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <ColorField value={color} onChange={setColor} />
           </div>
 
           <div className="space-y-2">
