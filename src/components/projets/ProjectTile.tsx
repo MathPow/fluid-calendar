@@ -2,11 +2,22 @@
 
 import Link from "next/link";
 
-import { Pencil } from "lucide-react";
+import { Pencil, SquareTerminal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-import { DEFAULT_PROJECT_COLOR, initials, timeAgoFr } from "@/lib/projets/meta";
+import {
+  DEFAULT_PROJECT_COLOR,
+  initials,
+  terminalUrl,
+  timeAgoFr,
+} from "@/lib/projets/meta";
 import type { ProjectFull } from "@/lib/projets/queries";
 import { cn } from "@/lib/utils";
 
@@ -104,14 +115,17 @@ export function ProjectTile({
             )}
           </div>
         </Link>
-        <button
-          type="button"
-          onClick={() => onEdit(project)}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          aria-label={`Modifier ${project.name}`}
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
+        <div className="flex shrink-0 items-center">
+          <TerminalButton project={project} />
+          <button
+            type="button"
+            onClick={() => onEdit(project)}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            aria-label={`Modifier ${project.name}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {(project.description || latest) && (
@@ -182,5 +196,64 @@ export function ProjectTile({
         </div>
       )}
     </li>
+  );
+}
+
+const iconButton =
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground";
+
+/**
+ * Opens the project's folder in a machine's web terminal (ttyd). One machine:
+ * a plain link; several: a menu to pick which one. Hidden when no machine the
+ * project lives on has a terminal address.
+ */
+function TerminalButton({ project }: { project: ProjectFull }) {
+  const terminals = project.locations
+    .map((l) => ({
+      id: l.id,
+      machine: l.machine.label || l.machine.name,
+      url: terminalUrl(l.machine.ttydUrl, l.path),
+    }))
+    .filter((t): t is { id: string; machine: string; url: string } =>
+      Boolean(t.url)
+    );
+
+  if (terminals.length === 0) return null;
+  if (terminals.length === 1) {
+    return (
+      <a
+        href={terminals[0].url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={iconButton}
+        aria-label={`Terminal de ${project.name} sur ${terminals[0].machine}`}
+        title={`Terminal sur ${terminals[0].machine}`}
+      >
+        <SquareTerminal className="h-4 w-4" />
+      </a>
+    );
+  }
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={iconButton}
+          aria-label={`Terminal de ${project.name}`}
+          title="Ouvrir un terminal"
+        >
+          <SquareTerminal className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {terminals.map((t) => (
+          <DropdownMenuItem key={t.id} asChild>
+            <a href={t.url} target="_blank" rel="noopener noreferrer">
+              <SquareTerminal /> {t.machine}
+            </a>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
