@@ -46,7 +46,11 @@ export async function GET(
       );
     }
 
-    if (!provider.account && provider.type !== "GITHUB" && provider.type !== "TRELLO") {
+    if (
+      !provider.account &&
+      provider.type !== "GITHUB" &&
+      provider.type !== "TRELLO"
+    ) {
       return NextResponse.json(
         { error: "Provider has no associated account" },
         { status: 400 }
@@ -80,8 +84,15 @@ export async function GET(
       const { getGoogleTasksClient, GoogleTaskProvider } = await import(
         "@/lib/task-sync/providers/google-provider"
       );
-      const tasksClient = await getGoogleTasksClient(provider.account!.id, provider.userId);
-      providerImpl = new GoogleTaskProvider(tasksClient, provider.account!.id, provider.userId);
+      const tasksClient = await getGoogleTasksClient(
+        provider.account!.id,
+        provider.userId
+      );
+      providerImpl = new GoogleTaskProvider(
+        tasksClient,
+        provider.account!.id,
+        provider.userId
+      );
     } else if (provider.type === "GITHUB") {
       const { createGitHubProvider } = await import(
         "@/lib/task-sync/providers/github-provider"

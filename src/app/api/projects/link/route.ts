@@ -5,7 +5,10 @@ import { z } from "zod";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { presentTaskProject, taskProjectInclude } from "@/lib/projets/task-link";
+import {
+  presentTaskProject,
+  taskProjectInclude,
+} from "@/lib/projets/task-link";
 
 const LOG_SOURCE = "projects-link";
 
@@ -30,14 +33,24 @@ export async function GET(request: NextRequest) {
         color: true,
         parentId: true,
         station: true,
-        organisation: { select: { id: true, name: true, isDefault: true, sortOrder: true } },
+        organisation: {
+          select: { id: true, name: true, isDefault: true, sortOrder: true },
+        },
         taskProject: { select: { id: true, userId: true } },
       },
       orderBy: { name: "asc" },
     }),
     prisma.project.findMany({
       where: { userId: auth.userId, agentProjectId: null, status: "active" },
-      select: { id: true, name: true, color: true, _count: { select: { tasks: true } } },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        organisation: {
+          select: { id: true, name: true, isDefault: true, sortOrder: true },
+        },
+        _count: { select: { tasks: true } },
+      },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -51,7 +64,8 @@ export async function GET(request: NextRequest) {
       parentId: p.parentId,
       station: p.station,
       organisation: p.organisation,
-      taskProjectId: p.taskProject?.userId === auth.userId ? p.taskProject.id : null,
+      taskProjectId:
+        p.taskProject?.userId === auth.userId ? p.taskProject.id : null,
     })),
     lists,
   });
@@ -87,7 +101,8 @@ export async function POST(request: NextRequest) {
     where: { id: agentProjectId },
     select: { id: true, name: true, color: true, description: true },
   });
-  if (!agent) return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
+  if (!agent)
+    return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
 
   try {
     const existing = await prisma.project.findUnique({
@@ -129,7 +144,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error(
       "Failed to link task list",
-      { agentProjectId, error: error instanceof Error ? error.message : String(error) },
+      {
+        agentProjectId,
+        error: error instanceof Error ? error.message : String(error),
+      },
       LOG_SOURCE
     );
     return NextResponse.json({ error: "Liaison impossible" }, { status: 500 });
@@ -141,14 +159,16 @@ export async function DELETE(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const projectId = request.nextUrl.searchParams.get("projectId");
-  if (!projectId) return NextResponse.json({ error: "projectId requis" }, { status: 400 });
+  if (!projectId)
+    return NextResponse.json({ error: "projectId requis" }, { status: 400 });
   try {
     // Keep the name and colour it was showing, so the list doesn't revert to stale values.
     const current = await prisma.project.findFirst({
       where: { id: projectId, userId: auth.userId },
       include: taskProjectInclude,
     });
-    if (!current) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    if (!current)
+      return NextResponse.json({ error: "Introuvable" }, { status: 404 });
     const shown = presentTaskProject(current);
     const updated = await prisma.project.update({
       where: { id: projectId },
@@ -159,9 +179,15 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     logger.error(
       "Failed to unlink task list",
-      { projectId, error: error instanceof Error ? error.message : String(error) },
+      {
+        projectId,
+        error: error instanceof Error ? error.message : String(error),
+      },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Détachement impossible" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Détachement impossible" },
+      { status: 500 }
+    );
   }
 }

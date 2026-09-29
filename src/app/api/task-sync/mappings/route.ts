@@ -13,7 +13,14 @@ const createMappingSchema = z.object({
   providerId: z.string().min(1),
   externalListId: z.string().min(1),
   externalListName: z.string().min(1),
-  projectId: z.string().min(1),
+  // Where the tasks go. All optional: with none of them, a task list named
+  // after the external list is created.
+  /** An existing task list. */
+  projectId: z.string().min(1).optional(),
+  /** The organisation to file the list under. */
+  organisationId: z.string().min(1).nullable().optional(),
+  /** A project of the Projets tab; it must belong to `organisationId`. */
+  agentProjectId: z.string().min(1).nullable().optional(),
   syncEnabled: z.boolean().optional().default(true),
   direction: z
     .enum(["incoming", "outgoing", "bidirectional"])
@@ -132,21 +139,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the project exists and belongs to the user
-    const project = await prisma.project.findUnique({
-      where: {
-        id: validatedData.projectId,
-        userId,
-      },
-    });
-
-    if (!project) {
-      return NextResponse.json(
-        { error: "Project not found or does not belong to the user" },
-        { status: 404 }
-      );
-    }
-
     // Check if a mapping already exists for this external list
     const existingMapping = await prisma.taskListMapping.findFirst({
       where: {
@@ -162,13 +154,110 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Find the task list the tasks go to, creating it when needed.
+    const { organisationId, agentProjectId } = validatedData;
+    let project: { id: string } | null = null;
+
+    if (validatedData.projectId) {
+      project = await prisma.project.findUnique({
+        where: { id: validatedData.projectId, userId },
+        select: { id: true },
+      });
+      if (!project) {
+        return NextResponse.json(
+          { error: "Project not found or does not belong to the user" },
+          { status: 404 }
+        );
+      }
+    } else if (agentProjectId) {
+      if (!organisationId) {
+        return NextResponse.json(
+          { error: "Pick an organisation before picking a project" },
+          { status: 400 }
+        );
+      }
+      const agent = await prisma.agentProject.findUnique({
+        where: { id: agentProjectId },
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          description: true,
+          organisationId: true,
+          taskProject: { select: { id: true, userId: true } },
+        },
+      });
+      if (!agent || agent.organisationId !== organisationId) {
+        return NextResponse.json(
+          { error: "This project does not belong to that organisation" },
+          { status: 400 }
+        );
+      }
+      if (agent.taskProject && agent.taskProject.userId !== userId) {
+        return NextResponse.json(
+          { error: "Project not found or does not belong to the user" },
+          { status: 404 }
+        );
+      }
+      project =
+        agent.taskProject ??
+        (await prisma.project.create({
+          data: {
+            name: agent.name,
+            color: agent.color,
+            description: agent.description,
+            status: "active",
+            userId,
+            agentProjectId: agent.id,
+          },
+          select: { id: true },
+        }));
+    } else {
+      if (organisationId) {
+        const organisation = await prisma.organisation.findUnique({
+          where: { id: organisationId },
+          select: { id: true },
+        });
+        if (!organisation) {
+          return NextResponse.json(
+            { error: "Organisation not found" },
+            { status: 400 }
+          );
+        }
+      }
+      project = await prisma.project.create({
+        data: {
+          name: validatedData.externalListName,
+          description: `Synced with ${provider.name}`,
+          status: "active",
+          userId,
+          organisationId: organisationId ?? null,
+        },
+        select: { id: true },
+      });
+    }
+
+    // One task list takes one external list per connection.
+    const taken = await prisma.taskListMapping.findFirst({
+      where: { providerId: validatedData.providerId, projectId: project.id },
+      select: { externalListName: true },
+    });
+    if (taken) {
+      return NextResponse.json(
+        {
+          error: `This project already syncs with « ${taken.externalListName} » on this connection`,
+        },
+        { status: 409 }
+      );
+    }
+
     // Create the mapping
     const mapping = await prisma.taskListMapping.create({
       data: {
         providerId: validatedData.providerId,
         externalListId: validatedData.externalListId,
         externalListName: validatedData.externalListName,
-        projectId: validatedData.projectId,
+        projectId: project.id,
         syncEnabled: validatedData.syncEnabled,
         direction: validatedData.direction,
       },

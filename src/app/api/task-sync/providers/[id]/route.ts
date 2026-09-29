@@ -5,6 +5,12 @@ import { z } from "zod";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import {
+  UnknownOrganisationError,
+  providerOrganisation,
+  publicProvider,
+  resolveOrganisationId,
+} from "@/lib/task-sync/public-provider";
 
 const LOG_SOURCE = "task-sync-provider-api";
 
@@ -14,6 +20,8 @@ const updateProviderSchema = z.object({
   syncEnabled: z.boolean().optional(),
   defaultProjectId: z.string().optional(),
   settings: z.record(z.unknown()).optional(),
+  /** null unlinks the connection from its organisation. */
+  organisationId: z.string().nullable().optional(),
 });
 
 /**
@@ -143,11 +151,16 @@ export async function PATCH(
         name: validatedData.name,
         syncEnabled: validatedData.syncEnabled,
         defaultProjectId: validatedData.defaultProjectId,
+        organisationId: await resolveOrganisationId(
+          prisma,
+          validatedData.organisationId
+        ),
       },
+      include: providerOrganisation,
     });
 
     return NextResponse.json({
-      provider: updatedProvider,
+      provider: publicProvider(updatedProvider),
     });
   } catch (error) {
     logger.error(
@@ -157,6 +170,10 @@ export async function PATCH(
       },
       LOG_SOURCE
     );
+
+    if (error instanceof UnknownOrganisationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

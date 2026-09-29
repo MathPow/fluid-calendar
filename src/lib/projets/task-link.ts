@@ -7,6 +7,16 @@ import { Prisma } from "@prisma/client";
  */
 export const taskProjectInclude = {
   _count: { select: { tasks: true } },
+  // Its own organisation, for a list with no Projets project.
+  organisation: {
+    select: {
+      id: true,
+      name: true,
+      color: true,
+      isDefault: true,
+      sortOrder: true,
+    },
+  },
   agentProject: {
     select: {
       id: true,

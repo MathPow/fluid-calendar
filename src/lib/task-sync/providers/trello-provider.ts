@@ -11,7 +11,8 @@ import {
 } from "./task-provider.interface";
 import { TrelloFieldMapper } from "./trello-field-mapper";
 
-const TRELLO_API = "https://api.trello.com/1";
+// Overridable so tests can point the provider at a stand-in server.
+const TRELLO_API = process.env.TRELLO_API_URL || "https://api.trello.com/1";
 
 /**
  * Stored in TaskProvider.settings. The key + token pair is what the user

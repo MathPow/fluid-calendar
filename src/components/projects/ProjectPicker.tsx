@@ -37,6 +37,13 @@ export interface LinkOptions {
     id: string;
     name: string;
     color: string | null;
+    /** Set on a list filed under an organisation without a Projets project. */
+    organisation?: {
+      id: string;
+      name: string;
+      isDefault: boolean;
+      sortOrder: number;
+    } | null;
     _count: { tasks: number };
   }[];
 }
@@ -93,6 +100,26 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
       };
       g.items.push(p);
       byOrg.set(key, g);
+    }
+    // Lists filed under an organisation (a synced board, say) sit with its projects.
+    for (const l of options.lists) {
+      if (!l.organisation) continue;
+      const g = byOrg.get(l.organisation.id) ?? {
+        title: l.organisation.name,
+        rank: l.organisation.sortOrder,
+        items: [],
+      };
+      g.items.push({
+        id: `list:${l.id}`,
+        slug: "",
+        name: l.name,
+        color: l.color,
+        parentId: null,
+        station: "",
+        organisation: l.organisation,
+        taskProjectId: l.id,
+      });
+      byOrg.set(l.organisation.id, g);
     }
     return [...byOrg.values()]
       .sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title, "fr"))
@@ -162,21 +189,25 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
             ))}
           </SelectGroup>
         ))}
-        {options && options.lists.length > 0 && (
+        {options && options.lists.some((l) => !l.organisation) && (
           <SelectGroup>
             <SelectSeparator />
             <SelectLabel>Task lists (not in Projets)</SelectLabel>
-            {options.lists.map((l) => (
-              <SelectItem key={l.id} value={l.id}>
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: l.color ?? "hsl(var(--border))" }}
-                  />
-                  {l.name}
-                </span>
-              </SelectItem>
-            ))}
+            {options.lists
+              .filter((l) => !l.organisation)
+              .map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: l.color ?? "hsl(var(--border))",
+                      }}
+                    />
+                    {l.name}
+                  </span>
+                </SelectItem>
+              ))}
           </SelectGroup>
         )}
       </SelectContent>

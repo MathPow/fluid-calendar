@@ -44,6 +44,71 @@ import { SettingRow, SettingsSection } from "./SettingsSection";
 // Logging source
 const LOG_SOURCE = "TaskSyncSettings";
 
+// Radix selects can't hold an empty value: this one stands for "nothing picked".
+const NONE = "none";
+
+interface OrganisationOption {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
+interface ProjetOption {
+  id: string;
+  name: string;
+  color: string | null;
+  parentId: string | null;
+  organisation: { id: string } | null;
+}
+
+/** Where a board's tasks go: both optional, the project needs the organisation. */
+interface Destination {
+  organisationId: string;
+  agentProjectId: string;
+}
+
+function OrganisationSelect({
+  id,
+  value,
+  onChange,
+  organisations,
+  disabled,
+  className,
+}: {
+  id?: string;
+  value: string;
+  onChange: (organisationId: string) => void;
+  organisations: OrganisationOption[];
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <Select
+      value={value || NONE}
+      onValueChange={(v) => onChange(v === NONE ? "" : v)}
+      disabled={disabled}
+    >
+      <SelectTrigger id={id} className={className}>
+        <SelectValue placeholder="No organisation" />
+      </SelectTrigger>
+      <SelectContent className="max-h-72">
+        <SelectItem value={NONE}>No organisation</SelectItem>
+        {organisations.map((o) => (
+          <SelectItem key={o.id} value={o.id}>
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: o.color ?? "#a8ccff" }}
+              />
+              {o.name}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 // Types for providers and mappings
 interface TaskProvider {
   id: string;
@@ -56,11 +121,13 @@ interface TaskProvider {
   syncInterval: string;
   lastSyncedAt?: string | Date;
   defaultProjectId?: string;
+  organisationId?: string | null;
+  organisation?: { id: string; name: string; color: string | null } | null;
   error?: string;
   settings?: {
     [key: string]: string | number | boolean | undefined;
   };
-} 
+}
 
 interface TaskList {
   id: string;
@@ -76,7 +143,6 @@ interface TaskList {
 
 export function TaskSyncSettings() {
   const { accounts } = useSettingsStore();
-  const { projects } = useProjectStore();
 
   // State
   const [providers, setProviders] = useState<TaskProvider[]>([]);
@@ -98,13 +164,24 @@ export function TaskSyncSettings() {
   const [githubName, setGithubName] = useState("GitHub Projects");
   const [githubToken, setGithubToken] = useState("");
   const [githubLogin, setGithubLogin] = useState("");
-  const [githubOwnerType, setGithubOwnerType] = useState<"user" | "organization">("user");
+  const [githubOwnerType, setGithubOwnerType] = useState<
+    "user" | "organization"
+  >("user");
 
   // Trello-specific state
   const [isTrelloDialogOpen, setIsTrelloDialogOpen] = useState(false);
   const [trelloName, setTrelloName] = useState("Trello");
   const [trelloKey, setTrelloKey] = useState("");
   const [trelloToken, setTrelloToken] = useState("");
+  const [trelloOrganisation, setTrelloOrganisation] = useState("");
+  const [githubOrganisation, setGithubOrganisation] = useState("");
+
+  // Organisations and Projets projects, offered when filing a board
+  const [organisations, setOrganisations] = useState<OrganisationOption[]>([]);
+  const [projets, setProjets] = useState<ProjetOption[]>([]);
+  const [destinations, setDestinations] = useState<Record<string, Destination>>(
+    {}
+  );
 
   // Get accounts that can be used as task providers
   const compatibleAccounts = accounts.filter(
@@ -177,6 +254,39 @@ export function TaskSyncSettings() {
     const { fetchProjects } = useProjectStore.getState();
     fetchProjects();
   }, [fetchProviders]);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetch("/api/organisations").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/projects/link").then((r) =>
+        r.ok ? r.json() : { projets: [] }
+      ),
+    ])
+      .then(
+        ([orgs, link]: [OrganisationOption[], { projets: ProjetOption[] }]) => {
+          if (cancelled) return;
+          setOrganisations(orgs);
+          setProjets(link.projets ?? []);
+        }
+      )
+      .catch(() => {
+        /* the selects stay empty: boards can still sync to a plain list */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // A board starts filed under the organisation of its connection.
+  const destinationOf = (listId: string): Destination =>
+    destinations[listId] ?? {
+      organisationId: selectedProvider?.organisationId ?? "",
+      agentProjectId: "",
+    };
+
+  const setDestination = (listId: string, next: Destination) =>
+    setDestinations((all) => ({ ...all, [listId]: next }));
 
   // Fetch mappings for a provider
   const fetchMappings = useCallback(async (providerId: string) => {
@@ -254,7 +364,8 @@ export function TaskSyncSettings() {
       // Find account email for UI display
       const account = accounts.find((acc) => acc.id === selectedAccount);
       const accountEmail = account?.email || "Unknown Account";
-      const providerType = (account?.provider as "OUTLOOK" | "GOOGLE" | undefined) || "OUTLOOK";
+      const providerType =
+        (account?.provider as "OUTLOOK" | "GOOGLE" | undefined) || "OUTLOOK";
 
       const response = await fetch("/api/task-sync/providers", {
         method: "POST",
@@ -321,7 +432,12 @@ export function TaskSyncSettings() {
       const response = await fetch("/api/task-sync/trello/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trelloName, key: trelloKey, token: trelloToken }),
+        body: JSON.stringify({
+          name: trelloName,
+          key: trelloKey,
+          token: trelloToken,
+          organisationId: trelloOrganisation || null,
+        }),
       });
 
       if (!response.ok) {
@@ -339,15 +455,19 @@ export function TaskSyncSettings() {
       setSelectedProvider(enriched);
       setTrelloKey("");
       setTrelloToken("");
+      setTrelloName("Trello");
+      setTrelloOrganisation("");
       setIsTrelloDialogOpen(false);
-      toast.success("Trello connected — pick a board to map onto a project");
+      toast.success("Trello connected — pick the boards to sync");
     } catch (error) {
       logger.error(
         "Failed to connect Trello provider",
         { error: error instanceof Error ? error.message : "Unknown error" },
         LOG_SOURCE
       );
-      toast.error(error instanceof Error ? error.message : "Failed to connect Trello");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to connect Trello"
+      );
     } finally {
       setIsCreating(false);
     }
@@ -370,6 +490,7 @@ export function TaskSyncSettings() {
           token: githubToken,
           login: githubLogin,
           ownerType: githubOwnerType,
+          organisationId: githubOrganisation || null,
         }),
       });
 
@@ -389,12 +510,55 @@ export function TaskSyncSettings() {
       setGithubToken("");
       setGithubLogin("");
       setGithubName("GitHub Projects");
+      setGithubOrganisation("");
       setIsGitHubDialogOpen(false);
       toast.success("GitHub provider connected successfully");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to connect GitHub");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to connect GitHub"
+      );
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Link a connection to an organisation, or unlink it
+  const setProviderOrganisation = async (
+    providerId: string,
+    organisationId: string
+  ) => {
+    try {
+      const response = await fetch(`/api/task-sync/providers/${providerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organisationId: organisationId || null }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Failed to update the connection");
+      }
+      const { provider: updated } = await response.json();
+      const merge = (p: TaskProvider): TaskProvider =>
+        p.id === providerId
+          ? {
+              ...p,
+              organisationId: updated.organisationId,
+              organisation: updated.organisation,
+            }
+          : p;
+      setProviders((all) => all.map(merge));
+      setSelectedProvider((p) => (p ? merge(p) : p));
+      toast.success(
+        updated.organisation
+          ? `Linked to ${updated.organisation.name}`
+          : "Unlinked from its organisation"
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update the connection"
+      );
     }
   };
 
@@ -438,41 +602,14 @@ export function TaskSyncSettings() {
     }
   };
 
-  // Create a mapping for a task list
-  const createMapping = async (
-    externalListId: string,
-    projectId: string,
-    createNewProject: boolean = false
-  ) => {
+  // Sync a board: file it where asked (nothing asked: a list named after it)
+  const createMapping = async (externalListId: string) => {
     if (!selectedProvider) return;
+    const list = taskLists.find((l) => l.id === externalListId);
+    const { organisationId, agentProjectId } = destinationOf(externalListId);
 
     try {
       setIsLoading(true);
-      const list = taskLists.find((l) => l.id === externalListId);
-
-      // If creating a new project
-      if (createNewProject && list) {
-        const projectResponse = await fetch("/api/projects", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: list.name,
-            description: `Project created for syncing with ${selectedProvider.name} task list`,
-          }),
-        });
-
-        if (!projectResponse.ok) {
-          throw new Error("Failed to create new project");
-        }
-
-        const newProject = await projectResponse.json();
-        projectId = newProject.id;
-
-        // Update projects in store
-        const { fetchProjects } = useProjectStore.getState();
-        await fetchProjects();
-      }
-
       const response = await fetch("/api/task-sync/mappings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -480,22 +617,46 @@ export function TaskSyncSettings() {
           providerId: selectedProvider.id,
           externalListId,
           externalListName: list?.name || "Unknown List",
-          projectId,
+          organisationId: organisationId || null,
+          agentProjectId: (organisationId && agentProjectId) || null,
           direction: "bidirectional", // Always set to bidirectional
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create task list mapping");
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Failed to create task list mapping");
       }
+      const { mapping } = await response.json();
 
-      toast.success("Task list mapped successfully");
+      // The list may be new: let Tasks and Calendar know about it.
+      const { fetchProjects } = useProjectStore.getState();
+      await fetchProjects();
+
+      // First sync right away, so the cards show up as tasks.
+      const sync = await fetch(`/api/task-sync/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mappingId: mapping.id,
+          direction: "bidirectional",
+        }),
+      });
+      toast.success(
+        sync.ok
+          ? `« ${list?.name ?? "Board"} » is syncing to ${mapping.projectName}`
+          : `« ${list?.name ?? "Board"} » mapped to ${mapping.projectName} — press Sync to import`
+      );
 
       // Refresh lists and mappings
       await fetchTaskLists(selectedProvider.id);
       await fetchMappings(selectedProvider.id);
     } catch (error) {
-      toast.error("Failed to create task list mapping");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to create task list mapping"
+      );
       logger.error(
         "Failed to create task list mapping",
         { error: error instanceof Error ? error.message : "Unknown error" },
@@ -656,6 +817,9 @@ export function TaskSyncSettings() {
                   <SelectContent>
                     {providers.map((provider) => (
                       <SelectItem key={provider.id} value={provider.id}>
+                        {provider.organisation
+                          ? `${provider.organisation.name} · `
+                          : ""}
                         {provider.name} (
                         {provider.type === "GITHUB"
                           ? `${(provider.settings as { login?: string })?.login ?? "GitHub"}`
@@ -742,7 +906,10 @@ export function TaskSyncSettings() {
                 )}
 
                 {/* GitHub provider — always available, uses PAT */}
-                <Dialog open={isGitHubDialogOpen} onOpenChange={setIsGitHubDialogOpen}>
+                <Dialog
+                  open={isGitHubDialogOpen}
+                  onOpenChange={setIsGitHubDialogOpen}
+                >
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Plus className="mr-2 h-4 w-4" /> Add GitHub
@@ -763,9 +930,7 @@ export function TaskSyncSettings() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="gh-token">
-                          Personal Access Token
-                        </Label>
+                        <Label htmlFor="gh-token">Personal Access Token</Label>
                         <Input
                           id="gh-token"
                           type="password"
@@ -774,7 +939,8 @@ export function TaskSyncSettings() {
                           placeholder="ghp_..."
                         />
                         <p className="text-xs text-muted-foreground">
-                          Needs <code>read:project</code> and <code>repo</code> scopes.
+                          Needs <code>read:project</code> and <code>repo</code>{" "}
+                          scopes.
                         </p>
                       </div>
                       <div className="grid gap-2">
@@ -790,20 +956,43 @@ export function TaskSyncSettings() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="user">User</SelectItem>
-                            <SelectItem value="organization">Organization</SelectItem>
+                            <SelectItem value="organization">
+                              Organization
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="gh-login">
-                          {githubOwnerType === "organization" ? "Organization" : "Username"}
+                          {githubOwnerType === "organization"
+                            ? "Organization"
+                            : "Username"}
                         </Label>
                         <Input
                           id="gh-login"
                           value={githubLogin}
                           onChange={(e) => setGithubLogin(e.target.value)}
-                          placeholder={githubOwnerType === "organization" ? "my-org" : "my-username"}
+                          placeholder={
+                            githubOwnerType === "organization"
+                              ? "my-org"
+                              : "my-username"
+                          }
                         />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="gh-organisation">
+                          Organisation (optional)
+                        </Label>
+                        <OrganisationSelect
+                          id="gh-organisation"
+                          value={githubOrganisation}
+                          onChange={setGithubOrganisation}
+                          organisations={organisations}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          The organisation this GitHub account works for. Its
+                          projects are filed there unless you say otherwise.
+                        </p>
                       </div>
                     </div>
                     <DialogFooter>
@@ -815,7 +1004,12 @@ export function TaskSyncSettings() {
                       </Button>
                       <Button
                         onClick={connectGitHub}
-                        disabled={isCreating || !githubToken || !githubLogin || !githubName}
+                        disabled={
+                          isCreating ||
+                          !githubToken ||
+                          !githubLogin ||
+                          !githubName
+                        }
                       >
                         {isCreating && (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -827,7 +1021,10 @@ export function TaskSyncSettings() {
                 </Dialog>
 
                 {/* Trello provider — API key + token, boards map onto projects */}
-                <Dialog open={isTrelloDialogOpen} onOpenChange={setIsTrelloDialogOpen}>
+                <Dialog
+                  open={isTrelloDialogOpen}
+                  onOpenChange={setIsTrelloDialogOpen}
+                >
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Plus className="mr-2 h-4 w-4" /> Add Trello
@@ -875,7 +1072,9 @@ export function TaskSyncSettings() {
                           id="trello-token"
                           type="password"
                           value={trelloToken}
-                          onChange={(e) => setTrelloToken(e.target.value.trim())}
+                          onChange={(e) =>
+                            setTrelloToken(e.target.value.trim())
+                          }
                           placeholder="Token with read,write scope"
                           autoComplete="off"
                         />
@@ -894,10 +1093,26 @@ export function TaskSyncSettings() {
                           )}
                         </p>
                       </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="trello-organisation">
+                          Organisation (optional)
+                        </Label>
+                        <OrganisationSelect
+                          id="trello-organisation"
+                          value={trelloOrganisation}
+                          onChange={setTrelloOrganisation}
+                          organisations={organisations}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          The organisation this Trello works for. Connect one
+                          Trello per organisation if you have several.
+                        </p>
+                      </div>
                       <p className="text-xs text-muted-foreground">
-                        Each board becomes a task list. Cards sync as tasks; the column they sit in
-                        (To do / Doing / Done) sets their status, and closing a task here moves the
-                        card to the board&apos;s Done column when it has one.
+                        Each board becomes a task list. Cards sync as tasks; the
+                        column they sit in (To do / Doing / Done) sets their
+                        status, and closing a task here moves the card to the
+                        board&apos;s Done column when it has one.
                       </p>
                     </div>
                     <DialogFooter>
@@ -909,7 +1124,12 @@ export function TaskSyncSettings() {
                       </Button>
                       <Button
                         onClick={connectTrello}
-                        disabled={isCreating || !trelloKey || !trelloToken || !trelloName}
+                        disabled={
+                          isCreating ||
+                          !trelloKey ||
+                          !trelloToken ||
+                          !trelloName
+                        }
                       >
                         {isCreating && (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -970,14 +1190,28 @@ export function TaskSyncSettings() {
                     : "Never"}
                 </div>
               </div>
+              <div className="col-span-2">
+                <div className="text-sm text-muted-foreground">
+                  Organisation
+                </div>
+                <OrganisationSelect
+                  value={selectedProvider.organisationId ?? ""}
+                  onChange={(organisationId) =>
+                    setProviderOrganisation(selectedProvider.id, organisationId)
+                  }
+                  organisations={organisations}
+                  disabled={isLoading}
+                  className="mt-1 max-w-sm"
+                />
+              </div>
               <div>
                 <div className="text-sm text-muted-foreground">
-                  Sync Interval
+                  Automatic sync
                 </div>
                 <div className="font-medium">
-                  {selectedProvider.syncInterval === "0"
-                    ? "Manual only"
-                    : `${selectedProvider.syncInterval} minutes`}
+                  {selectedProvider.syncEnabled
+                    ? "Every 15 minutes, both ways"
+                    : "Off — manual only"}
                 </div>
               </div>
             </div>
@@ -1019,16 +1253,10 @@ export function TaskSyncSettings() {
   const renderTaskLists = () => {
     if (!selectedProvider) return null;
 
-    // Project options are created directly from the projects prop
-    const projectOptions = projects.map((p) => ({
-      value: p.id,
-      label: p.name,
-    }));
-
     return (
       <SettingRow
         label="Task Lists"
-        description="Map external task lists to DreamDash projects"
+        description="Pick the boards and lists to sync as tasks"
       >
         <div className="space-y-4">
           {error && (
@@ -1053,7 +1281,7 @@ export function TaskSyncSettings() {
               {taskLists.map((list) => (
                 <Card key={list.id}>
                   <CardContent className="flex items-start justify-between pt-6">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium">
                         {list.name}
                         {list.isDefaultFolder && (
@@ -1103,52 +1331,102 @@ export function TaskSyncSettings() {
                         </div>
                       ) : (
                         <div className="mt-1">
-                          <div className="mb-2 text-sm text-muted-foreground">
-                            Not mapped to any project
+                          <div className="mb-3 text-sm text-muted-foreground">
+                            Not synced yet. File it under an organisation and a
+                            project if you want; both are optional.
                           </div>
-                          <div className="flex flex-col space-y-2">
-                            <Select
-                              disabled={
-                                isLoading || projectOptions.length === 0
-                              }
-                              onValueChange={(projectId) =>
-                                createMapping(list.id, projectId)
-                              }
-                            >
-                              <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Map to existing project" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {projectOptions.length === 0 ? (
-                                  <SelectItem value="none" disabled>
-                                    No projects available
-                                  </SelectItem>
-                                ) : (
-                                  projectOptions.map((project) => (
-                                    <SelectItem
-                                      key={project.value}
-                                      value={project.value}
-                                    >
-                                      {project.label}
+                          {(() => {
+                            const chosen = destinationOf(list.id);
+                            const options = projets.filter(
+                              (p) =>
+                                p.organisation?.id === chosen.organisationId
+                            );
+                            return (
+                              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                                <OrganisationSelect
+                                  value={chosen.organisationId}
+                                  onChange={(organisationId) =>
+                                    setDestination(list.id, {
+                                      organisationId,
+                                      agentProjectId: "",
+                                    })
+                                  }
+                                  organisations={organisations}
+                                  disabled={isLoading}
+                                  className="sm:w-[200px]"
+                                />
+                                <Select
+                                  value={chosen.agentProjectId || NONE}
+                                  onValueChange={(v) =>
+                                    setDestination(list.id, {
+                                      ...chosen,
+                                      agentProjectId: v === NONE ? "" : v,
+                                    })
+                                  }
+                                  disabled={isLoading || !chosen.organisationId}
+                                >
+                                  <SelectTrigger
+                                    className="sm:w-[220px]"
+                                    aria-label="Project"
+                                  >
+                                    <SelectValue
+                                      placeholder={
+                                        chosen.organisationId
+                                          ? "No project"
+                                          : "Pick an organisation first"
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent className="max-h-72">
+                                    <SelectItem value={NONE}>
+                                      {chosen.organisationId
+                                        ? "No project"
+                                        : "Pick an organisation first"}
                                     </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => createMapping(list.id, "", true)}
-                              disabled={isLoading}
-                            >
-                              <Plus className="mr-1 h-4 w-4" />
-                              Create New Project
-                            </Button>
-                          </div>
+                                    {options.map((p) => (
+                                      <SelectItem key={p.id} value={p.id}>
+                                        <span className="inline-flex items-center gap-2">
+                                          <span
+                                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                            style={{
+                                              backgroundColor:
+                                                p.color ?? "#a8ccff",
+                                            }}
+                                          />
+                                          {p.parentId && (
+                                            <span className="text-muted-foreground">
+                                              ↳
+                                            </span>
+                                          )}
+                                          {p.name}
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  size="sm"
+                                  onClick={() => createMapping(list.id)}
+                                  disabled={isLoading}
+                                >
+                                  <RefreshCw className="mr-1 h-4 w-4" />
+                                  Sync to tasks
+                                </Button>
+                              </div>
+                            );
+                          })()}
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {destinationOf(list.id).agentProjectId
+                              ? "Tasks go to this project's task list."
+                              : `Tasks go to a new list named « ${list.name} ».`}
+                          </p>
                         </div>
                       )}
                     </div>
-                    <Badge variant={list.isMapped ? "default" : "outline"}>
+                    <Badge
+                      variant={list.isMapped ? "default" : "outline"}
+                      className="ml-3 shrink-0"
+                    >
                       {list.isMapped ? "Mapped" : "Not Mapped"}
                     </Badge>
                   </CardContent>

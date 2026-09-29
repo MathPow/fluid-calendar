@@ -6,6 +6,12 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { GitHubTaskProvider } from "@/lib/task-sync/providers/github-provider";
+import {
+  UnknownOrganisationError,
+  providerOrganisation,
+  publicProvider,
+  resolveOrganisationId,
+} from "@/lib/task-sync/public-provider";
 
 const LOG_SOURCE = "task-sync-github-connect";
 
@@ -14,6 +20,8 @@ const connectSchema = z.object({
   token: z.string().min(1),
   login: z.string().min(1),
   ownerType: z.enum(["user", "organization"]),
+  /** The DreamDash organisation this GitHub account works for. Optional. */
+  organisationId: z.string().nullable().optional(),
 });
 
 /**
@@ -27,15 +35,23 @@ export async function POST(request: NextRequest) {
 
     const userId = auth.userId;
     const body = await request.json();
-    const { name, token, login, ownerType } = connectSchema.parse(body);
+    const { name, token, login, ownerType, organisationId } =
+      connectSchema.parse(body);
 
     // Validate the token against the GitHub API
-    const providerInstance = new GitHubTaskProvider({ token, login, ownerType });
+    const providerInstance = new GitHubTaskProvider({
+      token,
+      login,
+      ownerType,
+    });
     const isValid = await providerInstance.validateConnection();
 
     if (!isValid) {
       return NextResponse.json(
-        { error: "Invalid GitHub token or unable to connect. Check your PAT and username." },
+        {
+          error:
+            "Invalid GitHub token or unable to connect. Check your PAT and username.",
+        },
         { status: 400 }
       );
     }
@@ -47,17 +63,26 @@ export async function POST(request: NextRequest) {
         type: "GITHUB",
         userId,
         syncEnabled: true,
+        organisationId: await resolveOrganisationId(prisma, organisationId),
         settings: { token, login, ownerType },
       },
+      include: providerOrganisation,
     });
 
-    return NextResponse.json({ provider }, { status: 201 });
+    return NextResponse.json(
+      { provider: publicProvider(provider) },
+      { status: 201 }
+    );
   } catch (error) {
     logger.error(
       "Failed to connect GitHub provider",
       { error: error instanceof Error ? error.message : "Unknown error" },
       LOG_SOURCE
     );
+
+    if (error instanceof UnknownOrganisationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

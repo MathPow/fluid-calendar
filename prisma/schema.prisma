@@ -102,17 +102,17 @@ model VerificationToken {
 }
 
 model CalendarFeed {
-  id                String            @id @default(uuid())
+  id                String              @id @default(uuid())
   name              String
   url               String? // Optional for local calendars
   type              String // "LOCAL", "GOOGLE", "OUTLOOK", "CALDAV"
   color             String? // Add back color field
-  enabled           Boolean           @default(true)
+  enabled           Boolean             @default(true)
   station           String? // "personal" | "work" | null — for the station filter
   organisationId    String? // group the calendar under an organisation in the sidebar
-  organisation      Organisation?     @relation(fields: [organisationId], references: [id], onDelete: SetNull)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  organisation      Organisation?       @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
   lastSync          DateTime?
   syncToken         String? // For incremental sync
   error             String?
@@ -121,15 +121,15 @@ model CalendarFeed {
   channelExpiration DateTime? // When the webhook expires
   events            CalendarEvent[]
   userId            String?
-  user              User?             @relation(fields: [userId], references: [id])
+  user              User?               @relation(fields: [userId], references: [id])
   accountId         String?
-  account           ConnectedAccount? @relation(fields: [accountId], references: [id])
+  account           ConnectedAccount?   @relation(fields: [accountId], references: [id])
   // CalDAV specific fields
   caldavPath        String? // Path to the specific calendar on the server
   ctag              String? // CalDAV collection tag for change detection
+  orgLinks          EventOrganisation[]
 
   @@index([accountId])
-  orgLinks          EventOrganisation[]
 }
 
 model CalendarEvent {
@@ -200,6 +200,10 @@ model Project {
   agentProjectId String?       @unique
   agentProject   AgentProject? @relation(fields: [agentProjectId], references: [id], onDelete: SetNull)
 
+  // For a list with no Projets project: the organisation it is filed under.
+  organisationId String?
+  organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -207,6 +211,7 @@ model Project {
   @@index([status])
   @@index([userId])
   @@index([externalId, externalSource])
+  @@index([organisationId])
 }
 
 model Task {
@@ -558,15 +563,19 @@ model TaskProvider {
   account          ConnectedAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   defaultProjectId String? // Default project for tasks without a list mapping
   settings         Json? // Provider-specific settings
+  // The organisation this connection works for; its boards default to it.
+  organisationId   String?
+  organisation     Organisation?     @relation(fields: [organisationId], references: [id], onDelete: SetNull)
   mappings         TaskListMapping[]
   error            String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   TaskChange       TaskChange[]
 
-  @@unique([userId, type])
+  // Several connections of the same service are allowed: one Trello per organisation.
   @@index([userId])
   @@index([type])
+  @@index([organisationId])
 }
 
 model TaskListMapping {
@@ -885,18 +894,18 @@ model AgentProject {
 // An organisation groups projects: a company or a brand (DehorsQC, StayChum).
 // Exactly one is flagged default and collects projects without an organisation.
 model Organisation {
-  id               String             @id @default(cuid())
-  slug             String             @unique
+  id               String              @id @default(cuid())
+  slug             String              @unique
   name             String
   color            String? // one of the client tints, hex
   image            String? // data URL (resized client-side) or https URL
-  kind             String             @default("client") // "owned" (mine / I have a stake) | "client" | "perso"
-  station          String             @default("personal") // derived from kind: perso → personal, else work
+  kind             String              @default("client") // "owned" (mine / I have a stake) | "client" | "perso"
+  station          String              @default("personal") // derived from kind: perso → personal, else work
   description      String?
-  isDefault        Boolean            @default(false)
-  sortOrder        Int                @default(0)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  isDefault        Boolean             @default(false)
+  sortOrder        Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
   projects         AgentProject[]
   calendars        CalendarFeed[]
   // Fiscalité tab: the company's tax setup and its invoices.
@@ -905,6 +914,8 @@ model Organisation {
   partnerMovements PartnerMovement[]
   eventLinks       EventOrganisation[]
   links            OrganisationLink[]
+  taskProviders    TaskProvider[]
+  taskLists        Project[]
 
   @@index([sortOrder])
 }
@@ -1131,25 +1142,25 @@ model ProjectLocation {
 // Fiscalité tab: how a company is set up for tax purposes (Québec / Canada).
 // Drives the deadlines and the advice the guide shows.
 model TaxProfile {
-  organisationId  String       @id
-  organisation    Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  legalForm       String       @default("individuelle") // "individuelle" (travailleur autonome, T2125 / TP-80) | "senc" (TP-600, parts aux associés) | "societe" (inc., T2 / CO-17)
-  salesTaxStatus  String       @default("petit") // "petit" (petit fournisseur, not registered) | "inscrit"
-  gstNumber       String? // TPS, 123456789RT0001
-  qstNumber       String? // TVQ, 1234567890TQ0001
-  filingFrequency String       @default("annuelle") // "annuelle" | "trimestrielle" | "mensuelle"
-  fiscalYearEnd   String       @default("12-31") // MM-DD
-  notes           String?
+  organisationId    String       @id
+  organisation      Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  legalForm         String       @default("individuelle") // "individuelle" (travailleur autonome, T2125 / TP-80) | "senc" (TP-600, parts aux associés) | "societe" (inc., T2 / CO-17)
+  salesTaxStatus    String       @default("petit") // "petit" (petit fournisseur, not registered) | "inscrit"
+  gstNumber         String? // TPS, 123456789RT0001
+  qstNumber         String? // TVQ, 1234567890TQ0001
+  filingFrequency   String       @default("annuelle") // "annuelle" | "trimestrielle" | "mensuelle"
+  fiscalYearEnd     String       @default("12-31") // MM-DD
+  notes             String?
   // SENC: the associés, by first name ("Mathys", "Félix").
-  partners        String[]     @default([])
+  partners          String[]     @default([])
   // Share of the profit of each associé, in %, same order as `partners`.
   // Empty means equal parts.
-  partnerShares   Float[]      @default([])
+  partnerShares     Float[]      @default([])
   // Contact (Contacts tab) of each associé, same order as `partners`; "" when
   // not linked. The names stay the key for movements, « Payé par » and Excel.
-  partnerContactIds String[]   @default([])
+  partnerContactIds String[]     @default([])
   // Budget perso: monthly budget per category id, in cents ({ "p-epicerie": 60000 }).
-  budgets         Json?
+  budgets           Json?
 
   // Company file: identification, contact, activity, accountant.
   legalName       String? // nom légal / raison sociale, as on the REQ
@@ -1162,7 +1173,7 @@ model TaxProfile {
   naicsCode       String? // code SCIAN
   address         String?
   city            String?
-  province        String       @default("QC")
+  province        String    @default("QC")
   postalCode      String?
   email           String?
   phone           String?
@@ -1172,11 +1183,11 @@ model TaxProfile {
   accountantEmail String?
   accountantPhone String?
   // Shown in the Fiscalité tab. Only organisations run for profit get flagged.
-  tracked         Boolean      @default(true)
+  tracked         Boolean   @default(true)
   // False until the profile questions were answered (a row can exist just
   // because the organisation was flagged).
-  setUp           Boolean      @default(true)
-  updatedAt       DateTime     @updatedAt
+  setUp           Boolean   @default(true)
+  updatedAt       DateTime  @updatedAt
 }
 
 // An invoice dropped in the Fiscalité tab: one you issued (revenu) or one you

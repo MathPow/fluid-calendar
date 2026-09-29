@@ -6,6 +6,12 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { TrelloTaskProvider } from "@/lib/task-sync/providers/trello-provider";
+import {
+  UnknownOrganisationError,
+  providerOrganisation,
+  publicProvider,
+  resolveOrganisationId,
+} from "@/lib/task-sync/public-provider";
 
 const LOG_SOURCE = "task-sync-trello-connect";
 
@@ -13,6 +19,8 @@ const connectSchema = z.object({
   name: z.string().trim().min(1).max(100),
   key: z.string().trim().min(1),
   token: z.string().trim().min(1),
+  /** The organisation this Trello works for. Optional. */
+  organisationId: z.string().nullable().optional(),
 });
 
 /**
@@ -26,7 +34,7 @@ export async function POST(request: NextRequest) {
     if ("response" in auth) return auth.response;
 
     const body = await request.json();
-    const { name, key, token } = connectSchema.parse(body);
+    const { name, key, token, organisationId } = connectSchema.parse(body);
 
     const instance = new TrelloTaskProvider({ key, token });
     let me: { id: string; username: string; fullName: string };
@@ -48,6 +56,7 @@ export async function POST(request: NextRequest) {
         type: "TRELLO",
         userId: auth.userId,
         syncEnabled: true,
+        organisationId: await resolveOrganisationId(prisma, organisationId),
         settings: {
           key,
           token,
@@ -56,15 +65,23 @@ export async function POST(request: NextRequest) {
           fullName: me.fullName,
         },
       },
+      include: providerOrganisation,
     });
 
-    return NextResponse.json({ provider }, { status: 201 });
+    return NextResponse.json(
+      { provider: publicProvider(provider) },
+      { status: 201 }
+    );
   } catch (error) {
     logger.error(
       "Failed to connect Trello provider",
       { error: error instanceof Error ? error.message : "Unknown error" },
       LOG_SOURCE
     );
+
+    if (error instanceof UnknownOrganisationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -73,6 +90,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ error: "Failed to connect Trello provider" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to connect Trello provider" },
+      { status: 500 }
+    );
   }
 }

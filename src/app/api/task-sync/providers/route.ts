@@ -5,6 +5,10 @@ import { z } from "zod";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import {
+  providerOrganisation,
+  publicProvider,
+} from "@/lib/task-sync/public-provider";
 
 const LOG_SOURCE = "task-sync-providers-api";
 
@@ -36,9 +40,12 @@ export async function GET(request: NextRequest) {
       where: {
         userId,
       },
+      include: providerOrganisation,
+      orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json(providers);
+    // Tokens stay on the server.
+    return NextResponse.json(providers.map(publicProvider));
   } catch (error) {
     logger.error(
       "Failed to get task providers",
