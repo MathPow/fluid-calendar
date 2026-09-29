@@ -129,6 +129,7 @@ model CalendarFeed {
   ctag              String? // CalDAV collection tag for change detection
 
   @@index([accountId])
+  orgLinks          EventOrganisation[]
 }
 
 model CalendarEvent {
@@ -899,6 +900,7 @@ model Organisation {
   taxProfile       TaxProfile?
   invoices         Invoice[]
   partnerMovements PartnerMovement[]
+  eventLinks       EventOrganisation[]
   links            OrganisationLink[]
 
   @@index([sortOrder])
@@ -1072,7 +1074,7 @@ model RoutineBlock {
   layerId     String
   layer       CalendarLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
   title       String
-  kind        String        @default("other") // work | sleep | sport | perso | other
+  kind        String        @default("other") // work | sleep | sport | detente | perso | other
   color       String? // hex; falls back to the kind's colour
   days        Int[] // 0 = Sunday … 6 = Saturday
   startTime   String // "HH:mm"
@@ -1221,4 +1223,20 @@ model PartnerMovement {
   createdAt      DateTime     @default(now())
 
   @@index([organisationId, date])
+}
+
+// An event tagged with an organisation (its logo shows on the calendar
+// block). Keyed by the provider's id rather than our row id: synced feeds
+// delete and recreate their events, the link must survive that. For a
+// recurring series the key is the series id, so every occurrence shares it.
+model EventOrganisation {
+  feedId         String
+  eventKey       String // recurringEventId ?? externalEventId ?? CalendarEvent.id
+  organisationId String
+  feed           CalendarFeed @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@id([feedId, eventKey])
+  @@index([organisationId])
 }

@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 
 import type { EventContentArg } from "@fullcalendar/core";
 import { CircleCheck, Clock, Repeat } from "lucide-react";
@@ -6,7 +6,36 @@ import { CircleCheck, Clock, Repeat } from "lucide-react";
 import { isTaskOverdue } from "@/lib/task-utils";
 import { cn } from "@/lib/utils";
 
+import { useOrganisationsStore } from "@/store/organisations";
+
 import { Priority, TaskStatus } from "@/types/task";
+
+/** The organisation's logo (or initial on its colour), sized for a block. */
+function OrgMark({ id }: { id: string }) {
+  const org = useOrganisationsStore((s) => s.organisations.find((o) => o.id === id));
+  const load = useOrganisationsStore((s) => s.load);
+  useEffect(() => {
+    load();
+  }, [load]);
+  if (!org) return null;
+  return org.image ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={org.image}
+      alt={org.name}
+      title={org.name}
+      className="h-4 w-4 flex-shrink-0 rounded-[5px] bg-white object-cover ring-1 ring-black/10"
+    />
+  ) : (
+    <span
+      title={org.name}
+      className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] text-[9px] font-bold text-[#19181c] ring-1 ring-black/10"
+      style={{ backgroundColor: org.color ?? "#d9d4cc" }}
+    >
+      {org.name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
 
 /** Ink on light backgrounds, paper on dark ones — whatever the theme. */
 function readableOn(background: string | undefined): string | undefined {
@@ -42,6 +71,7 @@ export const CalendarEventContent = memo(function CalendarEventContent({
   const location = eventInfo.event.extendedProps.location;
   const dueDate = eventInfo.event.extendedProps?.extendedProps?.dueDate;
   const title = eventInfo.event.title;
+  const organisationId: string | null | undefined = eventInfo.event.extendedProps.organisationId;
   const endTime = eventInfo.event.end?.getTime() ?? 0;
   const startTime = eventInfo.event.start?.getTime() ?? 0;
   const duration = endTime - startTime;
@@ -68,7 +98,9 @@ export const CalendarEventContent = memo(function CalendarEventContent({
       style={textColor ? { color: textColor } : undefined}
     >
       <div className="flex w-full items-center gap-1.5">
-        {isTask ? (
+        {!isTask && organisationId ? (
+          <OrgMark id={organisationId} />
+        ) : isTask ? (
           <CircleCheck className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />
         ) : isRecurring ? (
           <Repeat className="h-3.5 w-3.5 flex-shrink-0 text-current opacity-75" />

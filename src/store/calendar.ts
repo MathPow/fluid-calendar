@@ -96,7 +96,8 @@ interface CalendarStore extends CalendarState {
   updateFeed: (id: string, updates: Partial<CalendarFeed>) => Promise<void>;
 
   // Event management
-  addEvent: (event: Omit<CalendarEvent, "id">) => Promise<void>;
+  /** Resolves with the new event's id when the API returns it. */
+  addEvent: (event: Omit<CalendarEvent, "id">) => Promise<string | undefined>;
   updateEvent: (
     id: string,
     updates: Partial<CalendarEvent>,
@@ -434,6 +435,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         if (!response.ok) {
           throw new Error("Failed to add event to Google Calendar");
         }
+        const created = (await response.json().catch(() => null)) as { id?: string } | null;
 
         // Reload from database to get the latest state
         await get().loadFromDatabase();
@@ -441,7 +443,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         // Trigger auto-scheduling after event is created
         const { triggerScheduleAllTasks } = useTaskStore.getState();
         await triggerScheduleAllTasks();
-        return;
+        return created?.id;
       }
 
       // For Outlook Calendar feeds, use the Outlook Calendar API
@@ -455,6 +457,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         if (!response.ok) {
           throw new Error("Failed to add event to Outlook Calendar");
         }
+        const created = (await response.json().catch(() => null)) as { id?: string } | null;
 
         // Reload from database to get the latest state
         await get().loadFromDatabase();
@@ -462,7 +465,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         // Trigger auto-scheduling after event is created
         const { triggerScheduleAllTasks } = useTaskStore.getState();
         await triggerScheduleAllTasks();
-        return;
+        return created?.id;
       }
 
       // For CalDAV Calendar feeds, use the CalDAV Calendar API
@@ -476,6 +479,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         if (!response.ok) {
           throw new Error("Failed to add event to CalDAV Calendar");
         }
+        const created = (await response.json().catch(() => null)) as { id?: string } | null;
 
         // Reload from database to get the latest state
         await get().loadFromDatabase();
@@ -483,7 +487,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         // Trigger auto-scheduling after event is created
         const { triggerScheduleAllTasks } = useTaskStore.getState();
         await triggerScheduleAllTasks();
-        return;
+        return created?.id;
       }
 
       // For local calendars, use the generic events API
@@ -497,12 +501,13 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
         if (!response.ok) {
           throw new Error("Failed to add event to local calendar");
         }
+        const created = (await response.json().catch(() => null)) as { id?: string } | null;
 
         await get().loadFromDatabase();
 
         const { triggerScheduleAllTasks } = useTaskStore.getState();
         await triggerScheduleAllTasks();
-        return;
+        return created?.id;
       }
 
       // For other calendars, throw an error

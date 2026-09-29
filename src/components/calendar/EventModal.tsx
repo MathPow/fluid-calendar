@@ -28,6 +28,7 @@ import { formatToLocalISOString, newDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 import { useCalendarStore } from "@/store/calendar";
+import { useOrganisationsStore } from "@/store/organisations";
 import { useSettingsStore } from "@/store/settings";
 
 import { CalendarEvent } from "@/types/calendar";
@@ -162,6 +163,14 @@ export function EventModal({
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [recurrenceByDay, setRecurrenceByDay] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // The event's own organisation tag ("" = follow the calendar's).
+  const [organisationId, setOrganisationId] = useState(
+    event?.organisationLinked ? (event.organisationId ?? "") : ""
+  );
+  const { organisations, load: loadOrganisations } = useOrganisationsStore();
+  useEffect(() => {
+    if (isOpen) loadOrganisations();
+  }, [isOpen, loadOrganisations]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -184,6 +193,7 @@ export function EventModal({
             : newDate(Date.now() + 3600000)
       );
       setSelectedFeedId(event?.feedId || calendar.defaultCalendarId || "");
+      setOrganisationId(event?.organisationLinked ? (event.organisationId ?? "") : "");
       setIsAllDay(event?.allDay || false);
       setStrongAlarm(event?.strongAlarm || false);
       setAlarmMinutes(event?.alarmMinutes ?? 30);
@@ -255,9 +265,25 @@ export function EventModal({
           throw new Error("Cannot edit this Google Calendar event");
         }
         await updateEvent(event.id, eventData, editMode);
+        const before = event.organisationLinked ? (event.organisationId ?? "") : "";
+        if (organisationId !== before) await linkOrganisation(event.id, organisationId);
       } else {
         // For new events
-        await addEvent(eventData);
+        const id = await addEvent(eventData);
+        if (organisationId) {
+          // Some providers don't return the new row: find it after the reload.
+          const created =
+            id ??
+            useCalendarStore
+              .getState()
+              .events.find(
+                (e) =>
+                  e.feedId === eventData.feedId &&
+                  e.title === eventData.title &&
+                  newDate(e.start).getTime() === eventData.start.getTime()
+              )?.id;
+          if (created) await linkOrganisation(created, organisationId);
+        }
       }
       // Reset all states before closing
       resetState();
@@ -268,6 +294,16 @@ export function EventModal({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const linkOrganisation = async (eventId: string, orgId: string) => {
+    const res = await fetch(`/api/events/${eventId}/organisation`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ organisationId: orgId || null }),
+    });
+    if (!res.ok) throw new Error("Impossible de lier l'organisation");
+    await useCalendarStore.getState().loadFromDatabase();
   };
 
   const handleDelete = async () => {
@@ -411,6 +447,36 @@ export function EventModal({
                     ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="organisation">Organisation</Label>
+              <Select
+                value={organisationId || "__feed__"}
+                onValueChange={(v) => setOrganisationId(v === "__feed__" ? "" : v)}
+              >
+                <SelectTrigger id="organisation">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__feed__">
+                    {(() => {
+                      const feedOrg = organisations.find(
+                        (o) => o.id === feeds.find((f) => f.id === selectedFeedId)?.organisationId
+                      );
+                      return feedOrg ? `Celle du calendrier (${feedOrg.name})` : "Aucune";
+                    })()}
+                  </SelectItem>
+                  {organisations.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[12px] text-muted-foreground">
+                Son logo s&apos;affiche sur le bloc dans le calendrier.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

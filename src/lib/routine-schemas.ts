@@ -15,7 +15,7 @@ export const BlockInput = z
     // Optional on create: the user's first layer (created if needed) is used.
     layerId: z.string().min(1).optional(),
     title: z.string().trim().min(1, "Titre requis").max(60),
-    kind: z.enum(["work", "sleep", "sport", "perso", "other"]).default("other"),
+    kind: z.enum(["work", "sleep", "sport", "detente", "perso", "other"]).default("other"),
     color: hexColor.nullable().optional(),
     days: z
       .array(z.number().int().min(0).max(6))

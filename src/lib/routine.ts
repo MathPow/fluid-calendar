@@ -6,7 +6,7 @@ import { fromZonedTime, toZonedTime } from "date-fns-tz";
  * views (browser local time) and the auto-scheduler (user time zone).
  */
 
-export type RoutineKind = "work" | "sleep" | "sport" | "perso" | "other";
+export type RoutineKind = "work" | "sleep" | "sport" | "detente" | "perso" | "other";
 
 export const ROUTINE_KINDS: {
   value: RoutineKind;
@@ -17,6 +17,7 @@ export const ROUTINE_KINDS: {
   { value: "work", label: "Travail", color: "#a8ccff", schedulable: true },
   { value: "sleep", label: "Sommeil", color: "#c9b8f0", schedulable: false },
   { value: "sport", label: "Sport", color: "#9fe0bd", schedulable: false },
+  { value: "detente", label: "Détente", color: "#ffc2b8", schedulable: false },
   { value: "perso", label: "Perso", color: "#ffd88a", schedulable: false },
   { value: "other", label: "Autre", color: "#d9d4cc", schedulable: false },
 ];

@@ -62,6 +62,10 @@ export interface CalendarEvent {
   isMaster: boolean;
   masterEventId?: string;
   recurringEventId?: string;
+  // The organisation shown on the block: the event's own tag, else its
+  // calendar's. organisationLinked is true when the event itself is tagged.
+  organisationId?: string | null;
+  organisationLinked?: boolean;
   // Extended properties for custom data
   extendedProps?: ExtendedEventProps;
 }

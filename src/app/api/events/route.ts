@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { newDate } from "@/lib/date-utils";
+import { withOrganisations } from "@/lib/event-organisation";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
@@ -20,21 +21,26 @@ export async function GET(request: NextRequest) {
     logger.debug("Fetching events from database...", {}, LOG_SOURCE);
 
     // Get events from feeds that belong to the current user
-    const events = await prisma.calendarEvent.findMany({
-      where: {
-        feed: {
-          userId,
-        },
-      },
-      include: {
-        feed: {
-          select: {
-            name: true,
-            color: true,
+    const [rows, links] = await Promise.all([
+      prisma.calendarEvent.findMany({
+        where: {
+          feed: {
+            userId,
           },
         },
-      },
-    });
+        include: {
+          feed: {
+            select: {
+              name: true,
+              color: true,
+              organisationId: true,
+            },
+          },
+        },
+      }),
+      prisma.eventOrganisation.findMany({ where: { feed: { userId } } }),
+    ]);
+    const events = withOrganisations(rows, links);
 
     logger.debug(`Found ${events.length} events in database`, {}, LOG_SOURCE);
     return NextResponse.json(events);
