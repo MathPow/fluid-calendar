@@ -4,6 +4,22 @@ import { prisma } from "@/lib/prisma";
 
 import { slugify } from "./meta";
 
+/** A machine with every field its dialog edits (Machines tab, dashboard, projects). */
+export const machineSelect = {
+  id: true,
+  name: true,
+  label: true,
+  ttydUrl: true,
+  statsUrl: true,
+  kind: true,
+  host: true,
+  ip: true,
+  sshUser: true,
+  sshKey: true,
+  provider: true,
+  notes: true,
+} satisfies Prisma.MachineSelect;
+
 /** Everything a project tile or detail page needs, in one query. */
 export const projectInclude = {
   links: { orderBy: { sortOrder: "asc" } },
@@ -12,15 +28,7 @@ export const projectInclude = {
   locations: {
     orderBy: { lastSeenAt: "desc" },
     include: {
-      machine: {
-        select: {
-          id: true,
-          name: true,
-          label: true,
-          ttydUrl: true,
-          statsUrl: true,
-        },
-      },
+      machine: { select: machineSelect },
     },
   },
   // Only the capsule's id: the bytes are served by /api/project-media/[id].

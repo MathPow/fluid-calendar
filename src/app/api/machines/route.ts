@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { MachineInput } from "@/lib/projets/schemas";
+import { MachineInput, machineFields } from "@/lib/projets/schemas";
 
 const LOG_SOURCE = "machines-api";
 
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const machines = await prisma.machine.findMany({
-    orderBy: { name: "asc" },
+    orderBy: [{ kind: "asc" }, { name: "asc" }],
     include: {
       locations: {
         orderBy: { lastSeenAt: "desc" },
@@ -49,21 +49,13 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { name, label, ttydUrl, statsUrl } = parsed.data;
+  const { name, ...rest } = parsed.data;
   try {
+    const fields = machineFields(rest);
     const machine = await prisma.machine.upsert({
       where: { name },
-      create: {
-        name,
-        label: label || null,
-        ttydUrl: ttydUrl || null,
-        statsUrl: statsUrl || null,
-      },
-      update: {
-        ...(label !== undefined ? { label: label || null } : {}),
-        ...(ttydUrl !== undefined ? { ttydUrl: ttydUrl || null } : {}),
-        ...(statsUrl !== undefined ? { statsUrl: statsUrl || null } : {}),
-      },
+      create: { name, ...fields },
+      update: fields,
     });
     return NextResponse.json(machine, { status: 201 });
   } catch (error) {

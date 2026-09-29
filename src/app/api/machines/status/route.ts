@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { machineStats } from "@/lib/machines/netdata";
 import { prisma } from "@/lib/prisma";
+import { machineSelect } from "@/lib/projets/queries";
 
 const LOG_SOURCE = "machines-status-api";
 
@@ -15,14 +16,7 @@ export async function GET(request: NextRequest) {
 
   const machines = await prisma.machine.findMany({
     orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      label: true,
-      ttydUrl: true,
-      statsUrl: true,
-      _count: { select: { locations: true } },
-    },
+    select: { ...machineSelect, _count: { select: { locations: true } } },
   });
 
   const rows = await Promise.all(

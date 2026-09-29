@@ -95,4 +95,30 @@ export const MachineInput = z.object({
     .refine((v) => v === "" || /^https?:\/\/\S+$/.test(v), "URL invalide")
     .nullable()
     .optional(),
+  kind: z.enum(["local", "vps"]).optional(),
+  host: z.string().trim().max(200).nullable().optional(),
+  ip: z.string().trim().max(64).nullable().optional(),
+  sshUser: z.string().trim().max(64).nullable().optional(),
+  sshKey: z.string().trim().max(300).nullable().optional(),
+  provider: z.string().trim().max(80).nullable().optional(),
+  notes: z.string().trim().max(4000).nullable().optional(),
 });
+
+export type MachineInputType = z.infer<typeof MachineInput>;
+
+/** Prisma data for the optional machine fields present in a payload. */
+export function machineFields(f: Partial<MachineInputType>) {
+  const text = (v: string | null | undefined) => (v ? v : null);
+  return {
+    ...(f.label !== undefined ? { label: text(f.label) } : {}),
+    ...(f.ttydUrl !== undefined ? { ttydUrl: text(f.ttydUrl) } : {}),
+    ...(f.statsUrl !== undefined ? { statsUrl: text(f.statsUrl) } : {}),
+    ...(f.kind !== undefined ? { kind: f.kind } : {}),
+    ...(f.host !== undefined ? { host: text(f.host) } : {}),
+    ...(f.ip !== undefined ? { ip: text(f.ip) } : {}),
+    ...(f.sshUser !== undefined ? { sshUser: text(f.sshUser) } : {}),
+    ...(f.sshKey !== undefined ? { sshKey: text(f.sshKey) } : {}),
+    ...(f.provider !== undefined ? { provider: text(f.provider) } : {}),
+    ...(f.notes !== undefined ? { notes: text(f.notes) } : {}),
+  };
+}

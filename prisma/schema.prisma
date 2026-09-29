@@ -1095,6 +1095,14 @@ model Machine {
   label     String? // friendly name shown in the UI
   ttydUrl   String? // e.g. https://mathpow.taila15d52.ts.net:7681/
   statsUrl  String? // Netdata address the server can reach, e.g. http://100.76.192.10:19999
+  // Inventory (Machines tab). Addresses and key paths only, never secrets.
+  kind      String            @default("local") // "local" | "vps"
+  host      String? // DNS / Tailscale name, e.g. mathpow.taila15d52.ts.net
+  ip        String? // public or Tailscale IP
+  sshUser   String?
+  sshKey    String? // path of the private key, e.g. ~/.ssh/orka-box — never the key itself
+  provider  String? // OVH, Maison…
+  notes     String? // what runs there, gotchas
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   locations ProjectLocation[]

@@ -12,6 +12,7 @@ import {
   Mail,
   Receipt,
   Search,
+  Server,
   Users,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ const MENU: NavLink[] = [
   { href: "/notes", label: "Notes", icon: FileText, also: ["/sessions"] },
   { href: "/projets", label: "Projets", icon: FolderGit2 },
   { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/machines", label: "Machines", icon: Server },
   { href: "/fiscalite", label: "Fiscalité", icon: Receipt },
 ];
 
@@ -66,15 +68,15 @@ export function AppHeader({ className }: { className?: string }) {
       {MENU.map((link) => {
         const { href, label, icon: Icon } = link;
         return (
-        <Link
-          key={href}
-          href={href}
-          aria-current={isActive(link) ? "page" : undefined}
-          className="segmented-item"
-        >
-          <Icon className="h-4 w-4 lg:hidden xl:block" strokeWidth={2} />
-          <span>{label}</span>
-        </Link>
+          <Link
+            key={href}
+            href={href}
+            aria-current={isActive(link) ? "page" : undefined}
+            className="segmented-item"
+          >
+            <Icon className="h-4 w-4 lg:hidden xl:block" strokeWidth={2} />
+            <span>{label}</span>
+          </Link>
         );
       })}
     </>

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { MachineInput } from "@/lib/projets/schemas";
+import { MachineInput, machineFields } from "@/lib/projets/schemas";
 
 const LOG_SOURCE = "machines-api";
 
@@ -35,9 +35,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       where: { id },
       data: {
         ...(f.name !== undefined ? { name: f.name } : {}),
-        ...(f.label !== undefined ? { label: f.label || null } : {}),
-        ...(f.ttydUrl !== undefined ? { ttydUrl: f.ttydUrl || null } : {}),
-        ...(f.statsUrl !== undefined ? { statsUrl: f.statsUrl || null } : {}),
+        ...machineFields(f),
       },
     });
     return NextResponse.json(machine);

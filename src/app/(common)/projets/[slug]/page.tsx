@@ -27,7 +27,11 @@ import {
   pad2,
   timeAgoFr,
 } from "@/lib/projets/meta";
-import { organisationSelect, projectInclude } from "@/lib/projets/queries";
+import {
+  machineSelect,
+  organisationSelect,
+  projectInclude,
+} from "@/lib/projets/queries";
 import {
   type ShowcaseRunStatus,
   type ShowcaseRunView,
@@ -116,14 +120,8 @@ export default async function ProjetDetailPage({
   if (!project) notFound();
 
   const machines = await prisma.machine.findMany({
-    select: {
-      id: true,
-      name: true,
-      label: true,
-      ttydUrl: true,
-      statsUrl: true,
-    },
-    orderBy: { name: "asc" },
+    select: machineSelect,
+    orderBy: [{ kind: "asc" }, { name: "asc" }],
   });
 
   // The task list attached to this project (Tasks / Calendar tabs), its open
