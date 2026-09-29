@@ -25,6 +25,7 @@ import type { ContactFull } from "@/lib/projets/queries";
 import { useStationStore } from "@/store/station";
 
 import { ContactDialog } from "./ContactDialog";
+import { SocialLinkButtons } from "./social-links";
 import { ContactsSwitch } from "./ContactsSwitch";
 import { Avatar } from "./ImageField";
 import type { ProjectLite } from "./ProjectDialog";
@@ -95,6 +96,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
           c.relationDetail,
           c.email,
           c.phone,
+          ...c.links.map((l) => l.value),
           c.notes,
           ...c.tags,
         ]
@@ -390,6 +392,8 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                     )}
                   </div>
                 )}
+
+                <SocialLinkButtons links={c.links} className="mt-3" />
 
                 {c.notes && (
                   <p className="mt-4 line-clamp-3 text-[14px] leading-relaxed text-muted-foreground">

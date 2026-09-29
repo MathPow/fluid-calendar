@@ -216,3 +216,78 @@ export const initials = (name: string) =>
     .slice(0, 2) || "?";
 
 export const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * Platforms a contact can be linked on. `url` turns a handle into a link;
+ * a full URL typed in the field is always kept as is.
+ */
+export const SOCIAL_PLATFORMS = [
+  { id: "instagram", label: "Instagram", placeholder: "@handle", url: (h: string) => `https://instagram.com/${h}` },
+  { id: "facebook", label: "Facebook", placeholder: "nom.de.profil", url: (h: string) => `https://facebook.com/${h}` },
+  { id: "linkedin", label: "LinkedIn", placeholder: "in/prenom-nom", url: (h: string) => `https://linkedin.com/${/^(in|company)\//.test(h) ? h : `in/${h}`}` },
+  { id: "tiktok", label: "TikTok", placeholder: "@handle", url: (h: string) => `https://tiktok.com/@${h}` },
+  { id: "x", label: "X", placeholder: "@handle", url: (h: string) => `https://x.com/${h}` },
+  { id: "threads", label: "Threads", placeholder: "@handle", url: (h: string) => `https://threads.net/@${h}` },
+  { id: "youtube", label: "YouTube", placeholder: "@chaine", url: (h: string) => `https://youtube.com/@${h}` },
+  { id: "github", label: "GitHub", placeholder: "utilisateur", url: (h: string) => `https://github.com/${h}` },
+  { id: "twitch", label: "Twitch", placeholder: "chaine", url: (h: string) => `https://twitch.tv/${h}` },
+  { id: "behance", label: "Behance", placeholder: "utilisateur", url: (h: string) => `https://behance.net/${h}` },
+  { id: "whatsapp", label: "WhatsApp", placeholder: "15145551234", url: (h: string) => `https://wa.me/${h.replace(/\D/g, "")}` },
+  { id: "website", label: "Site web", placeholder: "exemple.com", url: (h: string) => `https://${h}` },
+  { id: "other", label: "Autre", placeholder: "https://…", url: (h: string) => `https://${h}` },
+] as const;
+
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]["id"];
+export const SOCIAL_PLATFORM_IDS = SOCIAL_PLATFORMS.map((p) => p.id) as [SocialPlatform, ...SocialPlatform[]];
+
+export function socialPlatform(id: string) {
+  return SOCIAL_PLATFORMS.find((p) => p.id === id) ?? SOCIAL_PLATFORMS[SOCIAL_PLATFORMS.length - 1];
+}
+
+/** The link for what was typed: a URL as is, else the platform's profile URL. */
+export function socialUrl(platform: string, value: string): string {
+  const v = value.trim();
+  if (/^https?:\/\//i.test(v)) return v;
+  // "instagram.com/handle" typed without the scheme.
+  if (/^[\w-]+(\.[\w-]+)+\//.test(v)) return `https://${v}`;
+  return socialPlatform(platform).url(v.replace(/^@/, ""));
+}
+
+/** Short text for a link: the handle as typed, or the URL's path. */
+export function socialLabel(value: string): string {
+  const v = value.trim();
+  if (!/^https?:\/\//i.test(v)) return v;
+  try {
+    const u = new URL(v);
+    const path = u.pathname.replace(/\/$/, "").replace(/^\//, "");
+    return path || u.hostname.replace(/^www\./, "");
+  } catch {
+    return v;
+  }
+}
+
+const PLATFORM_HOSTS: [RegExp, SocialPlatform][] = [
+  [/(^|\.)instagram\.com$/, "instagram"],
+  [/(^|\.)(facebook|fb)\.com$/, "facebook"],
+  [/(^|\.)linkedin\.com$/, "linkedin"],
+  [/(^|\.)tiktok\.com$/, "tiktok"],
+  [/(^|\.)(x|twitter)\.com$/, "x"],
+  [/(^|\.)threads\.(net|com)$/, "threads"],
+  [/(^|\.)(youtube\.com|youtu\.be)$/, "youtube"],
+  [/(^|\.)github\.com$/, "github"],
+  [/(^|\.)twitch\.tv$/, "twitch"],
+  [/(^|\.)behance\.net$/, "behance"],
+  [/(^|\.)(wa\.me|whatsapp\.com)$/, "whatsapp"],
+];
+
+/** The platform a pasted link belongs to, if it's a known one. */
+export function detectPlatform(value: string): SocialPlatform | null {
+  const v = value.trim();
+  if (!/^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/|$)/i.test(v)) return null;
+  try {
+    const host = new URL(/^https?:/i.test(v) ? v : `https://${v}`).hostname.toLowerCase();
+    return PLATFORM_HOSTS.find(([re]) => re.test(host))?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}

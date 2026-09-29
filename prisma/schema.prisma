@@ -1004,6 +1004,7 @@ model Contact {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   projects       ProjectContact[]
+  links          ContactLink[]
 
   @@index([name])
   @@index([favorite])
@@ -1242,4 +1243,17 @@ model EventOrganisation {
 
   @@id([feedId, eventKey])
   @@index([organisationId])
+}
+
+// A contact's profile on a platform: Instagram, LinkedIn, TikTok, a website…
+// `value` is what was typed (a handle or a URL); the link is built from it.
+model ContactLink {
+  id        String  @id @default(cuid())
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  platform  String // key of SOCIAL_PLATFORMS: instagram | facebook | linkedin | tiktok | x | youtube | …
+  value     String
+  sortOrder Int     @default(0)
+
+  @@index([contactId])
 }

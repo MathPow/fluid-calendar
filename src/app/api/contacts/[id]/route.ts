@@ -31,7 +31,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { status: 400 }
     );
   }
-  const { projectIds, tags, ...fields } = parsed.data;
+  const { projectIds, tags, links, ...fields } = parsed.data;
 
   try {
     const contact = await prisma.$transaction(async (tx) => {
@@ -60,6 +60,14 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           await tx.projectContact.createMany({
             data: projectIds.map((projectId) => ({ projectId, contactId: id })),
             skipDuplicates: true,
+          });
+        }
+      }
+      if (links !== undefined) {
+        await tx.contactLink.deleteMany({ where: { contactId: id } });
+        if (links.length) {
+          await tx.contactLink.createMany({
+            data: links.map((l, i) => ({ ...l, contactId: id, sortOrder: i })),
           });
         }
       }

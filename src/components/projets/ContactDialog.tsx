@@ -39,6 +39,7 @@ import {
 import type { ContactFull } from "@/lib/projets/queries";
 
 import { ImageField } from "./ImageField";
+import { type SocialLinkDraft, SocialLinksField } from "./social-links";
 import type { ProjectLite } from "./ProjectDialog";
 
 interface ContactDialogProps {
@@ -73,6 +74,7 @@ export function ContactDialog({
   const [tagDraft, setTagDraft] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [links, setLinks] = useState<SocialLinkDraft[]>([]);
   const [notes, setNotes] = useState("");
   const [projectIds, setProjectIds] = useState<string[]>([]);
   const [projectQuery, setProjectQuery] = useState("");
@@ -92,6 +94,9 @@ export function ContactDialog({
     setTagDraft("");
     setEmail(contact?.email ?? "");
     setPhone(contact?.phone ?? "");
+    setLinks(
+      contact?.links.map((l) => ({ platform: l.platform as SocialLinkDraft["platform"], value: l.value })) ?? []
+    );
     setNotes(contact?.notes ?? "");
     setProjectIds(contact?.projects.map((p) => p.projectId) ?? []);
     setProjectQuery("");
@@ -137,6 +142,9 @@ export function ContactDialog({
           tags: finalTags,
           email: email.trim() || null,
           phone: phone.trim() || null,
+          links: links
+            .map((l) => ({ platform: l.platform, value: l.value.trim() }))
+            .filter((l) => l.value),
           notes: notes.trim() || null,
           projectIds,
         }),
@@ -328,6 +336,11 @@ export function ContactDialog({
                 placeholder="514 555-0199"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Réseaux</Label>
+            <SocialLinksField links={links} onChange={setLinks} />
           </div>
 
           <div className="space-y-3">

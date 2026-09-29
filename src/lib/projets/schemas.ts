@@ -4,6 +4,7 @@ import {
   LINK_KIND_IDS,
   ORG_KIND_IDS,
   RELATION_KIND_IDS,
+  SOCIAL_PLATFORM_IDS,
   isAllowedImage,
 } from "./meta";
 
@@ -65,6 +66,16 @@ export const ContactInput = z.object({
   tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
   notes: z.string().trim().max(4000).nullable().optional(),
   projectIds: z.array(z.string().min(1)).max(100).optional(),
+  /** Replaces the whole list when present. */
+  links: z
+    .array(
+      z.object({
+        platform: z.enum(SOCIAL_PLATFORM_IDS),
+        value: z.string().trim().min(1).max(300),
+      })
+    )
+    .max(30)
+    .optional(),
 });
 
 export type ContactInputType = z.infer<typeof ContactInput>;
