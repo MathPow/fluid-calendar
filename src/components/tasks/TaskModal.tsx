@@ -23,6 +23,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
+import { StepsEditor } from "./components/StepsEditor";
+
 import { format, newDate } from "@/lib/date-utils";
 import { RecurrenceConverterFactory } from "@/lib/task-sync/recurrence/recurrence-converter-factory";
 import { cn } from "@/lib/utils";
@@ -37,7 +39,7 @@ import {
   Task,
   TaskStatus,
   TimePreference,
-} from "@/types/task";
+ TaskStepInput } from "@/types/task";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -91,6 +93,7 @@ export function TaskModal({
   const { projects } = useProjectStore();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [steps, setSteps] = useState<TaskStepInput[]>([]);
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.BACKLOG);
   const [dueDate, setDueDate] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
@@ -173,8 +176,10 @@ export function TaskModal({
       setIsAutoScheduled(task.isAutoScheduled);
       setScheduleLocked(task.scheduleLocked);
       setPriority(task.priority || null);
+      setSteps((task.steps ?? []).map((s) => ({ id: s.id, title: s.title, done: s.done })));
     } else if (!task && isOpen) {
       resetForm();
+      setSteps([]);
     }
   }, [task, isOpen, initialProjectId, resetForm]);
 
@@ -201,6 +206,7 @@ export function TaskModal({
         energyLevel: energyLevel || undefined,
         preferredTime: preferredTime || undefined,
         tagIds: selectedTagIds,
+        steps: steps.filter((s) => s.title.trim()),
         projectId: projectId,
         isRecurring,
         recurrenceRule: isRecurring ? recurrenceRule : undefined,
@@ -258,6 +264,13 @@ export function TaskModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
+          </div>
+
+          <div>
+            <Label>Steps</Label>
+            <div className="mt-2">
+              <StepsEditor steps={steps} onChange={setSteps} />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

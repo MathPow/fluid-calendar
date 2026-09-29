@@ -38,6 +38,7 @@ export async function GET(
       include: {
         tags: true,
         project: true,
+        steps: { orderBy: { sortOrder: "asc" } },
       },
     });
 
@@ -93,7 +94,20 @@ export async function PUT(
     logger.info(`Update payload for task ${id}`, { payload: json }, LOG_SOURCE);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tagIds, project, projectId, userId: _, ...updates } = json;
+    const { tagIds, project, projectId, userId: _, steps, ...updates } = json;
+    // Steps: the whole checklist is replaced, keeping completedAt for rows
+    // that were already done.
+    const stepRows = Array.isArray(steps)
+      ? (steps as { id?: unknown; title?: unknown; done?: unknown }[])
+          .filter((s) => s && typeof s.title === "string" && (s.title as string).trim())
+          .slice(0, 100)
+          .map((s, i) => ({
+            id: typeof s.id === "string" ? s.id : undefined,
+            title: (s.title as string).trim().slice(0, 200),
+            done: s.done === true,
+            sortOrder: i,
+          }))
+      : undefined;
 
     // Set completedAt when task is marked as completed
     if (
@@ -226,6 +240,7 @@ export async function PUT(
 
     // Save the old task for change tracking
     const oldTask = { ...task };
+    const previousSteps = await prisma.taskStep.findMany({ where: { taskId: id } });
 
     const updatedTask = await prisma.task.update({
       where: {
@@ -241,6 +256,19 @@ export async function PUT(
             connect: tagIds.map((id: string) => ({ id })), // Then connect new ones
           },
         }),
+        ...(stepRows && {
+          steps: {
+            deleteMany: {},
+            create: stepRows.map((s) => ({
+              title: s.title,
+              done: s.done,
+              sortOrder: s.sortOrder,
+              completedAt: s.done
+                ? (previousSteps.find((p) => p.id === s.id)?.completedAt ?? new Date())
+                : null,
+            })),
+          },
+        }),
         project:
           projectId === null
             ? { disconnect: true }
@@ -251,6 +279,7 @@ export async function PUT(
       include: {
         tags: true,
         project: true,
+        steps: { orderBy: { sortOrder: "asc" } },
       },
     });
 

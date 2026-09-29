@@ -1,5 +1,7 @@
 "use client";
 
+import { StepsProgress } from "../components/StepsEditor";
+
 import { useDraggable } from "@dnd-kit/core";
 import { Clock, Lock, Pencil, Trash2 } from "lucide-react";
 
@@ -128,6 +130,8 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
               {task.description}
             </p>
           )}
+
+          <StepsProgress steps={task.steps} />
 
           {task.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">

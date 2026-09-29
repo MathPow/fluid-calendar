@@ -24,6 +24,7 @@ import { Task, TaskStatus } from "@/types/task";
 
 import { useDraggableTask } from "../../dnd/useDragAndDrop";
 import { formatEnumValue, statusColors } from "../utils/task-list-utils";
+import { StepsProgress } from "./StepsEditor";
 import { EditableCell } from "./EditableCell";
 
 interface TaskRowProps {
@@ -145,6 +146,8 @@ export function TaskRow({
             value={task.title}
             onSave={onInlineEdit}
           />
+
+          <StepsProgress steps={task.steps} />
 
           {isFutureTask && (
             <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">

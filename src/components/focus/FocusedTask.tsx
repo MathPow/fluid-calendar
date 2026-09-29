@@ -1,7 +1,14 @@
 "use client";
 
+import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+
+import { cn } from "@/lib/utils";
+
+import { useTaskStore } from "@/store/task";
 
 import { format } from "@/lib/date-utils";
 
@@ -84,6 +91,10 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         </div>
       </div>
 
+      {task.steps && task.steps.length > 0 && (
+        <FocusSteps task={task} />
+      )}
+
       <div className="mb-6 grid grid-cols-2 gap-4">
         {task.dueDate && (
           <div>
@@ -133,5 +144,46 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         </div>
       )}
     </Card>
+  );
+}
+
+function FocusSteps({ task }: { task: Task }) {
+  const { toggleStep } = useTaskStore();
+  const steps = task.steps ?? [];
+  const done = steps.filter((s) => s.done).length;
+  return (
+    <section className="mb-6 rounded-2xl bg-secondary/60 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-medium">Steps</h3>
+        <span className="text-[12px] tabular-nums text-muted-foreground">
+          {done}/{steps.length}
+        </span>
+      </div>
+      <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-card">
+        <div
+          className="h-full rounded-full bg-positive-foreground transition-[width]"
+          style={{ width: `${Math.round((done / steps.length) * 100)}%` }}
+        />
+      </div>
+      <ul className="space-y-1">
+        {steps.map((s) => (
+          <li key={s.id}>
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-card">
+              <Checkbox
+                checked={s.done}
+                onCheckedChange={(v) =>
+                  toggleStep(task.id, s.id, v === true).catch(() =>
+                    toast.error("Could not update the step")
+                  )
+                }
+              />
+              <span className={cn("text-sm", s.done && "text-muted-foreground line-through")}>
+                {s.title}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

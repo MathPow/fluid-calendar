@@ -23,6 +23,7 @@ interface TaskState {
   fetchTasks: () => Promise<void>;
   createTask: (task: NewTask) => Promise<Task>;
   updateTask: (id: string, updates: UpdateTask) => Promise<Task>;
+  toggleStep: (taskId: string, stepId: string, done: boolean) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   setFilters: (filters: Partial<TaskFilters>) => void;
 
@@ -142,6 +143,37 @@ export const useTaskStore = create<TaskState>()(
           throw error;
         } finally {
           set({ loading: false });
+        }
+      },
+
+      toggleStep: async (taskId: string, stepId: string, done: boolean) => {
+        // Optimistic: flip locally, then confirm with the server's copy.
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, steps: (t.steps ?? []).map((s) => (s.id === stepId ? { ...s, done } : s)) }
+              : t
+          ),
+        }));
+        try {
+          const response = await fetch(`/api/tasks/${taskId}/steps/${stepId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ done }),
+          });
+          if (!response.ok) throw new Error(`Failed to update step: ${await response.text()}`);
+          const updated = await response.json();
+          set((state) => ({ tasks: state.tasks.map((t) => (t.id === taskId ? updated : t)) }));
+        } catch (error) {
+          set((state) => ({
+            error: error as Error,
+            tasks: state.tasks.map((t) =>
+              t.id === taskId
+                ? { ...t, steps: (t.steps ?? []).map((s) => (s.id === stepId ? { ...s, done: !done } : s)) }
+                : t
+            ),
+          }));
+          throw error;
         }
       },
 

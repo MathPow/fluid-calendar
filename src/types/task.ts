@@ -34,6 +34,22 @@ export interface Tag {
   color?: string;
 }
 
+export interface TaskStep {
+  id: string;
+  taskId: string;
+  title: string;
+  done: boolean;
+  sortOrder: number;
+  completedAt?: Date | null;
+}
+
+/** A step as sent when saving a task: the whole list replaces the old one. */
+export interface TaskStepInput {
+  id?: string;
+  title: string;
+  done?: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -46,6 +62,7 @@ export interface Task {
   energyLevel?: EnergyLevel | null;
   preferredTime?: TimePreference | null;
   tags: Tag[];
+  steps?: TaskStep[];
   projectId?: string | null;
   project?: Project | null;
   createdAt: Date;
@@ -70,17 +87,19 @@ export interface Task {
 }
 
 export interface NewTask
-  extends Omit<Task, "id" | "createdAt" | "updatedAt" | "tags" | "project"> {
+  extends Omit<Task, "id" | "createdAt" | "updatedAt" | "tags" | "project" | "steps"> {
   tagIds?: string[];
+  steps?: TaskStepInput[];
   isAutoScheduled: boolean;
   scheduleLocked: boolean;
 }
 
 export interface UpdateTask
   extends Partial<
-    Omit<Task, "id" | "createdAt" | "updatedAt" | "tags" | "project">
+    Omit<Task, "id" | "createdAt" | "updatedAt" | "tags" | "project" | "steps">
   > {
   tagIds?: string[];
+  steps?: TaskStepInput[];
 }
 
 export type NewTag = Omit<Tag, "id">;

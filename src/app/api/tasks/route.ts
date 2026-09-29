@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
       include: {
         tags: true,
         project: true,
+        steps: { orderBy: { sortOrder: "asc" } },
       },
       orderBy: {
         createdAt: "desc",
@@ -93,6 +94,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/** Checklist rows from the request body, in order, or undefined when absent. */
+function normalizeSteps(
+  steps: unknown
+): { title: string; done: boolean; sortOrder: number; completedAt: Date | null }[] | undefined {
+  if (!Array.isArray(steps)) return undefined;
+  return steps
+    .map((s) => (s && typeof s === "object" ? (s as { title?: unknown; done?: unknown }) : {}))
+    .filter((s) => typeof s.title === "string" && s.title.trim())
+    .slice(0, 100)
+    .map((s, i) => ({
+      title: (s.title as string).trim().slice(0, 200),
+      done: s.done === true,
+      sortOrder: i,
+      completedAt: s.done === true ? new Date() : null,
+    }));
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request, LOG_SOURCE);
@@ -103,7 +121,8 @@ export async function POST(request: NextRequest) {
     const userId = auth.userId;
 
     const json = await request.json();
-    const { tagIds, recurrenceRule, ...taskData } = json;
+    const { tagIds, recurrenceRule, steps, ...taskData } = json;
+    const stepRows = normalizeSteps(steps);
 
     // Normalize and validate recurrence rule if provided
     const standardizedRecurrenceRule = recurrenceRule
@@ -151,10 +170,12 @@ export async function POST(request: NextRequest) {
             connect: tagIds.map((id: string) => ({ id })),
           },
         }),
+        ...(stepRows && { steps: { create: stepRows } }),
       },
       include: {
         tags: true,
         project: true,
+        steps: { orderBy: { sortOrder: "asc" } },
       },
     });
 
