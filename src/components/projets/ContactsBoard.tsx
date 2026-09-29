@@ -25,6 +25,7 @@ import type { ContactFull } from "@/lib/projets/queries";
 import { useStationStore } from "@/store/station";
 
 import { ContactDialog } from "./ContactDialog";
+import { ContactsSwitch } from "./ContactsSwitch";
 import { Avatar } from "./ImageField";
 import type { ProjectLite } from "./ProjectDialog";
 
@@ -163,6 +164,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <ContactsSwitch />
           <Button size="lg" onClick={() => setDialog({ open: true, contact: null })}>
             <Plus /> Nouveau contact
           </Button>

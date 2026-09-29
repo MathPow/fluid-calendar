@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ContactsSwitch } from "@/components/projets/ContactsSwitch";
 import {
   MachineDialog,
   type MachineLite,
@@ -23,7 +24,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { machineHealth } from "@/lib/machines/health";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
+
+import { MachineMeters, StatusDot } from "./MachineMeters";
+import { useMachineStatus } from "./useMachineStatus";
 
 export type MachineRow = MachineLite & {
   locations: {
@@ -48,7 +53,7 @@ function sshCommand(m: MachineLite): string | null {
 
 /**
  * The Machines tab: local machines and VPS with how to reach them, their web
- * terminal, and the projects that live on each.
+ * terminal, their live load, and the projects that live on each.
  */
 export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
   const router = useRouter();
@@ -56,6 +61,8 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
     null
   );
   const [busy, setBusy] = useState(false);
+  const { machines: live } = useMachineStatus();
+  const statsOf = (id: string) => live?.find((l) => l.id === id)?.stats ?? null;
 
   const send = async (url: string, init: RequestInit, done: string) => {
     setBusy(true);
@@ -142,9 +149,12 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
             <Badge className="px-4 py-2 text-[13px]">{vpsCount} VPS</Badge>
           </div>
         </div>
-        <Button size="lg" onClick={() => setDialog({ machine: null })}>
-          <Plus /> Nouvelle machine
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <ContactsSwitch />
+          <Button size="lg" onClick={() => setDialog({ machine: null })}>
+            <Plus /> Nouvelle machine
+          </Button>
+        </div>
       </header>
       <div className="filet mt-8" />
 
@@ -170,15 +180,22 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                 Aucune pour l&apos;instant.
               </p>
             ) : (
-              <ul className="mt-5 grid gap-5 lg:grid-cols-2">
+              <ul className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
                 {list.map((m) => {
                   const ssh = sshCommand(m);
+                  const stats = statsOf(m.id);
+                  // Until the first reading arrives, say nothing rather than "offline".
+                  const waiting = !!m.statsUrl && live === null;
+                  const { health } = machineHealth(stats);
                   return (
-                    <li key={m.id} className="tile flex flex-col p-5 md:p-6">
+                    <li key={m.id} className="tile flex min-w-0 flex-col p-5 md:p-6">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <h3 className="truncate text-[19px] font-bold leading-tight tracking-title">
-                            {m.label || m.name}
+                          <h3 className="flex items-center gap-2.5 text-[19px] font-bold leading-tight tracking-title">
+                            {!waiting && <StatusDot health={health} />}
+                            <span className="truncate">
+                              {m.label || m.name}
+                            </span>
                           </h3>
                           <p className="mt-0.5 truncate font-mono text-[12px] text-muted-foreground">
                             {m.name}
@@ -207,6 +224,20 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                           </button>
                         </div>
                       </div>
+
+                      {stats?.online ? (
+                        <div className="mt-4 rounded-2xl bg-secondary/60 p-4">
+                          <MachineMeters stats={stats} />
+                        </div>
+                      ) : waiting ? (
+                        <div className="mt-4 h-[120px] animate-pulse rounded-2xl bg-secondary/60" />
+                      ) : (
+                        <p className="mt-4 rounded-2xl bg-secondary/60 px-4 py-3 text-[13px] text-muted-foreground">
+                          {stats
+                            ? "Hors ligne : éteinte, en veille ou hors du réseau Tailscale."
+                            : "Pas de stats en direct : ajoute l'adresse de son Netdata avec le crayon."}
+                        </p>
+                      )}
 
                       <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[13px]">
                         {m.host && (

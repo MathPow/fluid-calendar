@@ -18,6 +18,8 @@ export const getTitleFromPathname = (pathname: string) => {
       return "Projets | DreamDash";
     case "/contacts":
       return "Contacts | DreamDash";
+    case "/machines":
+      return "Machines | DreamDash";
     case "/fiscalite":
       return "Fiscalité | DreamDash";
     case "/settings":

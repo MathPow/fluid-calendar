@@ -5,6 +5,7 @@ import {
   ClipboardList,
   FolderGit2,
   Receipt,
+  Server,
   Settings,
   Users,
   Zap,
@@ -78,6 +79,17 @@ export function useNavigationCommands(): Command[] {
       shortcut: "go",
       perform: (router?: AppRouterInstance) => {
         if (router) router.push("/contacts");
+      },
+    },
+    {
+      id: "navigation.machines",
+      title: "Go to Machines",
+      keywords: ["navigation", "machines", "vps", "serveurs", "servers"],
+      icon: Server,
+      section: "navigation",
+      shortcut: "gm",
+      perform: (router?: AppRouterInstance) => {
+        if (router) router.push("/machines");
       },
     },
     {
