@@ -4,6 +4,7 @@ import { z } from "zod";
 export const WIDGET_TYPES = [
   "next-up",
   "today",
+  "month",
   "shortcuts",
   "news",
   "tasks",
@@ -45,9 +46,48 @@ export type OptionDef =
       kind: "multi";
       choices: { value: string; label: string }[];
       default: string[];
-    };
+    }
+  | { key: string; label: string; kind: "links"; default: CustomLink[] };
 
-export type WidgetOptions = Record<string, boolean | string | string[]>;
+/**
+ * A link the user added to « Accès rapide »: any address, or a project /
+ * organisation page or link imported from Projets. `kind` picks the icon
+ * (a Projets link kind, or "project" / "org" for a coloured initials mark).
+ */
+export interface CustomLink {
+  id: string;
+  label: string;
+  url: string;
+  kind: string;
+  color?: string;
+}
+
+export type WidgetOptions = Record<
+  string,
+  boolean | string | string[] | CustomLink[]
+>;
+
+export const MAX_CUSTOM_LINKS = 30;
+
+export const CustomLinkInput = z.object({
+  id: z.string().min(1).max(40),
+  label: z.string().trim().min(1).max(40),
+  // Absolute http(s), or a path inside DreamDash.
+  url: z
+    .string()
+    .trim()
+    .max(2000)
+    .refine(
+      (u) => /^https?:\/\//i.test(u) || /^\/(?!\/)/.test(u),
+      "Adresse invalide"
+    ),
+  kind: z.string().max(20).default("other"),
+  color: z
+    .string()
+    .regex(/^#[0-9a-f]{3,8}$/i)
+    .optional()
+    .catch(undefined),
+});
 
 export interface WidgetMeta {
   title: string;
@@ -123,6 +163,29 @@ export const WIDGETS: Record<WidgetType, WidgetMeta> = {
     options: [
       { key: "week", label: "Numéro de semaine", kind: "bool", default: true },
       { key: "due", label: "Tâches dues", kind: "bool", default: true },
+    ],
+  },
+  month: {
+    title: "Mois",
+    description: "Le mois en grille, un point sur chaque jour chargé.",
+    presets: [
+      { id: "compact", label: "Compact", w: 1, h: 3 },
+      { id: "split", label: "Côte à côte", w: 2, h: 3 },
+      { id: "large", label: "Grand", w: 4, h: 3 },
+    ],
+    options: [
+      { key: "tasks", label: "Tâches dues", kind: "bool", default: true },
+      {
+        key: "weekStart",
+        label: "La semaine commence",
+        kind: "choice",
+        choices: [
+          { value: "auto", label: "Réglages" },
+          { value: "monday", label: "Lundi" },
+          { value: "sunday", label: "Dimanche" },
+        ],
+        default: "auto",
+      },
     ],
   },
   shortcuts: {
@@ -327,6 +390,7 @@ export const WIDGETS: Record<WidgetType, WidgetMeta> = {
         })),
         default: [...QUICK_LINK_IDS],
       },
+      { key: "custom", label: "Mes liens", kind: "links", default: [] },
     ],
   },
 };
@@ -401,6 +465,13 @@ function cleanOptions(type: WidgetType, raw?: Record<string, unknown>) {
       def.choices.some((c) => c.value === v)
     )
       out[def.key] = v;
+    if (def.kind === "links" && Array.isArray(v)) {
+      out[def.key] = v
+        .map((l) => CustomLinkInput.safeParse(l))
+        .filter((r) => r.success)
+        .map((r) => r.data as CustomLink)
+        .slice(0, MAX_CUSTOM_LINKS);
+    }
     if (def.kind === "multi" && Array.isArray(v)) {
       out[def.key] = def.choices
         .map((c) => c.value)

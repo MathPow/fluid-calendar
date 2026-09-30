@@ -28,7 +28,12 @@ import {
   MachinesStatus,
   machineNote,
 } from "@/components/dashboard/MachinesStatus";
+import { MonthWidget } from "@/components/dashboard/MonthWidget";
 import { ProjectLauncher } from "@/components/dashboard/ProjectLauncher";
+import {
+  CustomLinkMark,
+  QuickLinksEditor,
+} from "@/components/dashboard/QuickLinksEditor";
 import { LauncherIcon } from "@/components/launchers/LauncherIcon";
 import { runLauncher, useLaunchers } from "@/components/launchers/useLaunchers";
 import { StatusDot } from "@/components/machines/MachineMeters";
@@ -39,6 +44,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import {
+  type CustomLink,
   QUICK_LINK_IDS,
   type WidgetOptions,
   type WidgetType,
@@ -287,6 +293,7 @@ export function useDashboardData() {
 
   return {
     loading,
+    events,
     upcoming,
     todayEvents,
     nextEvent: upcoming[0] ?? null,
@@ -311,6 +318,8 @@ interface WidgetProps {
   /** The format's id (see WIDGETS in lib/dashboard/layout). */
   preset: string;
   opts: WidgetOptions;
+  /** Change this section's options from the section itself (saved at once). */
+  setOpts?: (opts: WidgetOptions) => void;
 }
 
 export function renderWidget(type: WidgetType, props: WidgetProps) {
@@ -319,6 +328,15 @@ export function renderWidget(type: WidgetType, props: WidgetProps) {
       return <NextUpWidget {...props} />;
     case "today":
       return <TodayWidget {...props} />;
+    case "month":
+      return (
+        <MonthWidget
+          events={props.data.events}
+          tasks={props.data.openTasks}
+          preset={props.preset}
+          opts={props.opts}
+        />
+      );
     case "shortcuts":
       return <ShortcutsWidget {...props} />;
     case "news":
@@ -1262,95 +1280,191 @@ const QUICK_LINKS: Record<
   settings: { href: "/settings", label: "Réglages", icon: Settings },
 };
 
-function QuickLinksWidget({ preset, opts }: WidgetProps) {
-  const chosen = Array.isArray(opts.links) ? opts.links : [...QUICK_LINK_IDS];
-  const links = QUICK_LINK_IDS.filter((id) => chosen.includes(id)).map(
-    (id) => QUICK_LINKS[id]
+type QuickItem = {
+  key: string;
+  href: string;
+  label: string;
+  external: boolean;
+  mark: (cls: string) => ReactNode;
+};
+
+/** Next's Link for pages inside DreamDash, a new tab for everything else. */
+function QuickLinkAnchor({
+  item,
+  className,
+  children,
+}: {
+  item: QuickItem;
+  className: string;
+  children: ReactNode;
+}) {
+  return item.external ? (
+    <a
+      href={item.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={item.label}
+      className={className}
+    >
+      {children}
+    </a>
+  ) : (
+    <Link href={item.href} title={item.label} className={className}>
+      {children}
+    </Link>
   );
-  if (links.length === 0)
+}
+
+function QuickLinksWidget({ preset, opts, setOpts }: WidgetProps) {
+  const [editorOpen, setEditorOpen] = useState(false);
+  const chosen = Array.isArray(opts.links) ? opts.links : [...QUICK_LINK_IDS];
+  const custom = (
+    Array.isArray(opts.custom) ? opts.custom : []
+  ) as CustomLink[];
+
+  const items: QuickItem[] = [
+    ...QUICK_LINK_IDS.filter((id) => (chosen as string[]).includes(id)).map(
+      (id) => {
+        const { href, label, icon: Icon } = QUICK_LINKS[id];
+        return {
+          key: id,
+          href,
+          label,
+          external: false,
+          mark: (cls: string) => <Icon className={cls} />,
+        };
+      }
+    ),
+    ...custom.map((l) => ({
+      key: l.id,
+      href: l.url,
+      label: l.label,
+      external: !l.url.startsWith("/"),
+      mark: (cls: string) => <CustomLinkMark link={l} className={cls} />,
+    })),
+  ];
+
+  const editor = setOpts && (
+    <QuickLinksEditor
+      open={editorOpen}
+      onOpenChange={setEditorOpen}
+      links={custom}
+      onChange={(next) => setOpts({ ...opts, custom: next })}
+    />
+  );
+  const addButton = (cls: string, children?: ReactNode) =>
+    setOpts && (
+      <button
+        type="button"
+        onClick={() => setEditorOpen(true)}
+        aria-label="Ajouter un lien"
+        title="Ajouter un lien"
+        className={cn(
+          "flex items-center justify-center gap-2 border border-dashed border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground",
+          cls
+        )}
+      >
+        <Plus className="h-4 w-4 shrink-0" />
+        {children}
+      </button>
+    );
+
+  const header = <p className="etiquette">Accès rapide</p>;
+
+  if (items.length === 0)
     return (
-      <div className="flex h-full items-center justify-center text-[13px] text-muted-foreground">
-        Choisis des onglets dans les réglages de la section.
+      <div className="flex h-full min-h-0 flex-col">
+        {header}
+        <div className="flex flex-1 flex-wrap items-center justify-between gap-3 pt-3">
+          <p className="text-[13px] text-muted-foreground">
+            Aucun lien. Ajoute un site, ou un projet depuis Projets.
+          </p>
+          {addButton("h-9 rounded-full px-3.5 text-[13px]", "Ajouter")}
+        </div>
+        {editor}
       </div>
     );
 
+  let body: ReactNode;
   if (preset === "icons") {
-    return (
-      <div className="flex h-full flex-col">
-        <p className="etiquette">Accès rapide</p>
-        <div className="mt-4 flex flex-wrap content-start gap-2">
-          {links.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              title={label}
-              aria-label={label}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary transition-colors hover:bg-foreground hover:text-background"
-            >
-              <Icon className="h-[18px] w-[18px]" />
-            </Link>
-          ))}
-        </div>
+    body = (
+      <div className="mt-4 flex flex-wrap content-start gap-2 overflow-y-auto">
+        {items.map((it) => (
+          <QuickLinkAnchor
+            key={it.key}
+            item={it}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary transition-colors hover:bg-foreground hover:text-background"
+          >
+            {it.mark("h-[18px] w-[18px]")}
+            <span className="sr-only">{it.label}</span>
+          </QuickLinkAnchor>
+        ))}
+        {addButton("h-11 w-11 rounded-full")}
       </div>
     );
-  }
-
-  if (preset === "grid") {
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <p className="etiquette">Accès rapide</p>
-        <div className="mt-4 grid min-h-0 flex-1 auto-rows-fr grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-5">
-          {links.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex min-h-[3.75rem] flex-col items-center justify-center gap-1.5 rounded-2xl bg-secondary text-[12px] font-medium transition-colors hover:bg-border/70"
-            >
-              <Icon className="h-[18px] w-[18px]" />
-              {label}
-            </Link>
-          ))}
-        </div>
+  } else if (preset === "grid") {
+    body = (
+      <div className="mt-4 grid min-h-0 flex-1 auto-rows-fr grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-5">
+        {items.map((it) => (
+          <QuickLinkAnchor
+            key={it.key}
+            item={it}
+            className="flex min-h-[3.75rem] min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl bg-secondary px-1.5 text-[12px] font-medium transition-colors hover:bg-border/70"
+          >
+            {it.mark("h-[18px] w-[18px]")}
+            <span className="w-full truncate text-center">{it.label}</span>
+          </QuickLinkAnchor>
+        ))}
+        {addButton("min-h-[3.75rem] rounded-2xl")}
       </div>
     );
-  }
-
-  if (preset === "column") {
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <p className="etiquette">Accès rapide</p>
-        <ul className="-mx-2 mt-3 min-h-0 flex-1 overflow-y-auto">
-          {links.map(({ href, label, icon: Icon }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                className="flex items-center gap-3 rounded-xl px-2 py-2 text-[14px] font-medium transition-colors hover:bg-secondary"
-              >
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                {label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+  } else if (preset === "column") {
+    body = (
+      <ul className="-mx-2 mt-3 min-h-0 flex-1 overflow-y-auto">
+        {items.map((it) => (
+          <li key={it.key}>
+            <QuickLinkAnchor
+              item={it}
+              className="flex items-center gap-3 rounded-xl px-2 py-2 text-[14px] font-medium transition-colors hover:bg-secondary"
+            >
+              {it.mark("h-4 w-4 text-muted-foreground")}
+              <span className="truncate">{it.label}</span>
+            </QuickLinkAnchor>
+          </li>
+        ))}
+        {setOpts && (
+          <li>
+            {addButton(
+              "mt-1 w-full justify-start rounded-xl border-0 px-2 py-2 text-[13px] hover:bg-secondary",
+              "Ajouter un lien"
+            )}
+          </li>
+        )}
+      </ul>
+    );
+  } else {
+    body = (
+      <div className="mt-4 flex min-h-0 flex-1 flex-wrap content-start gap-2 overflow-y-auto">
+        {items.map((it) => (
+          <QuickLinkAnchor
+            key={it.key}
+            item={it}
+            className="flex h-9 max-w-[14rem] items-center gap-2 rounded-full bg-secondary px-3.5 text-[13px] font-medium transition-colors hover:bg-border/70"
+          >
+            {it.mark("h-4 w-4 text-muted-foreground")}
+            <span className="truncate">{it.label}</span>
+          </QuickLinkAnchor>
+        ))}
+        {addButton("h-9 w-9 rounded-full")}
       </div>
     );
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <p className="etiquette">Accès rapide</p>
-      <div className="mt-4 flex min-h-0 flex-1 flex-wrap content-start gap-2 overflow-y-auto">
-        {links.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex h-9 items-center gap-2 rounded-full bg-secondary px-3.5 text-[13px] font-medium transition-colors hover:bg-border/70"
-          >
-            <Icon className="h-4 w-4 text-muted-foreground" />
-            {label}
-          </Link>
-        ))}
-      </div>
+      {header}
+      {body}
+      {editor}
     </div>
   );
 }

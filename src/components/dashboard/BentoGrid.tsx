@@ -28,6 +28,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell,
+  Calendar,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -47,6 +48,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { QuickLinksEditor } from "@/components/dashboard/QuickLinksEditor";
 import {
   type DashboardData,
   WIDGET_SURFACE,
@@ -61,6 +63,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 
 import {
+  type CustomLink,
   DEFAULT_LAYOUT,
   GRID_COLS,
   WIDGETS,
@@ -78,6 +81,7 @@ import { resolvedLayout, useDashboardLayout } from "@/store/dashboardLayout";
 const ICONS: Record<WidgetType, typeof Bell> = {
   "next-up": CalendarClock,
   today: CalendarDays,
+  month: Calendar,
   shortcuts: Zap,
   news: Bell,
   tasks: ListTodo,
@@ -378,6 +382,15 @@ export function BentoGrid({
   const configure = (type: WidgetType, conf: Conf) =>
     setDraft((d) => ({ ...d, conf: { ...d.conf, [type]: conf } }));
 
+  // From the section itself (e.g. « + » in Accès rapide): into the draft
+  // while editing, straight to the saved layout otherwise.
+  const setOptions = (type: WidgetType, options: WidgetOptions) => {
+    const conf = { ...draft.conf[type], options };
+    if (editing) return configure(type, conf);
+    const next = fromDraft({ ...draft, conf: { ...draft.conf, [type]: conf } });
+    setLayout(sameLayout(next, DEFAULT_LAYOUT) ? null : next);
+  };
+
   const addSelected = () => {
     const types = byCatalogOrder([...selected]).filter((t) =>
       draft.tray.includes(t)
@@ -480,6 +493,7 @@ export function BentoGrid({
                 data,
                 preset: draft.conf[type].preset,
                 opts: optionsOf({ type, options: draft.conf[type].options }),
+                setOpts: (options) => setOptions(type, options),
               })}
             </GridItem>
           ))}
@@ -720,148 +734,184 @@ function SectionSettings({
   const set = (key: string, value: WidgetOptions[string]) =>
     onChange({ ...conf, options: { ...conf.options, [key]: value } });
   const customized = !!slimOptions(type, conf.options);
+  const [linksKey, setLinksKey] = useState<string | null>(null);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Réglages de ${meta.title}`}
-          title="Format et réglages"
-          className="flex h-8 items-center gap-1.5 rounded-full bg-popover/95 px-3 text-[12px] font-semibold text-muted-foreground shadow-tile transition-colors hover:text-foreground"
+    <>
+      {linksKey && (
+        <QuickLinksEditor
+          open
+          onOpenChange={(o) => !o && setLinksKey(null)}
+          links={(opts[linksKey] ?? []) as CustomLink[]}
+          onChange={(next) => set(linksKey, next)}
+        />
+      )}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Réglages de ${meta.title}`}
+            title="Format et réglages"
+            className="flex h-8 items-center gap-1.5 rounded-full bg-popover/95 px-3 text-[12px] font-semibold text-muted-foreground shadow-tile transition-colors hover:text-foreground"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            {!narrow && current.label}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="end"
+          className="max-h-[70vh] w-[19rem] overflow-y-auto p-4"
         >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          {!narrow && current.label}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="max-h-[70vh] w-[19rem] overflow-y-auto p-4"
-      >
-        <p className="etiquette">Format</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {meta.presets.map((p) => {
-            const on = p.id === current.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onChange({ ...conf, preset: p.id })}
-                aria-pressed={on}
-                className={cn(
-                  "flex flex-col items-start gap-2.5 rounded-2xl p-3 text-left ring-2 transition-colors",
-                  on
-                    ? "bg-foreground text-background ring-foreground"
-                    : "bg-secondary text-foreground ring-transparent hover:ring-border"
-                )}
-              >
-                <PresetShape w={p.w} h={p.h} />
-                <span className="flex w-full items-baseline justify-between gap-2">
-                  <span className="text-[13px] font-semibold tracking-title">
-                    {p.label}
-                  </span>
-                  <span className="text-[11px] tabular-nums opacity-60">
-                    {p.w}×{p.h}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {meta.options.length > 0 && (
-          <>
-            <div className="mt-5 flex items-center justify-between">
-              <p className="etiquette">Options</p>
-              {customized && (
+          <p className="etiquette">Format</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {meta.presets.map((p) => {
+              const on = p.id === current.id;
+              return (
                 <button
+                  key={p.id}
                   type="button"
-                  onClick={() => onChange({ ...conf, options: undefined })}
-                  className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                  onClick={() => onChange({ ...conf, preset: p.id })}
+                  aria-pressed={on}
+                  className={cn(
+                    "flex flex-col items-start gap-2.5 rounded-2xl p-3 text-left ring-2 transition-colors",
+                    on
+                      ? "bg-foreground text-background ring-foreground"
+                      : "bg-secondary text-foreground ring-transparent hover:ring-border"
+                  )}
                 >
-                  Rétablir
+                  <PresetShape w={p.w} h={p.h} />
+                  <span className="flex w-full items-baseline justify-between gap-2">
+                    <span className="text-[13px] font-semibold tracking-title">
+                      {p.label}
+                    </span>
+                    <span className="text-[11px] tabular-nums opacity-60">
+                      {p.w}×{p.h}
+                    </span>
+                  </span>
                 </button>
-              )}
-            </div>
-            <div className="mt-2 space-y-3.5">
-              {meta.options.map((def) => {
-                const value = opts[def.key];
-                if (def.kind === "bool")
-                  return (
-                    <label
-                      key={def.key}
-                      className="flex cursor-pointer items-center justify-between gap-3 text-[13px]"
-                    >
-                      {def.label}
-                      <Switch
-                        checked={value === true}
-                        onCheckedChange={(v) => set(def.key, v)}
-                      />
-                    </label>
-                  );
-                if (def.kind === "choice")
+              );
+            })}
+          </div>
+
+          {meta.options.length > 0 && (
+            <>
+              <div className="mt-5 flex items-center justify-between">
+                <p className="etiquette">Options</p>
+                {customized && (
+                  <button
+                    type="button"
+                    onClick={() => onChange({ ...conf, options: undefined })}
+                    className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    Rétablir
+                  </button>
+                )}
+              </div>
+              <div className="mt-2 space-y-3.5">
+                {meta.options.map((def) => {
+                  const value = opts[def.key];
+                  if (def.kind === "bool")
+                    return (
+                      <label
+                        key={def.key}
+                        className="flex cursor-pointer items-center justify-between gap-3 text-[13px]"
+                      >
+                        {def.label}
+                        <Switch
+                          checked={value === true}
+                          onCheckedChange={(v) => set(def.key, v)}
+                        />
+                      </label>
+                    );
+                  if (def.kind === "choice")
+                    return (
+                      <div key={def.key}>
+                        <p className="text-[13px]">{def.label}</p>
+                        <div className="segmented mt-1.5 flex w-full p-1">
+                          {def.choices.map((c) => (
+                            <button
+                              key={c.value}
+                              type="button"
+                              onClick={() => set(def.key, c.value)}
+                              aria-pressed={value === c.value}
+                              className="segmented-item h-7 flex-1 px-2 text-[12px]"
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  if (def.kind === "links") {
+                    const links = (
+                      Array.isArray(value) ? value : []
+                    ) as CustomLink[];
+                    return (
+                      <div
+                        key={def.key}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <p className="text-[13px]">
+                          {def.label}
+                          <span className="ml-1.5 text-muted-foreground">
+                            {links.length}
+                          </span>
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLinksKey(def.key)}
+                        >
+                          Gérer
+                        </Button>
+                      </div>
+                    );
+                  }
+                  const list = (Array.isArray(value) ? value : []) as string[];
                   return (
                     <div key={def.key}>
                       <p className="text-[13px]">{def.label}</p>
-                      <div className="segmented mt-1.5 flex w-full p-1">
-                        {def.choices.map((c) => (
-                          <button
-                            key={c.value}
-                            type="button"
-                            onClick={() => set(def.key, c.value)}
-                            aria-pressed={value === c.value}
-                            className="segmented-item h-7 flex-1 px-2 text-[12px]"
-                          >
-                            {c.label}
-                          </button>
-                        ))}
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {def.choices.map((c) => {
+                          const on = list.includes(c.value);
+                          return (
+                            <button
+                              key={c.value}
+                              type="button"
+                              aria-pressed={on}
+                              onClick={() =>
+                                set(
+                                  def.key,
+                                  on
+                                    ? list.filter((v) => v !== c.value)
+                                    : [...list, c.value]
+                                )
+                              }
+                              className={cn(
+                                "flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors",
+                                on
+                                  ? "bg-foreground text-background"
+                                  : "bg-secondary text-muted-foreground hover:text-foreground"
+                              )}
+                            >
+                              {on && <Check className="h-3 w-3" />}
+                              {c.label}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   );
-                const list = Array.isArray(value) ? value : [];
-                return (
-                  <div key={def.key}>
-                    <p className="text-[13px]">{def.label}</p>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {def.choices.map((c) => {
-                        const on = list.includes(c.value);
-                        return (
-                          <button
-                            key={c.value}
-                            type="button"
-                            aria-pressed={on}
-                            onClick={() =>
-                              set(
-                                def.key,
-                                on
-                                  ? list.filter((v) => v !== c.value)
-                                  : [...list, c.value]
-                              )
-                            }
-                            className={cn(
-                              "flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors",
-                              on
-                                ? "bg-foreground text-background"
-                                : "bg-secondary text-muted-foreground hover:text-foreground"
-                            )}
-                          >
-                            {on && <Check className="h-3 w-3" />}
-                            {c.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-        <p className="mt-4 text-[11px] text-muted-foreground">
-          Sur mobile, chaque section prend toute la largeur.
-        </p>
-      </PopoverContent>
-    </Popover>
+                })}
+              </div>
+            </>
+          )}
+          <p className="mt-4 text-[11px] text-muted-foreground">
+            Sur mobile, chaque section prend toute la largeur.
+          </p>
+        </PopoverContent>
+      </Popover>
+    </>
   );
 }
 
