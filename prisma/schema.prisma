@@ -1342,19 +1342,29 @@ model Notification {
 }
 
 // A one-tap button in the account menu that sends a saved command to a
-// machine's desktop agent (open a project in VS Code, lock mathpow, git pull…).
+// machine (desktop agent, or ssh) — plus optional scheduling for Claude /
+// Codex prompt runs. `kind` chooses the flavour; `promptText` fills the two
+// prompt kinds. Scheduled rows are picked up by the run-machine-actions cron.
 model LaunchShortcut {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  machineId String
-  machine   Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
-  label     String
-  icon      String   @default("zap")
-  action    String
-  args      Json     @default("{}")
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  machineId    String?
+  machine      Machine?  @relation(fields: [machineId], references: [id], onDelete: SetNull)
+  label        String
+  icon         String    @default("zap")
+  kind         String    @default("shell") // "shell" | "claude-prompt" | "codex-prompt"
+  action       String
+  args         Json      @default("{}")
+  promptText   String?
+  scheduledFor DateTime?
+  recurrence   String? // "daily" | "weekly" | "monthly" | null
+  lastRunAt    DateTime?
+  lastResult   String? // tail of stdout/stderr, ≤ 20 KB
+  lastError    String?
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
 
   @@index([userId, sortOrder])
+  @@index([scheduledFor])
 }

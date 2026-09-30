@@ -1052,7 +1052,7 @@ function ShortcutsWidget({ preset, opts }: WidgetProps) {
   const showMachine = opts.machine !== false;
   const showAdd = opts.add !== false;
   const machineOf = (l: (typeof items)[number]) =>
-    l.machine.label || l.machine.name;
+    l.machine?.label || l.machine?.name || "sans machine";
 
   const header = (
     <div className="flex items-center justify-between gap-3">

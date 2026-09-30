@@ -61,7 +61,30 @@ export const DESKTOP_ACTIONS = {
       cwd: absPath.optional(),
     }),
   },
+  agent_run: {
+    // Runs on the desktop agent without zenity — reserved for prompt shortcuts
+    // that were explicitly approved at creation time. Never shown in the UI
+    // action picker; the launcher-run route sets it directly.
+    label: "Prompt agent (sans confirmation)",
+    schema: z.object({
+      command: z.string().trim().min(1).max(4000),
+      input: z.string().max(200_000).optional(),
+      cwd: absPath.optional(),
+    }),
+  },
 } as const;
+
+/** Actions that show up in the shell-launcher picker. `agent_run` is hidden. */
+export const USER_DESKTOP_ACTION_IDS = [
+  "open_url",
+  "open_path",
+  "open_code",
+  "open_app",
+  "notify",
+  "clipboard",
+  "lock",
+  "shell",
+] as const;
 
 export type DesktopAction = keyof typeof DESKTOP_ACTIONS;
 
@@ -113,6 +136,8 @@ export function describeCommand(
     case "lock":
       return "Verrouiller l'écran";
     case "shell":
+      return `$ ${a.command}`;
+    case "agent_run":
       return `$ ${a.command}`;
     default:
       return action;

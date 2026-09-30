@@ -132,7 +132,7 @@ export function AccountMenu() {
                   <DropdownMenuItem
                     key={l.id}
                     onSelect={() => runLauncher(l)}
-                    title={`${l.label} · ${l.machine.label || l.machine.name}`}
+                    title={`${l.label} · ${l.machine?.label || l.machine?.name || "sans machine"}`}
                     className="flex h-[4.5rem] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl bg-secondary px-1.5 text-center focus:bg-border/70"
                   >
                     <LauncherIcon icon={l.icon} className="h-5 w-5" />
