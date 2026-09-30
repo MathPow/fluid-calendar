@@ -9,22 +9,29 @@ import { useNotifications } from "./useNotifications";
 
 const PREVIEW = 5;
 
-/** Dashboard « Nouvelles »: the latest notifications, unread first. */
-export function NewsTile() {
+/**
+ * Dashboard « Nouvelles »: the latest notifications, unread first. `embedded`
+ * fills a bento cell (scrolls inside it) and says so when there is nothing.
+ */
+export function NewsTile({ embedded = false }: { embedded?: boolean }) {
   const { items, unread, loaded, markRead, markUnread, remove } =
     useNotifications();
   const [all, setAll] = useState(false);
-  if (!loaded || items.length === 0) return null;
+  if (!embedded && (!loaded || items.length === 0)) return null;
 
   const sorted = [...items].sort(
     (a, b) =>
       Number(!!a.readAt) - Number(!!b.readAt) ||
       b.createdAt.localeCompare(a.createdAt)
   );
-  const shown = all ? sorted : sorted.slice(0, PREVIEW);
+  const shown = all || embedded ? sorted : sorted.slice(0, PREVIEW);
 
   return (
-    <section className="tile mt-5 p-6 md:p-8">
+    <section
+      className={
+        embedded ? "flex h-full min-h-0 flex-col" : "tile mt-5 p-6 md:p-8"
+      }
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
           <p className="etiquette">Nouvelles</p>
@@ -44,7 +51,18 @@ export function NewsTile() {
           </button>
         )}
       </div>
-      <div className="-mx-2.5 mt-2">
+      {embedded && loaded && items.length === 0 && (
+        <p className="flex flex-1 items-center justify-center py-6 text-[13px] text-muted-foreground">
+          Rien de neuf.
+        </p>
+      )}
+      <div
+        className={
+          embedded
+            ? "-mx-2.5 mt-2 min-h-0 flex-1 overflow-y-auto"
+            : "-mx-2.5 mt-2"
+        }
+      >
         <NotificationList
           items={shown}
           onOpen={(n) => !n.readAt && markRead([n.id])}
@@ -55,7 +73,7 @@ export function NewsTile() {
           }}
         />
       </div>
-      {sorted.length > PREVIEW && (
+      {!embedded && sorted.length > PREVIEW && (
         <button
           type="button"
           onClick={() => setAll((v) => !v)}

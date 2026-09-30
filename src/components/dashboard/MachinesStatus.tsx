@@ -37,7 +37,7 @@ function note(machine: MachineStatusRow) {
  * "Machines" on the dashboard: a glance — one dot per machine, green, yellow
  * or red. The meters themselves live in the Machines tab.
  */
-export function MachinesStatus() {
+export function MachinesStatus({ embedded = false }: { embedded?: boolean }) {
   const { machines: rows, failed } = useMachineStatus(10000);
   // Same order on every refresh; the ones that are not monitored go last.
   const machines = rows
@@ -50,7 +50,9 @@ export function MachinesStatus() {
   const watched = healths.filter((h) => h !== "none").length;
 
   return (
-    <section className="tile mt-5 p-7 md:p-10">
+    <section
+      className={embedded ? "h-full overflow-y-auto" : "tile mt-5 p-7 md:p-10"}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <p className="etiquette mr-1">Machines</p>

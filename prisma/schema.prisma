@@ -350,6 +350,8 @@ model UserSettings {
   timeZone     String
   weekStartDay String   @default("sunday") // "monday", "sunday"
   timeFormat   String   @default("12h") // "12h", "24h"
+  // Dashboard bento: [{ type, w, h }] in display order. Null = the default layout.
+  dashboardLayout Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
