@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
         color: json.color,
         status: json.status || ProjectStatus.ACTIVE,
         agentProjectId: typeof json.agentProjectId === "string" ? json.agentProjectId : null,
+        organisationId: typeof json.organisationId === "string" ? json.organisationId : null,
         // Associate the project with the current user
         userId,
       },

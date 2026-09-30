@@ -22,6 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import { useProjectStore } from "@/store/project";
+import { useOrganisationsStore } from "@/store/organisations";
 
 import { Project, ProjectStatus } from "@/types/project";
 
@@ -42,6 +43,12 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#E5E7EB");
   const [agentProjectId, setAgentProjectId] = useState<string>(NO_LINK);
+  // Organisation of a list not linked to a Projets project.
+  const [organisationId, setOrganisationId] = useState<string>(NO_LINK);
+  const { organisations, load: loadOrganisations } = useOrganisationsStore();
+  useEffect(() => {
+    if (isOpen) loadOrganisations();
+  }, [isOpen, loadOrganisations]);
   const { options } = useLinkOptions(isOpen);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -52,8 +59,10 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
       setDescription(project.description || "");
       setColor(project.color || "#E5E7EB");
       setAgentProjectId(project.agentProjectId ?? NO_LINK);
+      setOrganisationId(project.organisationId ?? NO_LINK);
     } else if (!project && isOpen) {
       setAgentProjectId(NO_LINK);
+      setOrganisationId(NO_LINK);
       setName("");
       setDescription("");
       setColor("#E5E7EB");
@@ -72,6 +81,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           description: description.trim() || undefined,
           color: color === "#E5E7EB" ? undefined : color,
           agentProjectId: agentProjectId === NO_LINK ? null : agentProjectId,
+          organisationId: organisationId === NO_LINK ? null : organisationId,
         });
       } else {
         await createProject({
@@ -80,6 +90,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           color: color === "#E5E7EB" ? undefined : color,
           status: ProjectStatus.ACTIVE,
           agentProjectId: agentProjectId === NO_LINK ? null : agentProjectId,
+          organisationId: organisationId === NO_LINK ? null : organisationId,
         });
       }
       onClose();
@@ -171,6 +182,34 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
                 </p>
               )}
             </div>
+
+            {agentProjectId === NO_LINK && (
+              <div>
+                <Label>Organisation</Label>
+                <Select value={organisationId} onValueChange={setOrganisationId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sans organisation" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value={NO_LINK}>Sans organisation</SelectItem>
+                    {organisations.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        <span className="inline-flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: o.color ?? "#d9d4cc" }}
+                          />
+                          {o.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  La liste se range sous cette organisation dans la barre de côté.
+                </p>
+              </div>
+            )}
 
             <div className="flex justify-between pt-4">
               {project && (

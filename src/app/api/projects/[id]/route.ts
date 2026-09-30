@@ -78,6 +78,9 @@ export async function PUT(
         ...(json.agentProjectId === null || typeof json.agentProjectId === "string"
           ? { agentProjectId: json.agentProjectId }
           : {}),
+        ...(json.organisationId === null || typeof json.organisationId === "string"
+          ? { organisationId: json.organisationId }
+          : {}),
       },
       include: taskProjectInclude,
     });

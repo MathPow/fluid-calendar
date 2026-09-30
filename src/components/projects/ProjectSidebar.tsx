@@ -144,7 +144,25 @@ export function ProjectSidebar() {
     (project) => project.status === ProjectStatus.ARCHIVED
   );
 
-  const byOrganisation = groupTaskProjects(activeProjects);
+  // Open tasks per list: empty lists (and organisations with nothing open)
+  // stay out of the way unless asked for.
+  const openCount = new Map<string, number>();
+  for (const t of tasks) {
+    if (t.projectId && t.status !== TaskStatus.COMPLETED) {
+      openCount.set(t.projectId, (openCount.get(t.projectId) ?? 0) + 1);
+    }
+  }
+  const [showEmpty, setShowEmpty] = useState(false);
+  const allGroups = groupTaskProjects(activeProjects);
+  const byOrganisation = allGroups
+    .map((g) => ({
+      ...g,
+      projects: showEmpty
+        ? g.projects
+        : g.projects.filter((p) => (openCount.get(p.id) ?? 0) > 0 || p.id === activeProject?.id),
+    }))
+    .filter((g) => g.projects.length > 0);
+  const hiddenCount = activeProjects.length - byOrganisation.reduce((n, g) => n + g.projects.length, 0);
 
   // Count non-completed tasks with no project
   const unassignedTasksCount = tasks.filter(
@@ -209,14 +227,24 @@ export function ProjectSidebar() {
             <div className="space-y-4">
               {byOrganisation.map((group) => (
                 <div key={group.key} className="space-y-1">
-                  <div className="etiquette flex items-center gap-2 py-2">
-                    {group.color && (
+                  <div className="flex items-center gap-2 px-1 py-2">
+                    {group.key === "none" ? (
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/50" />
+                    ) : group.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={group.image} alt="" className="h-5 w-5 shrink-0 rounded-md object-cover" />
+                    ) : (
                       <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: group.color }}
-                      />
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-extrabold text-[#19181c]"
+                        style={{ backgroundColor: group.color ?? "#d9d4cc" }}
+                      >
+                        {group.name.charAt(0).toUpperCase()}
+                      </span>
                     )}
-                    <span className="truncate">{group.name}</span>
+                    <span className="truncate text-[13px] font-semibold tracking-title">{group.name}</span>
+                    <span className="ml-auto text-[11px] text-muted-foreground">
+                      {group.projects.reduce((n, p) => n + (openCount.get(p.id) ?? 0), 0)}
+                    </span>
                   </div>
                   {group.projects.map((project) => (
                     <ProjectItem
@@ -232,7 +260,19 @@ export function ProjectSidebar() {
                 </div>
               ))}
 
-              {archivedProjects.length > 0 && (
+              {hiddenCount > 0 || showEmpty ? (
+                <button
+                  type="button"
+                  onClick={() => setShowEmpty((v) => !v)}
+                  className="w-full rounded-md px-3 py-1.5 text-left text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  {showEmpty
+                    ? "Masquer les listes vides"
+                    : `${hiddenCount} liste${hiddenCount > 1 ? "s" : ""} vide${hiddenCount > 1 ? "s" : ""} masquée${hiddenCount > 1 ? "s" : ""}`}
+                </button>
+              ) : null}
+
+              {archivedProjects.length > 0 && showEmpty && (
                 <div className="space-y-1">
                   <div className="etiquette py-2">Archived</div>
                   {archivedProjects.map((project) => (

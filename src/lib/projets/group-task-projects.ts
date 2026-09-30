@@ -4,6 +4,7 @@ export type TaskProjectGroup = {
   key: string;
   name: string;
   color: string | null;
+  image: string | null;
   projects: Project[];
 };
 
@@ -18,7 +19,8 @@ export function groupTaskProjects(projects: Project[]): TaskProjectGroup[] {
     TaskProjectGroup & { rank: [number, number] }
   >();
   for (const project of projects) {
-    const org = project.agentProject?.organisation;
+    // The Projets project's organisation, else the list's own.
+    const org = project.agentProject?.organisation ?? project.organisation;
     const key = org?.id ?? "none";
     let group = groups.get(key);
     if (!group) {
@@ -26,6 +28,7 @@ export function groupTaskProjects(projects: Project[]): TaskProjectGroup[] {
         key,
         name: org?.name ?? "Sans organisation",
         color: org?.color ?? null,
+        image: org?.image ?? null,
         // The user's organisation order; unlinked lists at the very end.
         rank: org ? [0, org.sortOrder ?? 0] : [1, 0],
         projects: [],
@@ -45,6 +48,7 @@ export function groupTaskProjects(projects: Project[]): TaskProjectGroup[] {
       key: g.key,
       name: g.name,
       color: g.color,
+      image: g.image,
       projects: [...g.projects].sort((a, b) =>
         a.name.localeCompare(b.name, "fr")
       ),
