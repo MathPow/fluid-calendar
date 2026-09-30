@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -20,7 +22,6 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { cn } from "@/lib/utils";
 
 import { AccountMenu } from "./AccountMenu";
-import { StationSwitcher } from "./StationSwitcher";
 
 interface NavLink {
   href: string;
@@ -44,10 +45,10 @@ const MENU: NavLink[] = [
 ];
 
 /**
- * Portal header. Top row is the wordmark, then search / notifications /
- * station / account. The nav sits under the top row: on a wide desktop it
- * fits on one line with icons and labels; when the top row would be too
- * crowded to hold it too, it stays below rather than squishing. On phones
+ * Portal header. Top row is the wordmark, the nav, then search /
+ * notifications / account (station lives in the account menu). The nav sits
+ * right of the wordmark whenever it fits there whole, labels included; when
+ * it doesn't, it drops under the top row rather than squishing. On phones
  * it's a swipeable strip that keeps every label so you find items by name.
  */
 export function AppHeader({ className }: { className?: string }) {
@@ -57,6 +58,44 @@ export function AppHeader({ className }: { className?: string }) {
     [link.href, ...(link.also ?? [])].some(
       (p) => pathname === p || pathname?.startsWith(p + "/")
     );
+
+  // Inline when the nav's natural width fits the gap between the wordmark and
+  // the actions. The slot is flex-1 with a zero basis, so its width does not
+  // depend on what it holds — no flip-flop.
+  const slotRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+  const [inline, setInline] = useState(false);
+  useEffect(() => {
+    const slot = slotRef.current;
+    if (!slot) return;
+    const check = () => {
+      const nav = navRef.current;
+      if (nav) setInline(nav.offsetWidth + 24 <= slot.clientWidth);
+    };
+    const ro = new ResizeObserver(check);
+    ro.observe(slot);
+    check();
+    return () => ro.disconnect();
+  }, [inline]);
+
+  const links = (
+    <div ref={navRef} className="segmented w-max shrink-0">
+      {MENU.map((link) => {
+        const { href, label, icon: Icon } = link;
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={isActive(link) ? "page" : undefined}
+            className="segmented-item h-10 px-3.5"
+          >
+            <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <span>{label}</span>
+          </Link>
+        );
+      })}
+    </div>
+  );
 
   const openCommandPalette = () => {
     document.dispatchEvent(
@@ -80,7 +119,18 @@ export function AppHeader({ className }: { className?: string }) {
           DreamDash
         </Link>
 
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <div
+          ref={slotRef}
+          className="flex min-w-0 flex-1 basis-0 overflow-hidden pl-4"
+        >
+          {inline && (
+            <nav aria-label="Main" className="min-w-0">
+              {links}
+            </nav>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={openCommandPalette}
@@ -92,35 +142,20 @@ export function AppHeader({ className }: { className?: string }) {
           </button>
 
           <NotificationBell />
-          <StationSwitcher />
           <AccountMenu />
         </div>
       </div>
 
-      {/* Navigation sits under the top row. Swipeable on phones (edge fade
-          hints at it); on desktop it centers and shows every label. */}
-      <nav className="relative" aria-label="Main">
-        <div className="page overflow-x-auto pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="segmented mx-auto w-fit shrink-0">
-            {MENU.map((link) => {
-              const { href, label, icon: Icon } = link;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={isActive(link) ? "page" : undefined}
-                  className="segmented-item h-10 px-3.5"
-                >
-                  <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-                  <span>{label}</span>
-                </Link>
-              );
-            })}
+      {/* No room beside the wordmark: under the top row. Swipeable on
+          phones (edge fade hints at it), centered on a desktop. */}
+      {!inline && (
+        <nav className="relative" aria-label="Main">
+          <div className="page flex overflow-x-auto pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mx-auto">{links}</div>
           </div>
-        </div>
-        {/* Edge fade so the strip reads as scrollable on small screens. */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background/85 to-transparent md:hidden" />
-      </nav>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background/85 to-transparent md:hidden" />
+        </nav>
+      )}
     </header>
   );
 }

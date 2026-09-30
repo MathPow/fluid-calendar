@@ -6,20 +6,23 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 
 import {
+  Briefcase,
   ChevronDown,
   HelpCircle,
+  Layers,
   LogOut,
   Monitor,
   Moon,
   Rocket,
   Settings,
   Sun,
+  User,
 } from "lucide-react";
 
-import { useTheme } from "@/components/providers/ThemeProvider";
 import { LauncherIcon } from "@/components/launchers/LauncherIcon";
 import { LaunchersDialog } from "@/components/launchers/LaunchersDialog";
 import { runLauncher, useLaunchers } from "@/components/launchers/useLaunchers";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -32,6 +35,18 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useShortcutsStore } from "@/store/shortcuts";
+import { type Station, useStationStore } from "@/store/station";
+
+const STATIONS: {
+  id: Station;
+  label: string;
+  hint: string;
+  icon: typeof User;
+}[] = [
+  { id: "personal", label: "Perso", hint: "Perso seulement", icon: User },
+  { id: "work", label: "Travail", hint: "Clients seulement", icon: Briefcase },
+  { id: "both", label: "Tout", hint: "Tout afficher", icon: Layers },
+];
 
 /**
  * The account pill (avatar · name · chevron) and its menu, modelled on the
@@ -43,6 +58,10 @@ export function AccountMenu() {
   const { setOpen: setShortcutsOpen } = useShortcutsStore();
   const { items: launchers, set: setLaunchers } = useLaunchers();
   const { theme, setTheme } = useTheme();
+  const { currentStation, setStation } = useStationStore();
+  const station = STATIONS.find((s) => s.id === currentStation);
+  // Perso or Travail filters the whole app: keep a hint on the pill.
+  const StationBadge = currentStation !== "both" ? station?.icon : undefined;
 
   // The app is reachable only over the tailnet and guards pages with its own
   // session, so there is no sign-in button here; /auth/signin handles it.
@@ -70,10 +89,20 @@ export function AccountMenu() {
             className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-card p-1 text-[14px] font-medium text-foreground shadow-tile transition-shadow hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:pr-3"
             aria-label="Account menu"
           >
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={session.user?.image || ""} alt={name} />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
+            <span className="relative">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={session.user?.image || ""} alt={name} />
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              {StationBadge && (
+                <span
+                  className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background ring-2 ring-card"
+                  title={`Station : ${station?.label}`}
+                >
+                  <StationBadge className="h-2.5 w-2.5" />
+                </span>
+              )}
+            </span>
             <span className="hidden max-w-[9rem] truncate lg:inline">
               {name}
             </span>
@@ -117,6 +146,24 @@ export function AccountMenu() {
           )}
 
           <DropdownMenuSeparator className="my-3" />
+
+          <p className="etiquette px-2 pb-2">Station</p>
+          <div className="segmented mb-4 w-full p-1">
+            {STATIONS.map(({ id, label, hint, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setStation(id)}
+                data-active={currentStation === id}
+                className="segmented-item h-8 flex-1 text-[12px]"
+                aria-pressed={currentStation === id}
+                title={hint}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
 
           <p className="etiquette px-2 pb-2">Apparence</p>
           <div className="segmented mb-3 w-full p-1">
