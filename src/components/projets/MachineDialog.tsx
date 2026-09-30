@@ -32,6 +32,7 @@ export interface MachineLite {
   sshKey?: string | null;
   provider?: string | null;
   notes?: string | null;
+  agentSeenAt?: Date | string | null;
 }
 
 export type MachineValues = {

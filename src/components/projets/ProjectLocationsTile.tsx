@@ -4,7 +4,14 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Pencil, Plus, Server, TerminalSquare, Trash2 } from "lucide-react";
+import {
+  Code2,
+  Pencil,
+  Plus,
+  Server,
+  TerminalSquare,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -175,6 +182,29 @@ export function ProjectLocationsTile({
                   <span className="mr-auto text-[12px] text-muted-foreground sm:mr-0">
                     vu {timeAgoFr(l.lastSeenAt)}
                   </span>
+                  {/* Opens the folder in VS Code on that desktop (its agent). */}
+                  {l.machine.agentSeenAt && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() =>
+                        call(
+                          `/api/machines/${l.machine.id}/commands`,
+                          {
+                            method: "POST",
+                            body: JSON.stringify({
+                              action: "open_code",
+                              args: { path: l.path },
+                            }),
+                          },
+                          `Ouverture dans VS Code sur ${l.machine.label || l.machine.name}…`
+                        )
+                      }
+                    >
+                      <Code2 /> VS Code
+                    </Button>
+                  )}
                   {url ? (
                     <Button variant="outline" size="sm" asChild>
                       <a href={url} target="_blank" rel="noopener noreferrer">

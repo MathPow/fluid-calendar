@@ -1121,9 +1121,33 @@ model Machine {
   sshKey    String? // path of the private key, e.g. ~/.ssh/orka-box — never the key itself
   provider  String? // OVH, Maison…
   notes     String? // what runs there, gotchas
+  // Desktop agent (runs commands sent from DreamDash in the GNOME session).
+  // Only the SHA-256 of its token is kept.
+  agentTokenHash String?          @unique
+  agentSeenAt    DateTime?
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   locations ProjectLocation[]
+  commands  DesktopCommand[]
+}
+
+// A command sent from DreamDash to a machine's desktop agent. The agent
+// long-polls for queued ones; shell commands wait for a Yes on the desktop.
+model DesktopCommand {
+  id         String    @id @default(cuid())
+  machineId  String
+  machine    Machine   @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  action     String // open_url | open_path | open_code | open_app | notify | lock | clipboard | shell
+  args       Json      @default("{}")
+  status     String    @default("queued") // queued | running | done | failed | denied
+  output     String? // tail of stdout/stderr, ≤ 20 KB
+  error      String?
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([machineId, status])
+  @@index([createdAt])
 }
 
 // A project's folder on one machine. Filled by the activity hook, or by hand.

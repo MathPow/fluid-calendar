@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import {
   Copy,
   Laptop,
+  MonitorSmartphone,
   Pencil,
   Plus,
   Server,
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { machineHealth } from "@/lib/machines/health";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
 
+import { DesktopCommandsDialog } from "./DesktopCommandsDialog";
 import { MachineMeters, StatusDot } from "./MachineMeters";
 import { useMachineStatus } from "./useMachineStatus";
 
@@ -60,6 +62,7 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
   const [dialog, setDialog] = useState<{ machine: MachineRow | null } | null>(
     null
   );
+  const [commandsFor, setCommandsFor] = useState<MachineRow | null>(null);
   const [busy, setBusy] = useState(false);
   const { machines: live } = useMachineStatus();
   const statsOf = (id: string) => live?.find((l) => l.id === id)?.stats ?? null;
@@ -188,7 +191,10 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                   const waiting = !!m.statsUrl && live === null;
                   const { health } = machineHealth(stats);
                   return (
-                    <li key={m.id} className="tile flex min-w-0 flex-col p-5 md:p-6">
+                    <li
+                      key={m.id}
+                      className="tile flex min-w-0 flex-col p-5 md:p-6"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="flex items-center gap-2.5 text-[19px] font-bold leading-tight tracking-title">
@@ -212,6 +218,15 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                               >
                                 <TerminalSquare /> Terminal
                               </a>
+                            </Button>
+                          )}
+                          {m.kind !== "vps" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCommandsFor(m)}
+                            >
+                              <MonitorSmartphone /> Commandes
                             </Button>
                           )}
                           <button
@@ -311,6 +326,10 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
         );
       })}
 
+      <DesktopCommandsDialog
+        machine={commandsFor}
+        onClose={() => setCommandsFor(null)}
+      />
       <MachineDialog
         key={dialog ? (dialog.machine?.id ?? "new") : "closed"}
         open={!!dialog}

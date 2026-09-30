@@ -1,0 +1,14 @@
+# ~/.config/systemd/user/dreamdash-agent.service — the DreamDash desktop agent,
+# inside the GNOME session (it needs its display and D-Bus).
+[Unit]
+Description=DreamDash desktop agent
+After=graphical-session.target network-online.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/node %h/.local/share/dreamdash-agent/agent.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

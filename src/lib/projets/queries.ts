@@ -18,6 +18,7 @@ export const machineSelect = {
   sshKey: true,
   provider: true,
   notes: true,
+  agentSeenAt: true,
 } satisfies Prisma.MachineSelect;
 
 /** Everything a project tile or detail page needs, in one query. */
