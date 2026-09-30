@@ -50,7 +50,30 @@ export async function POST(request: NextRequest) {
       where: { id: next.id },
       select: {
         id: true,
-        project: { select: { slug: true, name: true, path: true } },
+        project: {
+          select: {
+            slug: true,
+            name: true,
+            path: true,
+            // Where else it lives: the runner mirrors the folder over SSH
+            // when it isn't on the runner's own machine.
+            locations: {
+              orderBy: { lastSeenAt: "desc" },
+              select: {
+                path: true,
+                machine: {
+                  select: {
+                    name: true,
+                    host: true,
+                    ip: true,
+                    sshUser: true,
+                    sshKey: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
     logger.info(
