@@ -662,7 +662,7 @@ function sheet(wb: ExcelJS.Workbook, test: (name: string) => boolean) {
   return wb.worksheets.find((ws) => test(fold(ws.name)));
 }
 
-export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> {
+export async function parseWorkbook(data: ArrayBuffer, personal = false): Promise<ParsedWorkbook> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(data);
   const out: ParsedWorkbook = {
@@ -733,7 +733,7 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
         party: opt("party"),
         number: opt("number"),
         description: opt("description"),
-        category: category === undefined ? undefined : categoryFromLabel(direction, category),
+        category: category === undefined ? undefined : categoryFromLabel(direction, category, personal),
         subtotalCents: net,
         gstCents: gst ?? 0,
         qstCents: qst ?? 0,

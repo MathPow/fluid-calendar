@@ -200,6 +200,51 @@ const CATEGORY_ALIASES: Record<string, string> = {
   formation: "formation",
 };
 
+/**
+ * Personal-budget aliases (Excel labels and old DreamDash ids). Only used
+ * when the profile is a personal budget: they'd otherwise route business
+ * spending like « Gaz » to a personal category.
+ */
+const PERSONAL_ALIASES: Record<string, string> = {
+  epicerie: "p-nourriture",
+  epiceries: "p-nourriture",
+  "restos et cafes": "p-nourriture",
+  nourriture: "p-nourriture",
+  gaz: "p-gaz",
+  essence: "p-gaz",
+  automobile: "p-automobile",
+  auto: "p-automobile",
+  bus: "p-bus",
+  transport: "p-bus",
+  cellulaire: "p-cellulaire",
+  telephone: "p-cellulaire",
+  abonnements: "p-cellulaire",
+  divertissement: "p-divertissement",
+  loisirs: "p-divertissement",
+  "loisirs et sorties": "p-divertissement",
+  sports: "p-sports",
+  vacances: "p-vacances",
+  voyages: "p-vacances",
+  cadeaux: "p-cadeaux",
+  "cadeaux et dons": "p-cadeaux",
+  vetements: "p-vetements",
+  "essentiel (sante)": "p-sante",
+  "sante et beaute": "p-sante",
+  sante: "p-sante",
+  renovations: "p-renovations",
+  maison: "p-renovations",
+  "projets web": "p-projets-web",
+  "nom de domaines": "p-nom-domaine",
+  "nom de domaine": "p-nom-domaine",
+  "depense business": "p-depense-business",
+  "dépense business": "p-depense-business",
+  copine: "p-copine",
+  logement: "p-logement",
+  loyer: "p-logement",
+  education: "p-education",
+  "education (perso)": "p-education",
+};
+
 /** Same for revenue accounts. */
 const INCOME_ALIASES: Record<string, string> = {
   "vente de produits ou contenu paye": "ventes",
@@ -210,6 +255,16 @@ const INCOME_ALIASES: Record<string, string> = {
   subvention: "subventions",
 };
 
+const PERSONAL_INCOME_ALIASES: Record<string, string> = {
+  salaire: "p-salaire",
+  projets: "p-projets",
+  bourses: "p-bourses",
+  bourse: "p-bourses",
+  "interet sur cash": "p-interets",
+  "interets": "p-interets",
+  interet: "p-interets",
+};
+
 const fold = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
@@ -217,9 +272,22 @@ const fold = (s: string) =>
  * A spreadsheet "Compte" → our category id. Unknown names are kept as they
  * are: a custom category, deductible at 100 %.
  */
-export function categoryFromLabel(direction: string, label: string | null | undefined): string | null {
+export function categoryFromLabel(
+  direction: string,
+  label: string | null | undefined,
+  personal = false
+): string | null {
   if (!label?.trim()) return null;
   const key = fold(label);
+  // Personal profile: try the personal list and its aliases first.
+  if (personal) {
+    const plist = direction === "revenu" ? PERSONAL_INCOME_CATEGORIES : PERSONAL_EXPENSE_CATEGORIES;
+    const phit = plist.find((c) => fold(c.label) === key || c.id === key);
+    if (phit) return phit.id;
+    const alias =
+      direction === "revenu" ? PERSONAL_INCOME_ALIASES[key] : PERSONAL_ALIASES[key];
+    if (alias) return alias;
+  }
   const list: { id: string; label: string }[] =
     direction === "revenu" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const hit = list.find((c) => fold(c.label) === key || c.id === key);
@@ -239,28 +307,38 @@ export interface BudgetCategory {
   color: string;
 }
 
+// Personal budget: matches Mathys's own budget spreadsheet (Budget.xlsx),
+// with a couple of extras (logement, épargne) for what may come.
 export const PERSONAL_EXPENSE_CATEGORIES: BudgetCategory[] = [
   { id: "p-logement", label: "Logement", color: "#a8ccff" },
-  { id: "p-epicerie", label: "Épicerie", color: "#9fe0bd" },
-  { id: "p-restos", label: "Restos et cafés", color: "#ffc2b8" },
-  { id: "p-transport", label: "Transport", color: "#ffd88a" },
-  { id: "p-abonnements", label: "Abonnements", color: "#c9b8f0" },
-  { id: "p-sante", label: "Santé et beauté", color: "#f5a3c7" },
-  { id: "p-loisirs", label: "Loisirs et sorties", color: "#8fd3f4" },
-  { id: "p-vetements", label: "Vêtements", color: "#b9d99a" },
-  { id: "p-maison", label: "Maison", color: "#e4c59e" },
-  { id: "p-cadeaux", label: "Cadeaux et dons", color: "#ffb3a7" },
-  { id: "p-voyages", label: "Voyages", color: "#7fc8c2" },
-  { id: "p-education", label: "Éducation", color: "#b3b8ff" },
-  { id: "p-impots", label: "Impôts et frais", color: "#d9d4cc" },
+  { id: "p-nourriture", label: "Nourriture", color: "#9fe0bd" },
+  { id: "p-gaz", label: "Gaz (auto)", color: "#ffd88a" },
+  { id: "p-automobile", label: "Automobile", color: "#e4c59e" },
+  { id: "p-bus", label: "Bus", color: "#8fd3f4" },
+  { id: "p-cellulaire", label: "Cellulaire", color: "#c9b8f0" },
+  { id: "p-divertissement", label: "Divertissement", color: "#b3b8ff" },
+  { id: "p-sports", label: "Sports", color: "#b9d99a" },
+  { id: "p-vacances", label: "Vacances", color: "#7fc8c2" },
+  { id: "p-cadeaux", label: "Cadeaux", color: "#ffb3a7" },
+  { id: "p-vetements", label: "Vêtements", color: "#ffc2b8" },
+  { id: "p-sante", label: "Essentiel (santé)", color: "#f5a3c7" },
+  { id: "p-education", label: "Éducation", color: "#b3d4ff" },
+  { id: "p-renovations", label: "Rénovations", color: "#d9c4a9" },
+  { id: "p-projets-web", label: "Projets Web", color: "#a8ffef" },
+  { id: "p-nom-domaine", label: "Nom de domaines", color: "#c8f0d3" },
+  { id: "p-depense-business", label: "Dépense business", color: "#ffdcbf" },
+  { id: "p-copine", label: "Copine", color: "#ff9ac0" },
   { id: "p-epargne", label: "Épargne et placements", color: "#6fcf97" },
   { id: "p-autres", label: "Autres", color: "#cfcac2" },
 ];
 
 export const PERSONAL_INCOME_CATEGORIES: BudgetCategory[] = [
   { id: "p-salaire", label: "Salaire", color: "#6fcf97" },
-  { id: "p-retraits", label: "Retraits d'entreprise", color: "#a8ccff" },
-  { id: "p-remboursements", label: "Remboursements", color: "#ffd88a" },
+  { id: "p-projets", label: "Projets", color: "#a8ccff" },
+  { id: "p-bourses", label: "Bourses", color: "#c9b8f0" },
+  { id: "p-interets", label: "Intérêts", color: "#ffd88a" },
+  { id: "p-retraits", label: "Retraits d'entreprise", color: "#b3b8ff" },
+  { id: "p-remboursements", label: "Remboursements", color: "#ffb3a7" },
   { id: "p-autres-revenus", label: "Autres revenus", color: "#cfcac2" },
 ];
 

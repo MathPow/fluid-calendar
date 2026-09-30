@@ -34,10 +34,11 @@ export async function POST(request: NextRequest) {
     select: { id: true, name: true, taxProfile: true },
   });
   if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  const personal = org.taxProfile?.legalForm === "personnel";
 
   let parsed;
   try {
-    parsed = await parseWorkbook(await file.arrayBuffer());
+    parsed = await parseWorkbook(await file.arrayBuffer(), personal);
   } catch (error) {
     logger.warn(
       "Unreadable workbook",
