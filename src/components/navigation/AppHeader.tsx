@@ -63,7 +63,9 @@ export function AppHeader({ className }: { className?: string }) {
     );
   };
 
-  const nav = (
+  // Desktop: icons only; the title slides out of the icon on hover (and stays
+  // out on the current page). Phone: icon and title, side by side.
+  const nav = (collapsible: boolean) => (
     <>
       {MENU.map((link) => {
         const { href, label, icon: Icon } = link;
@@ -72,10 +74,19 @@ export function AppHeader({ className }: { className?: string }) {
             key={href}
             href={href}
             aria-current={isActive(link) ? "page" : undefined}
-            className="segmented-item"
+            aria-label={collapsible ? label : undefined}
+            title={collapsible ? label : undefined}
+            className={cn("segmented-item", collapsible && "group gap-0 px-3")}
           >
-            <Icon className="h-4 w-4 lg:hidden xl:block" strokeWidth={2} />
-            <span>{label}</span>
+            <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <span
+              className={cn(
+                collapsible &&
+                  "max-w-0 overflow-hidden opacity-0 transition-[max-width,opacity,margin-left] duration-300 ease-out group-hover:ml-1.5 group-hover:max-w-[7rem] group-hover:opacity-100 group-focus-visible:ml-1.5 group-focus-visible:max-w-[7rem] group-focus-visible:opacity-100 group-aria-[current=page]:ml-1.5 group-aria-[current=page]:max-w-[7rem] group-aria-[current=page]:opacity-100 motion-reduce:transition-none"
+              )}
+            >
+              {label}
+            </span>
           </Link>
         );
       })}
@@ -101,7 +112,7 @@ export function AppHeader({ className }: { className?: string }) {
 
         {/* Desktop navigation */}
         <nav className="segmented ml-4 hidden lg:inline-flex" aria-label="Main">
-          {nav}
+          {nav(true)}
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
@@ -129,7 +140,7 @@ export function AppHeader({ className }: { className?: string }) {
         style={{ scrollbarWidth: "none" }}
         aria-label="Main"
       >
-        <div className="segmented shrink-0">{nav}</div>
+        <div className="segmented shrink-0">{nav(false)}</div>
       </nav>
     </header>
   );
