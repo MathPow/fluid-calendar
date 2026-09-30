@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -16,10 +16,23 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 export function AskBox({
   slug,
   placeholder = "Pose une question sur ce qui a été fait…",
+  focus,
+  onEscape,
 }: {
   slug?: string;
   placeholder?: string;
+  /** Focus the field when this turns true (the box just opened). */
+  focus?: boolean;
+  onEscape?: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    // Wait for the opening transition to start so the page doesn't jump.
+    if (focus) {
+      const t = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 150);
+      return () => clearTimeout(t);
+    }
+  }, [focus]);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +71,10 @@ export function AskBox({
         }}
       >
         <input
+          ref={inputRef}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && onEscape) onEscape();
+          }}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder={placeholder}

@@ -11,11 +11,15 @@ import {
   ChevronUp,
   Pencil,
   Plus,
+  Search,
+  X,
 } from "lucide-react";
 
 import { AskBox } from "@/components/projets/AskBox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+import { cn } from "@/lib/utils";
 
 import {
   DEFAULT_PROJECT_COLOR,
@@ -246,6 +250,8 @@ export function ProjetsBoard({
   }, [sections]);
 
   const anyVisible = sections.some((s) => s.projects.length > 0);
+  // « Pose une question » stays folded behind the search button.
+  const [askOpen, setAskOpen] = useState(false);
 
   return (
     <div className="page pb-16 pt-8 md:pt-12">
@@ -272,6 +278,32 @@ export function ProjetsBoard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          {projects.length > 0 && (
+            <Button
+              variant={askOpen ? "default" : "outline"}
+              size="icon"
+              className="h-12 w-12 rounded-full"
+              onClick={() => setAskOpen((o) => !o)}
+              aria-expanded={askOpen}
+              aria-label={askOpen ? "Fermer la question" : "Poser une question sur tous les projets"}
+              title="Poser une question sur tous les projets"
+            >
+              <span className="relative h-5 w-5">
+                <Search
+                  className={cn(
+                    "absolute inset-0 h-5 w-5 transition-all duration-300",
+                    askOpen ? "rotate-90 scale-50 opacity-0" : "rotate-0 scale-100 opacity-100"
+                  )}
+                />
+                <X
+                  className={cn(
+                    "absolute inset-0 h-5 w-5 transition-all duration-300",
+                    askOpen ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-50 opacity-0"
+                  )}
+                />
+              </span>
+            </Button>
+          )}
           <Button
             variant="outline"
             size="lg"
@@ -300,7 +332,28 @@ export function ProjetsBoard({
 
       {projects.length > 0 && (
         <div className="mt-8">
-          <AskBox placeholder="Pose une question sur tous les projets…" />
+          <div
+            className={cn(
+              "grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out",
+              askOpen ? "mb-4 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            )}
+            inert={!askOpen}
+          >
+            <div className="overflow-hidden">
+              <div
+                className={cn(
+                  "transition-transform duration-300 ease-out",
+                  askOpen ? "translate-y-0" : "-translate-y-3"
+                )}
+              >
+                <AskBox
+                  placeholder="Pose une question sur tous les projets…"
+                  focus={askOpen}
+                  onEscape={() => setAskOpen(false)}
+                />
+              </div>
+            </div>
+          </div>
           <ProjectFilters
             value={filters}
             onChange={setFilters}
