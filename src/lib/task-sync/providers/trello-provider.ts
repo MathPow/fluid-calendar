@@ -23,6 +23,11 @@ export interface TrelloSettings {
   key: string;
   token: string;
   memberId?: string;
+  /**
+   * Only cards the connected member is assigned to (default). False brings
+   * every open card of the mapped boards.
+   */
+  onlyMine?: boolean;
   username?: string;
   fullName?: string;
 }
@@ -55,13 +60,14 @@ interface TrelloCard {
   shortUrl: string;
   dateLastActivity: string;
   labels: { name: string }[];
+  idMembers?: string[];
 }
 
 /** Status values exchanged with the field mapper (not Trello's own vocabulary). */
 export type TrelloStatus = "BACKLOG" | "TODO" | "IN_PROGRESS" | "COMPLETED";
 
 const CARD_FIELDS =
-  "id,name,desc,due,dueComplete,closed,idList,idBoard,url,shortUrl,dateLastActivity,labels";
+  "id,name,desc,due,dueComplete,closed,idList,idBoard,url,shortUrl,dateLastActivity,labels,idMembers";
 
 /**
  * Which column a list is, guessed from its name. Trello has no notion of a
@@ -94,10 +100,14 @@ export class TrelloTaskProvider implements TaskProviderInterface {
   private token: string;
   private fieldMapper: TrelloFieldMapper;
   private listCache = new Map<string, TrelloList[]>();
+  private onlyMine: boolean;
+  private memberId: string | undefined;
 
   constructor(settings: TrelloSettings) {
     this.key = settings.key;
     this.token = settings.token;
+    this.onlyMine = settings.onlyMine !== false;
+    this.memberId = settings.memberId;
     this.fieldMapper = new TrelloFieldMapper();
   }
 
@@ -230,16 +240,30 @@ export class TrelloTaskProvider implements TaskProviderInterface {
     };
   }
 
+  /** The connected member's id (stored at connect time, else asked once). */
+  private async me(): Promise<string> {
+    if (!this.memberId) this.memberId = (await this.whoAmI()).id;
+    return this.memberId;
+  }
+
+  /** Keep the cards assigned to the connected member, unless « onlyMine » is off. */
+  private async mine<C extends { idMembers?: string[] }>(cards: C[]): Promise<C[]> {
+    if (!this.onlyMine) return cards;
+    const me = await this.me();
+    return cards.filter((c) => c.idMembers?.includes(me));
+  }
+
   async getTasks(
     boardId: string,
     options?: SyncOptions
   ): Promise<ExternalTask[]> {
-    const [cards, lists] = await Promise.all([
+    const [allCards, lists] = await Promise.all([
       this.api<TrelloCard[]>(`/boards/${boardId}/cards`, {
         query: { filter: "open", fields: CARD_FIELDS },
       }),
       this.boardLists(boardId),
     ]);
+    const cards = await this.mine(allCards);
 
     return cards
       .filter((card) => {
@@ -258,9 +282,11 @@ export class TrelloTaskProvider implements TaskProviderInterface {
   }
 
   async getChanges(boardId: string, since?: Date): Promise<TaskChange[]> {
-    const cards = await this.api<TrelloCard[]>(`/boards/${boardId}/cards`, {
-      query: { filter: "open", fields: "id,dateLastActivity" },
-    });
+    const cards = await this.mine(
+      await this.api<TrelloCard[]>(`/boards/${boardId}/cards`, {
+        query: { filter: "open", fields: "id,dateLastActivity,idMembers" },
+      })
+    );
     return cards
       .filter((card) => !since || new Date(card.dateLastActivity) > since)
       .map((card) => ({
@@ -289,6 +315,8 @@ export class TrelloTaskProvider implements TaskProviderInterface {
         desc: task.description ?? "",
         due: task.dueDate ? new Date(task.dueDate).toISOString() : null,
         dueComplete: status === "COMPLETED",
+        // A card made from DreamDash is yours, so « only mine » keeps it.
+        ...(this.onlyMine ? { idMembers: await this.me() } : {}),
       },
     });
     return this.cardToExternalTask(

@@ -168,7 +168,18 @@ describe("TrelloTaskProvider", () => {
   beforeEach(() => {
     calls.length = 0;
     mockFetch();
-    provider = new TrelloTaskProvider({ key: "KEY", token: "TOKEN" });
+    // Every card: the « only mine » filter has its own test below.
+    provider = new TrelloTaskProvider({ key: "KEY", token: "TOKEN", onlyMine: false });
+  });
+
+  it("keeps only the cards assigned to the connected member by default", async () => {
+    const mine = new TrelloTaskProvider({ key: "KEY", token: "TOKEN" });
+    const all = await provider.getTasks("b1", { includeCompleted: true });
+    expect(all.length).toBeGreaterThan(0);
+    // The fixture cards have no members: none is « mine ».
+    expect(await mine.getTasks("b1", { includeCompleted: true })).toEqual([]);
+    // Asked who « me » is once, since no memberId was stored.
+    expect(calls.some((c) => c.url.pathname === "/1/members/me")).toBe(true);
   });
 
   it("classifies list names in English and French", () => {

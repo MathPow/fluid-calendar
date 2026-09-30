@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { format } from "@/lib/date-utils";
@@ -564,6 +565,31 @@ export function TaskSyncSettings() {
           ? error.message
           : "Failed to update the connection"
       );
+    }
+  };
+
+  // Trello: only the cards assigned to me, or every card of the boards
+  const setTrelloOnlyMine = async (providerId: string, onlyMine: boolean) => {
+    try {
+      const response = await fetch(`/api/task-sync/providers/${providerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: { onlyMine } }),
+      });
+      if (!response.ok) throw new Error("Failed to update the connection");
+      const merge = (p: TaskProvider): TaskProvider =>
+        p.id === providerId
+          ? { ...p, settings: { ...((p.settings as Record<string, unknown>) ?? {}), onlyMine } }
+          : p;
+      setProviders((all) => all.map(merge));
+      setSelectedProvider((p) => (p ? merge(p) : p));
+      toast.success(
+        onlyMine
+          ? "Seulement tes cartes: les autres partent à la prochaine synchro"
+          : "Toutes les cartes des tableaux seront synchronisées"
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update the connection");
     }
   };
 
@@ -1155,6 +1181,8 @@ export function TaskSyncSettings() {
   // Render provider details and actions
   const renderProviderDetails = () => {
     if (!selectedProvider) return null;
+    const trelloOnlyMine =
+      (selectedProvider.settings as { onlyMine?: boolean } | null)?.onlyMine !== false;
 
     return (
       <SettingRow
@@ -1163,6 +1191,21 @@ export function TaskSyncSettings() {
       >
         <Card>
           <CardContent className="space-y-3 pt-6">
+            {selectedProvider.type === "TRELLO" && (
+              <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl bg-secondary px-4 py-3">
+                <span>
+                  <span className="block text-sm font-medium">Seulement les cartes assignées à moi</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Les cartes où tu n&apos;es pas membre ne viennent pas dans tes tâches (celles déjà importées
+                    partent à la prochaine synchro). Les tâches créées ici te sont assignées dans Trello.
+                  </span>
+                </span>
+                <Switch
+                  checked={trelloOnlyMine}
+                  onCheckedChange={(v) => setTrelloOnlyMine(selectedProvider.id, v)}
+                />
+              </label>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="text-sm text-muted-foreground">

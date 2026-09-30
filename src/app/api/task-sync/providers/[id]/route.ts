@@ -151,6 +151,16 @@ export async function PATCH(
         name: validatedData.name,
         syncEnabled: validatedData.syncEnabled,
         defaultProjectId: validatedData.defaultProjectId,
+        // Only the Trello « onlyMine » switch can be changed here; the rest of
+        // settings (keys, tokens) stays as the connect flow stored it.
+        ...(typeof validatedData.settings?.onlyMine === "boolean"
+          ? {
+              settings: {
+                ...((provider.settings as Record<string, unknown> | null) ?? {}),
+                onlyMine: validatedData.settings.onlyMine,
+              },
+            }
+          : {}),
         organisationId: await resolveOrganisationId(
           prisma,
           validatedData.organisationId
