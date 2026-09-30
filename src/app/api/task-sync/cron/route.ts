@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withMappingLock } from "@/lib/task-sync/push-soon";
 
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -48,7 +49,8 @@ export async function POST(request: NextRequest) {
 
     for (const mapping of mappings) {
       try {
-        const result = await manager.syncTaskList(mapping);
+        const result = await withMappingLock(mapping.id, () => manager.syncTaskList(mapping));
+        if (!result) continue; // an immediate push is syncing this list right now
         if (result.success) summary.synced += 1;
         else summary.failed += 1;
         summary.imported += result.imported;

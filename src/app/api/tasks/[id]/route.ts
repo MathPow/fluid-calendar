@@ -11,6 +11,7 @@ import {
   ChangeType,
   TaskChangeTracker,
 } from "@/lib/task-sync/task-change-tracker";
+import { pushSoon } from "@/lib/task-sync/push-soon";
 import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
 
 import { TaskStatus } from "@/types/task";
@@ -299,6 +300,8 @@ export async function PUT(
         undefined, // providerId will be set during sync
         mappingId
       );
+      // Tell Trello / GitHub now rather than at the next cron.
+      pushSoon(mappingId);
 
       logger.info(
         `Tracked UPDATE change for task ${task.id} in mapping ${mappingId}`,
@@ -383,6 +386,8 @@ export async function DELETE(
         undefined, // providerId will be set during sync
         mappingId
       );
+      // Tell Trello / GitHub now rather than at the next cron.
+      pushSoon(mappingId);
 
       logger.info(
         `Tracked DELETE change for task ${id} in mapping ${mappingId}`,

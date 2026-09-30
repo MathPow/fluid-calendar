@@ -10,6 +10,7 @@ import {
   ChangeType,
   TaskChangeTracker,
 } from "@/lib/task-sync/task-change-tracker";
+import { pushSoon } from "@/lib/task-sync/push-soon";
 import { normalizeRecurrenceRule } from "@/lib/utils/normalize-recurrence-rules";
 
 import { EnergyLevel, TaskStatus, TimePreference } from "@/types/task";
@@ -190,6 +191,8 @@ export async function POST(request: NextRequest) {
         undefined, // providerId will be determined later during sync
         mappingId
       );
+      // Tell Trello / GitHub now rather than at the next cron.
+      pushSoon(mappingId);
 
       logger.info(
         `Tracked CREATE change for task ${task.id} in mapping ${mappingId}`,
