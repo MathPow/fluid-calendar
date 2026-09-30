@@ -353,8 +353,8 @@ export function ProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="flex flex-col gap-0 overflow-y-hidden p-0 md:p-0 max-w-2xl">
+        <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 md:px-8 md:pt-8">
           <DialogTitle>
             {editing ? "Modifier le projet" : "Nouveau projet"}
           </DialogTitle>
@@ -365,7 +365,9 @@ export function ProjectDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6 md:px-8 md:pb-8">
         <form
+          id="project-form"
           className="space-y-7"
           onSubmit={(e) => {
             e.preventDefault();
@@ -727,7 +729,11 @@ export function ProjectDialog({
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:-mx-8 md:-mb-8 md:px-8 sm:flex-row sm:items-center">
+
+        </form>
+        </div>
+
+        <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:px-8 sm:flex-row sm:items-center">
             {editing && (
               <Button
                 type="button"
@@ -748,7 +754,7 @@ export function ProjectDialog({
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={submitting || creatingContact}>
+            <Button type="submit" form="project-form" disabled={submitting || creatingContact}>
               {submitting
                 ? "Enregistrement…"
                 : editing
@@ -756,7 +762,6 @@ export function ProjectDialog({
                   : "Créer le projet"}
             </Button>
           </div>
-        </form>
       </DialogContent>
     </Dialog>
   );

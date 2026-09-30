@@ -138,8 +138,8 @@ export function RoutineBlockDialog() {
 
   return (
     <Dialog open={!!dialog} onOpenChange={(open) => !open && closeDialog()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex flex-col gap-0 overflow-y-hidden p-0 md:p-0 max-w-lg">
+        <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 md:px-8 md:pt-8">
           <DialogTitle>
             {block ? "Modifier le bloc" : "Nouveau bloc"}
           </DialogTitle>
@@ -149,7 +149,9 @@ export function RoutineBlockDialog() {
           </DialogDescription>
         </DialogHeader>
 
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6 md:px-8 md:pb-8">
         <form
+          id="routine-form"
           className="space-y-6"
           onSubmit={(e) => {
             e.preventDefault();
@@ -323,7 +325,10 @@ export function RoutineBlockDialog() {
             </div>
           )}
 
-          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:-mx-8 md:-mb-8 md:px-8 sm:flex-row sm:items-center">
+        </form>
+        </div>
+
+        <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:px-8 sm:flex-row sm:items-center">
             {block && (
               <Button
                 type="button"
@@ -344,11 +349,10 @@ export function RoutineBlockDialog() {
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={saving || form.days.length === 0}>
+            <Button type="submit" form="routine-form" disabled={saving || form.days.length === 0}>
               {saving ? "Enregistrement…" : block ? "Enregistrer" : "Créer"}
             </Button>
           </div>
-        </form>
       </DialogContent>
     </Dialog>
   );

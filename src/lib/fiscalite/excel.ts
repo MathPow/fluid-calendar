@@ -15,6 +15,8 @@ import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
   PAID_BY_ME,
+  PERSONAL_EXPENSE_CATEGORIES,
+  PERSONAL_INCOME_CATEGORIES,
   categoryFromLabel,
   categoryLabel,
   categoryOf,
@@ -662,6 +664,134 @@ function sheet(wb: ExcelJS.Workbook, test: (name: string) => boolean) {
   return wb.worksheets.find((ws) => test(fold(ws.name)));
 }
 
+// ---------------------------------------------------------------------------
+// Personal budget grid (« ANNUAL BUDGET »: one sheet per year, categories as
+// rows, Jan…Dec as columns, an INCOME block then an EXPENSES block)
+// ---------------------------------------------------------------------------
+
+const MONTHS: Record<string, number> = {
+  jan: 1, janv: 1, janvier: 1, january: 1,
+  feb: 2, fev: 2, fevr: 2, fevrier: 2, february: 2,
+  mar: 3, mars: 3, march: 3,
+  apr: 4, avr: 4, avril: 4, april: 4,
+  may: 5, mai: 5,
+  jun: 6, juin: 6, june: 6,
+  jul: 7, juil: 7, juillet: 7, july: 7,
+  aug: 8, aou: 8, aout: 8, august: 8,
+  sep: 9, sept: 9, septembre: 9, september: 9,
+  oct: 10, octobre: 10, october: 10,
+  nov: 11, novembre: 11, november: 11,
+  dec: 12, decembre: 12, december: 12,
+};
+
+const isPersonalId = (id: string | null, direction: "depense" | "revenu") =>
+  !!id &&
+  (direction === "revenu" ? PERSONAL_INCOME_CATEGORIES : PERSONAL_EXPENSE_CATEGORIES).some(
+    (c) => c.id === id
+  );
+
+/**
+ * One entry per filled month cell, dated the 1st, numbered « Budget YYYY-MM ·
+ * label » so a second import updates instead of duplicating. A group row
+ * (followed by its details and an « Autres (Groupe) » row) is only the sum of
+ * its details, so it is skipped; a detail with no category of its own takes
+ * its group's. Total / Average columns and side tables are ignored.
+ */
+function readBudgetGrid(ws: ExcelJS.Worksheet, out: ParsedWorkbook): boolean {
+  const year = Number(fold(ws.name).match(/^(\d{4})/)?.[1]);
+  if (!year) return false;
+  let found = false;
+
+  for (let r = 1; r <= ws.rowCount; r++) {
+    // Header: « Item » then month names.
+    const row = ws.getRow(r);
+    let itemCol = 0;
+    const monthCols: [number, number][] = [];
+    row.eachCell((cell, col) => {
+      const h = fold(String(plain(cell.value) ?? "")).replace(/\.$/, "");
+      if (!itemCol && (h === "item" || h === "poste" || h === "categorie")) itemCol = col;
+      else if (itemCol && MONTHS[h] && !monthCols.some(([, m]) => m === MONTHS[h]))
+        monthCols.push([col, MONTHS[h]]);
+    });
+    if (!itemCol || monthCols.length < 6) continue;
+    found = true;
+
+    // INCOME / REVENUS or EXPENSES / DÉPENSES just above.
+    let direction: "depense" | "revenu" | null = null;
+    for (let up = r - 1; up >= Math.max(1, r - 3) && !direction; up--) {
+      const t = fold(String(plain(ws.getRow(up).getCell(itemCol).value) ?? ""));
+      if (/^(income|revenu)/.test(t)) direction = "revenu";
+      else if (/^(expense|depense)/.test(t)) direction = "depense";
+    }
+    if (!direction) {
+      out.skipped.push({ sheet: ws.name, row: r, reason: "Bloc sans « Income » ni « Expenses »" });
+      continue;
+    }
+
+    // The block's rows, up to its Total.
+    const lines: { r: number; label: string }[] = [];
+    let end = r + 1;
+    for (; end <= ws.rowCount; end++) {
+      const label = str(plain(ws.getRow(end).getCell(itemCol).value));
+      if (!label) continue;
+      if (fold(label).startsWith("total")) break;
+      lines.push({ r: end, label: label.trim() });
+    }
+
+    // Groups: a line whose « Autres (Label) » comes later in the block.
+    const groupOf = new Map<number, string>();
+    const headers = new Set<number>();
+    lines.forEach((line, i) => {
+      const closing = lines.findIndex(
+        (l, j) => j > i && fold(l.label) === `autres (${fold(line.label)})`
+      );
+      if (closing < 0) return;
+      headers.add(line.r);
+      for (let j = i + 1; j <= closing; j++) groupOf.set(lines[j].r, line.label);
+    });
+
+    for (const line of lines) {
+      if (headers.has(line.r)) continue;
+      const group = groupOf.get(line.r);
+      const own = categoryFromLabel(direction, line.label, true);
+      const category = isPersonalId(own, direction)
+        ? own
+        : group && isPersonalId(categoryFromLabel(direction, group, true), direction)
+          ? categoryFromLabel(direction, group, true)
+          : direction === "revenu"
+            ? "p-autres-revenus"
+            : "p-autres";
+      const description = group ? `${group} › ${line.label}` : line.label;
+      for (const [col, month] of monthCols) {
+        const raw = plain(ws.getRow(line.r).getCell(col).value);
+        if (raw == null || raw === "") continue;
+        const cents = money(raw);
+        if (cents == null) {
+          out.skipped.push({ sheet: ws.name, row: line.r, reason: `Montant illisible (${String(raw)})` });
+          continue;
+        }
+        if (cents === 0) continue;
+        const mm = String(month).padStart(2, "0");
+        out.invoices.push({
+          direction,
+          date: `${year}-${mm}-01`,
+          party: null,
+          number: `Budget ${year}-${mm} · ${description}`,
+          description,
+          category,
+          subtotalCents: cents,
+          gstCents: 0,
+          qstCents: 0,
+          totalCents: cents,
+          row: line.r,
+        });
+      }
+    }
+    r = end;
+  }
+  return found;
+}
+
 export async function parseWorkbook(data: ArrayBuffer, personal = false): Promise<ParsedWorkbook> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(data);
@@ -744,8 +874,17 @@ export async function parseWorkbook(data: ArrayBuffer, personal = false): Promis
       });
     });
   };
-  readInvoices(sheet(wb, (n) => n === "revenus"), "revenu");
-  readInvoices(sheet(wb, (n) => n === "depenses"), "depense");
+  const revenus = sheet(wb, (n) => n === "revenus");
+  const depenses = sheet(wb, (n) => n === "depenses");
+  readInvoices(revenus, "revenu");
+  readInvoices(depenses, "depense");
+
+  // A personal budget kept as a year × month grid (no Revenus / Dépenses).
+  if (personal && !revenus && !depenses) {
+    const read = wb.worksheets.filter((ws) => readBudgetGrid(ws, out));
+    if (!read.length)
+      out.skipped.push({ sheet: "", row: 0, reason: "Ni feuilles Revenus / Dépenses, ni grille de budget" });
+  }
 
   const av = sheet(wb, (n) => n.startsWith("suivi des avances"));
   if (av) {
