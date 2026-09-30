@@ -11,6 +11,7 @@ import {
   Loader2,
   Lock,
   MessageSquare,
+  Star,
   Terminal,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +33,9 @@ import {
 } from "@/lib/desktop-actions";
 import { timeAgoFr } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
+
+import { ICON_FOR_ACTION } from "../launchers/LauncherIcon";
+import { reloadLaunchers } from "../launchers/useLaunchers";
 
 type CommandRow = {
   id: string;
@@ -183,6 +187,34 @@ export function DesktopCommandsDialog({
     if (r.ok) setToken(body.token);
     else toast.error(body.error || "Impossible");
     load();
+  };
+
+  // ☆ on a history row: the same command becomes an account-menu button.
+  const saveAsLauncher = async (c: CommandRow) => {
+    if (!machine) return;
+    const label = window.prompt(
+      "Nom du raccourci",
+      describeCommand(c.action, c.args).slice(0, 40)
+    );
+    if (!label?.trim()) return;
+    const r = await fetch("/api/launchers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        label: label.trim().slice(0, 40),
+        icon: ICON_FOR_ACTION[c.action] ?? "zap",
+        machineId: machine.id,
+        action: c.action,
+        args: c.args,
+      }),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      toast.error("Raccourci impossible", { description: body.error });
+      return;
+    }
+    toast.success(`« ${label.trim()} » ajouté au menu du profil`);
+    reloadLaunchers();
   };
 
   const name = machine ? machine.label || machine.name : "";
@@ -351,6 +383,15 @@ export function DesktopCommandsDialog({
                     <span className="shrink-0 text-[11px] text-muted-foreground">
                       {timeAgoFr(c.createdAt)}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => saveAsLauncher(c)}
+                      className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-card hover:text-foreground"
+                      title="Ajouter aux raccourcis du profil"
+                      aria-label="Ajouter aux raccourcis du profil"
+                    >
+                      <Star className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                   {c.error && (
                     <p className="mt-1 text-[12px] text-negative-foreground">

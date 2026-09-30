@@ -92,6 +92,7 @@ model User {
   workSessions         WorkSession[]
   calendarLayers       CalendarLayer[]
   notifications        Notification[]
+  launchers            LaunchShortcut[]
 }
 
 model VerificationToken {
@@ -1129,6 +1130,7 @@ model Machine {
   updatedAt DateTime          @updatedAt
   locations ProjectLocation[]
   commands  DesktopCommand[]
+  launchers LaunchShortcut[]
 }
 
 // A command sent from DreamDash to a machine's desktop agent. The agent
@@ -1324,4 +1326,22 @@ model Notification {
 
   @@unique([userId, dedupeKey])
   @@index([userId, createdAt])
+}
+
+// A one-tap button in the account menu that sends a saved command to a
+// machine's desktop agent (open a project in VS Code, lock mathpow, git pull…).
+model LaunchShortcut {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  machineId String
+  machine   Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  label     String
+  icon      String   @default("zap")
+  action    String
+  args      Json     @default("{}")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId, sortOrder])
 }

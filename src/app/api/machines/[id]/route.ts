@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { machineSelect } from "@/lib/projets/queries";
 import { MachineInput, machineFields } from "@/lib/projets/schemas";
 
 const LOG_SOURCE = "machines-api";
@@ -37,6 +38,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         ...(f.name !== undefined ? { name: f.name } : {}),
         ...machineFields(f),
       },
+      select: machineSelect,
     });
     return NextResponse.json(machine);
   } catch (error) {

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { machineSelect } from "@/lib/projets/queries";
 import { MachineInput, machineFields } from "@/lib/projets/schemas";
 
 const LOG_SOURCE = "machines-api";
@@ -15,7 +16,9 @@ export async function GET(request: NextRequest) {
   if ("response" in auth) return auth.response;
   const machines = await prisma.machine.findMany({
     orderBy: [{ kind: "asc" }, { name: "asc" }],
-    include: {
+    // machineSelect, not every column: the agent token hash stays server-side.
+    select: {
+      ...machineSelect,
       locations: {
         orderBy: { lastSeenAt: "desc" },
         select: {
@@ -56,6 +59,7 @@ export async function POST(request: NextRequest) {
       where: { name },
       create: { name, ...fields },
       update: fields,
+      select: machineSelect,
     });
     return NextResponse.json(machine, { status: 201 });
   } catch (error) {
