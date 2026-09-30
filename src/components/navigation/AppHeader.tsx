@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 
 import { AccountMenu } from "./AccountMenu";
 import { StationSwitcher } from "./StationSwitcher";
-import { ThemeToggle } from "./ThemeToggle";
 
 interface NavLink {
   href: string;
@@ -45,9 +44,10 @@ const MENU: NavLink[] = [
 ];
 
 /**
- * Portal-style header: wordmark on the left, a segmented pill navigation in
- * the middle, and the account pill on the right. On phones the navigation
- * drops to a horizontally scrollable row under the header.
+ * Portal-style header: wordmark on the left, a segmented pill navigation, and
+ * the account pill on the right. Desktop shows icon + label side by side, no
+ * hover animation. Phones drop the labels for the four sections that fit;
+ * the whole strip is still swipeable across the eight sections.
  */
 export function AppHeader({ className }: { className?: string }) {
   const pathname = usePathname();
@@ -63,28 +63,23 @@ export function AppHeader({ className }: { className?: string }) {
     );
   };
 
-  // Desktop: icons only; the title slides out of the icon on hover (and stays
-  // out on the current page). Phone: icon and title, side by side.
-  const nav = (collapsible: boolean) => (
+  const nav = (
     <>
       {MENU.map((link) => {
         const { href, label, icon: Icon } = link;
+        const active = isActive(link);
         return (
           <Link
             key={href}
             href={href}
-            aria-current={isActive(link) ? "page" : undefined}
-            aria-label={collapsible ? label : undefined}
-            title={collapsible ? label : undefined}
-            className={cn("segmented-item", collapsible && "group gap-0 px-3")}
+            aria-current={active ? "page" : undefined}
+            aria-label={label}
+            title={label}
+            className="segmented-item h-10 px-3"
           >
             <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-            <span
-              className={cn(
-                collapsible &&
-                  "max-w-0 overflow-hidden opacity-0 transition-[max-width,opacity,margin-left] duration-300 ease-out group-hover:ml-1.5 group-hover:max-w-[7rem] group-hover:opacity-100 group-focus-visible:ml-1.5 group-focus-visible:max-w-[7rem] group-focus-visible:opacity-100 group-aria-[current=page]:ml-1.5 group-aria-[current=page]:max-w-[7rem] group-aria-[current=page]:opacity-100 motion-reduce:transition-none"
-              )}
-            >
+            {/* Label hidden below md; the active item always shows it. */}
+            <span className={cn("hidden md:inline", active && "!inline")}>
               {label}
             </span>
           </Link>
@@ -101,7 +96,6 @@ export function AppHeader({ className }: { className?: string }) {
       )}
     >
       <div className="page flex h-16 items-center gap-3 md:h-[72px]">
-        {/* Wordmark */}
         <Link
           href="/dashboard"
           className="shrink-0 text-[22px] font-extrabold leading-none tracking-display text-foreground"
@@ -110,13 +104,12 @@ export function AppHeader({ className }: { className?: string }) {
           DreamDash
         </Link>
 
-        {/* Desktop navigation */}
+        {/* Desktop navigation — icon + label, no hover animation. */}
         <nav className="segmented ml-4 hidden lg:inline-flex" aria-label="Main">
-          {nav(true)}
+          {nav}
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          {/* Search pill */}
           <button
             type="button"
             onClick={openCommandPalette}
@@ -129,18 +122,22 @@ export function AppHeader({ className }: { className?: string }) {
 
           <NotificationBell />
           <StationSwitcher />
-          <ThemeToggle />
           <AccountMenu />
         </div>
       </div>
 
-      {/* Mobile navigation */}
+      {/* Phone / tablet navigation, swipeable across the eight sections. */}
       <nav
-        className="page flex gap-1 overflow-x-auto pb-3 lg:hidden [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: "none" }}
+        className="relative flex lg:hidden"
         aria-label="Main"
       >
-        <div className="segmented shrink-0">{nav(false)}</div>
+        <div
+          className="page flex gap-1 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="segmented shrink-0">{nav}</div>
+        </div>
+        {/* Edge fade so the strip reads as scrollable. */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background/85 to-transparent" />
       </nav>
     </header>
   );

@@ -9,10 +9,14 @@ import {
   ChevronDown,
   HelpCircle,
   LogOut,
+  Monitor,
+  Moon,
   Rocket,
   Settings,
+  Sun,
 } from "lucide-react";
 
+import { useTheme } from "@/components/providers/ThemeProvider";
 import { LauncherIcon } from "@/components/launchers/LauncherIcon";
 import { LaunchersDialog } from "@/components/launchers/LaunchersDialog";
 import { runLauncher, useLaunchers } from "@/components/launchers/useLaunchers";
@@ -25,6 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { cn } from "@/lib/utils";
+
 import { useShortcutsStore } from "@/store/shortcuts";
 
 /**
@@ -36,6 +42,7 @@ export function AccountMenu() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { setOpen: setShortcutsOpen } = useShortcutsStore();
   const { items: launchers, set: setLaunchers } = useLaunchers();
+  const { theme, setTheme } = useTheme();
 
   // The app is reachable only over the tailnet and guards pages with its own
   // session, so there is no sign-in button here; /auth/signin handles it.
@@ -110,6 +117,29 @@ export function AccountMenu() {
           )}
 
           <DropdownMenuSeparator className="my-3" />
+
+          <p className="etiquette px-2 pb-2">Apparence</p>
+          <div className="segmented mb-3 w-full p-1">
+            {(
+              [
+                { id: "light", label: "Clair", icon: Sun },
+                { id: "dark", label: "Sombre", icon: Moon },
+                { id: "system", label: "Système", icon: Monitor },
+              ] as const
+            ).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTheme(id)}
+                data-active={theme === id}
+                className={cn("segmented-item h-8 flex-1 text-[12px]")}
+                aria-pressed={theme === id}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
 
           <DropdownMenuItem
             className="cursor-pointer"
