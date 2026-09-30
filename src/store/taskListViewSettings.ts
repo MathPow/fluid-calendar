@@ -40,7 +40,13 @@ interface TaskListViewSettings {
   resetFilters: () => void;
 }
 
-const DEFAULT_STATUS_FILTERS = [TaskStatus.BACKLOG, TaskStatus.TODO, TaskStatus.IN_PROGRESS];
+const DEFAULT_STATUS_FILTERS = [
+  TaskStatus.BACKLOG,
+  TaskStatus.READY,
+  TaskStatus.TODO,
+  TaskStatus.IN_PROGRESS,
+  TaskStatus.BLOCKED,
+];
 
 export const useTaskListViewSettings = create<TaskListViewSettings>()(
   persist(

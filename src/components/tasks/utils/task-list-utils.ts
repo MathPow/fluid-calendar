@@ -10,7 +10,14 @@ import {
 import { Priority, TaskStatus, TimePreference } from "@/types/task";
 
 // Helper function to format enum values for display
+/** Status names that aren't just the enum value capitalised. */
+export const STATUS_LABELS: Record<string, string> = {
+  ready: "Prêt (à prioriser)",
+  blocked: "Bloquant",
+};
+
 export const formatEnumValue = (value: string) => {
+  if (STATUS_LABELS[value]) return STATUS_LABELS[value];
   return value
     .toLowerCase()
     .split("_")
@@ -20,6 +27,8 @@ export const formatEnumValue = (value: string) => {
 
 export const statusColors = {
   [TaskStatus.BACKLOG]: "bg-slate-500/20 text-slate-700 dark:text-slate-400",
+  [TaskStatus.READY]: "bg-violet-500/20 text-violet-700 dark:text-violet-300",
+  [TaskStatus.BLOCKED]: "bg-red-500/20 text-red-700 dark:text-red-400",
   [TaskStatus.TODO]: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
   [TaskStatus.IN_PROGRESS]: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
   [TaskStatus.COMPLETED]: "bg-green-500/20 text-green-700 dark:text-green-400",

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 import { Task, TaskStatus } from "@/types/task";
 
+import { STATUS_LABELS } from "../utils/task-list-utils";
 import { BoardTask } from "./BoardTask";
 
 interface ColumnProps {
@@ -17,6 +18,8 @@ interface ColumnProps {
 
 const statusColors = {
   [TaskStatus.BACKLOG]: "bg-secondary border-border",
+  [TaskStatus.READY]: "bg-violet-500/10 border-violet-500/30",
+  [TaskStatus.BLOCKED]: "bg-negative/40 border-negative",
   [TaskStatus.TODO]: "bg-pending/60 border-pending",
   [TaskStatus.IN_PROGRESS]: "bg-tint-soft border-tint/40",
   [TaskStatus.COMPLETED]: "bg-positive/60 border-positive",
@@ -24,6 +27,8 @@ const statusColors = {
 
 const statusHeaderColors = {
   [TaskStatus.BACKLOG]: "bg-secondary text-muted-foreground",
+  [TaskStatus.READY]: "bg-violet-500/20 text-violet-800 dark:text-violet-200",
+  [TaskStatus.BLOCKED]: "bg-negative text-negative-foreground",
   [TaskStatus.TODO]: "bg-pending text-pending-foreground",
   [TaskStatus.IN_PROGRESS]: "bg-tint-soft text-foreground",
   [TaskStatus.COMPLETED]: "bg-positive text-positive-foreground",
@@ -31,6 +36,7 @@ const statusHeaderColors = {
 
 // Helper function to format enum values for display
 const formatEnumValue = (value: string) => {
+  if (STATUS_LABELS[value]) return STATUS_LABELS[value];
   return value
     .toLowerCase()
     .split("_")

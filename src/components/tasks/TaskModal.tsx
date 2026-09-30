@@ -42,6 +42,8 @@ import {
   TimePreference,
  TaskStepInput } from "@/types/task";
 
+import { STATUS_LABELS } from "./utils/task-list-utils";
+
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -54,6 +56,7 @@ interface TaskModalProps {
 
 //TODO: move to utils
 const formatEnumValue = (value: string) => {
+  if (STATUS_LABELS[value]) return STATUS_LABELS[value];
   return value
     .toLowerCase()
     .split("_")

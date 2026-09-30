@@ -64,7 +64,7 @@ interface TrelloCard {
 }
 
 /** Status values exchanged with the field mapper (not Trello's own vocabulary). */
-export type TrelloStatus = "BACKLOG" | "TODO" | "IN_PROGRESS" | "COMPLETED";
+export type TrelloStatus = "BACKLOG" | "READY" | "TODO" | "IN_PROGRESS" | "BLOCKED" | "COMPLETED";
 
 const CARD_FIELDS =
   "id,name,desc,due,dueComplete,closed,idList,idBoard,url,shortUrl,dateLastActivity,labels,idMembers";
@@ -79,9 +79,11 @@ export function classifyListName(name: string): TrelloStatus {
     return "COMPLETED";
   if (/\b(doing|in progress|en cours|wip|progress|review|test|qa)\b/.test(n))
     return "IN_PROGRESS";
-  // Started but waiting on someone: blocked, to validate, to approve.
-  if (/\b(block|bloqu|valid|approuv|approv|révis|revis)/.test(n))
-    return "IN_PROGRESS";
+  // Blocked has its own status; to validate / to approve is still in progress.
+  if (/\b(block|bloqu)/.test(n)) return "BLOCKED";
+  if (/\b(valid|approuv|approv|révis|revis)/.test(n)) return "IN_PROGRESS";
+  // Ready / to prioritise: groomed, waiting to be picked up.
+  if (/(\bprêt|\bpret\b|\bready\b|prioris|prioriti)/.test(n)) return "READY";
   if (
     /\b(backlog|icebox|someday|later|plus tard|un jour|idées|idees|ideas)/.test(
       n
@@ -208,8 +210,10 @@ export class TrelloTaskProvider implements TaskProviderInterface {
     if (exact) return exact;
     // No matching column: new work goes with the to-dos (or the backlog, or
     // the first list); everything else stays put.
-    if (status === "TODO") return of("BACKLOG") ?? lists[0];
+    if (status === "TODO") return of("READY") ?? of("BACKLOG") ?? lists[0];
+    if (status === "READY") return of("TODO") ?? of("BACKLOG") ?? lists[0];
     if (status === "BACKLOG") return of("TODO") ?? lists[0];
+    if (status === "BLOCKED") return of("IN_PROGRESS");
     return undefined;
   }
 
@@ -366,10 +370,14 @@ export class TrelloTaskProvider implements TaskProviderInterface {
       const kinds = new Set(lists.map((l) => classifyListName(l.name)));
       // A board without a backlog column keeps its backlog with the to-dos,
       // and the other way around.
+      // Same for ready ↔ to-do and blocked ↔ in progress.
       const same = (a: TrelloStatus, b: TrelloStatus) =>
         a === b ||
         (a === "BACKLOG" && b === "TODO" && !kinds.has("BACKLOG")) ||
-        (a === "TODO" && b === "BACKLOG" && !kinds.has("TODO"));
+        (a === "TODO" && b === "BACKLOG" && !kinds.has("TODO")) ||
+        (a === "READY" && b === "TODO" && !kinds.has("READY")) ||
+        (a === "TODO" && b === "READY" && !kinds.has("TODO")) ||
+        (a === "BLOCKED" && b === "IN_PROGRESS" && !kinds.has("BLOCKED"));
 
       if (!same(status, this.cardStatus(card, lists))) {
         const complete = status === "COMPLETED";

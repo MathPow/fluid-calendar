@@ -189,6 +189,9 @@ describe("TrelloTaskProvider", () => {
     expect(classifyListName("Done")).toBe("COMPLETED");
     expect(classifyListName("Terminé ✅")).toBe("COMPLETED");
     expect(classifyListName("Livré")).toBe("COMPLETED");
+    expect(classifyListName("Bloquant")).toBe("BLOCKED");
+    expect(classifyListName("Prêt (à prioriser)")).toBe("READY");
+    expect(classifyListName("Ready")).toBe("READY");
   });
 
   it("validates the connection and reports who the token belongs to", async () => {
@@ -278,9 +281,9 @@ describe("TrelloTaskProvider", () => {
   it("reads the columns of a real board", () => {
     expect(SIX_LISTS.map((l) => classifyListName(l.name))).toEqual([
       "BACKLOG",
-      "TODO",
+      "READY",
       "IN_PROGRESS",
-      "IN_PROGRESS",
+      "BLOCKED",
       "IN_PROGRESS",
       "COMPLETED",
     ]);
@@ -297,11 +300,11 @@ describe("TrelloTaskProvider", () => {
   });
 
   it("leaves a card in its column when the status is of the same kind", async () => {
-    // « Bloquant » and « À valider » both read as in progress: a task that is
-    // in progress here must not drag them back to « En cours ».
-    await provider.updateTask("b6", "s3", { status: "IN_PROGRESS" });
+    // « À valider » reads as in progress: a task in progress here must not
+    // drag it back to « En cours ». « Bloquant » and « Prêt » are their own.
+    await provider.updateTask("b6", "s3", { status: "BLOCKED" });
     await provider.updateTask("b6", "s4", { status: "IN_PROGRESS" });
-    await provider.updateTask("b6", "s2", { status: "TODO" });
+    await provider.updateTask("b6", "s2", { status: "READY" });
     await provider.updateTask("b6", "s1", { status: "BACKLOG" });
     expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
   });

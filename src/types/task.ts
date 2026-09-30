@@ -2,10 +2,14 @@ import { ChangeType } from "@/lib/task-sync/task-change-tracker";
 
 import { Project } from "./project";
 
+// In board order. READY and BLOCKED match the « Prêt (à prioriser) » and
+// « Bloquant » columns of a Trello board.
 export enum TaskStatus {
   BACKLOG = "backlog",
+  READY = "ready",
   TODO = "todo",
   IN_PROGRESS = "in_progress",
+  BLOCKED = "blocked",
   COMPLETED = "completed",
 }
 

@@ -41,8 +41,10 @@ interface ProjectTasksTileProps {
 
 const STATUS_LABEL: Record<string, string> = {
   backlog: "Backlog",
+  ready: "Prêt",
   todo: "À faire",
   in_progress: "En cours",
+  blocked: "Bloquant",
   completed: "Fait",
 };
 

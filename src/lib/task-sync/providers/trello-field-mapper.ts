@@ -20,6 +20,8 @@ export class TrelloFieldMapper extends FieldMapper {
           if (status === TaskStatus.COMPLETED) return "COMPLETED";
           if (status === TaskStatus.IN_PROGRESS) return "IN_PROGRESS";
           if (status === TaskStatus.BACKLOG) return "BACKLOG";
+          if (status === TaskStatus.READY) return "READY";
+          if (status === TaskStatus.BLOCKED) return "BLOCKED";
           return "TODO";
         },
         transformToInternal: (value: unknown) => {
@@ -30,6 +32,10 @@ export class TrelloFieldMapper extends FieldMapper {
               return TaskStatus.IN_PROGRESS;
             case "BACKLOG":
               return TaskStatus.BACKLOG;
+            case "READY":
+              return TaskStatus.READY;
+            case "BLOCKED":
+              return TaskStatus.BLOCKED;
             default:
               return TaskStatus.TODO;
           }

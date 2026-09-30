@@ -151,7 +151,7 @@ export function DashboardView() {
       try {
         const [evRes, tkRes, rcRes, ntRes] = await Promise.all([
           fetch("/api/events"),
-          fetch("/api/tasks?status=todo&status=in_progress"),
+          fetch("/api/tasks?status=ready&status=todo&status=in_progress&status=blocked"),
           fetch("/api/recordings"),
           fetch("/api/notes"),
         ]);
