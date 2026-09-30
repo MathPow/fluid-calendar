@@ -460,7 +460,14 @@ export function EditableCell({
             <SelectItem value="none">No project</SelectItem>
             {groupTaskProjects(projects).map((group) => (
               <SelectGroup key={group.key}>
-                <SelectLabel className="etiquette">{group.name}</SelectLabel>
+                {group.general ? (
+                  // The organisation's own list stands for the organisation.
+                  <SelectItem value={group.general.id}>
+                    <span className="font-semibold">{group.name}</span>
+                  </SelectItem>
+                ) : (
+                  <SelectLabel className="etiquette">{group.name}</SelectLabel>
+                )}
                 {group.projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     <div className="flex items-center gap-2">

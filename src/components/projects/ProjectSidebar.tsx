@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { isSaasEnabled } from "@/lib/config";
-import { groupTaskProjects } from "@/lib/projets/group-task-projects";
+import { type TaskProjectGroup, groupTaskProjects } from "@/lib/projets/group-task-projects";
 import { cn } from "@/lib/utils";
 
 import { useProjectStore } from "@/store/project";
@@ -154,15 +154,13 @@ export function ProjectSidebar() {
   }
   const [showEmpty, setShowEmpty] = useState(false);
   const allGroups = groupTaskProjects(activeProjects);
+  const keep = (p: Project) => showEmpty || (openCount.get(p.id) ?? 0) > 0 || p.id === activeProject?.id;
   const byOrganisation = allGroups
-    .map((g) => ({
-      ...g,
-      projects: showEmpty
-        ? g.projects
-        : g.projects.filter((p) => (openCount.get(p.id) ?? 0) > 0 || p.id === activeProject?.id),
-    }))
-    .filter((g) => g.projects.length > 0);
-  const hiddenCount = activeProjects.length - byOrganisation.reduce((n, g) => n + g.projects.length, 0);
+    .map((g) => ({ ...g, projects: g.projects.filter(keep) }))
+    .filter((g) => g.projects.length > 0 || (g.general && keep(g.general)));
+  const hiddenCount =
+    activeProjects.length -
+    byOrganisation.reduce((n, g) => n + g.projects.length + (g.general ? 1 : 0), 0);
 
   // Count non-completed tasks with no project
   const unassignedTasksCount = tasks.filter(
@@ -227,25 +225,15 @@ export function ProjectSidebar() {
             <div className="space-y-4">
               {byOrganisation.map((group) => (
                 <div key={group.key} className="space-y-1">
-                  <div className="flex items-center gap-2 px-1 py-2">
-                    {group.key === "none" ? (
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/50" />
-                    ) : group.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={group.image} alt="" className="h-5 w-5 shrink-0 rounded-md object-cover" />
-                    ) : (
-                      <span
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-extrabold text-[#19181c]"
-                        style={{ backgroundColor: group.color ?? "#d9d4cc" }}
-                      >
-                        {group.name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    <span className="truncate text-[13px] font-semibold tracking-title">{group.name}</span>
-                    <span className="ml-auto text-[11px] text-muted-foreground">
-                      {group.projects.reduce((n, p) => n + (openCount.get(p.id) ?? 0), 0)}
-                    </span>
-                  </div>
+                  <OrgHeader
+                    group={group}
+                    count={
+                      group.projects.reduce((n, p) => n + (openCount.get(p.id) ?? 0), 0) +
+                      (group.general ? (openCount.get(group.general.id) ?? 0) : 0)
+                    }
+                    isActive={!!group.general && activeProject?.id === group.general.id}
+                    onEdit={handleEditProject}
+                  />
                   {group.projects.map((project) => (
                     <ProjectItem
                       key={project.id}
@@ -413,6 +401,77 @@ function ProjectItem({
       >
         <Pencil className="h-3 w-3" />
       </Button>
+    </div>
+  );
+}
+
+/**
+ * An organisation's line in the sidebar: its logo and name. When it has its
+ * own list (« StayChum » under StayChum), the line *is* that list: click to
+ * open it, drop tasks on it.
+ */
+function OrgHeader({
+  group,
+  count,
+  isActive,
+  onEdit,
+}: {
+  group: TaskProjectGroup;
+  count: number;
+  isActive: boolean;
+  onEdit: (project: Project) => void;
+}) {
+  const { setActiveProject } = useProjectStore();
+  const general = group.general;
+  const { droppableProps, isOver } = useDroppableProject(
+    (general ?? { id: `org-${group.key}`, name: group.name }) as Project
+  );
+  const avatar =
+    group.key === "none" ? (
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/50" />
+    ) : group.image ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={group.image} alt="" className="h-5 w-5 shrink-0 rounded-md object-cover" />
+    ) : (
+      <span
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-extrabold text-[#19181c]"
+        style={{ backgroundColor: group.color ?? "#d9d4cc" }}
+      >
+        {group.name.charAt(0).toUpperCase()}
+      </span>
+    );
+  const body = (
+    <>
+      {avatar}
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold tracking-title">{group.name}</span>
+      {general && (
+        <button
+          type="button"
+          aria-label={`Modifier ${group.name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(general);
+          }}
+          className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <span className="text-[11px] text-muted-foreground">{count}</span>
+    </>
+  );
+  if (!general) return <div className="flex items-center gap-2 px-1 py-2">{body}</div>;
+  return (
+    <div
+      {...droppableProps}
+      onClick={() => setActiveProject(general)}
+      className={cn(
+        "group flex cursor-pointer items-center gap-2 rounded-md px-1 py-2",
+        isActive ? "bg-secondary" : "hover:bg-muted",
+        isOver && "ring-2 ring-ring"
+      )}
+    >
+      {body}
     </div>
   );
 }

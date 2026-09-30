@@ -20,6 +20,7 @@ export interface Project {
     name: string;
     color: string | null;
     image?: string | null;
+    kind?: string;
     isDefault?: boolean;
     sortOrder?: number;
   } | null;
@@ -33,6 +34,7 @@ export interface Project {
       name: string;
       color: string | null;
       image?: string | null;
+    kind?: string;
       isDefault?: boolean;
       sortOrder?: number;
     } | null;
