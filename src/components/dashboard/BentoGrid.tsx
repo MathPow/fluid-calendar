@@ -110,6 +110,15 @@ const ROW_SPAN: Record<number, string> = {
   6: "row-span-6",
 };
 
+// Rows are auto-sized: each section is exactly its rows tall (9rem a row,
+// plus the gaps it spans), so the rows settle at 9rem. A full-width strip
+// (4×1) has a row to itself and hugs its content instead — a row of links
+// or machine dots doesn't need the room.
+const ROW_REM = 9;
+const GAP_REM = 1.25;
+const cellHeight = (h: number) => `${h * ROW_REM + (h - 1) * GAP_REM}rem`;
+const hugs = (size: Size) => size.w === GRID_COLS && size.h === 1;
+
 const TRAY = "tray";
 const GRID = "grid";
 type Container = typeof TRAY | typeof GRID;
@@ -570,13 +579,16 @@ function GridArea({
     <div
       ref={setNodeRef}
       className={cn(
-        "mt-8 grid auto-rows-[9rem] grid-flow-row-dense grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4",
+        "mt-8 grid grid-flow-row-dense grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4",
         editing && "pb-24"
       )}
     >
       {children}
       {empty && (
-        <div className="col-span-full row-span-2 flex flex-col items-center justify-center rounded-tile border-2 border-dashed border-border text-center">
+        <div
+          className="col-span-full flex flex-col items-center justify-center rounded-tile border-2 border-dashed border-border text-center"
+          style={{ height: cellHeight(2) }}
+        >
           <p className="text-[15px] font-semibold tracking-title">
             Le tableau est vide.
           </p>
@@ -620,7 +632,12 @@ function GridItem({
       ref={setNodeRef}
       layout={editing ? "position" : false}
       transition={{ type: "spring", stiffness: 520, damping: 42, mass: 0.7 }}
-      className={cn("relative min-w-0", COL_SPAN[size.w], ROW_SPAN[size.h])}
+      className={cn(
+        "relative min-w-0",
+        COL_SPAN[size.w],
+        !hugs(size) && ROW_SPAN[size.h]
+      )}
+      style={hugs(size) ? undefined : { height: cellHeight(size.h) }}
     >
       {isDragging ? (
         <GhostTile type={type} size={size} />
@@ -634,6 +651,8 @@ function GridItem({
             "h-full overflow-hidden",
             // A one-row section has 9rem: keep its content clear of the edge.
             size.h === 1 ? "px-6 py-5 md:px-7" : "p-6 md:p-7",
+            // A strip hugs its content: make room for the edit chips above it.
+            editing && hugs(size) && "pt-14",
             editing &&
               "cursor-grab touch-manipulation select-none ring-2 ring-border ring-offset-2 ring-offset-background transition-shadow hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-foreground/50 active:cursor-grabbing"
           )}
