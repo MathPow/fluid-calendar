@@ -2,6 +2,7 @@ import { PropsWithChildren } from "react";
 
 import { ServiceWorkerProvider } from "./ServiceWorkerProvider";
 import { SessionProvider } from "./SessionProvider";
+import { StepUpProvider } from "./StepUpProvider";
 import { TanstackQueryProvider } from "./TanstackQueryProvider";
 import { ThemeProvider } from "./ThemeProvider";
 
@@ -11,6 +12,7 @@ export function Providers({ children }: PropsWithChildren) {
       <ThemeProvider attribute="data-theme" enableSystem={true}>
         <SessionProvider>
           <ServiceWorkerProvider />
+          <StepUpProvider />
           {children}
         </SessionProvider>
       </ThemeProvider>

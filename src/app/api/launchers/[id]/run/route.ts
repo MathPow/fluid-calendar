@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { requireStepUp } from "@/lib/auth/step-up";
 import { DESKTOP_ACTIONS, type DesktopAction } from "@/lib/desktop-actions";
 import { isPromptKind } from "@/lib/launchers";
 import { runMachineAction } from "@/lib/machine-actions";
@@ -17,6 +18,8 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const stepUp = requireStepUp(request, auth.userId);
+  if (stepUp) return stepUp;
   const { id } = await params;
   const launcher = await prisma.launchShortcut.findFirst({
     where: { id, userId: auth.userId },

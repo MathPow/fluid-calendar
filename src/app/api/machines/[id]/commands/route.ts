@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { requireStepUp } from "@/lib/auth/step-up";
 import { CommandInput } from "@/lib/desktop-actions";
 import { expireCommands } from "@/lib/desktop-agent";
 import { prisma } from "@/lib/prisma";
@@ -52,6 +53,8 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 export async function POST(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const stepUp = requireStepUp(request, auth.userId);
+  if (stepUp) return stepUp;
   const { id } = await params;
   const parsed = CommandInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

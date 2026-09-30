@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { requireStepUp } from "@/lib/auth/step-up";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { machineSelect } from "@/lib/projets/queries";
@@ -16,6 +17,8 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const stepUp = requireStepUp(request, auth.userId);
+  if (stepUp) return stepUp;
   const { id } = await params;
   let json: unknown;
   try {

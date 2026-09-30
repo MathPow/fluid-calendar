@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { requireStepUp } from "@/lib/auth/step-up";
 import { LauncherInput, launcherSelect } from "@/lib/launchers";
 import { prisma } from "@/lib/prisma";
 
@@ -24,6 +25,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const stepUp = requireStepUp(request, auth.userId);
+  if (stepUp) return stepUp;
   const parsed = LauncherInput.safeParse(
     await request.json().catch(() => null)
   );

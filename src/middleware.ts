@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { fromTailnetProxy } from "@/lib/auth/tailnet";
 import { verifyUtSession } from "@/lib/auth/ut-session";
 
 // List of public routes that don't require authentication
@@ -98,6 +99,29 @@ export async function middleware(request: NextRequest) {
     // Add a header to track that this was a redirect from setup
     response.headers.set("x-redirect-from", "/setup");
     return response;
+  }
+
+  // Came through the Caddy tailnet node with no session: skip the sign-in
+  // page and mint one. `error` is set when the auto-login refused, so the
+  // sign-in page shows instead of looping.
+  if (
+    fromTailnetProxy(request.headers) &&
+    !pathname.startsWith("/api") &&
+    !request.nextUrl.searchParams.has("error")
+  ) {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    if (!token) {
+      const url = new URL("/api/auth/tailnet", request.url);
+      const callback =
+        pathname === "/auth/signin"
+          ? request.nextUrl.searchParams.get("callbackUrl") || "/"
+          : pathname + request.nextUrl.search;
+      url.searchParams.set("callbackUrl", callback);
+      return NextResponse.redirect(url);
+    }
   }
 
   // Special handling to prevent redirect loops between /auth/signin and /setup
