@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { toast } from "sonner";
+
 import { NotificationList } from "./NotificationList";
 import { useNotifications } from "./useNotifications";
 
@@ -9,7 +11,8 @@ const PREVIEW = 5;
 
 /** Dashboard « Nouvelles »: the latest notifications, unread first. */
 export function NewsTile() {
-  const { items, unread, loaded, markRead } = useNotifications();
+  const { items, unread, loaded, markRead, markUnread, remove } =
+    useNotifications();
   const [all, setAll] = useState(false);
   if (!loaded || items.length === 0) return null;
 
@@ -45,6 +48,11 @@ export function NewsTile() {
         <NotificationList
           items={shown}
           onOpen={(n) => !n.readAt && markRead([n.id])}
+          onDone={(n) => markRead([n.id])}
+          onUndone={(n) => markUnread([n.id])}
+          onDelete={async (n) => {
+            if (!(await remove([n.id]))) toast.error("Suppression impossible");
+          }}
         />
       </div>
       {sorted.length > PREVIEW && (

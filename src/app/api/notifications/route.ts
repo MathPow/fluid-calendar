@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { z } from "zod";
+
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
   );
   const [items, unread] = await Promise.all([
     prisma.notification.findMany({
-      where: { userId: auth.userId },
+      where: { userId: auth.userId, dismissedAt: null },
       orderBy: { createdAt: "desc" },
       take: limit,
       select: {
@@ -32,7 +34,41 @@ export async function GET(request: NextRequest) {
         createdAt: true,
       },
     }),
-    prisma.notification.count({ where: { userId: auth.userId, readAt: null } }),
+    prisma.notification.count({
+      where: { userId: auth.userId, readAt: null, dismissedAt: null },
+    }),
   ]);
   return NextResponse.json({ items, unread });
+}
+
+const DeleteBody = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(200),
+});
+
+/**
+ * DELETE /api/notifications — `{ ids }`. The notifications leave the feed for
+ * good; their rows stay so the same news is not recorded a second time.
+ */
+export async function DELETE(request: NextRequest) {
+  const auth = await authenticateRequest(request, LOG_SOURCE);
+  if ("response" in auth) return auth.response;
+  const parsed = DeleteBody.safeParse(await request.json().catch(() => null));
+  if (!parsed.success)
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.notification.updateMany({
+      where: { userId: auth.userId, id: { in: parsed.data.ids }, readAt: null },
+      data: { readAt: now },
+    }),
+    prisma.notification.updateMany({
+      where: {
+        userId: auth.userId,
+        id: { in: parsed.data.ids },
+        dismissedAt: null,
+      },
+      data: { dismissedAt: now },
+    }),
+  ]);
+  return NextResponse.json({ ok: true });
 }

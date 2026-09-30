@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Bell, BellRing } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +32,7 @@ function useIosOutsideApp() {
 
 /** Header bell: unread count, the latest news, and turning on phone push. */
 export function NotificationBell() {
-  const { items, unread, markRead } = useNotifications();
+  const { items, unread, markRead, markUnread, remove } = useNotifications();
   const push = usePushNotifications();
   const iosOutside = useIosOutsideApp();
   const [open, setOpen] = useState(false);
@@ -87,6 +88,12 @@ export function NotificationBell() {
               onOpen={(n) => {
                 if (!n.readAt) markRead([n.id]);
                 setOpen(false);
+              }}
+              onDone={(n) => markRead([n.id])}
+              onUndone={(n) => markUnread([n.id])}
+              onDelete={async (n) => {
+                if (!(await remove([n.id])))
+                  toast.error("Suppression impossible");
               }}
             />
           )}

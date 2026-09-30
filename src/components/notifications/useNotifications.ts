@@ -85,5 +85,44 @@ export function useNotifications() {
     }).catch(() => {});
   }, []);
 
-  return { items, unread, loaded, markRead, refresh };
+  /** Back to unread: "I still have to deal with this". */
+  const markUnread = useCallback(async (ids: string[]) => {
+    const s = useStore.getState();
+    const hit = (n: NotificationItem) => !!n.readAt && ids.includes(n.id);
+    const count = s.items.filter(hit).length;
+    s.set({
+      items: s.items.map((n) => (hit(n) ? { ...n, readAt: null } : n)),
+      unread: s.unread + count,
+    });
+    await fetch("/api/notifications/read", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ids, read: false }),
+    }).catch(() => {});
+  }, []);
+
+  /** Delete for good. Put back on screen if the server refuses. */
+  const remove = useCallback(async (ids: string[]) => {
+    const s = useStore.getState();
+    const before = { items: s.items, unread: s.unread };
+    const gone = s.items.filter((n) => ids.includes(n.id));
+    s.set({
+      items: s.items.filter((n) => !ids.includes(n.id)),
+      unread: Math.max(0, s.unread - gone.filter((n) => !n.readAt).length),
+    });
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      return true;
+    } catch {
+      useStore.getState().set(before);
+      return false;
+    }
+  }, []);
+
+  return { items, unread, loaded, markRead, markUnread, remove, refresh };
 }
