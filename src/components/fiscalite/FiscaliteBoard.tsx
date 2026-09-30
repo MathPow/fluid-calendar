@@ -51,7 +51,7 @@ import type { InvoiceView, MovementView } from "@/lib/fiscalite/queries";
 import { INVOICE_MIMES, MAX_INVOICE_BYTES } from "@/lib/fiscalite/schemas";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
 
-import { ExcelActions } from "./ExcelActions";
+import { ExcelActions, ImportDialog, SPREADSHEET_ACCEPT, isSpreadsheet } from "./ExcelActions";
 import { InvoiceDialog } from "./InvoiceDialog";
 import { PersonalBudget } from "./PersonalBudget";
 import { PartnersTile } from "./PartnersTile";
@@ -105,6 +105,10 @@ export function FiscaliteBoard({
   });
   const [profileOpen, setProfileOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // Files dropped together, handled one after the other: a receipt opens the
+  // invoice dialog, a spreadsheet the import preview.
+  const [queue, setQueue] = useState<File[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   useEffect(() => {
     try {
@@ -238,18 +242,36 @@ export function FiscaliteBoard({
 
   const visible = yearInvoices.filter((i) => filter === "all" || i.direction === filter);
 
-  const openFile = (file: File | undefined | null) => {
-    if (!file || !org) return;
-    if (!INVOICE_MIMES.includes(file.type)) {
-      toast.error("PDF ou image seulement.");
-      return;
+  const openFiles = (list: FileList | File[] | null | undefined) => {
+    if (!list || !org) return;
+    const ok: File[] = [];
+    const rejected: string[] = [];
+    for (const file of Array.from(list)) {
+      if (isSpreadsheet(file)) {
+        if (file.size > 10 * 1024 * 1024) rejected.push(`${file.name} (10 Mo max)`);
+        else ok.push(file);
+      } else if (INVOICE_MIMES.includes(file.type)) {
+        if (file.size > MAX_INVOICE_BYTES) rejected.push(`${file.name} (15 Mo max)`);
+        else ok.push(file);
+      } else rejected.push(file.name);
     }
-    if (file.size > MAX_INVOICE_BYTES) {
-      toast.error("Fichier trop lourd (15 Mo max).");
-      return;
+    if (rejected.length) {
+      toast.error("Fichiers ignorés", {
+        description: `${rejected.join(", ")} · PDF, image, Excel ou CSV seulement.`,
+      });
     }
-    setDialog({ open: true, file, invoice: null });
+    if (ok.length > 1) toast(`${ok.length} fichiers: un à la fois.`);
+    setQueue((q) => [...q, ...ok]);
   };
+
+  // Next file in line once nothing is open.
+  useEffect(() => {
+    if (!queue.length || dialog.open || importFile) return;
+    const [next, ...rest] = queue;
+    setQueue(rest);
+    if (isSpreadsheet(next)) setImportFile(next);
+    else setDialog({ open: true, file: next, invoice: null });
+  }, [queue, dialog.open, importFile]);
 
   if (!org) {
     return (
@@ -287,7 +309,7 @@ export function FiscaliteBoard({
       onDrop={(e) => {
         e.preventDefault();
         setDragging(false);
-        openFile(e.dataTransfer.files?.[0]);
+        openFiles(e.dataTransfer.files);
       }}
     >
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -375,8 +397,8 @@ export function FiscaliteBoard({
           </p>
           <p className="mt-1 text-[13px] text-muted-foreground">
             {personal
-              ? "PDF ou photo · le montant et la date sont lus automatiquement"
-              : "PDF ou photo · émise ou reçue · les montants et les taxes sont lus automatiquement"}
+              ? "PDF ou photo · Excel ou CSV de ta banque · plusieurs à la fois"
+              : "PDF ou photo · émise ou reçue · ou un classeur Excel / CSV · plusieurs à la fois"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -394,10 +416,11 @@ export function FiscaliteBoard({
         <input
           ref={fileInput}
           type="file"
-          accept={INVOICE_MIMES.join(",")}
+          accept={`${INVOICE_MIMES.join(",")},${SPREADSHEET_ACCEPT}`}
+          multiple
           className="hidden"
           onChange={(e) => {
-            openFile(e.target.files?.[0]);
+            openFiles(e.target.files);
             e.target.value = "";
           }}
         />
@@ -771,6 +794,7 @@ export function FiscaliteBoard({
         }
         onDeleted={(id) => setInvoices((prev) => prev.filter((i) => i.id !== id))}
       />
+      <ImportDialog organisation={org} file={importFile} onClose={() => setImportFile(null)} />
       <TaxProfileDialog
         open={profileOpen}
         onOpenChange={setProfileOpen}
