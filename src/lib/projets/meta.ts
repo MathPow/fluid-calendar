@@ -90,6 +90,66 @@ export const RELATION_KIND_IDS = RELATION_KINDS.map((k) => k.id) as [
 export const relationLabel = (kind: string | null | undefined) =>
   RELATION_KINDS.find((k) => k.id === kind)?.label ?? kind ?? "";
 
+/** Common categories for a person's `role` field. Free text is still allowed. */
+export const PERSON_ROLE_SUGGESTIONS = [
+  "Entrepreneur",
+  "Professionnel",
+  "Freelance",
+  "Étudiant",
+  "Consultant",
+  "Développeur",
+  "Designer",
+  "Photographe",
+  "Vidéaste",
+  "Artiste",
+  "Journaliste",
+  "Enseignant",
+  "Chercheur",
+  "Médecin",
+  "Avocat",
+  "Notaire",
+  "Comptable",
+  "Ingénieur",
+  "Architecte",
+  "Commerçant",
+  "Investisseur",
+  "Artisan",
+  "Retraité",
+  "Autre",
+] as const;
+
+/** Common sectors for a company's `role` field. Free text is still allowed. */
+export const COMPANY_ROLE_SUGGESTIONS = [
+  "Tech",
+  "Événementiel",
+  "Immobilier",
+  "Restauration",
+  "Commerce",
+  "Construction",
+  "Design",
+  "Marketing",
+  "Finance",
+  "Assurance",
+  "Santé",
+  "Éducation",
+  "Média",
+  "Manufacture",
+  "Agriculture",
+  "Logistique",
+  "Transport",
+  "Énergie",
+  "Sport",
+  "Culture",
+  "Tourisme",
+  "OBNL",
+  "Autre",
+] as const;
+
+export const roleOptions = (kind: "person" | "company") =>
+  (kind === "company" ? COMPANY_ROLE_SUGGESTIONS : PERSON_ROLE_SUGGESTIONS).map(
+    (label) => ({ value: label, label })
+  );
+
 /** Accepts a resized data URL or an https image link, nothing else. */
 export const isAllowedImage = (v: string) =>
   /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v) ||
