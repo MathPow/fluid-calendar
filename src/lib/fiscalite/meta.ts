@@ -73,8 +73,31 @@ export interface ExpenseCategory {
   capital?: boolean;
 }
 
+// Every expense line of the T2125 (Part 3 cost of goods sold, Part 4
+// expenses) and its Québec twin, the TP-80, in form order.
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
-  { id: "publicite", label: "Publicité", line: "8521", deductible: 1, hint: "Pubs, Meta/Google Ads, imprimés" },
+  {
+    id: "achats",
+    label: "Achats de marchandises (revente)",
+    line: "8320",
+    deductible: 1,
+    hint: "Ce que tu achètes pour revendre: stock de la boutique, produits. Coût des marchandises vendues.",
+  },
+  {
+    id: "sous-traitance",
+    label: "Sous-traitance",
+    line: "8360",
+    deductible: 1,
+    hint: "Pigistes et sous-traitants qui produisent ce que tu vends",
+  },
+  {
+    id: "main-oeuvre",
+    label: "Main-d'œuvre directe",
+    line: "8340",
+    deductible: 1,
+    hint: "Salaires des gens qui fabriquent ou livrent le produit (sinon: Salaires)",
+  },
+  { id: "publicite", label: "Publicité et marketing", line: "8521", deductible: 1, hint: "Pubs, Meta/Google Ads, imprimés, commandites données, promo" },
   {
     id: "repas",
     label: "Repas et représentation",
@@ -82,8 +105,21 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
     deductible: 0.5,
     hint: "Déductible à 50 %, taxes récupérables à 50 %. Note avec qui et pourquoi.",
   },
-  { id: "assurances", label: "Assurances", line: "8690", deductible: 1 },
-  { id: "interets", label: "Intérêts et frais bancaires", line: "8710", deductible: 1 },
+  {
+    id: "creances",
+    label: "Créances irrécouvrables",
+    line: "8590",
+    deductible: 1,
+    hint: "Une facture émise (déjà comptée en revenu) qu'un client ne paiera jamais",
+  },
+  { id: "assurances", label: "Assurances", line: "8690", deductible: 1, hint: "Responsabilité civile, assurance événement, équipement" },
+  {
+    id: "interets",
+    label: "Intérêts et frais bancaires",
+    line: "8710",
+    deductible: 1,
+    hint: "Frais de compte, intérêts de prêt ou de carte, frais Stripe / Square / PayPal",
+  },
   {
     id: "permis",
     label: "Taxes d'affaires, permis et cotisations",
@@ -91,25 +127,36 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
     deductible: 1,
     hint: "Immatriculation et droits annuels au REQ, permis, cotisations d'ordres ou d'associations. Frais gouvernementaux: pas de TPS/TVQ.",
   },
-  { id: "bureau", label: "Frais de bureau", line: "8810", deductible: 1, hint: "Petits articles, timbres, papeterie" },
-  { id: "logiciels", label: "Logiciels et abonnements", line: "8810", deductible: 1, hint: "SaaS, hébergement, domaines, licences" },
-  { id: "fournitures", label: "Fournitures", line: "8811", deductible: 1, hint: "Matériel consommé pour produire" },
-  { id: "honoraires", label: "Honoraires professionnels", line: "8860", deductible: 1, hint: "Comptable, avocat, notaire" },
-  { id: "sous-traitance", label: "Sous-traitance", line: "8871", deductible: 1, hint: "Pigistes, frais de gestion" },
-  { id: "loyer", label: "Loyer", line: "8910", deductible: 1, hint: "Local commercial (pas ton appart: voir bureau à domicile)" },
+  { id: "bureau", label: "Frais de bureau", line: "8810", deductible: 1, hint: "Petits articles, timbres, poste" },
+  {
+    id: "logiciels",
+    label: "Logiciels et abonnements",
+    line: "8810",
+    deductible: 1,
+    hint: "SaaS, hébergement, domaines, courriel pro, plateformes (Shopify, billetterie)",
+  },
+  { id: "fournitures", label: "Fournitures", line: "8811", deductible: 1, hint: "Papeterie, emballage, matériel consommé pour produire" },
+  { id: "honoraires", label: "Honoraires professionnels", line: "8860", deductible: 1, hint: "Comptable, avocat, notaire, consultants" },
+  { id: "gestion", label: "Frais de gestion et d'administration", line: "8871", deductible: 1, hint: "Services de gestion, de tenue de livres, d'administration" },
+  { id: "loyer", label: "Loyer", line: "8910", deductible: 1, hint: "Local, entrepôt, salle ou site loué pour un événement (ton appart: Bureau à domicile)" },
   { id: "entretien", label: "Entretien et réparations", line: "8960", deductible: 1 },
-  { id: "salaires", label: "Salaires", line: "9060", deductible: 1, hint: "Pense aux retenues à la source et aux T4/RL-1" },
-  { id: "deplacements", label: "Déplacements", line: "9200", deductible: 1, hint: "Transport, hôtel (les repas vont dans Repas)" },
-  { id: "telecom", label: "Téléphone et services publics", line: "9220", deductible: 1, hint: "Seulement la part d'affaires" },
-  { id: "vehicule", label: "Frais de véhicule", line: "9281", deductible: 1, hint: "Tiens un registre de kilométrage" },
-  { id: "domicile", label: "Bureau à domicile", line: "9945", deductible: 1, hint: "Au prorata de la superficie, sans créer de perte" },
+  { id: "salaires", label: "Salaires et avantages", line: "9060", deductible: 1, hint: "Avec les charges de l'employeur. Pense aux retenues à la source et aux T4/RL-1." },
+  { id: "impots-fonciers", label: "Impôts fonciers", line: "9180", deductible: 1, hint: "Taxes municipales et scolaires d'un local que tu possèdes" },
+  { id: "deplacements", label: "Déplacements", line: "9200", deductible: 1, hint: "Transport, avion, train, hôtel (les repas vont dans Repas)" },
+  { id: "telecom", label: "Téléphone et services publics", line: "9220", deductible: 1, hint: "Cell, internet, électricité: seulement la part d'affaires" },
+  { id: "carburant", label: "Carburant (autre que véhicule)", line: "9224", deductible: 1, hint: "Génératrice, chauffage d'un site, propane (l'essence de l'auto: Frais de véhicule)" },
+  { id: "livraison", label: "Livraison, transport et messagerie", line: "9275", deductible: 1, hint: "Postes Canada, Purolator, expédition des commandes" },
+  { id: "vehicule", label: "Frais de véhicule", line: "9281", deductible: 1, hint: "Essence, entretien, assurance auto, immatriculation, au prorata. Tiens un registre de kilométrage." },
+  { id: "formation", label: "Formation et perfectionnement", line: "9270", deductible: 1, hint: "Cours, conférences, livres liés à ton activité" },
   { id: "autres", label: "Autres dépenses", line: "9270", deductible: 1 },
+  { id: "domicile", label: "Bureau à domicile", line: "9945", deductible: 1, hint: "Au prorata de la superficie, sans créer de perte" },
   {
     id: "immobilisation",
     label: "Équipement (DPA)",
+    line: "9936",
     deductible: 0,
     capital: true,
-    hint: "Ordi, caméra, meubles: amorti par la DPA, pas déduit d'un coup. Les taxes restent récupérables.",
+    hint: "Ordi, caméra, meubles, outils de plus de ~500 $: amorti par la DPA, pas déduit d'un coup. Les taxes restent récupérables.",
   },
 ];
 
@@ -117,7 +164,11 @@ export const INCOME_CATEGORIES = [
   { id: "services", label: "Services" },
   { id: "ventes", label: "Ventes de produits" },
   { id: "billetterie", label: "Billetterie / événements" },
-  { id: "commandites", label: "Commandites" },
+  { id: "commandites", label: "Commandites et partenariats" },
+  { id: "affiliations", label: "Affiliations" },
+  { id: "contenu", label: "Contenu payé et abonnements" },
+  { id: "subventions", label: "Subventions" },
+  { id: "interets-revenus", label: "Intérêts" },
   { id: "autres-revenus", label: "Autres revenus" },
 ];
 
@@ -137,6 +188,26 @@ const CATEGORY_ALIASES: Record<string, string> = {
   "frais d'immatriculation": "permis",
   permis: "permis",
   cotisations: "permis",
+  "automatisations instagram": "logiciels",
+  abonnements: "logiciels",
+  expedition: "livraison",
+  livraison: "livraison",
+  poste: "livraison",
+  stock: "achats",
+  inventaire: "achats",
+  pigistes: "sous-traitance",
+  "frais bancaires": "interets",
+  formation: "formation",
+};
+
+/** Same for revenue accounts. */
+const INCOME_ALIASES: Record<string, string> = {
+  "vente de produits ou contenu paye": "ventes",
+  ventes: "ventes",
+  commandites: "commandites",
+  partenariats: "commandites",
+  affiliation: "affiliations",
+  subvention: "subventions",
 };
 
 const fold = (s: string) =>
@@ -154,6 +225,7 @@ export function categoryFromLabel(direction: string, label: string | null | unde
   const hit = list.find((c) => fold(c.label) === key || c.id === key);
   if (hit) return hit.id;
   if (direction !== "revenu" && CATEGORY_ALIASES[key]) return CATEGORY_ALIASES[key];
+  if (direction === "revenu" && INCOME_ALIASES[key]) return INCOME_ALIASES[key];
   return label.trim();
 }
 
