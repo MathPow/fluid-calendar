@@ -76,6 +76,13 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   },
   { id: "assurances", label: "Assurances", line: "8690", deductible: 1 },
   { id: "interets", label: "Intérêts et frais bancaires", line: "8710", deductible: 1 },
+  {
+    id: "permis",
+    label: "Taxes d'affaires, permis et cotisations",
+    line: "8760",
+    deductible: 1,
+    hint: "Immatriculation et droits annuels au REQ, permis, cotisations d'ordres ou d'associations. Frais gouvernementaux: pas de TPS/TVQ.",
+  },
   { id: "bureau", label: "Frais de bureau", line: "8810", deductible: 1, hint: "Petits articles, timbres, papeterie" },
   { id: "logiciels", label: "Logiciels et abonnements", line: "8810", deductible: 1, hint: "SaaS, hébergement, domaines, licences" },
   { id: "fournitures", label: "Fournitures", line: "8811", deductible: 1, hint: "Matériel consommé pour produire" },
@@ -118,6 +125,10 @@ const CATEGORY_ALIASES: Record<string, string> = {
   serveur: "logiciels",
   hebergement: "logiciels",
   comptable: "honoraires",
+  immatriculation: "permis",
+  "frais d'immatriculation": "permis",
+  permis: "permis",
+  cotisations: "permis",
 };
 
 const fold = (s: string) =>
