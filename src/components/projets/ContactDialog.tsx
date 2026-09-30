@@ -18,13 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 
 import { cn } from "@/lib/utils";
@@ -35,6 +29,7 @@ import {
   DEFAULT_PROJECT_COLOR,
   RELATION_KINDS,
   initials,
+  roleOptions,
 } from "@/lib/projets/meta";
 import type { ContactFull } from "@/lib/projets/queries";
 
@@ -286,30 +281,30 @@ export function ContactDialog({
               <Label htmlFor="contact-role">
                 {type === "company" ? "Secteur / catégorie" : "Job / catégorie"}
               </Label>
-              <Input
+              <SearchableSelect
                 id="contact-role"
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={setRole}
+                options={roleOptions(type)}
                 placeholder={
-                  type === "company" ? "Tech, événementiel, immobilier…" : "Entrepreneur, Pro, Étudiant…"
+                  type === "company"
+                    ? "Tech, événementiel, immobilier…"
+                    : "Entrepreneur, Pro, Étudiant…"
                 }
+                allowCustom
               />
             </div>
             <div className="space-y-2">
               <Label>Relation</Label>
-              <Select value={relation} onValueChange={setRelation}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir…" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_RELATION}>Non précisée</SelectItem>
-                  {RELATION_KINDS.map((k) => (
-                    <SelectItem key={k.id} value={k.id}>
-                      {k.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={relation === NO_RELATION ? "" : relation}
+                onChange={(v) => setRelation(v || NO_RELATION)}
+                options={[
+                  { value: "", label: "Non précisée" },
+                  ...RELATION_KINDS.map((k) => ({ value: k.id, label: k.label })),
+                ]}
+                placeholder="Choisir…"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="contact-relation-detail">Précision</Label>
@@ -458,7 +453,7 @@ export function ContactDialog({
             )}
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:items-center">
+          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:-mx-8 md:-mb-8 md:px-8 sm:flex-row sm:items-center">
             {editing && (
               <Button
                 type="button"

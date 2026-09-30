@@ -248,7 +248,7 @@ export function MachineDialog({
             />
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:items-center">
+          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:-mx-8 md:-mb-8 md:px-8 sm:flex-row sm:items-center">
             {machine && onDelete && (
               <Button
                 type="button"
