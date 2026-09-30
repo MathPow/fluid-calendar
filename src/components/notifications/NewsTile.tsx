@@ -13,9 +13,22 @@ const PREVIEW = 5;
  * Dashboard « Nouvelles »: the latest notifications, unread first. `embedded`
  * fills a bento cell (scrolls inside it) and says so when there is nothing.
  */
-export function NewsTile({ embedded = false }: { embedded?: boolean }) {
-  const { items, unread, loaded, markRead, markUnread, remove } =
-    useNotifications();
+export function NewsTile({
+  embedded = false,
+  unreadOnly = false,
+}: {
+  embedded?: boolean;
+  unreadOnly?: boolean;
+}) {
+  const {
+    items: all_,
+    unread,
+    loaded,
+    markRead,
+    markUnread,
+    remove,
+  } = useNotifications();
+  const items = unreadOnly ? all_.filter((n) => !n.readAt) : all_;
   const [all, setAll] = useState(false);
   if (!embedded && (!loaded || items.length === 0)) return null;
 
@@ -53,7 +66,7 @@ export function NewsTile({ embedded = false }: { embedded?: boolean }) {
       </div>
       {embedded && loaded && items.length === 0 && (
         <p className="flex flex-1 items-center justify-center py-6 text-[13px] text-muted-foreground">
-          Rien de neuf.
+          {unreadOnly ? "Tout est lu." : "Rien de neuf."}
         </p>
       )}
       <div

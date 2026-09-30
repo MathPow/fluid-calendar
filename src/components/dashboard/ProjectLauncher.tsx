@@ -19,9 +19,6 @@ import {
 
 import { useStationStore } from "@/store/station";
 
-/** How many projects each organisation shows on the dashboard. */
-const TOP = 4;
-
 interface LauncherProject {
   id: string;
   slug: string;
@@ -65,7 +62,19 @@ function projectTerminal(
  * most recently active). A row opens the project; the terminal icon opens its
  * folder in the machine's web terminal.
  */
-export function ProjectLauncher() {
+export function ProjectLauncher({
+  top: TOP = 4,
+  description = true,
+  columns = false,
+  footer = true,
+}: {
+  /** How many projects each organisation shows. */
+  top?: number;
+  description?: boolean;
+  /** Organisations side by side (a wide section). */
+  columns?: boolean;
+  footer?: boolean;
+} = {}) {
   const { currentStation } = useStationStore();
   const [data, setData] = useState<{
     projects: LauncherProject[];
@@ -128,7 +137,13 @@ export function ProjectLauncher() {
           Aucun projet dans cette station.
         </p>
       ) : (
-        <div className="space-y-7">
+        <div
+          className={
+            columns
+              ? "grid grid-cols-1 gap-x-8 gap-y-7 sm:grid-cols-2 xl:grid-cols-3"
+              : "space-y-7"
+          }
+        >
           {groups.map(({ org, projects }) => (
             <section key={org.id}>
               <div className="flex items-center gap-2.5">
@@ -169,7 +184,7 @@ export function ProjectLauncher() {
                             <span className="truncate">{p.name}</span>
                             <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                           </span>
-                          {p.description && (
+                          {description && p.description && (
                             <span className="block truncate text-[13px] text-muted-foreground">
                               {p.description}
                             </span>
@@ -210,12 +225,14 @@ export function ProjectLauncher() {
           ))}
         </div>
       )}
-      <p className="mt-6 flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
-        <span>L&apos;ordre se règle dans Projets avec « Réorganiser ».</span>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/projets">Tous les projets</Link>
-        </Button>
-      </p>
+      {footer && (
+        <p className="mt-6 flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
+          <span>L&apos;ordre se règle dans Projets avec « Réorganiser ».</span>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/projets">Tous les projets</Link>
+          </Button>
+        </p>
+      )}
     </div>
   );
 }

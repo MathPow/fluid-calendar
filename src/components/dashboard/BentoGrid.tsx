@@ -41,7 +41,7 @@ import {
   PanelsTopLeft,
   Plus,
   RotateCcw,
-  Scaling,
+  SlidersHorizontal,
   X,
   Zap,
 } from "lucide-react";
@@ -58,16 +58,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 
 import {
   DEFAULT_LAYOUT,
   GRID_COLS,
-  MAX_ROWS,
   WIDGETS,
   WIDGET_TYPES,
+  type WidgetOptions,
   type WidgetSlot,
   type WidgetType,
-  clampSize,
+  optionsOf,
+  presetOf,
 } from "@/lib/dashboard/layout";
 import { cn } from "@/lib/utils";
 
@@ -109,39 +111,62 @@ const GRID = "grid";
 type Container = typeof TRAY | typeof GRID;
 type Size = { w: number; h: number };
 
+type Conf = { preset: string; options?: WidgetOptions };
+
 interface Draft {
   grid: WidgetType[];
   tray: WidgetType[];
-  sizes: Record<WidgetType, Size>;
+  /** Format and options of every section, placed or not. */
+  conf: Record<WidgetType, Conf>;
 }
+
+const sizeOf = (d: Draft, type: WidgetType): Size =>
+  presetOf({ type, preset: d.conf[type].preset });
 
 const byCatalogOrder = (types: WidgetType[]) =>
   [...types].sort((a, b) => WIDGET_TYPES.indexOf(a) - WIDGET_TYPES.indexOf(b));
 
 function toDraft(layout: WidgetSlot[]): Draft {
-  const sizes = Object.fromEntries(
-    WIDGET_TYPES.map((t) => [t, { w: WIDGETS[t].w, h: WIDGETS[t].h }])
-  ) as Record<WidgetType, Size>;
-  for (const s of layout) sizes[s.type] = { w: s.w, h: s.h };
+  const conf = Object.fromEntries(
+    WIDGET_TYPES.map((t) => [t, { preset: WIDGETS[t].presets[0].id }])
+  ) as Record<WidgetType, Conf>;
+  for (const s of layout)
+    conf[s.type] = { preset: s.preset, options: s.options };
   const grid = layout.map((s) => s.type);
   return {
     grid,
     tray: WIDGET_TYPES.filter((t) => !grid.includes(t)),
-    sizes,
+    conf,
   };
 }
 
+/** Options equal to their default are dropped, so defaults can evolve. */
+function slimOptions(type: WidgetType, options?: WidgetOptions) {
+  if (!options) return undefined;
+  const out: WidgetOptions = {};
+  for (const def of WIDGETS[type].options) {
+    const v = options[def.key];
+    if (v !== undefined && JSON.stringify(v) !== JSON.stringify(def.default))
+      out[def.key] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 const fromDraft = (d: Draft): WidgetSlot[] =>
-  d.grid.map((type) => ({ type, ...d.sizes[type] }));
+  d.grid.map((type) => {
+    const options = slimOptions(type, d.conf[type].options);
+    return options
+      ? { type, preset: d.conf[type].preset, options }
+      : { type, preset: d.conf[type].preset };
+  });
 
 const sameLayout = (a: WidgetSlot[], b: WidgetSlot[]) =>
-  a.length === b.length &&
-  a.every((s, i) => s.type === b[i].type && s.w === b[i].w && s.h === b[i].h);
+  JSON.stringify(a) === JSON.stringify(b);
 
 /**
- * The dashboard as a bento: a four-column grid of sections, each 1–4 columns
- * wide and 1–6 rows tall. In edit mode the sections can be dragged around,
- * resized, removed (✕ or drag them back to the tray) and added from the tray
+ * The dashboard as a bento: a four-column grid of sections, each in one of
+ * its designed formats. In edit mode the sections can be dragged around,
+ * reformatted and tuned (« Réglages »), removed (✕ or drag them back to the tray) and added from the tray
  * — by dragging one in, or by ticking several and adding them at once.
  */
 export function BentoGrid({
@@ -350,11 +375,8 @@ export function BentoGrid({
     });
   };
 
-  const resize = (type: WidgetType, w: number, h: number) =>
-    setDraft((d) => ({
-      ...d,
-      sizes: { ...d.sizes, [type]: clampSize(type, w, h) },
-    }));
+  const configure = (type: WidgetType, conf: Conf) =>
+    setDraft((d) => ({ ...d, conf: { ...d.conf, [type]: conf } }));
 
   const addSelected = () => {
     const types = byCatalogOrder([...selected]).filter((t) =>
@@ -413,7 +435,11 @@ export function BentoGrid({
           >
             <Tray
               items={draft.tray}
-              sizes={draft.sizes}
+              sizes={
+                Object.fromEntries(
+                  draft.tray.map((t) => [t, sizeOf(draft, t)])
+                ) as Record<WidgetType, Size>
+              }
               selected={selected}
               dropToRemove={dragFrom === GRID}
               onToggle={(t) =>
@@ -444,12 +470,17 @@ export function BentoGrid({
             <GridItem
               key={type}
               type={type}
-              size={draft.sizes[type]}
+              size={sizeOf(draft, type)}
+              conf={draft.conf[type]}
               editing={editing}
               onRemove={() => remove(type)}
-              onResize={(w, h) => resize(type, w, h)}
+              onConfigure={(c) => configure(type, c)}
             >
-              {renderWidget(type, data, draft.sizes[type].w)}
+              {renderWidget(type, {
+                data,
+                preset: draft.conf[type].preset,
+                opts: optionsOf({ type, options: draft.conf[type].options }),
+              })}
             </GridItem>
           ))}
         </SortableContext>
@@ -458,9 +489,9 @@ export function BentoGrid({
       <DragOverlay dropAnimation={{ duration: 180 }}>
         {active ? (
           dragFrom === GRID ? (
-            <GhostTile type={active} size={draft.sizes[active]} lifted />
+            <GhostTile type={active} size={sizeOf(draft, active)} lifted />
           ) : (
-            <TrayCard type={active} size={draft.sizes[active]} lifted />
+            <TrayCard type={active} size={sizeOf(draft, active)} lifted />
           )
         ) : null}
       </DragOverlay>
@@ -549,16 +580,18 @@ function GridArea({
 function GridItem({
   type,
   size,
+  conf,
   editing,
   onRemove,
-  onResize,
+  onConfigure,
   children,
 }: {
   type: WidgetType;
   size: Size;
+  conf: Conf;
   editing: boolean;
   onRemove: () => void;
-  onResize: (w: number, h: number) => void;
+  onConfigure: (conf: Conf) => void;
   children: React.ReactNode;
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useSortable({
@@ -584,7 +617,9 @@ function GridItem({
           aria-label={editing ? WIDGETS[type].title : undefined}
           className={cn(
             surface,
-            "h-full overflow-hidden p-6 md:p-7",
+            "h-full overflow-hidden",
+            // A one-row section has 9rem: keep its content clear of the edge.
+            size.h === 1 ? "px-6 py-5 md:px-7" : "p-6 md:p-7",
             editing &&
               "cursor-grab touch-manipulation select-none ring-2 ring-border ring-offset-2 ring-offset-background transition-shadow hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-foreground/50 active:cursor-grabbing"
           )}
@@ -608,7 +643,7 @@ function GridItem({
             <span className="flex items-center gap-1.5 rounded-full bg-popover/95 py-1 pl-1.5 pr-3 text-[12px] font-semibold tracking-title text-foreground shadow-tile">
               <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
               <Icon className="h-3.5 w-3.5" />
-              {WIDGETS[type].title}
+              {size.w > 1 && WIDGETS[type].title}
             </span>
           </div>
           <div
@@ -616,7 +651,12 @@ function GridItem({
             onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            <SizePicker type={type} size={size} onPick={onResize} />
+            <SectionSettings
+              type={type}
+              conf={conf}
+              onChange={onConfigure}
+              narrow={size.w === 1}
+            />
             <button
               type="button"
               onClick={onRemove}
@@ -633,72 +673,192 @@ function GridItem({
   );
 }
 
-/** Pick a size on a little 4 × 6 grid, like a table-size picker. */
-function SizePicker({
+/** A format drawn on the 4-column grid: what it will take on the dashboard. */
+function PresetShape({ w, h }: { w: number; h: number }) {
+  return (
+    <span
+      className="grid gap-[2px]"
+      style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 0.6rem)` }}
+      aria-hidden
+    >
+      {Array.from({ length: 4 * GRID_COLS }, (_, i) => {
+        const c = i % GRID_COLS;
+        const r = Math.floor(i / GRID_COLS);
+        return (
+          <span
+            key={i}
+            className={cn(
+              "h-[0.45rem] rounded-[2px] bg-current",
+              !(c < w && r < h) && "opacity-15"
+            )}
+          />
+        );
+      })}
+    </span>
+  );
+}
+
+/**
+ * « Réglages » of a section: its format (designed sizes, each with its own
+ * layout) and the options that section offers.
+ */
+function SectionSettings({
   type,
-  size,
-  onPick,
+  conf,
+  onChange,
+  narrow = false,
 }: {
   type: WidgetType;
-  size: Size;
-  onPick: (w: number, h: number) => void;
+  conf: Conf;
+  onChange: (conf: Conf) => void;
+  /** One-column section: icon only, the name chip needs the room. */
+  narrow?: boolean;
 }) {
-  const [hover, setHover] = useState<Size | null>(null);
-  const shown = hover ?? size;
-  const minW = WIDGETS[type].minW ?? 1;
-  const minH = WIDGETS[type].minH ?? 1;
+  const meta = WIDGETS[type];
+  const current = presetOf({ type, preset: conf.preset });
+  const opts = optionsOf({ type, options: conf.options });
+  const set = (key: string, value: WidgetOptions[string]) =>
+    onChange({ ...conf, options: { ...conf.options, [key]: value } });
+  const customized = !!slimOptions(type, conf.options);
+
   return (
-    <Popover onOpenChange={() => setHover(null)}>
+    <Popover>
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={`Taille de ${WIDGETS[type].title}`}
-          title="Taille"
-          className="flex h-8 items-center gap-1.5 rounded-full bg-popover/95 px-2.5 text-[12px] font-semibold tabular-nums text-muted-foreground shadow-tile transition-colors hover:text-foreground"
+          aria-label={`Réglages de ${meta.title}`}
+          title="Format et réglages"
+          className="flex h-8 items-center gap-1.5 rounded-full bg-popover/95 px-3 text-[12px] font-semibold text-muted-foreground shadow-tile transition-colors hover:text-foreground"
         >
-          <Scaling className="h-3.5 w-3.5" />
-          {size.w}×{size.h}
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          {!narrow && current.label}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-auto p-4">
-        <p className="etiquette">Taille</p>
-        <div
-          className="mt-3 grid gap-1"
-          style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 1.75rem)` }}
-          onMouseLeave={() => setHover(null)}
-        >
-          {Array.from({ length: MAX_ROWS }, (_, r) =>
-            Array.from({ length: GRID_COLS }, (_, c) => {
-              const w = c + 1;
-              const h = r + 1;
-              const on = w <= shown.w && h <= shown.h;
-              const allowed = w >= minW && h >= minH;
-              return (
-                <button
-                  key={`${w}-${h}`}
-                  type="button"
-                  disabled={!allowed}
-                  onMouseEnter={() => allowed && setHover({ w, h })}
-                  onFocus={() => allowed && setHover({ w, h })}
-                  onClick={() => onPick(w, h)}
-                  aria-label={`${w} colonne${w > 1 ? "s" : ""} × ${h} rangée${h > 1 ? "s" : ""}`}
-                  className={cn(
-                    "h-6 rounded-md border transition-colors",
-                    on
-                      ? "border-foreground bg-foreground"
-                      : "border-border bg-secondary",
-                    !allowed && "cursor-not-allowed opacity-30"
-                  )}
-                />
-              );
-            })
-          )}
+      <PopoverContent
+        align="end"
+        className="max-h-[70vh] w-[19rem] overflow-y-auto p-4"
+      >
+        <p className="etiquette">Format</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {meta.presets.map((p) => {
+            const on = p.id === current.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onChange({ ...conf, preset: p.id })}
+                aria-pressed={on}
+                className={cn(
+                  "flex flex-col items-start gap-2.5 rounded-2xl p-3 text-left ring-2 transition-colors",
+                  on
+                    ? "bg-foreground text-background ring-foreground"
+                    : "bg-secondary text-foreground ring-transparent hover:ring-border"
+                )}
+              >
+                <PresetShape w={p.w} h={p.h} />
+                <span className="flex w-full items-baseline justify-between gap-2">
+                  <span className="text-[13px] font-semibold tracking-title">
+                    {p.label}
+                  </span>
+                  <span className="text-[11px] tabular-nums opacity-60">
+                    {p.w}×{p.h}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <p className="mt-3 text-center text-[13px] font-semibold tabular-nums">
-          {shown.w} col. × {shown.h} rang.
-        </p>
-        <p className="text-center text-[11px] text-muted-foreground">
-          Sur mobile : pleine largeur
+
+        {meta.options.length > 0 && (
+          <>
+            <div className="mt-5 flex items-center justify-between">
+              <p className="etiquette">Options</p>
+              {customized && (
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...conf, options: undefined })}
+                  className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Rétablir
+                </button>
+              )}
+            </div>
+            <div className="mt-2 space-y-3.5">
+              {meta.options.map((def) => {
+                const value = opts[def.key];
+                if (def.kind === "bool")
+                  return (
+                    <label
+                      key={def.key}
+                      className="flex cursor-pointer items-center justify-between gap-3 text-[13px]"
+                    >
+                      {def.label}
+                      <Switch
+                        checked={value === true}
+                        onCheckedChange={(v) => set(def.key, v)}
+                      />
+                    </label>
+                  );
+                if (def.kind === "choice")
+                  return (
+                    <div key={def.key}>
+                      <p className="text-[13px]">{def.label}</p>
+                      <div className="segmented mt-1.5 flex w-full p-1">
+                        {def.choices.map((c) => (
+                          <button
+                            key={c.value}
+                            type="button"
+                            onClick={() => set(def.key, c.value)}
+                            aria-pressed={value === c.value}
+                            className="segmented-item h-7 flex-1 px-2 text-[12px]"
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                const list = Array.isArray(value) ? value : [];
+                return (
+                  <div key={def.key}>
+                    <p className="text-[13px]">{def.label}</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {def.choices.map((c) => {
+                        const on = list.includes(c.value);
+                        return (
+                          <button
+                            key={c.value}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() =>
+                              set(
+                                def.key,
+                                on
+                                  ? list.filter((v) => v !== c.value)
+                                  : [...list, c.value]
+                              )
+                            }
+                            className={cn(
+                              "flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors",
+                              on
+                                ? "bg-foreground text-background"
+                                : "bg-secondary text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            {on && <Check className="h-3 w-3" />}
+                            {c.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        <p className="mt-4 text-[11px] text-muted-foreground">
+          Sur mobile, chaque section prend toute la largeur.
         </p>
       </PopoverContent>
     </Popover>

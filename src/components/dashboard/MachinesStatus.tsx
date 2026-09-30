@@ -25,7 +25,7 @@ const issueText = (i: Issue) =>
     ? `${METRIC[i.metric]} ${i.value.toFixed(0)} °C`
     : `${METRIC[i.metric]} ${i.value.toFixed(0)} %`;
 
-function note(machine: MachineStatusRow) {
+export function machineNote(machine: MachineStatusRow) {
   const { health, issues } = machineHealth(machine.stats);
   if (health === "none") return "not monitored";
   if (health === "off") return "offline";
@@ -37,11 +37,20 @@ function note(machine: MachineStatusRow) {
  * "Machines" on the dashboard: a glance — one dot per machine, green, yellow
  * or red. The meters themselves live in the Machines tab.
  */
-export function MachinesStatus({ embedded = false }: { embedded?: boolean }) {
+export function MachinesStatus({
+  embedded = false,
+  hideUnmonitored = false,
+}: {
+  embedded?: boolean;
+  hideUnmonitored?: boolean;
+}) {
   const { machines: rows, failed } = useMachineStatus(10000);
   // Same order on every refresh; the ones that are not monitored go last.
   const machines = rows
-    ? [...rows.filter((m) => m.stats), ...rows.filter((m) => !m.stats)]
+    ? [
+        ...rows.filter((m) => m.stats),
+        ...(hideUnmonitored ? [] : rows.filter((m) => !m.stats)),
+      ]
     : null;
 
   const healths = (machines ?? []).map((m) => machineHealth(m.stats).health);
@@ -108,7 +117,7 @@ export function MachinesStatus({ embedded = false }: { embedded?: boolean }) {
                   {m.label || m.name}
                 </span>
                 <span className="text-[12px] tabular-nums text-muted-foreground">
-                  {note(m)}
+                  {machineNote(m)}
                 </span>
               </Link>
             </li>
