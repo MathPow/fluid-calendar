@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  CalendarClock,
+  Pencil,
+  Plus,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,16 +30,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 import {
   DESKTOP_ACTIONS,
+  USER_DESKTOP_ACTION_IDS,
   type DesktopAction,
   agentOnline,
   describeCommand,
 } from "@/lib/desktop-actions";
 import {
   LAUNCHER_ICONS,
+  LAUNCHER_RECURRENCES,
   type LauncherIconId,
+  type LauncherKind,
+  type LauncherRecurrence,
   type LauncherRow,
 } from "@/lib/launchers";
 import { cn } from "@/lib/utils";
@@ -48,9 +68,11 @@ type MachineOpt = {
   name: string;
   label: string | null;
   agentSeenAt: string | null;
+  host: string | null;
+  sshUser: string | null;
 };
 
-// The fields each action asks for, in order.
+// The fields each shell action asks for, in order.
 const FIELDS: Record<
   DesktopAction,
   { key: string; label: string; placeholder: string; mono?: boolean }[]
@@ -102,24 +124,100 @@ const FIELDS: Record<
       mono: true,
     },
   ],
+  agent_run: [],
+};
+
+const KIND_LABELS: Record<LauncherKind, string> = {
+  shell: "Commande shell",
+  "claude-prompt": "Prompt Claude",
+  "codex-prompt": "Prompt Codex",
+};
+
+const RECURRENCE_LABELS: Record<LauncherRecurrence | "none", string> = {
+  none: "Jamais",
+  daily: "Chaque jour",
+  weekly: "Chaque semaine",
+  monthly: "Chaque mois",
 };
 
 type Form = {
   id?: string;
   label: string;
   icon: LauncherIconId;
+  kind: LauncherKind;
   machineId: string;
   action: DesktopAction;
   args: Record<string, string>;
+  promptText: string;
+  scheduleOn: boolean;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM
+  recurrence: LauncherRecurrence | "none";
 };
 
-const blank = (machineId = ""): Form => ({
-  label: "",
-  icon: "code",
-  machineId,
-  action: "open_code",
-  args: {},
-});
+/** Split an ISO date into local YYYY-MM-DD and HH:MM for the date/time inputs. */
+function splitDate(iso: string | null): { date: string; time: string } {
+  if (!iso) {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + 30);
+    return {
+      date: d.toISOString().slice(0, 10),
+      time: d.toTimeString().slice(0, 5),
+    };
+  }
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
+}
+
+function combineDate(date: string, time: string): string | null {
+  if (!date || !time) return null;
+  const d = new Date(`${date}T${time}:00`);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function blank(kind: LauncherKind, machineId = ""): Form {
+  const now = splitDate(null);
+  return {
+    label: "",
+    icon: kind === "shell" ? "code" : kind === "claude-prompt" ? "zap" : "terminal",
+    kind,
+    machineId,
+    action: "open_code",
+    args: {},
+    promptText: "",
+    scheduleOn: false,
+    date: now.date,
+    time: now.time,
+    recurrence: "none",
+  };
+}
+
+function scheduleLabel(scheduledFor: string, recurrence: string | null) {
+  const d = new Date(scheduledFor);
+  const when = d.toLocaleString("fr-CA", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const suffix =
+    recurrence && recurrence !== "none"
+      ? ` · ${RECURRENCE_LABELS[recurrence as LauncherRecurrence]}`
+      : "";
+  return `${when}${suffix}`;
+}
+
+function runStatus(l: LauncherRow): string | null {
+  if (l.lastError) return `Erreur : ${l.lastError}`;
+  if (l.lastResult) {
+    const tail = l.lastResult.trim().split("\n").slice(-1)[0] || "";
+    return `Dernier run : ${tail.slice(0, 80)}`;
+  }
+  if (l.scheduledFor) return "En attente";
+  return null;
+}
 
 /** Account menu ▸ « Gérer les raccourcis »: create, edit, order, delete. */
 export function LaunchersDialog() {
@@ -137,37 +235,69 @@ export function LaunchersDialog() {
       .catch(() => {});
   }, [manageOpen]);
 
-  const withAgent = machines.filter((m) => m.agentSeenAt);
+  // Shell needs an agent; prompt kinds accept any machine with agent or ssh.
+  const shellMachines = machines.filter((m) => m.agentSeenAt);
+  const promptMachines = machines.filter(
+    (m) => m.agentSeenAt || (m.host && m.sshUser)
+  );
+
+  const { instant, scheduled } = useMemo(() => {
+    const scheduled = items.filter((l) => l.scheduledFor);
+    const instant = items.filter((l) => !l.scheduledFor);
+    return { instant, scheduled };
+  }, [items]);
+
   const close = () => {
     set({ manageOpen: false });
     setForm(null);
+  };
+
+  const startCreate = (kind: LauncherKind) => {
+    const pool = kind === "shell" ? shellMachines : promptMachines;
+    setForm(blank(kind, pool[0]?.id ?? ""));
   };
 
   const save = async () => {
     if (!form) return;
     setBusy(true);
     try {
-      const args = Object.fromEntries(
-        Object.entries(form.args)
-          .filter(([, v]) => v.trim() !== "")
-          .map(([k, v]) => [k, v.trim()])
-      );
+      const args =
+        form.kind === "shell"
+          ? Object.fromEntries(
+              Object.entries(form.args)
+                .filter(([, v]) => v.trim() !== "")
+                .map(([k, v]) => [k, v.trim()])
+            )
+          : {};
+      const scheduledFor =
+        form.kind !== "shell" && form.scheduleOn
+          ? combineDate(form.date, form.time)
+          : null;
+      const body: Record<string, unknown> = {
+        label: form.label,
+        icon: form.icon,
+        kind: form.kind,
+        machineId: form.machineId,
+      };
+      if (form.kind === "shell") {
+        body.action = form.action;
+        body.args = args;
+      } else {
+        body.promptText = form.promptText;
+      }
+      if (scheduledFor) body.scheduledFor = scheduledFor;
+      if (scheduledFor && form.recurrence !== "none")
+        body.recurrence = form.recurrence;
       const r = await fetch(
         form.id ? `/api/launchers/${form.id}` : "/api/launchers",
         {
           method: form.id ? "PATCH" : "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            label: form.label,
-            icon: form.icon,
-            machineId: form.machineId,
-            action: form.action,
-            args,
-          }),
+          body: JSON.stringify(body),
         }
       );
-      const body = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(body.error || `Erreur ${r.status}`);
+      const respBody = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(respBody.error || `Erreur ${r.status}`);
       setForm(null);
       reloadLaunchers();
     } catch (e) {
@@ -198,19 +328,41 @@ export function LaunchersDialog() {
     reloadLaunchers();
   };
 
-  const edit = (l: LauncherRow) =>
+  const edit = (l: LauncherRow) => {
+    const kind = (l.kind || "shell") as LauncherKind;
+    const dt = splitDate(l.scheduledFor);
     setForm({
       id: l.id,
       label: l.label,
       icon: (LAUNCHER_ICONS as readonly string[]).includes(l.icon)
         ? (l.icon as LauncherIconId)
         : "zap",
-      machineId: l.machine.id,
-      action: l.action as DesktopAction,
-      args: Object.fromEntries(
-        Object.entries(l.args).map(([k, v]) => [k, String(v ?? "")])
-      ),
+      kind,
+      machineId: l.machine?.id ?? "",
+      action: (kind === "shell"
+        ? (l.action as DesktopAction)
+        : "open_code") as DesktopAction,
+      args:
+        kind === "shell"
+          ? Object.fromEntries(
+              Object.entries(l.args).map(([k, v]) => [k, String(v ?? "")])
+            )
+          : {},
+      promptText: l.promptText || "",
+      scheduleOn: !!l.scheduledFor,
+      date: dt.date,
+      time: dt.time,
+      recurrence:
+        (l.recurrence as LauncherRecurrence | null) ?? "none",
     });
+  };
+
+  const canSubmit =
+    form &&
+    form.label.trim() &&
+    (form.kind === "shell"
+      ? form.machineId
+      : form.machineId && form.promptText.trim());
 
   return (
     <Dialog open={manageOpen} onOpenChange={(o) => !o && close()}>
@@ -218,86 +370,100 @@ export function LaunchersDialog() {
         <DialogHeader>
           <DialogTitle>Raccourcis</DialogTitle>
           <DialogDescription>
-            Des boutons dans le menu du profil qui lancent une commande sur une
-            de tes machines. Une commande shell attend toujours ton « Exécuter »
-            sur l&apos;ordi.
+            Des boutons dans le menu du profil qui lancent une commande, un
+            prompt Claude ou Codex sur une de tes machines. Les prompts partent
+            en mode sans permission — configure-les une fois, clique en
+            confiance.
           </DialogDescription>
         </DialogHeader>
 
         {!form ? (
           <>
-            {items.length === 0 ? (
-              <p className="rounded-2xl bg-secondary/60 px-4 py-6 text-center text-[13px] text-muted-foreground">
-                Aucun raccourci. Crée-en un, ou touche ☆ sur une commande dans
-                Machines ▸ Commandes.
-              </p>
-            ) : (
-              <ul className="space-y-1.5">
-                {items.map((l, i) => (
-                  <li
-                    key={l.id}
-                    className="flex items-center gap-2.5 rounded-2xl bg-secondary/60 py-2 pl-3 pr-1.5"
-                  >
-                    <LauncherIcon icon={l.icon} className="h-4 w-4 shrink-0" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px] font-semibold">
-                        {l.label}
-                      </span>
-                      <span className="block truncate text-[12px] text-muted-foreground">
-                        {l.machine.label || l.machine.name} ·{" "}
-                        {describeCommand(l.action, l.args)}
-                      </span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => move(i, -1)}
-                      disabled={i === 0}
-                      className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
-                      aria-label={`Monter ${l.label}`}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(i, 1)}
-                      disabled={i === items.length - 1}
-                      className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
-                      aria-label={`Descendre ${l.label}`}
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => edit(l)}
-                      className="rounded-full p-1.5 text-muted-foreground hover:bg-card"
-                      aria-label={`Modifier ${l.label}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(l)}
-                      className="rounded-full p-1.5 text-muted-foreground hover:bg-negative hover:text-negative-foreground"
-                      aria-label={`Supprimer ${l.label}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="flex justify-end">
+            <Tabs defaultValue="instant" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="instant" className="gap-1.5">
+                  <Zap className="h-3.5 w-3.5" /> Instantanés
+                </TabsTrigger>
+                <TabsTrigger value="scheduled" className="gap-1.5">
+                  <CalendarClock className="h-3.5 w-3.5" /> Événements
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="instant" className="mt-3 space-y-1.5">
+                {instant.length === 0 ? (
+                  <p className="rounded-2xl bg-secondary/60 px-4 py-6 text-center text-[13px] text-muted-foreground">
+                    Aucun raccourci instantané pour le moment.
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {instant.map((l) => (
+                      <LauncherLI
+                        key={l.id}
+                        l={l}
+                        i={items.indexOf(l)}
+                        total={items.length}
+                        move={move}
+                        edit={edit}
+                        remove={remove}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </TabsContent>
+
+              <TabsContent value="scheduled" className="mt-3 space-y-1.5">
+                {scheduled.length === 0 ? (
+                  <p className="rounded-2xl bg-secondary/60 px-4 py-6 text-center text-[13px] text-muted-foreground">
+                    Aucun événement planifié.
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {scheduled.map((l) => (
+                      <LauncherLI
+                        key={l.id}
+                        l={l}
+                        i={items.indexOf(l)}
+                        total={items.length}
+                        move={move}
+                        edit={edit}
+                        remove={remove}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button
-                onClick={() => setForm(blank(withAgent[0]?.id ?? ""))}
-                disabled={withAgent.length === 0}
+                size="sm"
+                variant="outline"
+                onClick={() => startCreate("shell")}
+                disabled={shellMachines.length === 0}
               >
-                <Plus /> Nouveau raccourci
+                <Plus /> Commande shell
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => startCreate("claude-prompt")}
+                disabled={promptMachines.length === 0}
+              >
+                <Plus /> Prompt Claude
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => startCreate("codex-prompt")}
+                disabled={promptMachines.length === 0}
+              >
+                <Plus /> Prompt Codex
               </Button>
             </div>
-            {withAgent.length === 0 && machines.length > 0 && (
+            {promptMachines.length === 0 && machines.length > 0 && (
               <p className="text-[12px] text-muted-foreground">
-                Aucune machine n&apos;a d&apos;agent : Machines ▸ Commandes ▸
-                Connecter l&apos;agent.
+                Aucune machine utilisable : ajoute un agent ou une adresse ssh
+                dans Machines.
               </p>
             )}
           </>
@@ -309,13 +475,20 @@ export function LaunchersDialog() {
               save();
             }}
           >
+            <div className="flex items-center gap-2 rounded-full bg-secondary/70 px-3 py-1 text-[12px] font-medium text-muted-foreground">
+              {KIND_LABELS[form.kind]}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="launcher-label">Libellé</Label>
               <Input
                 id="launcher-label"
                 value={form.label}
                 onChange={(e) => setForm({ ...form, label: e.target.value })}
-                placeholder="DreamDash dans VS Code"
+                placeholder={
+                  form.kind === "shell"
+                    ? "DreamDash dans VS Code"
+                    : "Résumé des mails du matin"
+                }
                 maxLength={40}
               />
             </div>
@@ -341,78 +514,192 @@ export function LaunchersDialog() {
                 ))}
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Machine</Label>
-                <Select
-                  value={form.machineId}
-                  onValueChange={(v) => setForm({ ...form, machineId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Machine" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {withAgent.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label || m.name}
-                        {!agentOnline(m.agentSeenAt) && (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · hors ligne
-                          </span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Action</Label>
-                <Select
-                  value={form.action}
-                  onValueChange={(v) =>
-                    setForm({
-                      ...form,
-                      action: v as DesktopAction,
-                      args: {},
-                      icon: ICON_FOR_ACTION[v] ?? form.icon,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(DESKTOP_ACTIONS) as DesktopAction[]).map(
-                      (a) => (
+
+            <div className="space-y-2">
+              <Label>Machine</Label>
+              <Select
+                value={form.machineId}
+                onValueChange={(v) => setForm({ ...form, machineId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Machine" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(form.kind === "shell"
+                    ? shellMachines
+                    : promptMachines
+                  ).map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label || m.name}
+                      {!agentOnline(m.agentSeenAt) && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {m.host && m.sshUser ? "via ssh" : "hors ligne"}
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {form.kind === "shell" ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Action</Label>
+                  <Select
+                    value={form.action}
+                    onValueChange={(v) =>
+                      setForm({
+                        ...form,
+                        action: v as DesktopAction,
+                        args: {},
+                        icon: ICON_FOR_ACTION[v] ?? form.icon,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {USER_DESKTOP_ACTION_IDS.map((a) => (
                         <SelectItem key={a} value={a}>
                           {DESKTOP_ACTIONS[a].label}
                         </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {FIELDS[form.action].map((f) => (
-              <div key={f.key} className="space-y-2">
-                <Label htmlFor={`launcher-${f.key}`}>{f.label}</Label>
-                <Input
-                  id={`launcher-${f.key}`}
-                  value={form.args[f.key] ?? ""}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      args: { ...form.args, [f.key]: e.target.value },
-                    })
-                  }
-                  placeholder={f.placeholder}
-                  spellCheck={false}
-                  autoCapitalize="off"
-                  className={cn(f.mono && "font-mono text-[13px]")}
-                />
-              </div>
-            ))}
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {FIELDS[form.action].map((f) => (
+                  <div key={f.key} className="space-y-2">
+                    <Label htmlFor={`launcher-${f.key}`}>{f.label}</Label>
+                    <Input
+                      id={`launcher-${f.key}`}
+                      value={form.args[f.key] ?? ""}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          args: { ...form.args, [f.key]: e.target.value },
+                        })
+                      }
+                      placeholder={f.placeholder}
+                      spellCheck={false}
+                      autoCapitalize="off"
+                      className={cn(f.mono && "font-mono text-[13px]")}
+                    />
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="launcher-prompt">
+                    Prompt (
+                    {form.kind === "claude-prompt" ? "Claude" : "Codex"} sans
+                    permission)
+                  </Label>
+                  <Textarea
+                    id="launcher-prompt"
+                    value={form.promptText}
+                    onChange={(e) =>
+                      setForm({ ...form, promptText: e.target.value })
+                    }
+                    placeholder={
+                      form.kind === "claude-prompt"
+                        ? "Résume les nouveaux mails et prépare une réponse en brouillon."
+                        : "Corrige les warnings TypeScript dans src/ et commit."
+                    }
+                    rows={8}
+                    className="font-mono text-[13px]"
+                  />
+                </div>
+                <div className="space-y-3 rounded-2xl bg-secondary/50 p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label
+                        htmlFor="launcher-schedule"
+                        className="text-[13px] font-medium"
+                      >
+                        Planifier
+                      </Label>
+                      <p className="text-[11.5px] text-muted-foreground">
+                        Un événement machine tire à la date/heure choisies.
+                      </p>
+                    </div>
+                    <Switch
+                      id="launcher-schedule"
+                      checked={form.scheduleOn}
+                      onCheckedChange={(v) =>
+                        setForm({ ...form, scheduleOn: v })
+                      }
+                    />
+                  </div>
+                  {form.scheduleOn && (
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="launcher-date"
+                          className="text-[11.5px]"
+                        >
+                          Date
+                        </Label>
+                        <Input
+                          id="launcher-date"
+                          type="date"
+                          value={form.date}
+                          onChange={(e) =>
+                            setForm({ ...form, date: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="launcher-time"
+                          className="text-[11.5px]"
+                        >
+                          Heure
+                        </Label>
+                        <Input
+                          id="launcher-time"
+                          type="time"
+                          value={form.time}
+                          onChange={(e) =>
+                            setForm({ ...form, time: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[11.5px]">Récurrence</Label>
+                        <Select
+                          value={form.recurrence}
+                          onValueChange={(v) =>
+                            setForm({
+                              ...form,
+                              recurrence: v as LauncherRecurrence | "none",
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              {RECURRENCE_LABELS.none}
+                            </SelectItem>
+                            {LAUNCHER_RECURRENCES.map((r) => (
+                              <SelectItem key={r} value={r}>
+                                {RECURRENCE_LABELS[r]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
             <div className="flex justify-end gap-2 border-t border-border pt-5">
               <Button
                 type="button"
@@ -422,10 +709,7 @@ export function LaunchersDialog() {
               >
                 Annuler
               </Button>
-              <Button
-                type="submit"
-                disabled={busy || !form.label.trim() || !form.machineId}
-              >
+              <Button type="submit" disabled={busy || !canSubmit}>
                 {form.id ? "Enregistrer" : "Créer"}
               </Button>
             </div>
@@ -433,5 +717,90 @@ export function LaunchersDialog() {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+type LILProps = {
+  l: LauncherRow;
+  i: number;
+  total: number;
+  move: (i: number, delta: number) => void;
+  edit: (l: LauncherRow) => void;
+  remove: (l: LauncherRow) => void;
+};
+
+function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
+  const status = runStatus(l);
+  const machineLabel = l.machine
+    ? l.machine.label || l.machine.name
+    : "sans machine";
+  const summary =
+    l.kind === "shell"
+      ? describeCommand(l.action, l.args)
+      : l.kind === "claude-prompt"
+        ? `Claude · ${(l.promptText || "").slice(0, 60)}`
+        : `Codex · ${(l.promptText || "").slice(0, 60)}`;
+  return (
+    <li className="flex items-center gap-2.5 rounded-2xl bg-secondary/60 py-2 pl-3 pr-1.5">
+      <LauncherIcon icon={l.icon} className="h-4 w-4 shrink-0" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14px] font-semibold">
+          {l.label}
+        </span>
+        <span className="block truncate text-[12px] text-muted-foreground">
+          {machineLabel} · {summary}
+        </span>
+        {l.scheduledFor && (
+          <span className="block truncate text-[11.5px] text-muted-foreground">
+            <CalendarClock className="mr-1 inline h-3 w-3" />
+            {scheduleLabel(l.scheduledFor, l.recurrence)}
+          </span>
+        )}
+        {status && (
+          <span
+            className={cn(
+              "block truncate text-[11.5px]",
+              l.lastError ? "text-negative" : "text-muted-foreground"
+            )}
+          >
+            {status}
+          </span>
+        )}
+      </span>
+      <button
+        type="button"
+        onClick={() => move(i, -1)}
+        disabled={i === 0}
+        className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
+        aria-label={`Monter ${l.label}`}
+      >
+        <ArrowUp className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => move(i, 1)}
+        disabled={i === total - 1}
+        className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
+        aria-label={`Descendre ${l.label}`}
+      >
+        <ArrowDown className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => edit(l)}
+        className="rounded-full p-1.5 text-muted-foreground hover:bg-card"
+        aria-label={`Modifier ${l.label}`}
+      >
+        <Pencil className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => remove(l)}
+        className="rounded-full p-1.5 text-muted-foreground hover:bg-negative hover:text-negative-foreground"
+        aria-label={`Supprimer ${l.label}`}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </li>
   );
 }

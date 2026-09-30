@@ -22,10 +22,20 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { status: 400 }
     );
   }
-  const { args, ...data } = parsed.data;
+  const data = parsed.data;
   const { count } = await prisma.launchShortcut.updateMany({
     where: { id, userId: auth.userId },
-    data: { ...data, args: args as object },
+    data: {
+      label: data.label,
+      icon: data.icon,
+      kind: data.kind,
+      machineId: data.machineId,
+      action: data.action,
+      args: data.args as object,
+      promptText: data.promptText,
+      scheduledFor: data.scheduledFor,
+      recurrence: data.recurrence,
+    },
   });
   if (!count)
     return NextResponse.json({ error: "Introuvable" }, { status: 404 });

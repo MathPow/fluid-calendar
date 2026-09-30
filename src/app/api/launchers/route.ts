@@ -33,14 +33,21 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { args, ...data } = parsed.data;
+  const data = parsed.data;
   const count = await prisma.launchShortcut.count({
     where: { userId: auth.userId },
   });
   const row = await prisma.launchShortcut.create({
     data: {
-      ...data,
-      args: args as object,
+      label: data.label,
+      icon: data.icon,
+      kind: data.kind,
+      machineId: data.machineId,
+      action: data.action,
+      args: data.args as object,
+      promptText: data.promptText,
+      scheduledFor: data.scheduledFor,
+      recurrence: data.recurrence,
       userId: auth.userId,
       sortOrder: count,
     },

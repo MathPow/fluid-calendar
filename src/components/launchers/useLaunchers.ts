@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { create } from "zustand";
 
-import type { LauncherRow } from "@/lib/launchers";
+import { isPromptKind, type LauncherRow } from "@/lib/launchers";
 
 type State = {
   items: LauncherRow[];
@@ -36,13 +36,34 @@ const FINAL: Record<string, string> = {
 };
 
 /**
- * Send a launcher's command and follow it in a toast until the agent is done
- * (a shell command waits for its « Exécuter » on the desktop, up to ~2 min).
+ * Fire a launcher. Shell kinds ride the desktop agent + a status-polling
+ * toast; prompt kinds fire-and-forget (a single toast, the row updates on
+ * next reload with `lastResult`).
  */
 export async function runLauncher(l: LauncherRow) {
-  const id = toast.loading(
-    `${l.label} → ${l.machine.label || l.machine.name}…`
-  );
+  const machineName = l.machine?.label || l.machine?.name || "…";
+  if (isPromptKind(l.kind)) {
+    const id = toast.loading(`${l.label} → ${machineName}…`);
+    try {
+      const r = await fetch(`/api/launchers/${l.id}/run`, { method: "POST" });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.error || `Erreur ${r.status}`);
+      toast.success(`${l.label} · lancé sur ${machineName}`, {
+        id,
+        description:
+          "Résultat visible dans « Gérer les raccourcis » quand la commande finit.",
+      });
+      setTimeout(reloadLaunchers, 5_000);
+    } catch (e) {
+      toast.error(`${l.label} : impossible`, {
+        id,
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+    return;
+  }
+
+  const id = toast.loading(`${l.label} → ${machineName}…`);
   try {
     const r = await fetch(`/api/launchers/${l.id}/run`, { method: "POST" });
     const body = await r.json().catch(() => ({}));

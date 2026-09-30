@@ -18,6 +18,7 @@ const BASE = (process.env.DREAMDASH_URL || "https://uguiso-thinkcentre-m83.taila
 const TOKEN = readFileSync(join(HOME, ".config/dreamdash-agent/token"), "utf8").trim();
 const CONFIRM_SECONDS = 120;
 const SHELL_TIMEOUT_MS = 120_000;
+const AGENT_RUN_TIMEOUT_MS = 15 * 60_000;
 const TAIL = 20_000;
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -110,6 +111,26 @@ async function execute(action, a) {
       );
       if (ask.code !== 0) return { denied: true };
       return run("bash", ["-lc", command], { cwd, timeoutMs: SHELL_TIMEOUT_MS, detached: true });
+    }
+    case "agent_run": {
+      // Prompt shortcuts (claude -p / codex exec). The user has approved the
+      // shortcut once at creation time, so we skip zenity — but we surface a
+      // desktop notification and never expose the prompt in argv.
+      const command = String(a.command ?? "").trim();
+      if (!command) throw new Error("Commande vide");
+      const cwd = isAbs(a.cwd) && existsSync(a.cwd) ? a.cwd : HOME;
+      const input = typeof a.input === "string" ? a.input : "";
+      run("notify-send", [
+        "--app-name=DreamDash",
+        "Raccourci prompt",
+        `${command} sur ${hostname()}`,
+      ]).catch(() => {});
+      return run("bash", ["-lc", command], {
+        cwd,
+        input,
+        timeoutMs: AGENT_RUN_TIMEOUT_MS,
+        detached: true,
+      });
     }
     default:
       throw new Error(`Action inconnue : ${action}`);
