@@ -42,6 +42,14 @@ export const LEGAL_FORMS: { id: LegalForm; label: string; hint: string }[] = [
 
 export const isPersonal = (profile: { legalForm: string }) => profile.legalForm === "personnel";
 
+/**
+ * `Invoice.paidBy` when the user paid an expense out of pocket, for an
+ * organisation without associés (SENC invoices carry the associé's name).
+ */
+export const PAID_BY_ME = "moi";
+export const paidByLabel = (paidBy: string | null | undefined) =>
+  paidBy === PAID_BY_ME ? "moi" : paidBy || null;
+
 export const SALES_TAX_STATUSES: { id: SalesTaxStatus; label: string; hint: string }[] = [
   { id: "petit", label: "Petit fournisseur", hint: "Pas inscrit, tu ne factures pas de taxes" },
   { id: "inscrit", label: "Inscrit TPS/TVQ", hint: "Tu factures et tu récupères les taxes" },

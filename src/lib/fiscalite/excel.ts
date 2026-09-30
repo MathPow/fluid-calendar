@@ -14,6 +14,7 @@ import ExcelJS from "exceljs";
 import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
+  PAID_BY_ME,
   categoryFromLabel,
   categoryLabel,
   categoryOf,
@@ -63,9 +64,21 @@ export interface ExportInput {
 
 const MONEY = '#,##0.00 "$";-#,##0.00 "$"';
 const DATE = "yyyy-mm-dd";
-const HEAD_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F1E23" } };
-const INPUT_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
-const TOTAL_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
+const HEAD_FILL: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FF1F1E23" },
+};
+const INPUT_FILL: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFDDEBF7" },
+};
+const TOTAL_FILL: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFF2F2F2" },
+};
 const TAX_TYPES = '"Aucune,TPS,TPS+TVQ"';
 /** Empty rows (with formulas) left under the data for lines added in Excel. */
 const SPARE_ROWS = 100;
@@ -84,7 +97,12 @@ function title(ws: ExcelJS.Worksheet, cell: string, text: string) {
   ws.getCell(cell).font = { bold: true, size: 16 };
 }
 
-function header(ws: ExcelJS.Worksheet, rowNumber: number, labels: string[], firstCol = 1) {
+function header(
+  ws: ExcelJS.Worksheet,
+  rowNumber: number,
+  labels: string[],
+  firstCol = 1
+) {
   const row = ws.getRow(rowNumber);
   labels.forEach((label, i) => {
     const c = row.getCell(firstCol + i);
@@ -104,19 +122,31 @@ function note(ws: ExcelJS.Worksheet, range: string, text: string) {
   c.alignment = { wrapText: true, vertical: "top" };
 }
 
-const partnerCell = (name: string) => `Associé (${name})`;
+const ME_CELL = "Moi (de ma poche)";
+const partnerCell = (name: string) =>
+  name === PAID_BY_ME ? ME_CELL : `Associé (${name})`;
 
 export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "DreamDash";
   wb.created = new Date();
   const senc = input.legalForm === "senc";
-  const expenses = input.invoices.filter((i) => i.direction !== "revenu").sort((a, b) => a.date.localeCompare(b.date));
-  const revenues = input.invoices.filter((i) => i.direction === "revenu").sort((a, b) => a.date.localeCompare(b.date));
+  const expenses = input.invoices
+    .filter((i) => i.direction !== "revenu")
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const revenues = input.invoices
+    .filter((i) => i.direction === "revenu")
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   // Identification ---------------------------------------------------------
   const id = wb.addWorksheet("Identification");
-  id.columns = [{ width: 28 }, { width: 36 }, { width: 12 }, { width: 12 }, { width: 12 }];
+  id.columns = [
+    { width: 28 },
+    { width: 36 },
+    { width: 12 },
+    { width: 12 },
+    { width: 12 },
+  ];
   title(id, "A2", "Identification");
   id.getCell("A4").value = "Nom de l'entreprise:";
   id.getCell("B4").value = input.organisation;
@@ -141,7 +171,14 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
 
   // Configuration ----------------------------------------------------------
   const conf = wb.addWorksheet("Configuration");
-  conf.columns = [{ width: 34 }, { width: 4 }, { width: 34 }, { width: 8 }, { width: 8 }, { width: 8 }];
+  conf.columns = [
+    { width: 34 },
+    { width: 4 },
+    { width: 34 },
+    { width: 8 },
+    { width: 8 },
+    { width: 8 },
+  ];
   title(conf, "A2", "Configuration des catégories");
   conf.getCell("A4").value = "REVENUS";
   conf.getCell("C4").value = "DÉPENSES";
@@ -151,8 +188,12 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
       .filter((i) => (dir === "revenu") === (i.direction === "revenu"))
       .map((i) => categoryLabel(dir, i.category))
       .filter((l) => l !== "Sans catégorie");
-  const revLabels = Array.from(new Set([...INCOME_CATEGORIES.map((c) => c.label), ...used("revenu")]));
-  const expLabels = Array.from(new Set([...EXPENSE_CATEGORIES.map((c) => c.label), ...used("depense")]));
+  const revLabels = Array.from(
+    new Set([...INCOME_CATEGORIES.map((c) => c.label), ...used("revenu")])
+  );
+  const expLabels = Array.from(
+    new Set([...EXPENSE_CATEGORIES.map((c) => c.label), ...used("depense")])
+  );
   revLabels.forEach((l, i) => (conf.getCell(5 + i, 1).value = l));
   expLabels.forEach((l, i) => (conf.getCell(5 + i, 3).value = l));
   const revList = `Configuration!$A$5:$A$${4 + revLabels.length}`;
@@ -165,8 +206,12 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
   );
 
   // Revenus ----------------------------------------------------------------
-  const rev = wb.addWorksheet("Revenus", { views: [{ state: "frozen", ySplit: 4 }] });
-  rev.columns = [12, 26, 34, 26, 16, 12, 14, 12, 16, 40, 14].map((width) => ({ width }));
+  const rev = wb.addWorksheet("Revenus", {
+    views: [{ state: "frozen", ySplit: 4 }],
+  });
+  rev.columns = [12, 26, 34, 26, 16, 12, 14, 12, 16, 40, 14].map((width) => ({
+    width,
+  }));
   title(rev, "A1", `Revenus — ${input.organisation}`);
   header(rev, 2, [
     "Date",
@@ -198,15 +243,25 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
       inv.number ?? "",
     ];
   });
-  fillFormulas(rev, 5 + revenues.length, revLast, { total: "I", type: "H", net: "E", gst: "F", qst: "G" });
+  fillFormulas(rev, 5 + revenues.length, revLast, {
+    total: "I",
+    type: "H",
+    net: "E",
+    gst: "F",
+    qst: "G",
+  });
   totals(rev, 4, revLast, ["E", "F", "G", "I"]);
   styleColumns(rev, 5, revLast, "A", ["E", "F", "G", "I"]);
   validate(rev, `D5:D${revLast}`, revList);
   validate(rev, `H5:H${revLast}`, TAX_TYPES);
 
   // Dépenses ---------------------------------------------------------------
-  const dep = wb.addWorksheet("Dépenses", { views: [{ state: "frozen", ySplit: 4 }] });
-  dep.columns = [18, 12, 24, 32, 26, 16, 12, 14, 12, 16, 40, 16].map((width) => ({ width }));
+  const dep = wb.addWorksheet("Dépenses", {
+    views: [{ state: "frozen", ySplit: 4 }],
+  });
+  dep.columns = [18, 12, 24, 32, 26, 16, 12, 14, 12, 16, 40, 16].map(
+    (width) => ({ width })
+  );
   title(dep, "A1", `Dépenses — ${input.organisation}`);
   header(dep, 2, [
     "# Facture",
@@ -239,27 +294,53 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
       inv.paidBy ? partnerCell(inv.paidBy) : "Société",
     ];
   });
-  fillFormulas(dep, 5 + expenses.length, depLast, { total: "J", type: "I", net: "F", gst: "G", qst: "H" });
+  fillFormulas(dep, 5 + expenses.length, depLast, {
+    total: "J",
+    type: "I",
+    net: "F",
+    gst: "G",
+    qst: "H",
+  });
   totals(dep, 4, depLast, ["F", "G", "H", "J"]);
   styleColumns(dep, 5, depLast, "B", ["F", "G", "H", "J"]);
   validate(dep, `E5:E${depLast}`, expList);
   validate(dep, `I5:I${depLast}`, TAX_TYPES);
-  if (input.partners.length) {
-    validate(dep, `L5:L${depLast}`, `"${["Société", ...input.partners.map(partnerCell)].join(",").replace(/"/g, "")}"`);
-  }
+  validate(
+    dep,
+    `L5:L${depLast}`,
+    `"${["Société", ...(input.partners.length ? input.partners.map(partnerCell) : [ME_CELL])].join(",").replace(/"/g, "")}"`
+  );
 
   // État des résultats ------------------------------------------------------
   const er = wb.addWorksheet("États des résultats");
-  er.columns = [{ width: 3 }, { width: 36 }, { width: 18 }, { width: 18 }, { width: 22 }];
+  er.columns = [
+    { width: 3 },
+    { width: 36 },
+    { width: 18 },
+    { width: 18 },
+    { width: 22 },
+  ];
   title(er, "B1", "État des résultats");
   er.getCell("B2").value = { formula: "Identification!B4" };
   er.getCell("B3").value = { formula: "Identification!B5" };
-  header(er, 6, ["Revenus", "Montant Global", "% pour fin d'affaires", "Montant lié à l'activité"], 2);
+  header(
+    er,
+    6,
+    [
+      "Revenus",
+      "Montant Global",
+      "% pour fin d'affaires",
+      "Montant lié à l'activité",
+    ],
+    2
+  );
   let r = 8;
   const revStart = r;
   revLabels.forEach((_, i) => {
     er.getCell(`B${r}`).value = { formula: `Configuration!A${5 + i}` };
-    er.getCell(`C${r}`).value = { formula: `SUMIFS(Revenus!$E:$E,Revenus!$D:$D,$B${r})` };
+    er.getCell(`C${r}`).value = {
+      formula: `SUMIFS(Revenus!$E:$E,Revenus!$D:$D,$B${r})`,
+    };
     er.getCell(`D${r}`).value = 1;
     er.getCell(`E${r}`).value = { formula: `C${r}*D${r}` };
     r++;
@@ -270,13 +351,25 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
   er.getCell(`E${r}`).value = { formula: `SUM(E${revStart}:E${revEnd})` };
   const revTotalRow = r;
   r += 2;
-  header(er, r, ["Dépenses", "Montant Global", "% pour fin d'affaires", "Montant lié à l'activité"], 2);
+  header(
+    er,
+    r,
+    [
+      "Dépenses",
+      "Montant Global",
+      "% pour fin d'affaires",
+      "Montant lié à l'activité",
+    ],
+    2
+  );
   r += 2;
   const expStart = r;
   expLabels.forEach((label, i) => {
     const cat = categoryOf(categoryFromLabel("depense", label));
     er.getCell(`B${r}`).value = { formula: `Configuration!C${5 + i}` };
-    er.getCell(`C${r}`).value = { formula: `SUMIFS('Dépenses'!$F:$F,'Dépenses'!$E:$E,$B${r})` };
+    er.getCell(`C${r}`).value = {
+      formula: `SUMIFS('Dépenses'!$F:$F,'Dépenses'!$E:$E,$B${r})`,
+    };
     // Meals 50 %; equipment goes through the DPA (Amortissements), not here.
     er.getCell(`D${r}`).value = cat ? cat.deductible : 1;
     er.getCell(`E${r}`).value = { formula: `C${r}*D${r}` };
@@ -321,7 +414,15 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
 
   // Taxes Annuel -----------------------------------------------------------
   const tx = wb.addWorksheet("Taxes Annuel");
-  tx.columns = [{ width: 3 }, { width: 44 }, { width: 16 }, { width: 4 }, { width: 4 }, { width: 52 }, { width: 16 }];
+  tx.columns = [
+    { width: 3 },
+    { width: 44 },
+    { width: 16 },
+    { width: 4 },
+    { width: 4 },
+    { width: 52 },
+    { width: 16 },
+  ];
   title(tx, "B2", "Formulaire FPZ-500 — aide-mémoire");
   tx.getCell("B4").value = "Fournitures (chiffre d'affaires) (ligne 101)";
   tx.getCell("C4").value = { formula: "Revenus!E4" };
@@ -334,7 +435,8 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
   tx.getCell("G12").value = { formula: "Revenus!G4" };
   tx.getCell("B14").value = "Total des CTI (ligne 108)";
   tx.getCell("C14").value = { formula: "'Dépenses'!G4" };
-  tx.getCell("F14").value = "Remboursements de la taxe sur les intrants (RTI) (ligne 206)";
+  tx.getCell("F14").value =
+    "Remboursements de la taxe sur les intrants (RTI) (ligne 206)";
   tx.getCell("G14").value = { formula: "'Dépenses'!H4" };
   tx.getCell("B16").value = "TPS nette (ligne 109)";
   tx.getCell("C16").value = { formula: "C12-C14" };
@@ -344,7 +446,8 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
   tx.getCell("B20").font = { bold: true };
   tx.getCell("C20").value = { formula: "C16+G16" };
   tx.getCell("C20").fill = TOTAL_FILL;
-  for (const c of ["C4", "C12", "C14", "C16", "G12", "G14", "G16", "C20"]) tx.getCell(c).numFmt = MONEY;
+  for (const c of ["C4", "C12", "C14", "C16", "G12", "G14", "G16", "C20"])
+    tx.getCell(c).numFmt = MONEY;
   note(
     tx,
     "B23:G25",
@@ -366,7 +469,10 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
       partnerCell(inv.paidBy!),
       "Société",
       dollars(inv.totalCents),
-      `Facture ${inv.number ? `#${inv.number} ` : ""}${inv.party ?? ""} (auto)`.replace(/\s+/g, " "),
+      `Facture ${inv.number ? `#${inv.number} ` : ""}${inv.party ?? ""} (auto)`.replace(
+        /\s+/g,
+        " "
+      ),
       inv.category ? categoryLabel("depense", inv.category) : "",
     ]);
   }
@@ -389,11 +495,16 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
   av.getCell("H2").value = "Associé à suivre :";
   av.getCell("I2").value = who;
   av.getCell("I2").fill = INPUT_FILL;
-  if (input.partners.length) validate(av, "I2", `"${input.partners.join(",")}"`);
+  if (input.partners.length)
+    validate(av, "I2", `"${input.partners.join(",")}"`);
   av.getCell("H4").value = "Montant avancé (associé → société)";
-  av.getCell("I4").value = { formula: `SUMIFS(D4:D${avLast},B4:B${avLast},"Associé ("&$I$2&")",C4:C${avLast},"Société")` };
+  av.getCell("I4").value = {
+    formula: `SUMIFS(D4:D${avLast},B4:B${avLast},"Associé ("&$I$2&")",C4:C${avLast},"Société")`,
+  };
   av.getCell("H5").value = "Montant remboursé (société → associé)";
-  av.getCell("I5").value = { formula: `SUMIFS(D4:D${avLast},B4:B${avLast},"Société",C4:C${avLast},"Associé ("&$I$2&")")` };
+  av.getCell("I5").value = {
+    formula: `SUMIFS(D4:D${avLast},B4:B${avLast},"Société",C4:C${avLast},"Associé ("&$I$2&")")`,
+  };
   av.getCell("H6").value = "Solde net dû à l'associé";
   av.getCell("I6").value = { formula: "I4-I5" };
   av.getCell("H6").font = { bold: true };
@@ -413,10 +524,22 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
     "A2:F3",
     "Utilise « retraits » si la société est une SENC, « dividendes » si elle est incorporée (société par actions). Le calcul est le même dans les deux cas."
   );
-  header(rt, 5, ["Date de versement", "Montant - Associé", "Commentaires", "Associé"]);
-  const draws = input.movements.filter((m) => m.kind === "retrait").sort((a, b) => a.date.localeCompare(b.date));
+  header(rt, 5, [
+    "Date de versement",
+    "Montant - Associé",
+    "Commentaires",
+    "Associé",
+  ]);
+  const draws = input.movements
+    .filter((m) => m.kind === "retrait")
+    .sort((a, b) => a.date.localeCompare(b.date));
   draws.forEach((m, i) => {
-    rt.getRow(6 + i).values = [toDate(m.date), dollars(m.amountCents), m.notes ?? "", m.partner];
+    rt.getRow(6 + i).values = [
+      toDate(m.date),
+      dollars(m.amountCents),
+      m.notes ?? "",
+      m.partner,
+    ];
   });
   const rtLast = Math.max(55, 5 + draws.length + SPARE_ROWS);
   rt.getCell("E5").value = "Total :";
@@ -426,7 +549,9 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
 
   // Amortissements ---------------------------------------------------------
   const am = wb.addWorksheet("Amortissements");
-  am.columns = [12, 36, 14, 14, 14, 14, 14, 8, 16, 14].map((width) => ({ width }));
+  am.columns = [12, 36, 14, 14, 14, 14, 14, 8, 16, 14].map((width) => ({
+    width,
+  }));
   title(am, "A1", "Amortissements");
   am.getCell("A2").value = { formula: "Identification!B4" };
   am.getCell("A3").value = { formula: "Identification!B5" };
@@ -446,14 +571,18 @@ export async function buildWorkbook(input: ExportInput): Promise<Buffer> {
   const amEnd = Math.max(13, 5 + assets.length);
   assets.forEach((inv, i) => {
     const row = 6 + i;
-    am.getCell(`B${row}`).value = [inv.party, inv.description].filter(Boolean).join(" · ") || "Équipement";
+    am.getCell(`B${row}`).value =
+      [inv.party, inv.description].filter(Boolean).join(" · ") || "Équipement";
     am.getCell(`D${row}`).value = dollars(inv.subtotalCents);
   });
   am.getCell(`A${amEnd + 1}`).value = "Total";
   am.getRow(amEnd + 1).font = { bold: true };
   for (const col of ["C", "D", "E", "F", "G", "I", "J"]) {
-    am.getCell(`${col}${amEnd + 1}`).value = { formula: `SUM(${col}6:${col}${amEnd})` };
-    for (let i = 6; i <= amEnd + 1; i++) am.getCell(`${col}${i}`).numFmt = MONEY;
+    am.getCell(`${col}${amEnd + 1}`).value = {
+      formula: `SUM(${col}6:${col}${amEnd})`,
+    };
+    for (let i = 6; i <= amEnd + 1; i++)
+      am.getCell(`${col}${i}`).numFmt = MONEY;
   }
   note(
     am,
@@ -475,15 +604,24 @@ function fillFormulas(
   for (let r = from; r <= to; r++) {
     const T = `${c.total}${r}`;
     const Y = `${c.type}${r}`;
-    ws.getCell(`${c.net}${r}`).value = { formula: `IF(${T}="","",${T}-${c.gst}${r}-${c.qst}${r})` };
+    ws.getCell(`${c.net}${r}`).value = {
+      formula: `IF(${T}="","",${T}-${c.gst}${r}-${c.qst}${r})`,
+    };
     ws.getCell(`${c.gst}${r}`).value = {
       formula: `IF(OR(${Y}="TPS",${Y}="TPS+TVQ"),${T}/(1+IF(${Y}="TPS+TVQ",0.14975,0.05))*0.05,0)`,
     };
-    ws.getCell(`${c.qst}${r}`).value = { formula: `IF(${Y}="TPS+TVQ",${T}/1.14975*0.09975,0)` };
+    ws.getCell(`${c.qst}${r}`).value = {
+      formula: `IF(${Y}="TPS+TVQ",${T}/1.14975*0.09975,0)`,
+    };
   }
 }
 
-function totals(ws: ExcelJS.Worksheet, row: number, last: number, cols: string[]) {
+function totals(
+  ws: ExcelJS.Worksheet,
+  row: number,
+  last: number,
+  cols: string[]
+) {
   ws.getCell(`A${row}`).value = "Totaux";
   ws.getRow(row).font = { bold: true };
   for (const col of cols) {
@@ -494,7 +632,13 @@ function totals(ws: ExcelJS.Worksheet, row: number, last: number, cols: string[]
   }
 }
 
-function styleColumns(ws: ExcelJS.Worksheet, from: number, to: number, dateCol: string, moneyCols: string[]) {
+function styleColumns(
+  ws: ExcelJS.Worksheet,
+  from: number,
+  to: number,
+  dateCol: string,
+  moneyCols: string[]
+) {
   for (let r = from; r <= to; r++) {
     ws.getCell(`${dateCol}${r}`).numFmt = DATE;
     for (const col of moneyCols) ws.getCell(`${col}${r}`).numFmt = MONEY;
@@ -569,9 +713,13 @@ function plain(v: ExcelJS.CellValue): unknown {
   if (v == null) return null;
   if (v instanceof Date) return v;
   if (typeof v === "object") {
-    if ("result" in v) return plain((v as ExcelJS.CellFormulaValue).result as ExcelJS.CellValue);
+    if ("result" in v)
+      return plain((v as ExcelJS.CellFormulaValue).result as ExcelJS.CellValue);
     if ("formula" in v || "sharedFormula" in v) return undefined; // formula without a cached result
-    if ("richText" in v) return (v as ExcelJS.CellRichTextValue).richText.map((t) => t.text).join("");
+    if ("richText" in v)
+      return (v as ExcelJS.CellRichTextValue).richText
+        .map((t) => t.text)
+        .join("");
     if ("text" in v) return (v as ExcelJS.CellHyperlinkValue).text;
     if ("error" in v) return null;
   }
@@ -595,10 +743,13 @@ function money(v: unknown): number | null {
 }
 
 function day(v: unknown): string | null {
-  if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+  if (v instanceof Date && !isNaN(v.getTime()))
+    return v.toISOString().slice(0, 10);
   if (typeof v === "number" && v > 20000 && v < 80000) {
     // Excel serial date.
-    return new Date(Date.UTC(1899, 11, 30) + v * 86_400_000).toISOString().slice(0, 10);
+    return new Date(Date.UTC(1899, 11, 30) + v * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
   }
   if (typeof v === "string") {
     const m = v.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -614,7 +765,16 @@ function partnerName(v: string | null): string | null {
   const m = v.match(/associ[ée]\s*\(([^)]+)\)/i);
   if (m) return m[1].trim();
   const f = fold(v);
-  if (!f || f === "societe" || f === "senc" || f === "entreprise" || f === "compagnie") return null;
+  if (f === "moi" || f.startsWith("moi ") || f.startsWith("moi("))
+    return PAID_BY_ME;
+  if (
+    !f ||
+    f === "societe" ||
+    f === "senc" ||
+    f === "entreprise" ||
+    f === "compagnie"
+  )
+    return null;
   return v.trim();
 }
 
@@ -626,7 +786,8 @@ function mapHeader(row: ExcelJS.Row): Record<string, number> {
     if (!h) return;
     const set = (k: string) => (out[k] ??= col);
     if (h === "date" || h.startsWith("date de")) set("date");
-    else if (h.startsWith("client") || h.startsWith("fournisseur")) set("party");
+    else if (h.startsWith("client") || h.startsWith("fournisseur"))
+      set("party");
     else if (h.startsWith("description")) set("description");
     else if (h === "compte" || h.startsWith("categorie")) set("category");
     else if (h.startsWith("net")) set("net");
@@ -645,10 +806,13 @@ function mapHeader(row: ExcelJS.Row): Record<string, number> {
   return out;
 }
 
-function findHeader(ws: ExcelJS.Worksheet): { row: number; cols: Record<string, number> } | null {
+function findHeader(
+  ws: ExcelJS.Worksheet
+): { row: number; cols: Record<string, number> } | null {
   for (let r = 1; r <= 10; r++) {
     const cols = mapHeader(ws.getRow(r));
-    if (cols.date && (cols.total || cols.amount || cols.net)) return { row: r, cols };
+    if (cols.date && (cols.total || cols.amount || cols.net))
+      return { row: r, cols };
   }
   return null;
 }
@@ -657,7 +821,9 @@ function sheet(wb: ExcelJS.Workbook, test: (name: string) => boolean) {
   return wb.worksheets.find((ws) => test(fold(ws.name)));
 }
 
-export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> {
+export async function parseWorkbook(
+  data: ArrayBuffer
+): Promise<ParsedWorkbook> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(data);
   const out: ParsedWorkbook = {
@@ -675,16 +841,33 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
     const y = plain(ident.getCell("B5").value);
     out.year = typeof y === "number" ? Math.round(y) : Number(str(y)) || null;
     const partners = str(plain(ident.getCell("B6").value));
-    if (fold(String(plain(ident.getCell("A6").value) ?? "")).startsWith("associe") && partners) {
-      out.partners.push(...partners.split(/[,;]/).map((p) => p.trim()).filter(Boolean));
+    if (
+      fold(String(plain(ident.getCell("A6").value) ?? "")).startsWith(
+        "associe"
+      ) &&
+      partners
+    ) {
+      out.partners.push(
+        ...partners
+          .split(/[,;]/)
+          .map((p) => p.trim())
+          .filter(Boolean)
+      );
     }
   }
 
-  const readInvoices = (ws: ExcelJS.Worksheet | undefined, direction: "depense" | "revenu") => {
+  const readInvoices = (
+    ws: ExcelJS.Worksheet | undefined,
+    direction: "depense" | "revenu"
+  ) => {
     if (!ws) return;
     const head = findHeader(ws);
     if (!head) {
-      out.skipped.push({ sheet: ws.name, row: 0, reason: "En-têtes introuvables" });
+      out.skipped.push({
+        sheet: ws.name,
+        row: 0,
+        reason: "En-têtes introuvables",
+      });
       return;
     }
     const c = head.cols;
@@ -706,8 +889,16 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
       let qst = money(get("qst"));
       // Formulas saved without results: redo the template's math.
       if (total != null) {
-        if (gst == null) gst = type === "TPS+TVQ" ? Math.round((total / 1.14975) * 0.05) : type === "TPS" ? Math.round((total / 1.05) * 0.05) : 0;
-        if (qst == null) qst = type === "TPS+TVQ" ? Math.round((total / 1.14975) * 0.09975) : 0;
+        if (gst == null)
+          gst =
+            type === "TPS+TVQ"
+              ? Math.round((total / 1.14975) * 0.05)
+              : type === "TPS"
+                ? Math.round((total / 1.05) * 0.05)
+                : 0;
+        if (qst == null)
+          qst =
+            type === "TPS+TVQ" ? Math.round((total / 1.14975) * 0.09975) : 0;
         if (net == null) net = total - gst - qst;
       } else if (net != null) {
         gst ??= 0;
@@ -715,12 +906,17 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
         total = net + gst + qst;
       }
       if (total == null || net == null) {
-        out.skipped.push({ sheet: ws.name, row: r, reason: "Montant manquant" });
+        out.skipped.push({
+          sheet: ws.name,
+          row: r,
+          reason: "Montant manquant",
+        });
         return;
       }
       const opt = (k: string) => (c[k] ? str(get(k)) : undefined);
       const paidBy = c.paidBy ? partnerName(str(get("paidBy"))) : undefined;
-      if (paidBy && !out.partners.includes(paidBy)) out.partners.push(paidBy);
+      if (paidBy && paidBy !== PAID_BY_ME && !out.partners.includes(paidBy))
+        out.partners.push(paidBy);
       const category = opt("category");
       out.invoices.push({
         direction,
@@ -728,7 +924,10 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
         party: opt("party"),
         number: opt("number"),
         description: opt("description"),
-        category: category === undefined ? undefined : categoryFromLabel(direction, category),
+        category:
+          category === undefined
+            ? undefined
+            : categoryFromLabel(direction, category),
         subtotalCents: net,
         gstCents: gst ?? 0,
         qstCents: qst ?? 0,
@@ -739,8 +938,14 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
       });
     });
   };
-  readInvoices(sheet(wb, (n) => n === "revenus"), "revenu");
-  readInvoices(sheet(wb, (n) => n === "depenses"), "depense");
+  readInvoices(
+    sheet(wb, (n) => n === "revenus"),
+    "revenu"
+  );
+  readInvoices(
+    sheet(wb, (n) => n === "depenses"),
+    "depense"
+  );
 
   const av = sheet(wb, (n) => n.startsWith("suivi des avances"));
   if (av) {
@@ -749,7 +954,8 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
       const c = head.cols;
       av.eachRow((row, r) => {
         if (r <= head.row) return;
-        const get = (k: string) => (c[k] ? plain(row.getCell(c[k]).value) : null);
+        const get = (k: string) =>
+          c[k] ? plain(row.getCell(c[k]).value) : null;
         const date = day(get("date"));
         const amount = money(get("amount"));
         if (!date || !amount) return;
@@ -758,7 +964,11 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
         const from = partnerName(str(get("from")));
         const to = partnerName(str(get("to")));
         if (!!from === !!to) {
-          out.skipped.push({ sheet: av.name, row: r, reason: "De/À: un associé et la Société attendus" });
+          out.skipped.push({
+            sheet: av.name,
+            row: r,
+            reason: "De/À: un associé et la Société attendus",
+          });
           return;
         }
         const partner = (from ?? to)!;
@@ -782,13 +992,18 @@ export async function parseWorkbook(data: ArrayBuffer): Promise<ParsedWorkbook> 
       const c = head.cols;
       rt.eachRow((row, r) => {
         if (r <= head.row) return;
-        const get = (k: string) => (c[k] ? plain(row.getCell(c[k]).value) : null);
+        const get = (k: string) =>
+          c[k] ? plain(row.getCell(c[k]).value) : null;
         const date = day(get("date"));
         const amount = money(get("amount"));
         if (!date || !amount) return;
         const partner = str(get("partner")) ?? out.partners[0] ?? null;
         if (!partner) {
-          out.skipped.push({ sheet: rt.name, row: r, reason: "Associé inconnu" });
+          out.skipped.push({
+            sheet: rt.name,
+            row: r,
+            reason: "Associé inconnu",
+          });
           return;
         }
         out.movements.push({

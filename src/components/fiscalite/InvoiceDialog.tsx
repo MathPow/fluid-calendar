@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { ArrowDownLeft, ArrowUpRight, Calculator, FileText, Loader2, Sparkles, Trash2 } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Calculator,
+  FileText,
+  Loader2,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,13 +32,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import { cn } from "@/lib/utils";
-
 import type { InvoiceGuess } from "@/lib/fiscalite/extract";
 import {
   EXPENSE_CATEGORIES,
   GST_RATE,
   INCOME_CATEGORIES,
+  PAID_BY_ME,
   PERSONAL_EXPENSE_CATEGORIES,
   PERSONAL_INCOME_CATEGORIES,
   QST_RATE,
@@ -44,6 +51,7 @@ import {
   taxesFor,
 } from "@/lib/fiscalite/meta";
 import type { InvoiceView } from "@/lib/fiscalite/queries";
+import { cn } from "@/lib/utils";
 
 interface InvoiceDialogProps {
   open: boolean;
@@ -134,7 +142,8 @@ export function InvoiceDialog({
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof Form>(k: K, v: Form[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
     if (!open) return;
@@ -194,7 +203,10 @@ export function InvoiceDialog({
         );
       })
       .catch((e) => {
-        if (!cancelled) setReadNote(`Lecture impossible (${e instanceof Error ? e.message : "erreur"}).`);
+        if (!cancelled)
+          setReadNote(
+            `Lecture impossible (${e instanceof Error ? e.message : "erreur"}).`
+          );
       })
       .finally(() => {
         if (!cancelled) setReading(false);
@@ -213,7 +225,12 @@ export function InvoiceDialog({
 
   const fromSubtotal = () => {
     const t = taxesFor(cents.subtotal);
-    setForm((f) => ({ ...f, gst: centsToInput(t.gst), qst: centsToInput(t.qst), total: centsToInput(t.total) }));
+    setForm((f) => ({
+      ...f,
+      gst: centsToInput(t.gst),
+      qst: centsToInput(t.qst),
+      total: centsToInput(t.total),
+    }));
   };
   const fromTotal = () => {
     const sub = Math.round(cents.total / (1 + GST_RATE + QST_RATE));
@@ -242,7 +259,10 @@ export function InvoiceDialog({
     form.category && !standard.some((c) => c.id === form.category)
       ? [...standard, { id: form.category, label: form.category }]
       : standard;
-  const category = form.direction === "depense" && !personal ? categoryOf(form.category) : undefined;
+  const category =
+    form.direction === "depense" && !personal
+      ? categoryOf(form.category)
+      : undefined;
 
   const issues = useMemo(
     () =>
@@ -277,14 +297,20 @@ export function InvoiceDialog({
       direction: form.direction,
       date: form.date,
       party: form.party,
-      partyTaxNumber: form.direction === "depense" && !personal ? form.partyTaxNumber : null,
+      partyTaxNumber:
+        form.direction === "depense" && !personal ? form.partyTaxNumber : null,
       number: form.number,
       description: form.description,
       category: form.category || null,
       ...(personal
         ? (() => {
             const total = cents.total || cents.subtotal + cents.gst + cents.qst;
-            return { subtotalCents: total, gstCents: 0, qstCents: 0, totalCents: total };
+            return {
+              subtotalCents: total,
+              gstCents: 0,
+              qstCents: 0,
+              totalCents: total,
+            };
           })()
         : {
             subtotalCents: cents.subtotal,
@@ -310,7 +336,9 @@ export function InvoiceDialog({
         if (file) body.append("file", file);
         res = await fetch("/api/fiscalite/invoices", { method: "POST", body });
       }
-      const data = (await res.json().catch(() => ({}))) as InvoiceView & { error?: string };
+      const data = (await res.json().catch(() => ({}))) as InvoiceView & {
+        error?: string;
+      };
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
       toast.success(editing ? "Facture mise à jour." : "Facture classée.");
       onSaved(data);
@@ -325,10 +353,13 @@ export function InvoiceDialog({
   };
 
   const remove = async () => {
-    if (!invoice || !window.confirm("Supprimer cette facture et son fichier ?")) return;
+    if (!invoice || !window.confirm("Supprimer cette facture et son fichier ?"))
+      return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/fiscalite/invoices/${invoice.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/fiscalite/invoices/${invoice.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
       toast.success("Facture supprimée.");
       onDeleted(invoice.id);
@@ -342,7 +373,9 @@ export function InvoiceDialog({
     }
   };
 
-  const fileHref = invoice?.file ? `/api/fiscalite/invoices/${invoice.id}/file` : preview;
+  const fileHref = invoice?.file
+    ? `/api/fiscalite/invoices/${invoice.id}/file`
+    : preview;
   const fileName = invoice?.file?.name ?? file?.name;
 
   return (
@@ -370,7 +403,8 @@ export function InvoiceDialog({
                 <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                   {reading ? (
                     <>
-                      <Loader2 className="h-3 w-3 animate-spin" /> Lecture de la facture…
+                      <Loader2 className="h-3 w-3 animate-spin" /> Lecture de la
+                      facture…
                     </>
                   ) : (
                     <>
@@ -406,13 +440,17 @@ export function InvoiceDialog({
                 {
                   id: "depense",
                   label: "Dépense",
-                  hint: personal ? "Un achat, une facture à payer" : "Une facture que tu as payée",
+                  hint: personal
+                    ? "Un achat, une facture à payer"
+                    : "Une facture que tu as payée",
                   icon: ArrowUpRight,
                 },
                 {
                   id: "revenu",
                   label: "Revenu",
-                  hint: personal ? "Paie, remboursement, cadeau" : "Une facture que tu as émise",
+                  hint: personal
+                    ? "Paie, remboursement, cadeau"
+                    : "Une facture que tu as émise",
                   icon: ArrowDownLeft,
                 },
               ] as const
@@ -423,16 +461,24 @@ export function InvoiceDialog({
                   key={d.id}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => setForm((f) => ({ ...f, direction: d.id, category: "" }))}
+                  onClick={() =>
+                    setForm((f) => ({ ...f, direction: d.id, category: "" }))
+                  }
                   className={cn(
                     "flex items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left transition-colors",
-                    active ? "border-foreground bg-tint-soft" : "border-transparent bg-secondary hover:bg-border/70"
+                    active
+                      ? "border-foreground bg-tint-soft"
+                      : "border-transparent bg-secondary hover:bg-border/70"
                   )}
                 >
                   <d.icon className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
-                    <span className="block text-[14px] font-semibold tracking-title">{d.label}</span>
-                    <span className="block text-[12px] text-muted-foreground">{d.hint}</span>
+                    <span className="block text-[14px] font-semibold tracking-title">
+                      {d.label}
+                    </span>
+                    <span className="block text-[12px] text-muted-foreground">
+                      {d.hint}
+                    </span>
                   </span>
                 </button>
               );
@@ -450,23 +496,41 @@ export function InvoiceDialog({
                     ? "Client"
                     : "Fournisseur"}
               </Label>
-              <Input id="inv-party" value={form.party} onChange={(e) => set("party", e.target.value)} />
+              <Input
+                id="inv-party"
+                value={form.party}
+                onChange={(e) => set("party", e.target.value)}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="inv-date">Date</Label>
-                <Input id="inv-date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
+                <Input
+                  id="inv-date"
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => set("date", e.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="inv-number">{personal ? "No reçu" : "No facture"}</Label>
-                <Input id="inv-number" value={form.number} onChange={(e) => set("number", e.target.value)} />
+                <Label htmlFor="inv-number">
+                  {personal ? "No reçu" : "No facture"}
+                </Label>
+                <Input
+                  id="inv-number"
+                  value={form.number}
+                  onChange={(e) => set("number", e.target.value)}
+                />
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Catégorie</Label>
-            <Select value={form.category || NONE} onValueChange={(v) => set("category", v === NONE ? "" : v)}>
+            <Select
+              value={form.category || NONE}
+              onValueChange={(v) => set("category", v === NONE ? "" : v)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Choisir…" />
               </SelectTrigger>
@@ -480,7 +544,11 @@ export function InvoiceDialog({
                 ))}
               </SelectContent>
             </Select>
-            {category?.hint && <p className="text-[12px] text-muted-foreground">{category.hint}</p>}
+            {category?.hint && (
+              <p className="text-[12px] text-muted-foreground">
+                {category.hint}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -514,69 +582,96 @@ export function InvoiceDialog({
               />
             </div>
           ) : (
-          <div className="space-y-3 rounded-2xl bg-secondary/60 p-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {(
-                [
-                  ["subtotal", "Sous-total"],
-                  ["gst", "TPS (5 %)"],
-                  ["qst", "TVQ (9,975 %)"],
-                  ["total", "Total"],
-                ] as const
-              ).map(([k, label]) => (
-                <div key={k} className="space-y-1.5">
-                  <Label htmlFor={`inv-${k}`} className="text-[12px]">
-                    {label}
-                  </Label>
-                  <Input
-                    id={`inv-${k}`}
-                    inputMode="decimal"
-                    value={form[k]}
-                    onChange={(e) => set(k, e.target.value)}
-                    placeholder="0.00"
-                    className="tabular-nums"
-                  />
-                </div>
-              ))}
+            <div className="space-y-3 rounded-2xl bg-secondary/60 p-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {(
+                  [
+                    ["subtotal", "Sous-total"],
+                    ["gst", "TPS (5 %)"],
+                    ["qst", "TVQ (9,975 %)"],
+                    ["total", "Total"],
+                  ] as const
+                ).map(([k, label]) => (
+                  <div key={k} className="space-y-1.5">
+                    <Label htmlFor={`inv-${k}`} className="text-[12px]">
+                      {label}
+                    </Label>
+                    <Input
+                      id={`inv-${k}`}
+                      inputMode="decimal"
+                      value={form[k]}
+                      onChange={(e) => set(k, e.target.value)}
+                      placeholder="0.00"
+                      className="tabular-nums"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={fromSubtotal}
+                  disabled={!cents.subtotal}
+                >
+                  <Calculator /> Taxes depuis le sous-total
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={fromTotal}
+                  disabled={!cents.total}
+                >
+                  <Calculator /> Détaxer le total
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={fromSubtotal} disabled={!cents.subtotal}>
-                <Calculator /> Taxes depuis le sous-total
-              </Button>
-              <Button type="button" variant="secondary" size="sm" onClick={fromTotal} disabled={!cents.total}>
-                <Calculator /> Détaxer le total
-              </Button>
-            </div>
-          </div>
           )}
 
-          {form.direction === "depense" && partners.length > 0 && (
+          {form.direction === "depense" && !personal && (
             <div className="space-y-2">
               <Label>Payé par</Label>
               <div className="flex flex-wrap gap-2">
-                {[{ id: "", label: "La SENC (compte d'entreprise)" }, ...partners.map((p) => ({ id: p, label: p }))].map(
-                  (o) => (
-                    <button
-                      key={o.id || "_senc"}
-                      type="button"
-                      aria-pressed={form.paidBy === o.id}
-                      onClick={() => set("paidBy", o.id)}
-                      className={cn(
-                        "rounded-full border-2 px-4 py-1.5 text-[13px] font-medium transition-colors",
-                        form.paidBy === o.id
-                          ? "border-foreground bg-tint-soft"
-                          : "border-transparent bg-secondary hover:bg-border/70"
-                      )}
-                    >
-                      {o.label}
-                    </button>
-                  )
-                )}
+                {(partners.length > 0
+                  ? [
+                      { id: "", label: "La SENC (compte d'entreprise)" },
+                      ...partners.map((p) => ({ id: p, label: p })),
+                    ]
+                  : [
+                      { id: "", label: "L'entreprise (son compte)" },
+                      { id: PAID_BY_ME, label: "Moi (de ma poche)" },
+                    ]
+                ).map((o) => (
+                  <button
+                    key={o.id || "_senc"}
+                    type="button"
+                    aria-pressed={form.paidBy === o.id}
+                    onClick={() => set("paidBy", o.id)}
+                    className={cn(
+                      "rounded-full border-2 px-4 py-1.5 text-[13px] font-medium transition-colors",
+                      form.paidBy === o.id
+                        ? "border-foreground bg-tint-soft"
+                        : "border-transparent bg-secondary hover:bg-border/70"
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
               </div>
-              {form.paidBy && (
+              {form.paidBy && partners.length > 0 && (
                 <p className="text-[12px] text-muted-foreground">
-                  Payé de sa poche: ça reste une dépense de la SENC, et ça compte comme une avance que la
-                  SENC doit rembourser à {form.paidBy}.
+                  Payé de sa poche: ça reste une dépense de la SENC, et ça
+                  compte comme une avance que la SENC doit rembourser à{" "}
+                  {form.paidBy}.
+                </p>
+              )}
+              {form.paidBy === PAID_BY_ME && partners.length === 0 && (
+                <p className="text-[12px] text-muted-foreground">
+                  {profile.legalForm === "societe"
+                    ? "Payé avec ton argent personnel: ça reste une dépense de la société, et elle te doit ce montant (avance de l'administrateur). Garde la facture à ton nom avec la preuve de paiement."
+                    : "Payé avec ton compte perso: ça reste une dépense de l'entreprise pour ton T2125 / TP-80. Garde la facture, et note-le pour retrouver le paiement dans tes relevés personnels."}
                 </p>
               )}
             </div>
@@ -602,7 +697,11 @@ export function InvoiceDialog({
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               placeholder={
-                personal ? "Note" : category?.id === "repas" ? "Avec qui, pourquoi" : "Contexte pour ton comptable"
+                personal
+                  ? "Note"
+                  : category?.id === "repas"
+                    ? "Avec qui, pourquoi"
+                    : "Contexte pour ton comptable"
               }
             />
           </div>
@@ -614,7 +713,9 @@ export function InvoiceDialog({
                   key={i.text}
                   className={cn(
                     "rounded-xl px-3 py-2 text-[13px]",
-                    i.level === "warn" ? "bg-pending text-pending-foreground" : "bg-secondary text-muted-foreground"
+                    i.level === "warn"
+                      ? "bg-pending text-pending-foreground"
+                      : "bg-secondary text-muted-foreground"
                   )}
                 >
                   {i.text}
@@ -625,17 +726,28 @@ export function InvoiceDialog({
 
           <div className="flex items-center justify-between gap-3 pt-2">
             {editing ? (
-              <Button type="button" variant="ghost" onClick={remove} disabled={submitting}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={remove}
+                disabled={submitting}
+              >
                 <Trash2 /> Supprimer
               </Button>
             ) : (
               <span className="text-[13px] tabular-nums text-muted-foreground">
-                {formatMoney(cents.total || cents.subtotal + cents.gst + cents.qst)}
+                {formatMoney(
+                  cents.total || cents.subtotal + cents.gst + cents.qst
+                )}
               </span>
             )}
             <Button type="submit" size="lg" disabled={submitting || reading}>
               {submitting && <Loader2 className="animate-spin" />}
-              {editing ? "Enregistrer" : personal ? "Ajouter" : "Classer la facture"}
+              {editing
+                ? "Enregistrer"
+                : personal
+                  ? "Ajouter"
+                  : "Classer la facture"}
             </Button>
           </div>
         </form>
