@@ -39,7 +39,13 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { projectIds = [], tags = [], links = [], ...fields } = parsed.data;
+  const {
+    projectIds = [],
+    tags = [],
+    tagIds = [],
+    links = [],
+    ...fields
+  } = parsed.data;
 
   try {
     const contact = await prisma.contact.create({
@@ -55,6 +61,7 @@ export async function POST(request: NextRequest) {
         image: fields.image || null,
         favorite: fields.favorite ?? false,
         tags,
+        labels: { connect: tagIds.map((id) => ({ id })) },
         notes: fields.notes || null,
         projects: { create: projectIds.map((projectId) => ({ projectId })) },
         links: { create: links.map((l, i) => ({ ...l, sortOrder: i })) },

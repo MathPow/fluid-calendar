@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
             { relationDetail: contains },
             { notes: contains },
             { tags: { has: tag } },
+            { labels: { some: { name: contains } } },
             { links: { some: { value: contains } } },
           ],
         },

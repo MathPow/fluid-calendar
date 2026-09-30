@@ -1015,6 +1015,7 @@ model Contact {
   image          String? // data URL (resized client-side) or https URL
   favorite       Boolean          @default(false)
   tags           String[]         @default([]) // private keywords for search ("tristan clientèle"…)
+  labels         ContactTag[] // official, reused tags ("Tristan leads"); see ContactTag
   notes          String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
@@ -1024,6 +1025,16 @@ model Contact {
   @@index([name])
   @@index([favorite])
   @@index([type])
+}
+
+// Official contact tags: a shared vocabulary picked from a list and used as a
+// filter (unlike Contact.tags, the free-form private keywords).
+model ContactTag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String? // one of the client tints, hex
+  createdAt DateTime  @default(now())
+  contacts  Contact[]
 }
 
 model ProjectContact {

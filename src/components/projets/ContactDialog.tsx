@@ -41,6 +41,7 @@ import type { ContactFull } from "@/lib/projets/queries";
 import { ImageField } from "./ImageField";
 import { type SocialLinkDraft, SocialLinksField } from "./social-links";
 import type { ProjectLite } from "./ProjectDialog";
+import { type ContactTagRow, ContactTagPicker } from "./ContactTags";
 
 interface ContactDialogProps {
   open: boolean;
@@ -71,6 +72,7 @@ export function ContactDialog({
   const [image, setImage] = useState<string | null>(null);
   const [favorite, setFavorite] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
+  const [labels, setLabels] = useState<ContactTagRow[]>([]);
   const [tagDraft, setTagDraft] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -91,6 +93,7 @@ export function ContactDialog({
     setImage(contact?.image ?? null);
     setFavorite(contact?.favorite ?? false);
     setTags(contact?.tags ?? []);
+    setLabels(contact?.labels ?? []);
     setTagDraft("");
     setEmail(contact?.email ?? "");
     setPhone(contact?.phone ?? "");
@@ -140,6 +143,7 @@ export function ContactDialog({
           image,
           favorite,
           tags: finalTags,
+          tagIds: labels.map((t) => t.id),
           email: email.trim() || null,
           phone: phone.trim() || null,
           links: links
@@ -341,6 +345,14 @@ export function ContactDialog({
           <div className="space-y-2">
             <Label>Réseaux</Label>
             <SocialLinksField links={links} onChange={setLinks} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="contact-labels">Tags</Label>
+            <ContactTagPicker value={labels} onChange={setLabels} />
+            <p className="text-[12px] text-muted-foreground">
+              Officiels et réutilisés : on les filtre dans Contacts.
+            </p>
           </div>
 
           <div className="space-y-3">

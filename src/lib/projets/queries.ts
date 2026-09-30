@@ -65,8 +65,11 @@ export type ProjectFull = Prisma.AgentProjectGetPayload<{
   include: typeof projectInclude;
 }>;
 
+export const contactTagSelect = { id: true, name: true, color: true } as const;
+
 export const contactInclude = {
   links: { orderBy: { sortOrder: "asc" } },
+  labels: { select: contactTagSelect, orderBy: { name: "asc" } },
   projects: {
     include: {
       project: { select: { id: true, name: true, slug: true, color: true } },

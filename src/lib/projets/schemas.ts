@@ -76,6 +76,8 @@ export const ContactInput = z.object({
   image,
   favorite: z.boolean().optional(),
   tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
+  /** Official tags (ContactTag ids). Replaces the whole set when present. */
+  tagIds: z.array(z.string().min(1)).max(50).optional(),
   notes: z.string().trim().max(4000).nullable().optional(),
   projectIds: z.array(z.string().min(1)).max(100).optional(),
   /** Replaces the whole list when present. */
@@ -91,6 +93,15 @@ export const ContactInput = z.object({
 });
 
 export type ContactInputType = z.infer<typeof ContactInput>;
+
+export const ContactTagInput = z.object({
+  name: z.string().trim().min(1, "Nom requis").max(40),
+  color: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i)
+    .nullable()
+    .optional(),
+});
 
 export const OrganisationInput = z.object({
   name: z.string().trim().min(1, "Nom requis").max(80),

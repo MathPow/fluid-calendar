@@ -3,13 +3,27 @@
 import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-import { AtSign, Building2, Pencil, Phone, Plus, Search, Star, Tag, User, X } from "lucide-react";
+import {
+  AtSign,
+  Building2,
+  Check,
+  Pencil,
+  Phone,
+  Plus,
+  Search,
+  Star,
+  Tag,
+  Tags,
+  User,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -26,6 +40,7 @@ import type { ContactFull } from "@/lib/projets/queries";
 import { useStationStore } from "@/store/station";
 
 import { ContactDialog } from "./ContactDialog";
+import { type ContactTagRow, ContactTagsManager, TagChip } from "./ContactTags";
 import { SocialLinkButtons } from "./social-links";
 import { ContactsSwitch } from "./ContactsSwitch";
 import { Avatar } from "./ImageField";
@@ -40,7 +55,8 @@ const ALL = "__all__";
 
 /**
  * The Contacts tab: people as tiles, searchable (name, company, relation,
- * private tags, notes…), filterable by favourite, relation and job. The
+ * tags and private keywords, notes…), filterable by favourite, official
+ * tags, relation and job. The
  * Perso / Client switch narrows to contacts attached to at least one project
  * of that station (unattached contacts always show).
  */
@@ -57,6 +73,14 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
   const [type, setType] = useState<"all" | "person" | "company">("all");
   const [relation, setRelation] = useState<string>(ALL);
   const [job, setJob] = useState<string>(ALL);
+  /** Official tags to filter on: a contact must carry all of them. */
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [manageTags, setManageTags] = useState(false);
+  const router = useRouter();
+  const toggleTag = (id: string) =>
+    setTagFilter((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   const [dialog, setDialog] = useState<{ open: boolean; contact?: ContactFull | null }>({
     open: false,
   });
@@ -79,6 +103,20 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
     return { relations: distinct((c) => c.relation), jobs: distinct((c) => c.role) };
   }, [contacts]);
 
+  // Official tags in use, most used first, with their counts.
+  const allTags = useMemo(() => {
+    const map = new Map<string, ContactTagRow & { count: number }>();
+    for (const c of contacts)
+      for (const t of c.labels) {
+        const row = map.get(t.id) ?? { ...t, count: 0 };
+        row.count++;
+        map.set(t.id, row);
+      }
+    return [...map.values()].sort(
+      (a, b) => b.count - a.count || a.name.localeCompare(b.name, "fr")
+    );
+  }, [contacts]);
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return contacts
@@ -87,6 +125,11 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
         if (type !== "all" && c.type !== type) return false;
         if (relation !== ALL && c.relation !== relation) return false;
         if (job !== ALL && c.role !== job) return false;
+        if (
+          tagFilter.length &&
+          !tagFilter.every((id) => c.labels.some((t) => t.id === id))
+        )
+          return false;
         if (currentStation !== "both" && c.projects.length > 0) {
           const inStation = c.projects.some(
             (p) => stationOf.get(p.projectId) === currentStation
@@ -105,6 +148,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
           ...c.links.map((l) => l.value),
           c.notes,
           ...c.tags,
+          ...c.labels.map((t) => t.name),
         ]
           .filter(Boolean)
           .some((v) => (v as string).toLowerCase().includes(q));
@@ -112,7 +156,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
       .sort(
         (a, b) => Number(b.favorite) - Number(a.favorite) || a.name.localeCompare(b.name, "fr")
       );
-  }, [contacts, currentStation, query, onlyFavorites, type, relation, job, stationOf]);
+  }, [contacts, currentStation, query, onlyFavorites, type, relation, job, tagFilter, stationOf]);
 
   const favoriteCount = contacts.filter((c) => c.favorite).length;
   const companyCount = contacts.filter((c) => c.type === "company").length;
@@ -121,7 +165,12 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
     [contacts]
   );
   const filtersActive =
-    onlyFavorites || type !== "all" || relation !== ALL || job !== ALL || query.trim() !== "";
+    onlyFavorites ||
+    type !== "all" ||
+    relation !== ALL ||
+    job !== ALL ||
+    tagFilter.length > 0 ||
+    query.trim() !== "";
 
   const toggleFavorite = async (c: ContactFull) => {
     const next = !c.favorite;
@@ -147,6 +196,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
     setType("all");
     setRelation(ALL);
     setJob(ALL);
+    setTagFilter([]);
   };
 
   return (
@@ -187,7 +237,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Nom, entreprise, mot-clé, note…"
+              placeholder="Nom, entreprise, tag, mot-clé, note…"
               className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
             />
           </div>
@@ -218,6 +268,84 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
             <Star className={cn("h-4 w-4", onlyFavorites && "fill-current")} />
             Favoris
           </button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-full px-4 text-[13px] font-medium transition-colors",
+                  tagFilter.length
+                    ? "bg-foreground text-background"
+                    : "bg-secondary text-foreground hover:bg-border/70"
+                )}
+              >
+                <Tags className="h-4 w-4" />
+                Tags
+                {tagFilter.length > 0 && (
+                  <span className="rounded-full bg-background/20 px-1.5 text-[11px] tabular-nums">
+                    {tagFilter.length}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-72 p-2">
+              {allTags.length === 0 ? (
+                <p className="px-2 py-3 text-[13px] text-muted-foreground">
+                  Aucun tag sur tes contacts.
+                </p>
+              ) : (
+                <ul className="max-h-72 overflow-y-auto">
+                  {allTags.map((t) => {
+                    const on = tagFilter.includes(t.id);
+                    return (
+                      <li key={t.id}>
+                        <button
+                          type="button"
+                          onClick={() => toggleTag(t.id)}
+                          aria-pressed={on}
+                          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] hover:bg-secondary"
+                        >
+                          <span
+                            className={cn(
+                              "flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border",
+                              on
+                                ? "border-foreground bg-foreground text-background"
+                                : "border-border"
+                            )}
+                          >
+                            {on && <Check className="h-3 w-3" />}
+                          </span>
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: t.color ?? "#d9d6d0" }}
+                          />
+                          <span className="flex-1 truncate font-medium">{t.name}</span>
+                          <span className="text-[12px] tabular-nums text-muted-foreground">
+                            {t.count}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {tagFilter.length > 1 && (
+                <p className="px-2.5 pt-1 text-[11px] text-muted-foreground">
+                  Contacts qui ont tous les tags cochés.
+                </p>
+              )}
+              <div className="mt-1 border-t border-border pt-1">
+                <button
+                  type="button"
+                  onClick={() => setManageTags(true)}
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Gérer les tags
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
 
           <Select value={relation} onValueChange={setRelation}>
             <SelectTrigger
@@ -339,6 +467,19 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                   </div>
                 </div>
 
+                {c.labels.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {c.labels.map((t) => (
+                      <TagChip
+                        key={t.id}
+                        tag={t}
+                        active={tagFilter.includes(t.id)}
+                        onClick={() => toggleTag(t.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+
                 {(c.relation || c.relationDetail || c.tags.length > 0) && (
                   <div className="mt-4 flex flex-wrap items-center gap-1.5">
                     {!c.relation && c.relationDetail && (
@@ -434,6 +575,11 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
         </>
       )}
 
+      <ContactTagsManager
+        open={manageTags}
+        onOpenChange={setManageTags}
+        onChanged={() => router.refresh()}
+      />
       <ContactDialog
         open={dialog.open}
         onOpenChange={(open) => setDialog((d) => ({ ...d, open }))}
