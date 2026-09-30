@@ -23,7 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-import { ProjectPicker } from "@/components/projects/ProjectPicker";
+import { OrgProjectPicker } from "@/components/projects/ProjectPicker";
 
 import { StepsEditor } from "./components/StepsEditor";
 
@@ -450,8 +450,7 @@ export function TaskModal({
           </div>
 
           <div>
-            <Label htmlFor="project">Project</Label>
-            <ProjectPicker id="project" value={projectId} onChange={setProjectId} />
+            <OrgProjectPicker id="project" value={projectId} onChange={setProjectId} />
           </div>
 
           <div>

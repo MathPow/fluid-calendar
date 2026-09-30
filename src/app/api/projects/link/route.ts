@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
-  const [projets, lists] = await Promise.all([
+  const [projets, lists, organisations] = await Promise.all([
     prisma.agentProject.findMany({
       where: { archived: false },
       select: {
@@ -53,9 +53,14 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { name: "asc" },
     }),
+    prisma.organisation.findMany({
+      select: { id: true, name: true, color: true, kind: true, isDefault: true, sortOrder: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
   ]);
 
   return NextResponse.json({
+    organisations,
     projets: projets.map((p) => ({
       id: p.id,
       slug: p.slug,

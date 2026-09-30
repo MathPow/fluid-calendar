@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { toast } from "sonner";
 
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -15,9 +16,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { isOrgOwnList } from "@/lib/projets/group-task-projects";
+
 import { useProjectStore } from "@/store/project";
 
 export interface LinkOptions {
+  organisations?: {
+    id: string;
+    name: string;
+    color: string | null;
+    kind: string;
+    isDefault: boolean;
+    sortOrder: number;
+  }[];
   projets: {
     id: string;
     slug: string;
@@ -212,5 +223,156 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         )}
       </SelectContent>
     </Select>
+  );
+}
+
+const ORG_ONLY = "__org_only__";
+
+/**
+ * A task's organisation, then (optionally) one of its projects. Picking an
+ * organisation alone files the task in the organisation's own list, created
+ * on the spot if it doesn't exist yet; the project field opens once an
+ * organisation is chosen.
+ */
+export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
+  const { fetchProjects } = useProjectStore();
+  const { options, reload } = useLinkOptions();
+  const [busy, setBusy] = useState(false);
+  const [pickedOrg, setPickedOrg] = useState<string | null>(null);
+
+  const orgs = useMemo(() => options?.organisations ?? [], [options]);
+  const defaultOrg = orgs.find((o) => o.isDefault);
+  const orgOfProjet = useCallback(
+    (p: LinkOptions["projets"][number]) => p.organisation?.id ?? defaultOrg?.id ?? null,
+    [defaultOrg]
+  );
+
+  // Where the current list sits: its organisation, and whether it is the
+  // organisation's own list (« organisation seulement »).
+  const current = useMemo(() => {
+    if (!value || !options) return { orgId: null as string | null, own: false };
+    const projet = options.projets.find((p) => p.taskProjectId === value);
+    if (projet) return { orgId: orgOfProjet(projet), own: false };
+    const list = options.lists.find((l) => l.id === value);
+    if (list?.organisation) {
+      const org = orgs.find((o) => o.id === list.organisation!.id);
+      return { orgId: list.organisation.id, own: isOrgOwnList(list.name, org) };
+    }
+    return { orgId: null, own: false };
+  }, [value, options, orgs, orgOfProjet]);
+
+  const orgId = pickedOrg ?? current.orgId;
+  useEffect(() => setPickedOrg(null), [value]);
+
+  // The chosen organisation's projects: Projets projects (with or without a
+  // task list yet) and its other lists (a synced board…).
+  const projects = useMemo(() => {
+    if (!options || !orgId) return [];
+    const org = orgs.find((o) => o.id === orgId);
+    const fromProjets = options.projets
+      .filter((p) => orgOfProjet(p) === orgId)
+      .map((p) => ({ key: p.taskProjectId ?? `${AGENT}${p.id}`, name: p.name, color: p.color, sub: !!p.parentId }));
+    const fromLists = options.lists
+      .filter((l) => l.organisation?.id === orgId && !isOrgOwnList(l.name, org))
+      .map((l) => ({ key: l.id, name: l.name, color: l.color, sub: false }));
+    return [...fromProjets, ...fromLists];
+  }, [options, orgId, orgs, orgOfProjet]);
+
+  const ownListOf = async (id: string): Promise<string> => {
+    const org = orgs.find((o) => o.id === id);
+    const existing = options?.lists.find((l) => l.organisation?.id === id && isOrgOwnList(l.name, org));
+    if (existing) return existing.id;
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: org?.name ?? "Organisation", organisationId: id, color: org?.color ?? undefined }),
+    });
+    if (!res.ok) throw new Error(`Erreur ${res.status}`);
+    const list = (await res.json()) as { id: string };
+    await Promise.all([fetchProjects(), reload()]);
+    return list.id;
+  };
+
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+    } catch (e) {
+      toast.error("Impossible de classer la tâche", { description: e instanceof Error ? e.message : undefined });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickOrg = (v: string) =>
+    run(async () => {
+      if (v === NONE) {
+        setPickedOrg(null);
+        return onChange(null);
+      }
+      setPickedOrg(v);
+      onChange(await ownListOf(v));
+    });
+
+  const pickProject = (v: string) =>
+    run(async () => {
+      if (!orgId) return;
+      if (v === ORG_ONLY) return onChange(await ownListOf(orgId));
+      if (!v.startsWith(AGENT)) return onChange(v);
+      const res = await fetch("/api/projects/link", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ agentProjectId: v.slice(AGENT.length) }),
+      });
+      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      const list = (await res.json()) as { id: string };
+      await Promise.all([fetchProjects(), reload()]);
+      onChange(list.id);
+    });
+
+  const projectValue = !value || current.own || current.orgId !== orgId ? ORG_ONLY : value;
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-1.5">
+        <Label htmlFor={id}>Organisation</Label>
+        <Select value={orgId ?? NONE} onValueChange={pickOrg} disabled={busy}>
+          <SelectTrigger id={id}>
+            <SelectValue placeholder="Aucune" />
+          </SelectTrigger>
+          <SelectContent className="max-h-80">
+            <SelectItem value={NONE}>Aucune</SelectItem>
+            {orgs.map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: o.color ?? "#d9d4cc" }} />
+                  {o.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Projet</Label>
+        <Select value={projectValue} onValueChange={pickProject} disabled={busy || !orgId}>
+          <SelectTrigger>
+            <SelectValue placeholder={orgId ? "Organisation seulement" : "Choisis d'abord l'organisation"} />
+          </SelectTrigger>
+          <SelectContent className="max-h-80">
+            <SelectItem value={ORG_ONLY}>Organisation seulement</SelectItem>
+            {projects.map((p) => (
+              <SelectItem key={p.key} value={p.key}>
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: p.color ?? "#a8ccff" }} />
+                  {p.sub && <span className="text-muted-foreground">↳</span>}
+                  {p.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   );
 }

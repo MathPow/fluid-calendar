@@ -18,10 +18,16 @@ const fold = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 const PERSONAL_NAMES = new Set(["personal", "perso", "personnel", "personnelle"]);
 
-function isGeneral(project: Project, org: { name: string; kind?: string } | null | undefined) {
-  if (!org || project.agentProject) return false;
-  const name = fold(project.name);
+/** Is a list (not linked to a Projets project) its organisation's own list? */
+export function isOrgOwnList(listName: string, org: { name: string; kind?: string } | null | undefined) {
+  if (!org) return false;
+  const name = fold(listName);
   return name === fold(org.name) || (org.kind === "perso" && PERSONAL_NAMES.has(name));
+}
+
+function isGeneral(project: Project, org: { name: string; kind?: string } | null | undefined) {
+  if (project.agentProject) return false;
+  return isOrgOwnList(project.name, org);
 }
 
 /**
