@@ -5,7 +5,7 @@ import { FieldMapping } from "../types";
 
 /**
  * Trello cards ↔ tasks. The provider already reduces a card's list, archive
- * flag and dueComplete into "TODO" | "IN_PROGRESS" | "COMPLETED", so this
+ * flag and dueComplete into "BACKLOG" | "TODO" | "IN_PROGRESS" | "COMPLETED", so this
  * mapper only translates between those and TaskStatus.
  */
 export class TrelloFieldMapper extends FieldMapper {
@@ -19,6 +19,7 @@ export class TrelloFieldMapper extends FieldMapper {
           const status = value as TaskStatus | null | undefined;
           if (status === TaskStatus.COMPLETED) return "COMPLETED";
           if (status === TaskStatus.IN_PROGRESS) return "IN_PROGRESS";
+          if (status === TaskStatus.BACKLOG) return "BACKLOG";
           return "TODO";
         },
         transformToInternal: (value: unknown) => {
@@ -27,6 +28,8 @@ export class TrelloFieldMapper extends FieldMapper {
               return TaskStatus.COMPLETED;
             case "IN_PROGRESS":
               return TaskStatus.IN_PROGRESS;
+            case "BACKLOG":
+              return TaskStatus.BACKLOG;
             default:
               return TaskStatus.TODO;
           }

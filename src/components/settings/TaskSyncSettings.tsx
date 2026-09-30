@@ -233,9 +233,9 @@ export function TaskSyncSettings() {
 
       setProviders(enrichedProviders);
 
-      // Auto-select the first provider if available
+      // Open on the connection added last: the one being set up.
       if (enrichedProviders.length > 0 && !selectedProvider) {
-        setSelectedProvider(enrichedProviders[0]);
+        setSelectedProvider(enrichedProviders[enrichedProviders.length - 1]);
       }
     } catch (error) {
       setError("Failed to load task providers");
@@ -322,13 +322,18 @@ export function TaskSyncSettings() {
         `/api/task-sync/providers/${providerId}/lists`
       );
       if (!response.ok) {
-        throw new Error("Failed to fetch task lists");
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.reason || "Failed to load task lists");
       }
 
       const data = await response.json();
       setTaskLists(data);
     } catch (error) {
-      setError("Failed to load task lists");
+      // Never leave the boards of another connection on screen.
+      setTaskLists([]);
+      setError(
+        error instanceof Error ? error.message : "Failed to load task lists"
+      );
       logger.error(
         "Failed to fetch task lists",
         {

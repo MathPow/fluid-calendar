@@ -23,16 +23,16 @@ import { prisma } from "@/lib/prisma";
 import { TaskStatus } from "@/types/task";
 
 import { FieldMapper } from "./field-mapper";
-import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
-import { GoogleFieldMapper } from "./providers/google-field-mapper";
 import { GitHubFieldMapper } from "./providers/github-field-mapper";
-import { TrelloFieldMapper } from "./providers/trello-field-mapper";
+import { GoogleFieldMapper } from "./providers/google-field-mapper";
+import { OutlookFieldMapper } from "./providers/outlook-field-mapper";
 // Import provider implementations
 import { OutlookTaskProvider } from "./providers/outlook-provider";
 import {
   ExternalTask,
   TaskProviderInterface,
 } from "./providers/task-provider.interface";
+import { TrelloFieldMapper } from "./providers/trello-field-mapper";
 import { TaskChangeTracker } from "./task-change-tracker";
 import { SyncResult, TaskWithSync } from "./types";
 
@@ -102,14 +102,23 @@ export class TaskSyncManager {
         return new OutlookTaskProvider(client, dbProvider.accountId);
       case "GOOGLE":
         if (!dbProvider.accountId || !dbProvider.account?.userId) {
-          throw new Error(`Missing account information for Google provider ${providerId}`);
+          throw new Error(
+            `Missing account information for Google provider ${providerId}`
+          );
         }
         // Lazy import to avoid increasing startup cost
         const { getGoogleTasksClient, GoogleTaskProvider } = await import(
           "@/lib/task-sync/providers/google-provider"
         );
-        const googleClient = await getGoogleTasksClient(dbProvider.accountId, dbProvider.account.userId);
-        return new GoogleTaskProvider(googleClient, dbProvider.accountId, dbProvider.account.userId);
+        const googleClient = await getGoogleTasksClient(
+          dbProvider.accountId,
+          dbProvider.account.userId
+        );
+        return new GoogleTaskProvider(
+          googleClient,
+          dbProvider.accountId,
+          dbProvider.account.userId
+        );
       case "GITHUB": {
         const { createGitHubProvider } = await import(
           "@/lib/task-sync/providers/github-provider"
@@ -899,6 +908,13 @@ export class TaskSyncManager {
       mapping.projectId
     );
 
+    // Has the task changed here since the last sync? Timestamps can't tell:
+    // every sync writes to the task, which makes it look freshly edited.
+    const tracker = new TaskChangeTracker();
+    const changedHere =
+      !localTask.syncHash ||
+      tracker.generateTaskHash(localTask) !== localTask.syncHash;
+
     // Compare timestamps to decide which version to use
     if (
       !localTask.externalUpdatedAt ||
@@ -926,10 +942,17 @@ export class TaskSyncManager {
           externalUpdatedAt: externalUpdatedAt,
           lastSyncedAt: newDate(),
           syncStatus: "SYNCED",
-          syncHash: new TaskChangeTracker().generateTaskHash(localTask),
+          // The hash of what the task is now, so it doesn't look edited here.
+          syncHash: tracker.generateTaskHash({
+            ...localTask,
+            ...updateData,
+          } as Parameters<TaskChangeTracker["generateTaskHash"]>[0]),
         },
       });
-    } else if (localUpdatedAt > (localTask.externalUpdatedAt || new Date(0))) {
+    } else if (
+      changedHere &&
+      localUpdatedAt > (localTask.externalUpdatedAt || new Date(0))
+    ) {
       // Local is newer - update external with local data
       logger.debug(
         `Local task ${localTask.id} is newer, updating external task`,

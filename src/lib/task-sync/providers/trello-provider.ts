@@ -58,7 +58,7 @@ interface TrelloCard {
 }
 
 /** Status values exchanged with the field mapper (not Trello's own vocabulary). */
-export type TrelloStatus = "TODO" | "IN_PROGRESS" | "COMPLETED";
+export type TrelloStatus = "BACKLOG" | "TODO" | "IN_PROGRESS" | "COMPLETED";
 
 const CARD_FIELDS =
   "id,name,desc,due,dueComplete,closed,idList,idBoard,url,shortUrl,dateLastActivity,labels";
@@ -69,8 +69,19 @@ const CARD_FIELDS =
  */
 export function classifyListName(name: string): TrelloStatus {
   const n = name.trim().toLowerCase();
-  if (/\b(done|termin|complet|fini|closed|ship|livr|archiv)/.test(n)) return "COMPLETED";
-  if (/\b(doing|in progress|en cours|wip|progress|review|test|qa)\b/.test(n)) return "IN_PROGRESS";
+  if (/\b(done|termin|complet|fini|closed|ship|livr|archiv)/.test(n))
+    return "COMPLETED";
+  if (/\b(doing|in progress|en cours|wip|progress|review|test|qa)\b/.test(n))
+    return "IN_PROGRESS";
+  // Started but waiting on someone: blocked, to validate, to approve.
+  if (/\b(block|bloqu|valid|approuv|approv|révis|revis)/.test(n))
+    return "IN_PROGRESS";
+  if (
+    /\b(backlog|icebox|someday|later|plus tard|un jour|idées|idees|ideas)/.test(
+      n
+    )
+  )
+    return "BACKLOG";
   return "TODO";
 }
 
@@ -145,7 +156,9 @@ export class TrelloTaskProvider implements TaskProviderInterface {
 
   /** Who the token belongs to — used by the connect route for display. */
   async whoAmI(): Promise<{ id: string; username: string; fullName: string }> {
-    return this.api("/members/me", { query: { fields: "id,username,fullName" } });
+    return this.api("/members/me", {
+      query: { fields: "id,username,fullName" },
+    });
   }
 
   async getTaskLists(): Promise<ExternalTaskList[]> {
@@ -179,10 +192,15 @@ export class TrelloTaskProvider implements TaskProviderInterface {
   ): Promise<TrelloList | undefined> {
     const lists = await this.boardLists(boardId);
     if (lists.length === 0) return undefined;
-    const exact = lists.find((l) => classifyListName(l.name) === status);
+    const of = (s: TrelloStatus) =>
+      lists.find((l) => classifyListName(l.name) === s);
+    const exact = of(status);
     if (exact) return exact;
-    // No matching column: new work goes in the first list, everything else stays put.
-    return status === "TODO" ? lists[0] : undefined;
+    // No matching column: new work goes with the to-dos (or the backlog, or
+    // the first list); everything else stays put.
+    if (status === "TODO") return of("BACKLOG") ?? lists[0];
+    if (status === "BACKLOG") return of("TODO") ?? lists[0];
+    return undefined;
   }
 
   private cardStatus(card: TrelloCard, lists: TrelloList[]): TrelloStatus {
@@ -191,7 +209,11 @@ export class TrelloTaskProvider implements TaskProviderInterface {
     return list ? classifyListName(list.name) : "TODO";
   }
 
-  private cardToExternalTask(card: TrelloCard, boardId: string, lists: TrelloList[]): ExternalTask {
+  private cardToExternalTask(
+    card: TrelloCard,
+    boardId: string,
+    lists: TrelloList[]
+  ): ExternalTask {
     const status = this.cardStatus(card, lists);
     return {
       id: card.id,
@@ -202,12 +224,16 @@ export class TrelloTaskProvider implements TaskProviderInterface {
       url: card.shortUrl || card.url,
       dueDate: card.due ? new Date(card.due) : null,
       lastModified: new Date(card.dateLastActivity),
-      completedDate: status === "COMPLETED" ? new Date(card.dateLastActivity) : null,
+      completedDate:
+        status === "COMPLETED" ? new Date(card.dateLastActivity) : null,
       tags: (card.labels ?? []).map((l) => l.name).filter(Boolean),
     };
   }
 
-  async getTasks(boardId: string, options?: SyncOptions): Promise<ExternalTask[]> {
+  async getTasks(
+    boardId: string,
+    options?: SyncOptions
+  ): Promise<ExternalTask[]> {
     const [cards, lists] = await Promise.all([
       this.api<TrelloCard[]>(`/boards/${boardId}/cards`, {
         query: { filter: "open", fields: CARD_FIELDS },
@@ -217,10 +243,14 @@ export class TrelloTaskProvider implements TaskProviderInterface {
 
     return cards
       .filter((card) => {
-        if (options?.since && new Date(card.dateLastActivity) < options.since) return false;
+        if (options?.since && new Date(card.dateLastActivity) < options.since)
+          return false;
         // Like the Google provider: completed cards come back by default so a
         // card moved to Done flips the local task to completed on the next sync.
-        if (options?.includeCompleted === false && this.cardStatus(card, lists) === "COMPLETED")
+        if (
+          options?.includeCompleted === false &&
+          this.cardStatus(card, lists) === "COMPLETED"
+        )
           return false;
         return true;
       })
@@ -245,7 +275,8 @@ export class TrelloTaskProvider implements TaskProviderInterface {
   async createTask(boardId: string, task: TaskToCreate): Promise<ExternalTask> {
     const status = (task.status as TrelloStatus | null | undefined) ?? "TODO";
     const target =
-      (await this.listForStatus(boardId, status)) ?? (await this.boardLists(boardId))[0];
+      (await this.listForStatus(boardId, status)) ??
+      (await this.boardLists(boardId))[0];
     if (!target) {
       throw new Error("This Trello board has no open list to put cards in.");
     }
@@ -260,36 +291,92 @@ export class TrelloTaskProvider implements TaskProviderInterface {
         dueComplete: status === "COMPLETED",
       },
     });
-    return this.cardToExternalTask(card, boardId, await this.boardLists(boardId));
+    return this.cardToExternalTask(
+      card,
+      boardId,
+      await this.boardLists(boardId)
+    );
   }
 
-  async updateTask(boardId: string, cardId: string, updates: TaskUpdates): Promise<ExternalTask> {
+  /**
+   * Writes only what differs from the card as it is now, and never moves a
+   * card whose column already says the same thing as the task's status: a
+   * board with several to-do columns (« Prêt », « À prioriser »…) keeps its
+   * cards where people put them.
+   */
+  async updateTask(
+    boardId: string,
+    cardId: string,
+    updates: TaskUpdates
+  ): Promise<ExternalTask> {
+    const [card, lists] = await Promise.all([
+      this.api<TrelloCard>(`/cards/${cardId}`, {
+        query: { fields: CARD_FIELDS },
+      }),
+      this.boardLists(boardId),
+    ]);
+
     const body: Record<string, unknown> = {};
-    if (updates.title !== undefined) body.name = updates.title;
-    if (updates.description !== undefined) body.desc = updates.description ?? "";
+    if (updates.title !== undefined && updates.title !== card.name) {
+      body.name = updates.title;
+    }
+    if (
+      updates.description !== undefined &&
+      (updates.description ?? "") !== (card.desc ?? "")
+    ) {
+      body.desc = updates.description ?? "";
+    }
     if (updates.dueDate !== undefined) {
-      body.due = updates.dueDate ? new Date(updates.dueDate).toISOString() : null;
+      const next = updates.dueDate ? new Date(updates.dueDate).getTime() : null;
+      const current = card.due ? new Date(card.due).getTime() : null;
+      if (next !== current) {
+        body.due = next === null ? null : new Date(next).toISOString();
+      }
     }
     if (updates.status !== undefined && updates.status !== null) {
       const status = updates.status as TrelloStatus;
-      body.dueComplete = status === "COMPLETED";
-      const list = await this.listForStatus(boardId, status);
-      if (list) body.idList = list.id;
+      const kinds = new Set(lists.map((l) => classifyListName(l.name)));
+      // A board without a backlog column keeps its backlog with the to-dos,
+      // and the other way around.
+      const same = (a: TrelloStatus, b: TrelloStatus) =>
+        a === b ||
+        (a === "BACKLOG" && b === "TODO" && !kinds.has("BACKLOG")) ||
+        (a === "TODO" && b === "BACKLOG" && !kinds.has("TODO"));
+
+      if (!same(status, this.cardStatus(card, lists))) {
+        const complete = status === "COMPLETED";
+        if (complete !== card.dueComplete) body.dueComplete = complete;
+
+        const column = lists.find((l) => l.id === card.idList);
+        if (!column || !same(status, classifyListName(column.name))) {
+          const target = await this.listForStatus(boardId, status);
+          if (target && target.id !== card.idList) body.idList = target.id;
+        }
+      }
     }
 
-    const card =
-      Object.keys(body).length > 0
-        ? await this.api<TrelloCard>(`/cards/${cardId}`, { method: "PUT", body })
-        : await this.api<TrelloCard>(`/cards/${cardId}`, { query: { fields: CARD_FIELDS } });
-    return this.cardToExternalTask(card, boardId, await this.boardLists(boardId));
+    if (Object.keys(body).length === 0) {
+      return this.cardToExternalTask(card, boardId, lists);
+    }
+    const updated = await this.api<TrelloCard>(`/cards/${cardId}`, {
+      method: "PUT",
+      body,
+    });
+    return this.cardToExternalTask(updated, boardId, lists);
   }
 
   /** Archive rather than destroy — nothing on a shared board should vanish. */
   async deleteTask(_boardId: string, cardId: string): Promise<void> {
-    await this.api(`/cards/${cardId}`, { method: "PUT", body: { closed: true } });
+    await this.api(`/cards/${cardId}`, {
+      method: "PUT",
+      body: { closed: true },
+    });
   }
 
-  mapToInternalTask(externalTask: ExternalTask, projectId: string): Partial<Task> {
+  mapToInternalTask(
+    externalTask: ExternalTask,
+    projectId: string
+  ): Partial<Task> {
     return this.fieldMapper.mapToInternalTask(externalTask, projectId);
   }
 
@@ -301,7 +388,9 @@ export class TrelloTaskProvider implements TaskProviderInterface {
 export function createTrelloProvider(settings: unknown): TrelloTaskProvider {
   const s = settings as TrelloSettings;
   if (!s?.key || !s?.token) {
-    throw new Error("Trello provider requires an API key and a token in settings");
+    throw new Error(
+      "Trello provider requires an API key and a token in settings"
+    );
   }
   return new TrelloTaskProvider(s);
 }

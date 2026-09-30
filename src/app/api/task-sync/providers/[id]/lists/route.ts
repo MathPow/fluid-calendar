@@ -140,9 +140,18 @@ export async function GET(
       LOG_SOURCE
     );
 
+    // Say why, in words the settings screen can show.
+    const message = error instanceof Error ? error.message : String(error);
+    const refused =
+      /\b(401|403)\b|unauthor|forbidden|invalid (key|token)/i.test(message);
     return NextResponse.json(
-      { error: "Failed to get task lists" },
-      { status: 500 }
+      {
+        error: "Failed to get task lists",
+        reason: refused
+          ? "This account refused the saved key or token: it has expired or was revoked. Delete this connection and connect it again with a new one."
+          : "The service could not be reached. Try again in a moment.",
+      },
+      { status: refused ? 502 : 500 }
     );
   }
 }
