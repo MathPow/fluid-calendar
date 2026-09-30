@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   AppWindow,
+  CalendarClock,
   Clipboard,
   Code2,
   ExternalLink,
@@ -31,11 +32,17 @@ import {
   agentOnline,
   describeCommand,
 } from "@/lib/desktop-actions";
+import { type LauncherKind, isPromptKind } from "@/lib/launchers";
 import { timeAgoFr } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
 import { ICON_FOR_ACTION } from "../launchers/LauncherIcon";
-import { reloadLaunchers } from "../launchers/useLaunchers";
+import { KIND_LABELS, scheduleLabel } from "../launchers/LaunchersDialog";
+import {
+  reloadLaunchers,
+  useLauncherStore,
+  useLaunchers,
+} from "../launchers/useLaunchers";
 
 type CommandRow = {
   id: string;
@@ -128,6 +135,25 @@ export function DesktopCommandsDialog({
   const [shell, setShell] = useState("");
   const [sending, setSending] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const { items: launchers } = useLaunchers();
+
+  // Machine actions (scheduled Claude/Codex prompts) still to fire here —
+  // one-shots drop out once run, recurring ones stay with their next date.
+  const upcoming = useMemo(
+    () =>
+      machine
+        ? launchers
+            .filter(
+              (l) =>
+                l.machine?.id === machine.id &&
+                isPromptKind(l.kind) &&
+                l.scheduledFor &&
+                (!l.lastRunAt || l.lastRunAt < l.scheduledFor)
+            )
+            .sort((a, b) => a.scheduledFor!.localeCompare(b.scheduledFor!))
+        : [],
+    [launchers, machine]
+  );
 
   const load = useCallback(async () => {
     if (!machine) return;
@@ -144,6 +170,7 @@ export function DesktopCommandsDialog({
     setShell("");
     if (!machine) return;
     load();
+    reloadLaunchers();
     const id = window.setInterval(load, 2000);
     return () => window.clearInterval(id);
   }, [machine, load]);
@@ -357,6 +384,54 @@ export function DesktopCommandsDialog({
               </p>
             </form>
           </>
+        )}
+
+        {upcoming.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="etiquette flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5" /> Prochains prompts sur
+                cette machine
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  useLauncherStore.getState().set({ manageOpen: true });
+                }}
+                className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                Gérer
+              </button>
+            </div>
+            <ul className="mt-2 space-y-1.5">
+              {upcoming.map((l) => (
+                <li key={l.id} className="rounded-xl bg-secondary/50 px-3 py-2">
+                  <div className="flex items-center gap-2 text-[13px]">
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {l.label}
+                    </span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      {KIND_LABELS[l.kind as LauncherKind] ?? l.kind}
+                    </span>
+                    <span className="shrink-0 text-[12px] font-semibold">
+                      {scheduleLabel(l.scheduledFor!, l.recurrence)}
+                    </span>
+                  </div>
+                  {l.promptText && (
+                    <p className="mt-1 line-clamp-2 text-[12px] text-muted-foreground">
+                      {l.promptText}
+                    </p>
+                  )}
+                  {l.lastError && (
+                    <p className="mt-1 text-[12px] text-negative-foreground">
+                      Dernier run : {l.lastError}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {data && data.commands.length > 0 && (

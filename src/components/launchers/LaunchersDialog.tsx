@@ -127,7 +127,7 @@ const FIELDS: Record<
   agent_run: [],
 };
 
-const KIND_LABELS: Record<LauncherKind, string> = {
+export const KIND_LABELS: Record<LauncherKind, string> = {
   shell: "Commande shell",
   "claude-prompt": "Prompt Claude",
   "codex-prompt": "Prompt Codex",
@@ -196,7 +196,7 @@ function blank(kind: LauncherKind, machineId = ""): Form {
   };
 }
 
-function scheduleLabel(scheduledFor: string, recurrence: string | null) {
+export function scheduleLabel(scheduledFor: string, recurrence: string | null) {
   const d = new Date(scheduledFor);
   const when = d.toLocaleString("fr-CA", {
     dateStyle: "medium",
