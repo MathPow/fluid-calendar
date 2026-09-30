@@ -191,14 +191,15 @@ export function ContactDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
+      <DialogContent className="flex flex-col gap-0 overflow-y-hidden p-0 md:p-0 max-w-xl">
+        <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 md:px-8 md:pt-8">
           <DialogTitle>{editing ? "Modifier le contact" : "Nouveau contact"}</DialogTitle>
           <DialogDescription>
             Une personne ou une entreprise — rattachable à plusieurs projets.
           </DialogDescription>
         </DialogHeader>
 
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6 md:px-8 md:pb-8">
         <div className="segmented w-fit">
           {CONTACT_TYPES.map((t) => (
             <button
@@ -214,6 +215,7 @@ export function ContactDialog({
         </div>
 
         <form
+          id="contact-form"
           className="space-y-6"
           onSubmit={(e) => {
             e.preventDefault();
@@ -453,32 +455,34 @@ export function ContactDialog({
             )}
           </div>
 
-          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:-mx-8 md:-mb-8 md:px-8 sm:flex-row sm:items-center">
-            {editing && (
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-negative-foreground hover:bg-negative hover:text-negative-foreground sm:mr-auto"
-                onClick={remove}
-                disabled={submitting}
-              >
-                <Trash2 /> Supprimer
-              </Button>
-            )}
+        </form>
+        </div>
+
+        <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:px-8 sm:flex-row sm:items-center">
+          {editing && (
             <Button
               type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
+              variant="ghost"
+              className="text-negative-foreground hover:bg-negative hover:text-negative-foreground sm:mr-auto"
+              onClick={remove}
               disabled={submitting}
-              className="sm:ml-auto"
             >
-              Annuler
+              <Trash2 /> Supprimer
             </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Enregistrement…" : editing ? "Enregistrer" : "Créer le contact"}
-            </Button>
-          </div>
-        </form>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+            className="sm:ml-auto"
+          >
+            Annuler
+          </Button>
+          <Button type="submit" form="contact-form" disabled={submitting}>
+            {submitting ? "Enregistrement…" : editing ? "Enregistrer" : "Créer le contact"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
