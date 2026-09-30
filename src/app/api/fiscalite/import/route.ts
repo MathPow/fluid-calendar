@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
-import { parseWorkbook } from "@/lib/fiscalite/excel";
+import { isGenericParty, looksLikeCsv, parseBankCsv } from "@/lib/fiscalite/bank-csv";
+import { type ParsedWorkbook, parseWorkbook } from "@/lib/fiscalite/excel";
 import { planInvoices, planMovements } from "@/lib/fiscalite/import-plan";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -12,9 +13,12 @@ export const dynamic = "force-dynamic";
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
 const at = (s: string) => new Date(`${s}T00:00:00Z`);
+// "TIM HORTONS #1234" and "Tim Hortons #987" are the same merchant.
+const partyKey = (s: string) => s.toLowerCase().replace(/[#*]?\d{3,}/g, "").replace(/\s+/g, " ").trim();
 
 /**
- * POST /api/fiscalite/import — multipart `file` (.xlsx), `organisationId`,
+ * POST /api/fiscalite/import — multipart `file` (.xlsx, or a bank .csv),
+ * `organisationId`,
  * `apply` ("1" to write; otherwise a dry run that only returns the plan).
  */
 export async function POST(request: NextRequest) {
@@ -36,26 +40,61 @@ export async function POST(request: NextRequest) {
   if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
   const personal = org.taxProfile?.legalForm === "personnel";
 
-  let parsed;
+  const csv = looksLikeCsv(file.name, file.type);
+  let parsed: ParsedWorkbook;
+  let otherAccounts: string[] = [];
   try {
-    parsed = await parseWorkbook(await file.arrayBuffer(), personal);
+    if (csv) {
+      const bank = parseBankCsv(await file.text(), file.name);
+      parsed = {
+        organisation: null,
+        year: null,
+        invoices: bank.invoices,
+        movements: [],
+        partners: [],
+        skipped: bank.skipped,
+      };
+      otherAccounts = bank.otherAccounts;
+    } else {
+      parsed = await parseWorkbook(await file.arrayBuffer(), personal);
+    }
   } catch (error) {
     logger.warn(
       "Unreadable workbook",
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Classeur illisible (.xlsx attendu)" }, { status: 400 });
+    return NextResponse.json(
+      { error: csv ? "CSV illisible" : "Classeur illisible (.xlsx attendu)" },
+      { status: 400 }
+    );
   }
 
   const [invoices, movements] = await Promise.all([
     prisma.invoice.findMany({ where: { organisationId } }),
     prisma.partnerMovement.findMany({ where: { organisationId } }),
   ]);
+  if (csv) {
+    // A merchant already classified keeps its category.
+    const learned = new Map<string, string>();
+    for (const i of [...invoices].sort((a, b) => a.date.getTime() - b.date.getTime())) {
+      if (i.party && i.category && !isGenericParty(i.party)) learned.set(`${i.direction}|${partyKey(i.party)}`, i.category);
+    }
+    for (const r of parsed.invoices) {
+      const hit = r.party && learned.get(`${r.direction}|${partyKey(r.party)}`);
+      if (hit) r.category = hit;
+    }
+  }
   const invPlan = planInvoices(
     parsed.invoices,
     invoices.map((i) => ({ ...i, date: ymd(i.date) }))
   );
+  // A bank line only adds what's missing: a transaction already here keeps
+  // whatever was edited on it (category, name, notes).
+  if (csv) {
+    invPlan.same += invPlan.update.length;
+    invPlan.update = [];
+  }
   const movPlan = planMovements(
     parsed.movements,
     movements.map((m) => ({ ...m, date: ymd(m.date) }))
@@ -74,18 +113,21 @@ export async function POST(request: NextRequest) {
       update: invPlan.update.length,
       same: invPlan.same,
       preview: [...invPlan.create.map((r) => ({ ...r, action: "create" as const })), ...invPlan.update.map((u) => ({ ...u.row, action: "update" as const }))]
-        .slice(0, 12)
+        // Every line, so a bank import can be checked row by row.
+        .slice(0, 2000)
         .map((r) => ({
           action: r.action,
           direction: r.direction,
           date: r.date,
           party: r.party ?? null,
+          category: r.category ?? null,
           totalCents: r.totalCents,
         })),
     },
     movements: { create: movPlan.create.length, same: movPlan.same },
     newPartners,
     skipped: parsed.skipped,
+    otherAccounts,
   };
   if (!apply) return NextResponse.json({ ...summary, applied: false });
 

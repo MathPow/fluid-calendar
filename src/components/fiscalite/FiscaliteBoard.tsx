@@ -409,6 +409,7 @@ export function FiscaliteBoard({
           invoices={orgInvoices}
           budgets={(savedProfile?.budgets as Budgets | null | undefined) ?? {}}
           onOpenInvoice={(invoice) => setDialog({ open: true, invoice, file: null })}
+          onAdd={() => setDialog({ open: true, invoice: null, file: null })}
           onEditProfile={() => setProfileOpen(true)}
           onBudgetsSaved={(budgets) =>
             setProfiles((prev) => {

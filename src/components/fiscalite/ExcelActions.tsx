@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { formatDay, formatMoney } from "@/lib/fiscalite/meta";
+import { categoryLabel, formatDay, formatMoney } from "@/lib/fiscalite/meta";
 
 interface ImportSummary {
   fileOrganisation: string | null;
@@ -26,11 +26,19 @@ interface ImportSummary {
     create: number;
     update: number;
     same: number;
-    preview: { action: "create" | "update"; direction: string; date: string; party: string | null; totalCents: number }[];
+    preview: {
+      action: "create" | "update";
+      direction: string;
+      date: string;
+      party: string | null;
+      category: string | null;
+      totalCents: number;
+    }[];
   };
   movements: { create: number; same: number };
   newPartners: string[];
   skipped: { sheet: string; row: number; reason: string }[];
+  otherAccounts?: string[];
   applied: boolean;
   error?: string;
 }
@@ -105,7 +113,7 @@ export function ExcelActions({ organisation, year }: { organisation: { id: strin
         <input
           ref={input}
           type="file"
-          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           className="hidden"
           onChange={(e) => {
             pick(e.target.files?.[0]);
@@ -146,21 +154,33 @@ export function ExcelActions({ organisation, year }: { organisation: { id: strin
                 {summary.newPartners.length > 0 && <li>Nouveaux associés: {summary.newPartners.join(", ")}</li>}
               </ul>
               {summary.invoices.preview.length > 0 && (
-                <ul className="divide-y divide-border rounded-2xl bg-secondary/60 px-4 text-[13px]">
+                <ul className="max-h-[45vh] divide-y divide-border overflow-y-auto rounded-2xl bg-secondary/60 px-4 text-[13px]">
                   {summary.invoices.preview.map((p, i) => (
-                    <li key={i} className="flex gap-3 py-2">
-                      <span className="w-16 shrink-0 text-muted-foreground">{p.action === "create" ? "Ajout" : "Màj"}</span>
+                    <li key={i} className="flex items-center gap-3 py-2">
+                      <span className="w-10 shrink-0 text-muted-foreground">{p.action === "create" ? "Ajout" : "Màj"}</span>
                       <span className="w-16 shrink-0 tabular-nums text-muted-foreground">
                         {formatDay(new Date(`${p.date}T00:00:00Z`), { short: true })}
                       </span>
-                      <span className="min-w-0 flex-1 truncate">{p.party ?? "—"}</span>
-                      <span className="tabular-nums">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{p.party ?? "—"}</span>
+                        {p.category && (
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {categoryLabel(p.direction, p.category)}
+                          </span>
+                        )}
+                      </span>
+                      <span className={p.direction === "revenu" ? "tabular-nums text-positive-foreground" : "tabular-nums"}>
                         {p.direction === "revenu" ? "+" : "−"}
                         {formatMoney(p.totalCents)}
                       </span>
                     </li>
                   ))}
                 </ul>
+              )}
+              {!!summary.otherAccounts?.length && (
+                <p className="text-[12px] text-muted-foreground">
+                  Comptes laissés de côté: {summary.otherAccounts.join(", ")}
+                </p>
               )}
               {summary.skipped.length > 0 && (
                 <div className="text-[12px] text-muted-foreground">

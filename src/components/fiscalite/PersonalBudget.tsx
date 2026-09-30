@@ -10,6 +10,7 @@ import {
   Loader2,
   Paperclip,
   Pencil,
+  Plus,
   Settings2,
   TrendingDown,
   TrendingUp,
@@ -47,6 +48,7 @@ interface PersonalBudgetProps {
   invoices: InvoiceView[];
   budgets: Budgets;
   onOpenInvoice: (invoice: InvoiceView) => void;
+  onAdd: () => void;
   onEditProfile: () => void;
   onBudgetsSaved: (budgets: Budgets) => void;
 }
@@ -109,6 +111,7 @@ export function PersonalBudget({
   invoices,
   budgets,
   onOpenInvoice,
+  onAdd,
   onEditProfile,
   onBudgetsSaved,
 }: PersonalBudgetProps) {
@@ -331,6 +334,9 @@ export function PersonalBudget({
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={onAdd}>
+            <Plus /> Ajouter
+          </Button>
           <ExcelActions
             organisation={organisation}
             year={scope === "month" ? Number(month.slice(0, 4)) : year}
@@ -403,7 +409,7 @@ export function PersonalBudget({
             Rien pour {headerLabel.toLowerCase()}.
           </p>
           <p className="max-w-md text-[13px] text-muted-foreground">
-            Dépose un reçu, importe ton Budget.xlsx, ou change de période.
+            Dépose un reçu, importe ton Budget.xlsx ou le CSV de ton compte Wealthsimple, ou change de période.
           </p>
         </div>
       ) : (
@@ -471,9 +477,22 @@ export function PersonalBudget({
             </section>
 
             <section className="tile p-5 sm:p-6">
-              <h2 className="text-[20px] font-bold tracking-title">
-                {scope === "month" ? "Transactions" : "Répartition"}
-              </h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[20px] font-bold tracking-title">
+                  {scope === "month" ? "Transactions" : "Répartition"}
+                </h2>
+                {scope === "month" && (
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8"
+                    onClick={onAdd}
+                    aria-label="Ajouter une transaction"
+                  >
+                    <Plus />
+                  </Button>
+                )}
+              </div>
               {scope === "month" ? (
                 <TransactionsList
                   invoices={monthS.invoices}
@@ -485,6 +504,14 @@ export function PersonalBudget({
               )}
             </section>
           </div>
+
+          {scope !== "month" && (
+            <PeriodTransactions
+              invoices={invoices}
+              months={months}
+              onOpenInvoice={onOpenInvoice}
+            />
+          )}
         </>
       )}
 
@@ -1034,10 +1061,29 @@ function TransactionsList({
       </p>
     );
   return (
-    <ul className="mt-3 divide-y divide-border">
-      {[...invoices]
-        .sort((a, b) => String(b.date).localeCompare(String(a.date)))
-        .map((inv) => {
+    <TransactionRows
+      className="mt-3"
+      invoices={[...invoices].sort((a, b) =>
+        String(b.date).localeCompare(String(a.date))
+      )}
+      onOpenInvoice={onOpenInvoice}
+    />
+  );
+}
+
+/** One clickable line per transaction, in the order given. */
+function TransactionRows({
+  invoices,
+  onOpenInvoice,
+  className,
+}: {
+  invoices: InvoiceView[];
+  onOpenInvoice: (inv: InvoiceView) => void;
+  className?: string;
+}) {
+  return (
+    <ul className={cn("divide-y divide-border", className)}>
+      {invoices.map((inv) => {
           const income = inv.direction === "revenu";
           const cat = personalCategory(inv.category);
           return (
@@ -1085,6 +1131,168 @@ function TransactionsList({
           );
         })}
     </ul>
+  );
+}
+
+/* ------------------------------------------------------ period transactions list */
+
+const PAGE = 100;
+
+/**
+ * Every transaction of a year or of the whole history, one line each and
+ * grouped by month: search by name, filter by direction or category.
+ */
+function PeriodTransactions({
+  invoices,
+  months,
+  onOpenInvoice,
+}: {
+  invoices: InvoiceView[];
+  months: string[];
+  onOpenInvoice: (inv: InvoiceView) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [direction, setDirection] = useState<"all" | "depense" | "revenu">(
+    "all"
+  );
+  const [category, setCategory] = useState("");
+  const [shown, setShown] = useState(PAGE);
+
+  const inPeriod = useMemo(() => {
+    const set = new Set(months);
+    return invoices
+      .filter((i) => set.has(i.date.slice(0, 7)))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [invoices, months]);
+
+  const categories = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const i of inPeriod) {
+      const id = i.category || "";
+      if (!seen.has(id)) seen.set(id, categoryLabel(i.direction, i.category));
+    }
+    return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [inPeriod]);
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return inPeriod.filter(
+      (i) =>
+        (direction === "all" || i.direction === direction) &&
+        (!category || (i.category || "") === category) &&
+        (!q ||
+          [i.party, i.description, i.notes]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(q)) ||
+          centsToInput(i.totalCents || i.subtotalCents).includes(q))
+    );
+  }, [inPeriod, query, direction, category]);
+
+  useEffect(() => setShown(PAGE), [query, direction, category, months]);
+
+  const sum = rows.reduce(
+    (a, i) =>
+      a + (i.direction === "revenu" ? 1 : -1) * (i.totalCents || i.subtotalCents),
+    0
+  );
+
+  // Month headers between groups.
+  const groups: { month: string; items: InvoiceView[] }[] = [];
+  for (const i of rows.slice(0, shown)) {
+    const m = i.date.slice(0, 7);
+    const last = groups[groups.length - 1];
+    if (last?.month === m) last.items.push(i);
+    else groups.push({ month: m, items: [i] });
+  }
+
+  return (
+    <section className="tile p-5 sm:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="text-[20px] font-bold tracking-title">
+          Transactions
+          <span className="ml-2 text-[13px] font-normal text-muted-foreground">
+            · {rows.length} ligne{rows.length > 1 ? "s" : ""} ·{" "}
+            <span
+              className={cn(
+                "tabular-nums",
+                sum < 0 ? "text-negative-foreground" : "text-positive-foreground"
+              )}
+            >
+              {sum < 0 ? "−" : "+"}
+              {formatMoney(Math.abs(sum))}
+            </span>
+          </span>
+        </h2>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher un nom, un montant…"
+          className="h-9 min-w-0 flex-1 basis-48"
+        />
+        <div className="segmented h-9">
+          {(
+            [
+              ["all", "Tout"],
+              ["depense", "Dépenses"],
+              ["revenu", "Revenus"],
+            ] as const
+          ).map(([v, label]) => (
+            <button
+              key={v}
+              type="button"
+              className="segmented-item h-7 text-[13px]"
+              data-active={direction === v}
+              onClick={() => setDirection(v)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          aria-label="Catégorie"
+          className="h-9 rounded-xl border border-input bg-background px-2 text-[13px]"
+        >
+          <option value="">Toutes les catégories</option>
+          {categories.map(([id, label]) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="mt-4 text-[14px] text-muted-foreground">
+          Aucune transaction ne correspond.
+        </p>
+      ) : (
+        <div className="mt-2">
+          {groups.map((g) => (
+            <div key={g.month}>
+              <p className="mt-4 text-[11px] font-semibold uppercase tracking-label text-muted-foreground">
+                {monthLabel(g.month, { long: true })}
+              </p>
+              <TransactionRows invoices={g.items} onOpenInvoice={onOpenInvoice} />
+            </div>
+          ))}
+          {rows.length > shown && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setShown((n) => n + PAGE)}
+              >
+                Voir plus ({rows.length - shown})
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
