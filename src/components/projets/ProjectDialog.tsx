@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -106,7 +106,9 @@ export function ProjectDialog({
   const [organisation, setOrganisation] = useState<string>(DEFAULT_ORG);
   const [description, setDescription] = useState("");
   // Where it lives: one row per machine (a project can be cloned on several).
-  const [locations, setLocations] = useState<{ machineId: string; path: string }[]>([]);
+  const [locations, setLocations] = useState<
+    { machineId: string; path: string }[]
+  >([]);
   const [machines, setMachines] = useState<
     { id: string; name: string; label: string | null; kind?: string }[]
   >([]);
@@ -130,6 +132,7 @@ export function ProjectDialog({
   const [newContactEmail, setNewContactEmail] = useState("");
   const [creatingContact, setCreatingContact] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     setContacts(initialContacts);
@@ -149,7 +152,10 @@ export function ProjectDialog({
       // Every machine it lives on, else the legacy path alone.
       setLocations(
         project.locations.length
-          ? project.locations.map((l) => ({ machineId: l.machine.id, path: l.path }))
+          ? project.locations.map((l) => ({
+              machineId: l.machine.id,
+              path: l.path,
+            }))
           : project.path
             ? [{ machineId: NO_MACHINE, path: project.path }]
             : []
@@ -157,6 +163,15 @@ export function ProjectDialog({
       setStack(project.stack ?? []);
       setLinks(toFormLinks(project.links));
       setContactIds(project.contacts.map((c) => c.contactId));
+      // Open the details when there's something in them.
+      setShowMore(
+        !!project.description ||
+          project.locations.length > 0 ||
+          !!project.path ||
+          (project.stack ?? []).length > 0 ||
+          (project.links ?? []).length > 0 ||
+          project.contacts.length > 0
+      );
     } else {
       setName("");
       setColor(DEFAULT_PROJECT_COLOR);
@@ -181,6 +196,7 @@ export function ProjectDialog({
       setStack([]);
       setLinks([]);
       setContactIds([]);
+      setShowMore(false);
     }
     setStackDraft("");
     setNewContactOpen(false);
@@ -366,402 +382,467 @@ export function ProjectDialog({
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6 md:px-8 md:pb-8">
-        <form
-          id="project-form"
-          className="space-y-7"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit();
-          }}
-        >
-          <ImageField
-            value={image}
-            onChange={setImage}
-            fallback={name.trim() ? name.trim().charAt(0).toUpperCase() : "?"}
-            color={color}
-            shape="rounded"
-            label="Logo du projet"
-          />
+          <form
+            id="project-form"
+            className="space-y-7"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <ImageField
+              value={image}
+              onChange={setImage}
+              fallback={name.trim() ? name.trim().charAt(0).toUpperCase() : "?"}
+              color={color}
+              shape="rounded"
+              label="Logo du projet"
+            />
 
-          {/* Name + station */}
-          <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div className="space-y-2">
-              <Label htmlFor="project-name">Nom</Label>
-              <Input
-                id="project-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Dehors"
-                autoFocus
-                className="text-[17px] font-semibold tracking-title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <div className="segmented">
-                {PROJECT_STATIONS.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className="segmented-item"
-                    data-active={station === s.id}
-                    onClick={() => setStation(s.id)}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+            {/* Name + station */}
+            <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div className="space-y-2">
+                <Label htmlFor="project-name">Nom</Label>
+                <Input
+                  id="project-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Dehors"
+                  autoFocus
+                  className="text-[17px] font-semibold tracking-title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <div className="segmented">
+                  {PROJECT_STATIONS.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className="segmented-item"
+                      data-active={station === s.id}
+                      onClick={() => setStation(s.id)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Colour */}
-          <div className="space-y-2">
-            <Label>Couleur</Label>
-            <div className="flex flex-wrap gap-2.5">
-              {PROJECT_COLORS.map((c) => {
-                const active = color.toLowerCase() === c.hex;
-                return (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    title={c.name}
-                    onClick={() => setColor(c.hex)}
-                    className={cn(
-                      "flex h-11 w-14 items-center justify-center rounded-[14px] border-2 transition-transform hover:scale-105",
-                      active ? "border-foreground" : "border-transparent"
-                    )}
-                    style={{ backgroundColor: c.hex }}
-                    aria-pressed={active}
-                  >
-                    {active && (
-                      <Check
-                        className="h-4 w-4 text-[#19181c]"
-                        strokeWidth={3}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Organisation + parent + path */}
-          <div className="grid gap-5 sm:grid-cols-2">
+            {/* Colour */}
             <div className="space-y-2">
-              <Label>Organisation</Label>
-              <Select value={organisation} onValueChange={setOrganisation}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Perso" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[...organisations]
-                    .sort(
-                      (a, b) =>
-                        Number(a.isDefault) - Number(b.isDefault) ||
-                        a.sortOrder - b.sortOrder
-                    )
-                    .map((o) => (
-                      <SelectItem
-                        key={o.id}
-                        value={o.isDefault ? DEFAULT_ORG : o.id}
-                      >
+              <Label>Couleur</Label>
+              <div className="flex flex-wrap gap-2.5">
+                {PROJECT_COLORS.map((c) => {
+                  const active = color.toLowerCase() === c.hex;
+                  return (
+                    <button
+                      key={c.hex}
+                      type="button"
+                      title={c.name}
+                      onClick={() => setColor(c.hex)}
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-transform hover:scale-105",
+                        active ? "border-foreground" : "border-transparent"
+                      )}
+                      style={{ backgroundColor: c.hex }}
+                      aria-pressed={active}
+                    >
+                      {active && (
+                        <Check
+                          className="h-4 w-4 text-[#19181c]"
+                          strokeWidth={3}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Organisation + parent + path */}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Organisation</Label>
+                <Select value={organisation} onValueChange={setOrganisation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Perso" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[...organisations]
+                      .sort(
+                        (a, b) =>
+                          Number(a.isDefault) - Number(b.isDefault) ||
+                          a.sortOrder - b.sortOrder
+                      )
+                      .map((o) => (
+                        <SelectItem
+                          key={o.id}
+                          value={o.isDefault ? DEFAULT_ORG : o.id}
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <span
+                              className="h-2.5 w-2.5 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  o.color ?? DEFAULT_PROJECT_COLOR,
+                              }}
+                            />
+                            {o.name}
+                            {o.isDefault && (
+                              <span className="text-muted-foreground">
+                                · par défaut
+                              </span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Projet parent</Label>
+                <Select value={parent} onValueChange={setParent}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Aucun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_PARENT}>
+                      Aucun (projet principal)
+                    </SelectItem>
+                    {parentOptions.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
                         <span className="inline-flex items-center gap-2">
                           <span
                             className="h-2.5 w-2.5 rounded-full"
                             style={{
-                              backgroundColor: o.color ?? DEFAULT_PROJECT_COLOR,
+                              backgroundColor: p.color ?? DEFAULT_PROJECT_COLOR,
                             }}
                           />
-                          {o.name}
-                          {o.isDefault && (
-                            <span className="text-muted-foreground">
-                              · par défaut
-                            </span>
-                          )}
+                          {p.name}
                         </span>
                       </SelectItem>
                     ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Projet parent</Label>
-              <Select value={parent} onValueChange={setParent}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Aucun" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_PARENT}>
-                    Aucun (projet principal)
-                  </SelectItem>
-                  {parentOptions.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span className="inline-flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{
-                            backgroundColor: p.color ?? DEFAULT_PROJECT_COLOR,
-                          }}
-                        />
-                        {p.name}
+
+            {/* Everything else, folded so the dialog stays short */}
+            <button
+              type="button"
+              onClick={() => setShowMore((v) => !v)}
+              aria-expanded={showMore}
+              className="flex w-full items-center justify-between rounded-2xl bg-secondary/60 px-4 py-3 text-left text-[14px] font-medium transition-colors hover:bg-secondary"
+            >
+              <span>
+                {showMore ? "Moins de détails" : "Plus de détails"}
+                {!showMore && (
+                  <span className="ml-2 text-[12px] font-normal text-muted-foreground">
+                    Machines, description, liens, outils, contacts
+                  </span>
+                )}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-transform",
+                  showMore && "rotate-180"
+                )}
+              />
+            </button>
+
+            {showMore && (
+              <>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Machines et dossiers</Label>
+                  {locations.length === 0 && (
+                    <p className="text-[12px] text-muted-foreground">
+                      Sur quelle machine vit ce projet, et dans quel dossier.
+                    </p>
+                  )}
+                  {locations.map((loc, i) => {
+                    const taken = new Set(
+                      locations
+                        .filter((_, j) => j !== i)
+                        .map((l) => l.machineId)
+                    );
+                    const update = (patch: Partial<typeof loc>) =>
+                      setLocations((prev) =>
+                        prev.map((l, j) => (j === i ? { ...l, ...patch } : l))
+                      );
+                    return (
+                      <div
+                        key={i}
+                        className="flex flex-col gap-2 sm:flex-row sm:items-center"
+                      >
+                        <Select
+                          value={loc.machineId}
+                          onValueChange={(v) => update({ machineId: v })}
+                        >
+                          <SelectTrigger className="sm:w-[200px] sm:shrink-0">
+                            <SelectValue placeholder="Machine" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NO_MACHINE}>
+                              Choisir une machine
+                            </SelectItem>
+                            {machines.map((m) => (
+                              <SelectItem
+                                key={m.id}
+                                value={m.id}
+                                disabled={taken.has(m.id)}
+                              >
+                                {m.label || m.name}
+                                {m.kind === "vps" && (
+                                  <span className="text-muted-foreground">
+                                    {" "}
+                                    · VPS
+                                  </span>
+                                )}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <Input
+                            aria-label="Dossier sur la machine"
+                            value={loc.path}
+                            onChange={(e) => update({ path: e.target.value })}
+                            placeholder="/home/uguiso/repos/dehors"
+                            className="min-w-0 flex-1 font-mono text-[13px]"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Retirer"
+                            onClick={() =>
+                              setLocations((prev) =>
+                                prev.filter((_, j) => j !== i)
+                              )
+                            }
+                          >
+                            <X />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={
+                      machines.length > 0 && locations.length >= machines.length
+                    }
+                    onClick={() =>
+                      setLocations((prev) => [
+                        ...prev,
+                        {
+                          machineId:
+                            machines.find(
+                              (m) => !prev.some((l) => l.machineId === m.id)
+                            )?.id ?? NO_MACHINE,
+                          path: prev[prev.length - 1]?.path ?? "",
+                        },
+                      ])
+                    }
+                  >
+                    <Plus /> Machine
+                  </Button>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="project-description">Description</Label>
+                  <Textarea
+                    id="project-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="En une ou deux phrases, c'est quoi ce projet."
+                    rows={2}
+                  />
+                </div>
+
+                {/* Links */}
+                <LinksEditor links={links} onChange={setLinks} />
+
+                {/* Stack */}
+                <div className="space-y-3">
+                  <Label htmlFor="project-stack">Outils &amp; techno</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {stack.map((s) => (
+                      <span
+                        key={s}
+                        className="inline-flex items-center gap-1 rounded-full bg-tint-soft py-1 pl-3 pr-1.5 text-[13px] font-medium"
+                      >
+                        {s}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setStack((prev) => prev.filter((x) => x !== s))
+                          }
+                          className="rounded-full p-0.5 text-muted-foreground hover:bg-card hover:text-foreground"
+                          aria-label={`Retirer ${s}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Machines et dossiers</Label>
-              {locations.length === 0 && (
-                <p className="text-[12px] text-muted-foreground">
-                  Sur quelle machine vit ce projet, et dans quel dossier.
-                </p>
-              )}
-              {locations.map((loc, i) => {
-                const taken = new Set(locations.filter((_, j) => j !== i).map((l) => l.machineId));
-                const update = (patch: Partial<typeof loc>) =>
-                  setLocations((prev) => prev.map((l, j) => (j === i ? { ...l, ...patch } : l)));
-                return (
-                  <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Select value={loc.machineId} onValueChange={(v) => update({ machineId: v })}>
-                      <SelectTrigger className="sm:w-[200px] sm:shrink-0">
-                        <SelectValue placeholder="Machine" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NO_MACHINE}>Choisir une machine</SelectItem>
-                        {machines.map((m) => (
-                          <SelectItem key={m.id} value={m.id} disabled={taken.has(m.id)}>
-                            {m.label || m.name}
-                            {m.kind === "vps" && <span className="text-muted-foreground"> · VPS</span>}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                    ))}
+                  </div>
+                  <Input
+                    id="project-stack"
+                    value={stackDraft}
+                    onChange={(e) => setStackDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        addStack();
+                      }
+                    }}
+                    onBlur={addStack}
+                    placeholder="Next.js, Supabase, Coolify… (Entrée pour ajouter)"
+                  />
+                </div>
+
+                {/* Contacts */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Contacts</Label>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setNewContactOpen((v) => !v)}
+                    >
+                      <Plus /> Nouveau contact
+                    </Button>
+                  </div>
+                  {newContactOpen && (
+                    <div className="grid gap-2 rounded-2xl bg-tint-soft p-2 sm:grid-cols-[1fr_1fr_auto]">
                       <Input
-                        aria-label="Dossier sur la machine"
-                        value={loc.path}
-                        onChange={(e) => update({ path: e.target.value })}
-                        placeholder="/home/uguiso/repos/dehors"
-                        className="min-w-0 flex-1 font-mono text-[13px]"
+                        value={newContactName}
+                        onChange={(e) => setNewContactName(e.target.value)}
+                        placeholder="Nom"
+                        className="h-10 bg-card"
+                      />
+                      <Input
+                        value={newContactEmail}
+                        onChange={(e) => setNewContactEmail(e.target.value)}
+                        placeholder="Courriel (optionnel)"
+                        className="h-10 bg-card"
+                        inputMode="email"
                       />
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Retirer"
-                        onClick={() => setLocations((prev) => prev.filter((_, j) => j !== i))}
+                        size="sm"
+                        className="h-10"
+                        onClick={createContact}
+                        disabled={creatingContact || !newContactName.trim()}
                       >
-                        <X />
+                        Créer
                       </Button>
                     </div>
-                  </div>
-                );
-              })}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={machines.length > 0 && locations.length >= machines.length}
-                onClick={() =>
-                  setLocations((prev) => [
-                    ...prev,
-                    {
-                      machineId:
-                        machines.find((m) => !prev.some((l) => l.machineId === m.id))?.id ?? NO_MACHINE,
-                      path: prev[prev.length - 1]?.path ?? "",
-                    },
-                  ])
-                }
-              >
-                <Plus /> Machine
-              </Button>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="project-description">Description</Label>
-            <Textarea
-              id="project-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="En une ou deux phrases, c'est quoi ce projet."
-              rows={2}
-            />
-          </div>
-
-          {/* Links */}
-          <LinksEditor links={links} onChange={setLinks} />
-
-          {/* Stack */}
-          <div className="space-y-3">
-            <Label htmlFor="project-stack">Outils &amp; techno</Label>
-            <div className="flex flex-wrap gap-2">
-              {stack.map((s) => (
-                <span
-                  key={s}
-                  className="inline-flex items-center gap-1 rounded-full bg-tint-soft py-1 pl-3 pr-1.5 text-[13px] font-medium"
-                >
-                  {s}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setStack((prev) => prev.filter((x) => x !== s))
-                    }
-                    className="rounded-full p-0.5 text-muted-foreground hover:bg-card hover:text-foreground"
-                    aria-label={`Retirer ${s}`}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <Input
-              id="project-stack"
-              value={stackDraft}
-              onChange={(e) => setStackDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === ",") {
-                  e.preventDefault();
-                  addStack();
-                }
-              }}
-              onBlur={addStack}
-              placeholder="Next.js, Supabase, Coolify… (Entrée pour ajouter)"
-            />
-          </div>
-
-          {/* Contacts */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Contacts</Label>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setNewContactOpen((v) => !v)}
-              >
-                <Plus /> Nouveau contact
-              </Button>
-            </div>
-            {newContactOpen && (
-              <div className="grid gap-2 rounded-2xl bg-tint-soft p-2 sm:grid-cols-[1fr_1fr_auto]">
-                <Input
-                  value={newContactName}
-                  onChange={(e) => setNewContactName(e.target.value)}
-                  placeholder="Nom"
-                  className="h-10 bg-card"
-                />
-                <Input
-                  value={newContactEmail}
-                  onChange={(e) => setNewContactEmail(e.target.value)}
-                  placeholder="Courriel (optionnel)"
-                  className="h-10 bg-card"
-                  inputMode="email"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-10"
-                  onClick={createContact}
-                  disabled={creatingContact || !newContactName.trim()}
-                >
-                  Créer
-                </Button>
-              </div>
-            )}
-            {contacts.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">
-                Aucun contact encore. Crée-en un ici ou dans l&apos;onglet
-                Contacts.
-              </p>
-            ) : (
-              <>
-                {contacts.length > 6 && (
-                  <Input
-                    value={contactQuery}
-                    onChange={(e) => setContactQuery(e.target.value)}
-                    placeholder={`Chercher parmi ${contacts.length} contacts…`}
-                    className="h-10"
-                  />
-                )}
-                <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-2xl bg-secondary/60 px-3">
-                  {contacts
-                    .filter((c) => {
-                      const q = contactQuery.trim().toLowerCase();
-                      if (!q) return true;
-                      if (contactIds.includes(c.id)) return true; // keep picked ones visible
-                      return [c.name, c.company, c.role]
-                        .filter(Boolean)
-                        .some((v) => (v as string).toLowerCase().includes(q));
-                    })
-                    .map((c) => {
-                      const checked = contactIds.includes(c.id);
-                      return (
-                        <li key={c.id}>
-                          <label className="flex cursor-pointer items-center gap-3 py-2.5">
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={(v) =>
-                                toggleContact(c.id, v === true)
-                              }
-                            />
-                            <span className="min-w-0 flex-1 truncate text-[14px]">
-                              {c.name}
-                              {(c.role || c.company) && (
-                                <span className="text-muted-foreground">
-                                  {" "}
-                                  ·{" "}
-                                  {[c.role, c.company]
-                                    .filter(Boolean)
-                                    .join(", ")}
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        </li>
-                      );
-                    })}
-                </ul>
+                  )}
+                  {contacts.length === 0 ? (
+                    <p className="text-[13px] text-muted-foreground">
+                      Aucun contact encore. Crée-en un ici ou dans l&apos;onglet
+                      Contacts.
+                    </p>
+                  ) : (
+                    <>
+                      {contacts.length > 6 && (
+                        <Input
+                          value={contactQuery}
+                          onChange={(e) => setContactQuery(e.target.value)}
+                          placeholder={`Chercher parmi ${contacts.length} contacts…`}
+                          className="h-10"
+                        />
+                      )}
+                      <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-2xl bg-secondary/60 px-3">
+                        {contacts
+                          .filter((c) => {
+                            const q = contactQuery.trim().toLowerCase();
+                            if (!q) return true;
+                            if (contactIds.includes(c.id)) return true; // keep picked ones visible
+                            return [c.name, c.company, c.role]
+                              .filter(Boolean)
+                              .some((v) =>
+                                (v as string).toLowerCase().includes(q)
+                              );
+                          })
+                          .map((c) => {
+                            const checked = contactIds.includes(c.id);
+                            return (
+                              <li key={c.id}>
+                                <label className="flex cursor-pointer items-center gap-3 py-2.5">
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(v) =>
+                                      toggleContact(c.id, v === true)
+                                    }
+                                  />
+                                  <span className="min-w-0 flex-1 truncate text-[14px]">
+                                    {c.name}
+                                    {(c.role || c.company) && (
+                                      <span className="text-muted-foreground">
+                                        {" "}
+                                        ·{" "}
+                                        {[c.role, c.company]
+                                          .filter(Boolean)
+                                          .join(", ")}
+                                      </span>
+                                    )}
+                                  </span>
+                                </label>
+                              </li>
+                            );
+                          })}
+                      </ul>
+                    </>
+                  )}
+                </div>
               </>
             )}
-          </div>
 
-          {/* Footer */}
-
-        </form>
+            {/* Footer */}
+          </form>
         </div>
 
         <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-card px-6 py-4 md:px-8 sm:flex-row sm:items-center">
-            {editing && (
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-negative-foreground hover:bg-negative hover:text-negative-foreground sm:mr-auto"
-                onClick={remove}
-                disabled={submitting}
-              >
-                <Trash2 /> Supprimer
-              </Button>
-            )}
+          {editing && (
             <Button
               type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
+              variant="ghost"
+              className="text-negative-foreground hover:bg-negative hover:text-negative-foreground sm:mr-auto"
+              onClick={remove}
               disabled={submitting}
-              className="sm:ml-auto"
             >
-              Annuler
+              <Trash2 /> Supprimer
             </Button>
-            <Button type="submit" form="project-form" disabled={submitting || creatingContact}>
-              {submitting
-                ? "Enregistrement…"
-                : editing
-                  ? "Enregistrer"
-                  : "Créer le projet"}
-            </Button>
-          </div>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+            className="sm:ml-auto"
+          >
+            Annuler
+          </Button>
+          <Button
+            type="submit"
+            form="project-form"
+            disabled={submitting || creatingContact}
+          >
+            {submitting
+              ? "Enregistrement…"
+              : editing
+                ? "Enregistrer"
+                : "Créer le projet"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
