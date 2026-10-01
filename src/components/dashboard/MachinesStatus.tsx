@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { type TranslateFn, useT } from "@/i18n/client";
 import { type Issue, type Metric, machineHealth } from "@/lib/machines/health";
 
 const METRIC: Record<Metric, string> = {
@@ -25,11 +26,11 @@ const issueText = (i: Issue) =>
     ? `${METRIC[i.metric]} ${i.value.toFixed(0)} °C`
     : `${METRIC[i.metric]} ${i.value.toFixed(0)} %`;
 
-export function machineNote(machine: MachineStatusRow) {
+export function machineNote(t: TranslateFn, machine: MachineStatusRow) {
   const { health, issues } = machineHealth(machine.stats);
-  if (health === "none") return "not monitored";
-  if (health === "off") return "offline";
-  if (health === "ok") return "all good";
+  if (health === "none") return t("machines.status.notMonitored");
+  if (health === "off") return t("machines.status.offline");
+  if (health === "ok") return t("machines.status.allGood");
   return issues.slice(0, 2).map(issueText).join(" · ");
 }
 
@@ -44,6 +45,7 @@ export function MachinesStatus({
   embedded?: boolean;
   hideUnmonitored?: boolean;
 }) {
+  const t = useT();
   const { machines: rows, failed } = useMachineStatus(10000);
   // Same order on every refresh; the ones that are not monitored go last.
   const machines = rows
@@ -64,30 +66,35 @@ export function MachinesStatus({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="etiquette mr-1">Machines</p>
+          <p className="etiquette mr-1">{t("machines.board.title")}</p>
           {watched > 0 && red === 0 && yellow === 0 && (
             <Badge variant="positive" className="px-2.5 py-0.5 text-[11px]">
-              All good
+              {t("machines.summary.allGood")}
             </Badge>
           )}
           {red > 0 && (
             <Badge variant="negative" className="px-2.5 py-0.5 text-[11px]">
-              {red} need{red > 1 ? "" : "s"} attention
+              {t(
+                red > 1
+                  ? "machines.summary.needAttentionPlural"
+                  : "machines.summary.needAttention",
+                { count: red }
+              )}
             </Badge>
           )}
           {yellow > 0 && (
             <Badge variant="pending" className="px-2.5 py-0.5 text-[11px]">
-              {yellow} to watch
+              {t("machines.summary.toWatch", { count: yellow })}
             </Badge>
           )}
           {failed && (
             <span className="text-[12px] text-negative-foreground">
-              status unavailable
+              {t("machines.summary.statusUnavailable")}
             </span>
           )}
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/machines">All machines</Link>
+          <Link href="/machines">{t("machines.summary.allMachines")}</Link>
         </Button>
       </div>
 
@@ -102,7 +109,7 @@ export function MachinesStatus({
         </ul>
       ) : machines.length === 0 ? (
         <p className="mt-4 text-[14px] text-muted-foreground">
-          No machine yet. Add one in the Machines tab.
+          {t("machines.summary.empty")}
         </p>
       ) : (
         <ul className="mt-5 flex flex-wrap gap-2">
@@ -117,7 +124,7 @@ export function MachinesStatus({
                   {m.label || m.name}
                 </span>
                 <span className="text-[12px] tabular-nums text-muted-foreground">
-                  {machineNote(m)}
+                  {machineNote(t, m)}
                 </span>
               </Link>
             </li>

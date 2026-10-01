@@ -11,15 +11,18 @@ import { useDashboardData } from "@/components/dashboard/widgets";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const greeting = () => {
+import { useT } from "@/i18n/client";
+
+const greetingKey = () => {
   const h = new Date().getHours();
-  if (h < 5) return "Still up";
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+  if (h < 5) return "dashboard.greeting.stillUp";
+  if (h < 12) return "dashboard.greeting.morning";
+  if (h < 18) return "dashboard.greeting.afternoon";
+  return "dashboard.greeting.evening";
 };
 
 export function DashboardView() {
+  const t = useT();
   const { data: session } = useSession();
   const data = useDashboardData();
   const [editing, setEditing] = useState(false);
@@ -45,20 +48,30 @@ export function DashboardView() {
       {/* ------------------------------------------------------------ Hero */}
       <section>
         <h1 className="display text-[44px] sm:text-[64px] md:text-[80px] lg:text-[96px]">
-          {greeting()}
+          {t(greetingKey())}
           {firstName ? `, ${firstName}` : ""}.
         </h1>
         <div className="mt-6 flex flex-wrap items-center gap-2">
           <Badge className="px-4 py-2 text-[13px] capitalize">{longDate}</Badge>
           <Badge className="px-4 py-2 text-[13px]">
             {todayEvents.length === 0
-              ? "No events today"
-              : `${todayEvents.length} event${todayEvents.length > 1 ? "s" : ""} today`}
+              ? t("dashboard.hero.noEventsToday")
+              : t(
+                  todayEvents.length > 1
+                    ? "dashboard.hero.todayEventsPlural"
+                    : "dashboard.hero.todayEvents",
+                  { count: todayEvents.length }
+                )}
           </Badge>
           <Badge className="px-4 py-2 text-[13px]">
             {openTasks.length === 0
-              ? "Inbox zero"
-              : `${openTasks.length} open task${openTasks.length > 1 ? "s" : ""}`}
+              ? t("dashboard.hero.inboxZero")
+              : t(
+                  openTasks.length > 1
+                    ? "dashboard.hero.openTasksPlural"
+                    : "dashboard.hero.openTasks",
+                  { count: openTasks.length }
+                )}
           </Badge>
           {!editing && (
             <Button
@@ -68,7 +81,7 @@ export function DashboardView() {
               className="ml-auto"
             >
               <LayoutGrid className="h-4 w-4" />
-              Personnaliser
+              {t("dashboard.hero.customize")}
             </Button>
           )}
         </div>

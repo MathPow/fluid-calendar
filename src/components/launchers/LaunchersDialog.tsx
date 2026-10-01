@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
+import { type TranslateFn, useT } from "@/i18n/client";
 import {
   DESKTOP_ACTIONS,
   USER_DESKTOP_ACTION_IDS,
@@ -75,70 +76,87 @@ type MachineOpt = {
 // The fields each shell action asks for, in order.
 const FIELDS: Record<
   DesktopAction,
-  { key: string; label: string; placeholder: string; mono?: boolean }[]
+  { key: string; labelKey: string; placeholderKey: string; mono?: boolean }[]
 > = {
   open_url: [
-    { key: "url", label: "Adresse", placeholder: "https://…", mono: true },
+    {
+      key: "url",
+      labelKey: "launchers.fields.url.label",
+      placeholderKey: "launchers.fields.url.placeholder",
+      mono: true,
+    },
   ],
   open_path: [
     {
       key: "path",
-      label: "Dossier ou fichier",
-      placeholder: "/home/mathys/Téléchargements",
+      labelKey: "launchers.fields.openPath.label",
+      placeholderKey: "launchers.fields.openPath.placeholder",
       mono: true,
     },
   ],
   open_code: [
     {
       key: "path",
-      label: "Dossier du projet",
-      placeholder: "/home/mathys/repos/…",
+      labelKey: "launchers.fields.openCode.label",
+      placeholderKey: "launchers.fields.openCode.placeholder",
       mono: true,
     },
   ],
   open_app: [
     {
       key: "app",
-      label: "Application (.desktop)",
-      placeholder: "firefox, org.gnome.Nautilus…",
+      labelKey: "launchers.fields.openApp.label",
+      placeholderKey: "launchers.fields.openApp.placeholder",
       mono: true,
     },
   ],
   notify: [
-    { key: "title", label: "Titre", placeholder: "Pause" },
-    { key: "body", label: "Texte", placeholder: "Va boire de l'eau" },
+    {
+      key: "title",
+      labelKey: "launchers.fields.notifyTitle.label",
+      placeholderKey: "launchers.fields.notifyTitle.placeholder",
+    },
+    {
+      key: "body",
+      labelKey: "launchers.fields.notifyBody.label",
+      placeholderKey: "launchers.fields.notifyBody.placeholder",
+    },
   ],
-  clipboard: [{ key: "text", label: "Texte à copier", placeholder: "…" }],
+  clipboard: [
+    {
+      key: "text",
+      labelKey: "launchers.fields.clipboard.label",
+      placeholderKey: "launchers.fields.clipboard.placeholder",
+    },
+  ],
   lock: [],
   shell: [
     {
       key: "command",
-      label: "Commande (confirmée sur l'ordi)",
-      placeholder: "git -C ~/repos/dreamdash pull",
+      labelKey: "launchers.fields.shell.label",
+      placeholderKey: "launchers.fields.shell.placeholder",
       mono: true,
     },
     {
       key: "cwd",
-      label: "Dossier (facultatif)",
-      placeholder: "/home/mathys",
+      labelKey: "launchers.fields.cwd.label",
+      placeholderKey: "launchers.fields.cwd.placeholder",
       mono: true,
     },
   ],
   agent_run: [],
 };
 
-export const KIND_LABELS: Record<LauncherKind, string> = {
-  shell: "Commande shell",
-  "claude-prompt": "Prompt Claude",
-  "codex-prompt": "Prompt Codex",
-};
+export function kindLabel(t: TranslateFn, kind: LauncherKind): string {
+  return t(`launchers.kind.${kind}`);
+}
 
-const RECURRENCE_LABELS: Record<LauncherRecurrence | "none", string> = {
-  none: "Jamais",
-  daily: "Chaque jour",
-  weekly: "Chaque semaine",
-  monthly: "Chaque mois",
-};
+function recurrenceLabel(
+  t: TranslateFn,
+  r: LauncherRecurrence | "none"
+): string {
+  return t(`launchers.recurrence.${r}`);
+}
 
 type Form = {
   id?: string;
@@ -196,31 +214,37 @@ function blank(kind: LauncherKind, machineId = ""): Form {
   };
 }
 
-export function scheduleLabel(scheduledFor: string, recurrence: string | null) {
+export function scheduleLabel(
+  t: TranslateFn,
+  scheduledFor: string,
+  recurrence: string | null
+) {
   const d = new Date(scheduledFor);
-  const when = d.toLocaleString("fr-CA", {
+  const when = d.toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
   });
   const suffix =
     recurrence && recurrence !== "none"
-      ? ` · ${RECURRENCE_LABELS[recurrence as LauncherRecurrence]}`
+      ? ` · ${recurrenceLabel(t, recurrence as LauncherRecurrence)}`
       : "";
   return `${when}${suffix}`;
 }
 
-function runStatus(l: LauncherRow): string | null {
-  if (l.lastError) return `Erreur : ${l.lastError}`;
+function runStatus(t: TranslateFn, l: LauncherRow): string | null {
+  if (l.lastError)
+    return t("launchers.run.error", { error: l.lastError });
   if (l.lastResult) {
     const tail = l.lastResult.trim().split("\n").slice(-1)[0] || "";
-    return `Dernier run : ${tail.slice(0, 80)}`;
+    return t("launchers.run.lastRun", { text: tail.slice(0, 80) });
   }
-  if (l.scheduledFor) return "En attente";
+  if (l.scheduledFor) return t("launchers.run.waiting");
   return null;
 }
 
 /** Account menu ▸ « Gérer les raccourcis »: create, edit, order, delete. */
 export function LaunchersDialog() {
+  const t = useT();
   const { items, manageOpen, set } = useLaunchers();
   const [machines, setMachines] = useState<MachineOpt[]>([]);
   const [form, setForm] = useState<Form | null>(null);
@@ -297,11 +321,14 @@ export function LaunchersDialog() {
         }
       );
       const respBody = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(respBody.error || `Erreur ${r.status}`);
+      if (!r.ok)
+        throw new Error(
+          respBody.error || t("common.error", { status: r.status })
+        );
       setForm(null);
       reloadLaunchers();
     } catch (e) {
-      toast.error("Enregistrement impossible", {
+      toast.error(t("launchers.saveFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -323,7 +350,12 @@ export function LaunchersDialog() {
   };
 
   const remove = async (l: LauncherRow) => {
-    if (!window.confirm(`Supprimer le raccourci « ${l.label} » ?`)) return;
+    if (
+      !window.confirm(
+        t("launchers.deleteConfirm", { label: l.label })
+      )
+    )
+      return;
     await fetch(`/api/launchers/${l.id}`, { method: "DELETE" }).catch(() => {});
     reloadLaunchers();
   };
@@ -368,12 +400,9 @@ export function LaunchersDialog() {
     <Dialog open={manageOpen} onOpenChange={(o) => !o && close()}>
       <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Raccourcis</DialogTitle>
+          <DialogTitle>{t("launchers.title")}</DialogTitle>
           <DialogDescription>
-            Des boutons dans le menu du profil qui lancent une commande, un
-            prompt Claude ou Codex sur une de tes machines. Les prompts partent
-            en mode sans permission — configure-les une fois, clique en
-            confiance.
+            {t("launchers.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -382,17 +411,18 @@ export function LaunchersDialog() {
             <Tabs defaultValue="instant" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="instant" className="gap-1.5">
-                  <Zap className="h-3.5 w-3.5" /> Instantanés
+                  <Zap className="h-3.5 w-3.5" /> {t("launchers.tabs.instant")}
                 </TabsTrigger>
                 <TabsTrigger value="scheduled" className="gap-1.5">
-                  <CalendarClock className="h-3.5 w-3.5" /> Événements
+                  <CalendarClock className="h-3.5 w-3.5" />{" "}
+                  {t("launchers.tabs.scheduled")}
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="instant" className="mt-3 space-y-1.5">
                 {instant.length === 0 ? (
                   <p className="rounded-2xl bg-secondary/60 px-4 py-6 text-center text-[13px] text-muted-foreground">
-                    Aucun raccourci instantané pour le moment.
+                    {t("launchers.emptyInstant")}
                   </p>
                 ) : (
                   <ul className="space-y-1.5">
@@ -414,7 +444,7 @@ export function LaunchersDialog() {
               <TabsContent value="scheduled" className="mt-3 space-y-1.5">
                 {scheduled.length === 0 ? (
                   <p className="rounded-2xl bg-secondary/60 px-4 py-6 text-center text-[13px] text-muted-foreground">
-                    Aucun événement planifié.
+                    {t("launchers.emptyScheduled")}
                   </p>
                 ) : (
                   <ul className="space-y-1.5">
@@ -441,7 +471,7 @@ export function LaunchersDialog() {
                 onClick={() => startCreate("shell")}
                 disabled={shellMachines.length === 0}
               >
-                <Plus /> Commande shell
+                <Plus /> {kindLabel(t, "shell")}
               </Button>
               <Button
                 size="sm"
@@ -449,7 +479,7 @@ export function LaunchersDialog() {
                 onClick={() => startCreate("claude-prompt")}
                 disabled={promptMachines.length === 0}
               >
-                <Plus /> Prompt Claude
+                <Plus /> {kindLabel(t, "claude-prompt")}
               </Button>
               <Button
                 size="sm"
@@ -457,13 +487,12 @@ export function LaunchersDialog() {
                 onClick={() => startCreate("codex-prompt")}
                 disabled={promptMachines.length === 0}
               >
-                <Plus /> Prompt Codex
+                <Plus /> {kindLabel(t, "codex-prompt")}
               </Button>
             </div>
             {promptMachines.length === 0 && machines.length > 0 && (
               <p className="text-[12px] text-muted-foreground">
-                Aucune machine utilisable : ajoute un agent ou une adresse ssh
-                dans Machines.
+                {t("launchers.noUsableMachine")}
               </p>
             )}
           </>
@@ -476,24 +505,26 @@ export function LaunchersDialog() {
             }}
           >
             <div className="flex items-center gap-2 rounded-full bg-secondary/70 px-3 py-1 text-[12px] font-medium text-muted-foreground">
-              {KIND_LABELS[form.kind]}
+              {kindLabel(t, form.kind)}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="launcher-label">Libellé</Label>
+              <Label htmlFor="launcher-label">
+                {t("launchers.form.labelLabel")}
+              </Label>
               <Input
                 id="launcher-label"
                 value={form.label}
                 onChange={(e) => setForm({ ...form, label: e.target.value })}
                 placeholder={
                   form.kind === "shell"
-                    ? "DreamDash dans VS Code"
-                    : "Résumé des mails du matin"
+                    ? t("launchers.form.labelPlaceholder.shell")
+                    : t("launchers.form.labelPlaceholder.prompt")
                 }
                 maxLength={40}
               />
             </div>
             <div className="space-y-2">
-              <Label>Icône</Label>
+              <Label>{t("launchers.form.iconLabel")}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {LAUNCHER_ICONS.map((ic) => (
                   <button
@@ -516,13 +547,15 @@ export function LaunchersDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label>Machine</Label>
+              <Label>{t("launchers.form.machineLabel")}</Label>
               <Select
                 value={form.machineId}
                 onValueChange={(v) => setForm({ ...form, machineId: v })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Machine" />
+                  <SelectValue
+                    placeholder={t("launchers.form.machinePlaceholder")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {(form.kind === "shell"
@@ -534,7 +567,10 @@ export function LaunchersDialog() {
                       {!agentOnline(m.agentSeenAt) && (
                         <span className="text-muted-foreground">
                           {" "}
-                          · {m.host && m.sshUser ? "via ssh" : "hors ligne"}
+                          ·{" "}
+                          {m.host && m.sshUser
+                            ? t("launchers.form.viaSsh")
+                            : t("launchers.form.offline")}
                         </span>
                       )}
                     </SelectItem>
@@ -546,7 +582,7 @@ export function LaunchersDialog() {
             {form.kind === "shell" ? (
               <>
                 <div className="space-y-2">
-                  <Label>Action</Label>
+                  <Label>{t("launchers.form.actionLabel")}</Label>
                   <Select
                     value={form.action}
                     onValueChange={(v) =>
@@ -564,7 +600,7 @@ export function LaunchersDialog() {
                     <SelectContent>
                       {USER_DESKTOP_ACTION_IDS.map((a) => (
                         <SelectItem key={a} value={a}>
-                          {DESKTOP_ACTIONS[a].label}
+                          {t(`launchers.actions.${a}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -572,7 +608,9 @@ export function LaunchersDialog() {
                 </div>
                 {FIELDS[form.action].map((f) => (
                   <div key={f.key} className="space-y-2">
-                    <Label htmlFor={`launcher-${f.key}`}>{f.label}</Label>
+                    <Label htmlFor={`launcher-${f.key}`}>
+                      {t(f.labelKey)}
+                    </Label>
                     <Input
                       id={`launcher-${f.key}`}
                       value={form.args[f.key] ?? ""}
@@ -582,7 +620,7 @@ export function LaunchersDialog() {
                           args: { ...form.args, [f.key]: e.target.value },
                         })
                       }
-                      placeholder={f.placeholder}
+                      placeholder={t(f.placeholderKey)}
                       spellCheck={false}
                       autoCapitalize="off"
                       className={cn(f.mono && "font-mono text-[13px]")}
@@ -594,9 +632,11 @@ export function LaunchersDialog() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="launcher-prompt">
-                    Prompt (
-                    {form.kind === "claude-prompt" ? "Claude" : "Codex"} sans
-                    permission)
+                    {t(
+                      form.kind === "claude-prompt"
+                        ? "launchers.form.promptLabel.claude"
+                        : "launchers.form.promptLabel.codex"
+                    )}
                   </Label>
                   <Textarea
                     id="launcher-prompt"
@@ -604,11 +644,11 @@ export function LaunchersDialog() {
                     onChange={(e) =>
                       setForm({ ...form, promptText: e.target.value })
                     }
-                    placeholder={
+                    placeholder={t(
                       form.kind === "claude-prompt"
-                        ? "Résume les nouveaux mails et prépare une réponse en brouillon."
-                        : "Corrige les warnings TypeScript dans src/ et commit."
-                    }
+                        ? "launchers.form.promptPlaceholder.claude"
+                        : "launchers.form.promptPlaceholder.codex"
+                    )}
                     rows={8}
                     className="font-mono text-[13px]"
                   />
@@ -620,10 +660,10 @@ export function LaunchersDialog() {
                         htmlFor="launcher-schedule"
                         className="text-[13px] font-medium"
                       >
-                        Planifier
+                        {t("launchers.form.schedule")}
                       </Label>
                       <p className="text-[11.5px] text-muted-foreground">
-                        Un événement machine tire à la date/heure choisies.
+                        {t("launchers.form.scheduleHint")}
                       </p>
                     </div>
                     <Switch
@@ -641,7 +681,7 @@ export function LaunchersDialog() {
                           htmlFor="launcher-date"
                           className="text-[11.5px]"
                         >
-                          Date
+                          {t("launchers.form.date")}
                         </Label>
                         <Input
                           id="launcher-date"
@@ -657,7 +697,7 @@ export function LaunchersDialog() {
                           htmlFor="launcher-time"
                           className="text-[11.5px]"
                         >
-                          Heure
+                          {t("launchers.form.time")}
                         </Label>
                         <Input
                           id="launcher-time"
@@ -669,7 +709,9 @@ export function LaunchersDialog() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-[11.5px]">Récurrence</Label>
+                        <Label className="text-[11.5px]">
+                          {t("launchers.form.recurrence")}
+                        </Label>
                         <Select
                           value={form.recurrence}
                           onValueChange={(v) =>
@@ -684,11 +726,11 @@ export function LaunchersDialog() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">
-                              {RECURRENCE_LABELS.none}
+                              {recurrenceLabel(t, "none")}
                             </SelectItem>
                             {LAUNCHER_RECURRENCES.map((r) => (
                               <SelectItem key={r} value={r}>
-                                {RECURRENCE_LABELS[r]}
+                                {recurrenceLabel(t, r)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -707,10 +749,10 @@ export function LaunchersDialog() {
                 onClick={() => setForm(null)}
                 disabled={busy}
               >
-                Annuler
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={busy || !canSubmit}>
-                {form.id ? "Enregistrer" : "Créer"}
+                {form.id ? t("common.save") : t("common.create")}
               </Button>
             </div>
           </form>
@@ -730,10 +772,11 @@ type LILProps = {
 };
 
 function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
-  const status = runStatus(l);
+  const t = useT();
+  const status = runStatus(t, l);
   const machineLabel = l.machine
     ? l.machine.label || l.machine.name
-    : "sans machine";
+    : t("launchers.noMachine");
   const summary =
     l.kind === "shell"
       ? describeCommand(l.action, l.args)
@@ -753,7 +796,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
         {l.scheduledFor && (
           <span className="block truncate text-[11.5px] text-muted-foreground">
             <CalendarClock className="mr-1 inline h-3 w-3" />
-            {scheduleLabel(l.scheduledFor, l.recurrence)}
+            {scheduleLabel(t, l.scheduledFor, l.recurrence)}
           </span>
         )}
         {status && (
@@ -772,7 +815,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
         onClick={() => move(i, -1)}
         disabled={i === 0}
         className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
-        aria-label={`Monter ${l.label}`}
+        aria-label={t("launchers.moveUp", { label: l.label })}
       >
         <ArrowUp className="h-4 w-4" />
       </button>
@@ -781,7 +824,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
         onClick={() => move(i, 1)}
         disabled={i === total - 1}
         className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
-        aria-label={`Descendre ${l.label}`}
+        aria-label={t("launchers.moveDown", { label: l.label })}
       >
         <ArrowDown className="h-4 w-4" />
       </button>
@@ -789,7 +832,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
         type="button"
         onClick={() => edit(l)}
         className="rounded-full p-1.5 text-muted-foreground hover:bg-card"
-        aria-label={`Modifier ${l.label}`}
+        aria-label={t("launchers.editAria", { label: l.label })}
       >
         <Pencil className="h-4 w-4" />
       </button>
@@ -797,7 +840,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
         type="button"
         onClick={() => remove(l)}
         className="rounded-full p-1.5 text-muted-foreground hover:bg-negative hover:text-negative-foreground"
-        aria-label={`Supprimer ${l.label}`}
+        aria-label={t("launchers.deleteAria", { label: l.label })}
       >
         <Trash2 className="h-4 w-4" />
       </button>

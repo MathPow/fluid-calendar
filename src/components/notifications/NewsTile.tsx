@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { toast } from "sonner";
 
+import { useT } from "@/i18n/client";
+
 import { NotificationList } from "./NotificationList";
 import { useNotifications } from "./useNotifications";
 
@@ -20,6 +22,7 @@ export function NewsTile({
   embedded?: boolean;
   unreadOnly?: boolean;
 }) {
+  const t = useT();
   const {
     items: all_,
     unread,
@@ -47,10 +50,15 @@ export function NewsTile({
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <p className="etiquette">Nouvelles</p>
+          <p className="etiquette">{t("notifications.title")}</p>
           {unread > 0 && (
             <span className="text-[12px] font-semibold text-[hsl(var(--destructive))]">
-              {unread} non lue{unread > 1 ? "s" : ""}
+              {t(
+                unread > 1
+                  ? "notifications.unreadPlural"
+                  : "notifications.unread",
+                { count: unread }
+              )}
             </span>
           )}
         </div>
@@ -60,13 +68,15 @@ export function NewsTile({
             onClick={() => markRead("all")}
             className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
           >
-            Tout marquer lu
+            {t("notifications.markAllRead")}
           </button>
         )}
       </div>
       {embedded && loaded && items.length === 0 && (
         <p className="flex flex-1 items-center justify-center py-6 text-[13px] text-muted-foreground">
-          {unreadOnly ? "Tout est lu." : "Rien de neuf."}
+          {unreadOnly
+            ? t("notifications.allRead")
+            : t("notifications.nothingNew")}
         </p>
       )}
       <div
@@ -82,7 +92,8 @@ export function NewsTile({
           onDone={(n) => markRead([n.id])}
           onUndone={(n) => markUnread([n.id])}
           onDelete={async (n) => {
-            if (!(await remove([n.id]))) toast.error("Suppression impossible");
+            if (!(await remove([n.id])))
+              toast.error(t("notifications.deleteError"));
           }}
         />
       </div>
@@ -92,7 +103,11 @@ export function NewsTile({
           onClick={() => setAll((v) => !v)}
           className="mt-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
         >
-          {all ? "Réduire" : `Voir les ${sorted.length - PREVIEW} autres`}
+          {all
+            ? t("notifications.collapse")
+            : t("notifications.seeOthers", {
+                count: sorted.length - PREVIEW,
+              })}
         </button>
       )}
     </section>

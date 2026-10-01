@@ -1,11 +1,13 @@
 import { useState } from "react";
 
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useT } from "@/i18n/client";
 import { useSettingsStore } from "@/store/settings";
 
 import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function NotificationSettings() {
+  const t = useT();
   const { notifications, updateNotificationSettings } = useSettingsStore();
   const { state: pushState, loading: pushLoading, subscribe, unsubscribe } =
     usePushNotifications();
@@ -24,20 +26,20 @@ export function NotificationSettings() {
   }
 
   const pushLabel: Record<typeof pushState, string> = {
-    unsupported: "Not supported in this browser",
-    denied: "Blocked — enable in browser settings",
-    subscribed: "Disable push notifications",
-    unsubscribed: "Enable push notifications",
+    unsupported: t("notifSettings.push.unsupported"),
+    denied: t("notifSettings.push.denied"),
+    subscribed: t("notifSettings.push.disable"),
+    unsubscribed: t("notifSettings.push.enable"),
   };
 
   return (
     <SettingsSection
-      title="Notification Settings"
-      description="Configure your notification preferences."
+      title={t("notifSettings.title")}
+      description={t("notifSettings.description")}
     >
       <SettingRow
-        label="Daily Email Updates"
-        description="Receive a daily email with your upcoming meetings and tasks"
+        label={t("notifSettings.email.title")}
+        description={t("notifSettings.email.description")}
       >
         <div className="space-y-2">
           <label className="flex items-center">
@@ -51,14 +53,16 @@ export function NotificationSettings() {
               }
               className="h-4 w-4 rounded border-border text-foreground focus:ring-ring"
             />
-            <span className="ml-2 text-sm">Enable daily email updates</span>
+            <span className="ml-2 text-sm">
+              {t("notifSettings.email.enable")}
+            </span>
           </label>
         </div>
       </SettingRow>
 
       <SettingRow
-        label="Push Notifications"
-        description="Receive push notifications on this device (works on iPhone when installed as a PWA)"
+        label={t("notifSettings.push.title")}
+        description={t("notifSettings.push.description")}
       >
         <div className="flex items-center gap-3">
           <button
@@ -70,17 +74,25 @@ export function NotificationSettings() {
             }
             className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {pushLoading ? "Working…" : pushLabel[pushState]}
+            {pushLoading ? t("notifSettings.push.working") : pushLabel[pushState]}
           </button>
           {pushState === "subscribed" && (
             <>
-              <span className="text-sm text-positive-foreground">Active</span>
+              <span className="text-sm text-positive-foreground">
+                {t("notifSettings.push.active")}
+              </span>
               <button
                 onClick={sendTestNotification}
                 disabled={testStatus === "sending"}
                 className="rounded-full border-[1.5px] border-foreground px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
               >
-                {testStatus === "sending" ? "Sending…" : testStatus === "sent" ? "Sent!" : testStatus === "error" ? "Failed" : "Send test"}
+                {testStatus === "sending"
+                  ? t("notifSettings.push.sending")
+                  : testStatus === "sent"
+                    ? t("notifSettings.push.sent")
+                    : testStatus === "error"
+                      ? t("notifSettings.push.failed")
+                      : t("notifSettings.push.sendTest")}
               </button>
             </>
           )}
@@ -88,8 +100,8 @@ export function NotificationSettings() {
       </SettingRow>
 
       <SettingRow
-        label="Event reminders"
-        description="Send a push notification before calendar events start"
+        label={t("notifSettings.reminders.title")}
+        description={t("notifSettings.reminders.description")}
       >
         <div className="flex flex-col gap-3">
           <label className="flex items-center gap-2">
@@ -103,7 +115,9 @@ export function NotificationSettings() {
               }
               className="h-4 w-4 rounded border-border text-foreground focus:ring-ring"
             />
-            <span className="text-sm">Enable event reminders</span>
+            <span className="text-sm">
+              {t("notifSettings.reminders.enable")}
+            </span>
           </label>
           <div className="flex items-center gap-2">
             <input
@@ -119,7 +133,9 @@ export function NotificationSettings() {
               disabled={!(notifications.pushRemindersEnabled ?? true)}
               className="w-20 rounded-xl border border-border px-2 py-1 text-sm disabled:opacity-50"
             />
-            <span className="text-sm text-muted-foreground">minutes before</span>
+            <span className="text-sm text-muted-foreground">
+              {t("notifSettings.reminders.minutesBefore")}
+            </span>
           </div>
         </div>
       </SettingRow>

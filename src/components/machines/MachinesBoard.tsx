@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n/client";
 import { machineHealth } from "@/lib/machines/health";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
 
@@ -41,8 +42,8 @@ export type MachineRow = MachineLite & {
 };
 
 const SECTIONS = [
-  { kind: "local", title: "Machines locales", icon: Laptop },
-  { kind: "vps", title: "VPS", icon: Server },
+  { kind: "local", titleKey: "machines.sections.local", icon: Laptop },
+  { kind: "vps", titleKey: "machines.sections.vps", icon: Server },
 ] as const;
 
 /** The SSH command for a machine, when there's enough to build one. */
@@ -58,6 +59,7 @@ function sshCommand(m: MachineLite): string | null {
  * terminal, their live load, and the projects that live on each.
  */
 export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
+  const t = useT();
   const router = useRouter();
   const [dialog, setDialog] = useState<{ machine: MachineRow | null } | null>(
     null
@@ -82,13 +84,15 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
         const field = data.details?.fieldErrors
           ? Object.values(data.details.fieldErrors).flat()[0]
           : undefined;
-        throw new Error(field || data.error || `Erreur ${res.status}`);
+        throw new Error(
+          field || data.error || t("common.error", { status: res.status })
+        );
       }
       toast.success(done);
       setDialog(null);
       router.refresh();
     } catch (e) {
-      toast.error("Action impossible", {
+      toast.error(t("machines.toasts.actionFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -102,12 +106,12 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
       ? send(
           `/api/machines/${m.id}`,
           { method: "PATCH", body: JSON.stringify(values) },
-          "Machine mise à jour."
+          t("machines.toasts.updated")
         )
       : send(
           "/api/machines",
           { method: "POST", body: JSON.stringify(values) },
-          "Machine ajoutée."
+          t("machines.toasts.added")
         );
   };
 
@@ -115,23 +119,30 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
     const m = dialog?.machine;
     if (!m) return;
     const n = m.locations.length;
-    const ok = window.confirm(
-      `Supprimer « ${m.label || m.name} » ?${
-        n > 0
-          ? ` Ses ${n} emplacement${n > 1 ? "s" : ""} de projet seront oubliés.`
-          : ""
-      }`
-    );
+    const confirmMsg =
+      n > 0
+        ? t(
+            n > 1
+              ? "machines.confirm.deleteWithLocationsPlural"
+              : "machines.confirm.deleteWithLocations",
+            { name: m.label || m.name, count: n }
+          )
+        : t("machines.confirm.delete", { name: m.label || m.name });
+    const ok = window.confirm(confirmMsg);
     if (ok)
-      send(`/api/machines/${m.id}`, { method: "DELETE" }, "Machine supprimée.");
+      send(
+        `/api/machines/${m.id}`,
+        { method: "DELETE" },
+        t("machines.toasts.deleted")
+      );
   };
 
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copié.");
+      toast.success(t("machines.toasts.copied"));
     } catch {
-      toast.error("Copie impossible");
+      toast.error(t("machines.toasts.copyFailed"));
     }
   };
 
@@ -142,26 +153,32 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">
-            Machines.
+            {t("machines.pageTitle")}
           </h1>
           <div className="mt-6 flex flex-wrap gap-2">
             <Badge className="px-4 py-2 text-[13px]">
-              {machines.length - vpsCount} locale
-              {machines.length - vpsCount > 1 ? "s" : ""}
+              {t(
+                machines.length - vpsCount > 1
+                  ? "machines.badges.localPlural"
+                  : "machines.badges.local",
+                { count: machines.length - vpsCount }
+              )}
             </Badge>
-            <Badge className="px-4 py-2 text-[13px]">{vpsCount} VPS</Badge>
+            <Badge className="px-4 py-2 text-[13px]">
+              {t("machines.badges.vps", { count: vpsCount })}
+            </Badge>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <ContactsSwitch />
           <Button size="lg" onClick={() => setDialog({ machine: null })}>
-            <Plus /> Nouvelle machine
+            <Plus /> {t("machines.newMachine")}
           </Button>
         </div>
       </header>
       <div className="filet mt-8" />
 
-      {SECTIONS.map(({ kind, title, icon: Icon }) => {
+      {SECTIONS.map(({ kind, titleKey, icon: Icon }) => {
         const list = machines.filter(
           (m) => (m.kind === "vps" ? "vps" : "local") === kind
         );
@@ -172,7 +189,7 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                 <Icon className="h-5 w-5" />
               </span>
               <h2 className="text-[24px] font-bold leading-none tracking-title">
-                {title}
+                {t(titleKey)}
               </h2>
               <span className="text-[12px] text-muted-foreground">
                 {list.length}
@@ -180,7 +197,7 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
             </div>
             {list.length === 0 ? (
               <p className="mt-4 rounded-[20px] bg-secondary/60 px-5 py-6 text-center text-[13px] text-muted-foreground">
-                Aucune pour l&apos;instant.
+                {t("machines.sectionEmpty")}
               </p>
             ) : (
               <ul className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -216,7 +233,7 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                <TerminalSquare /> Terminal
+                                <TerminalSquare /> {t("machines.terminal")}
                               </a>
                             </Button>
                           )}
@@ -226,14 +243,16 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                               size="sm"
                               onClick={() => setCommandsFor(m)}
                             >
-                              <MonitorSmartphone /> Commandes
+                              <MonitorSmartphone /> {t("machines.commands")}
                             </Button>
                           )}
                           <button
                             type="button"
                             onClick={() => setDialog({ machine: m })}
                             className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-                            aria-label={`Modifier ${m.label || m.name}`}
+                            aria-label={t("machines.editAria", {
+                              name: m.label || m.name,
+                            })}
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -249,15 +268,17 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                       ) : (
                         <p className="mt-4 rounded-2xl bg-secondary/60 px-4 py-3 text-[13px] text-muted-foreground">
                           {stats
-                            ? "Hors ligne : éteinte, en veille ou hors du réseau Tailscale."
-                            : "Pas de stats en direct : ajoute l'adresse de son Netdata avec le crayon."}
+                            ? t("machines.offlineHint")
+                            : t("machines.noStatsHint")}
                         </p>
                       )}
 
                       <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[13px]">
                         {m.host && (
                           <>
-                            <dt className="etiquette self-center">Adresse</dt>
+                            <dt className="etiquette self-center">
+                              {t("machines.address")}
+                            </dt>
                             <dd className="truncate font-mono">{m.host}</dd>
                           </>
                         )}
@@ -276,7 +297,7 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                                 type="button"
                                 onClick={() => copy(ssh)}
                                 className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                                aria-label="Copier la commande SSH"
+                                aria-label={t("machines.copySshAria")}
                               >
                                 <Copy className="h-3.5 w-3.5" />
                               </button>
@@ -312,7 +333,9 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                           ))}
                           {m.locations.length > 8 && (
                             <span className="text-[12px] text-muted-foreground">
-                              +{m.locations.length - 8} projets
+                              {t("machines.extraProjects", {
+                                count: m.locations.length - 8,
+                              })}
                             </span>
                           )}
                         </div>

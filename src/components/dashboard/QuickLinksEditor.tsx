@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+import { useT } from "@/i18n/client";
 import {
   type CustomLink,
   CustomLinkInput,
@@ -107,6 +108,7 @@ export function QuickLinksEditor({
   links: CustomLink[];
   onChange: (links: CustomLink[]) => void;
 }) {
+  const t = useT();
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +141,9 @@ export function QuickLinksEditor({
       kind,
     });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Lien invalide");
+      setError(
+        parsed.error.issues[0]?.message ?? t("quickLinks.invalidLink")
+      );
       return;
     }
     add(parsed.data);
@@ -160,16 +164,15 @@ export function QuickLinksEditor({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Mes liens</DialogTitle>
+          <DialogTitle>{t("quickLinks.title")}</DialogTitle>
           <DialogDescription>
-            Des liens à toi dans « Accès rapide », à côté des onglets. Un site
-            s&apos;ouvre dans un nouvel onglet.
+            {t("quickLinks.description")}
           </DialogDescription>
         </DialogHeader>
 
         {links.length === 0 ? (
           <p className="rounded-2xl bg-secondary/60 px-4 py-5 text-center text-[13px] text-muted-foreground">
-            Aucun lien pour l&apos;instant.
+            {t("quickLinks.empty")}
           </p>
         ) : (
           <ul className="space-y-1.5">
@@ -188,21 +191,21 @@ export function QuickLinksEditor({
                   </span>
                 </span>
                 <IconButton
-                  label="Monter"
+                  label={t("quickLinks.moveUp")}
                   disabled={i === 0}
                   onClick={() => move(i, -1)}
                 >
                   <ArrowUp className="h-3.5 w-3.5" />
                 </IconButton>
                 <IconButton
-                  label="Descendre"
+                  label={t("quickLinks.moveDown")}
                   disabled={i === links.length - 1}
                   onClick={() => move(i, 1)}
                 >
                   <ArrowDown className="h-3.5 w-3.5" />
                 </IconButton>
                 <IconButton
-                  label={`Retirer ${l.label}`}
+                  label={t("quickLinks.removeAria", { label: l.label })}
                   onClick={() => onChange(links.filter((x) => x.id !== l.id))}
                   danger
                 >
@@ -221,7 +224,7 @@ export function QuickLinksEditor({
             onClick={() => setTab("url")}
           >
             <Plus className="h-3.5 w-3.5" />
-            Adresse
+            {t("quickLinks.tabs.address")}
           </button>
           <button
             type="button"
@@ -230,13 +233,13 @@ export function QuickLinksEditor({
             onClick={() => setTab("import")}
           >
             <FolderGit2 className="h-3.5 w-3.5" />
-            Depuis Projets
+            {t("quickLinks.tabs.fromProjects")}
           </button>
         </div>
 
         {full ? (
           <p className="text-[13px] text-muted-foreground">
-            {MAX_CUSTOM_LINKS} liens au maximum.
+            {t("quickLinks.max", { count: MAX_CUSTOM_LINKS })}
           </p>
         ) : tab === "url" ? (
           <form
@@ -249,15 +252,15 @@ export function QuickLinksEditor({
             <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="coolify.exemple.com, https://… ou /notes"
-              aria-label="Adresse"
+              placeholder={t("quickLinks.urlPlaceholder")}
+              aria-label={t("quickLinks.urlAria")}
               autoFocus
             />
             <Input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="Nom (facultatif)"
-              aria-label="Nom"
+              placeholder={t("quickLinks.namePlaceholder")}
+              aria-label={t("quickLinks.nameAria")}
               maxLength={40}
             />
             {error && (
@@ -265,7 +268,7 @@ export function QuickLinksEditor({
             )}
             <Button type="submit" size="sm" disabled={!url.trim()}>
               <Plus className="h-4 w-4" />
-              Ajouter le lien
+              {t("quickLinks.addLink")}
             </Button>
           </form>
         ) : (
@@ -316,6 +319,7 @@ function ImportPicker({
   links: CustomLink[];
   onAdd: (l: Omit<CustomLink, "id">) => void;
 }) {
+  const t = useT();
   const [sources, setSources] = useState<Source[] | null>(null);
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -386,7 +390,7 @@ function ImportPicker({
   if (!sources)
     return (
       <p className="py-6 text-center text-[13px] text-muted-foreground">
-        Chargement…
+        {t("common.loading")}
       </p>
     );
 
@@ -397,15 +401,15 @@ function ImportPicker({
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Chercher un projet ou une organisation"
+          placeholder={t("quickLinks.import.search")}
           className="pl-9"
-          aria-label="Chercher"
+          aria-label={t("quickLinks.import.searchAria")}
         />
       </div>
       <ul className="mt-2 max-h-[45vh] space-y-1 overflow-y-auto">
         {shown.length === 0 && (
           <li className="py-6 text-center text-[13px] text-muted-foreground">
-            Rien ne correspond.
+            {t("quickLinks.import.noMatch")}
           </li>
         )}
         {shown.map((s) => {
@@ -416,7 +420,7 @@ function ImportPicker({
               url: s.page,
               kind: s.kind,
               color: s.color ?? undefined,
-              note: "Page dans DreamDash",
+              note: t("quickLinks.import.pageInDreamDash"),
             },
             ...s.links.map((l) => {
               const kind = l.kind || guessLinkKind(l.url) || "other";
@@ -457,9 +461,16 @@ function ImportPicker({
                     ) : (
                       <FolderGit2 className="h-3 w-3" />
                     )}
-                    {s.kind === "org" ? "Organisation" : (s.parent ?? "Projet")}
+                    {s.kind === "org"
+                      ? t("quickLinks.import.organisation")
+                      : (s.parent ?? t("quickLinks.import.project"))}
                     {s.links.length > 0 &&
-                      ` · ${s.links.length} lien${s.links.length > 1 ? "s" : ""}`}
+                      ` · ${t(
+                        s.links.length > 1
+                          ? "quickLinks.import.linksPlural"
+                          : "quickLinks.import.links",
+                        { count: s.links.length }
+                      )}`}
                   </span>
                 </span>
                 <ChevronRight

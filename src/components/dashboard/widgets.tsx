@@ -43,6 +43,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { type TranslateFn, useT } from "@/i18n/client";
 import {
   type CustomLink,
   QUICK_LINK_IDS,
@@ -124,11 +125,11 @@ const timeLabel = (iso: string) =>
 const isToday = (iso: string) =>
   startOfDay(new Date(iso)).getTime() === startOfDay(new Date()).getTime();
 
-const whenLabel = (e: EventItem) => {
+const whenLabel = (t: TranslateFn, e: EventItem) => {
   const today = isToday(e.start);
   if (e.allDay)
     return today
-      ? "All day today"
+      ? t("dashboard.nextUp.allDayToday")
       : new Date(e.start).toLocaleDateString(undefined, {
           weekday: "long",
           month: "long",
@@ -136,23 +137,35 @@ const whenLabel = (e: EventItem) => {
         });
   return `${
     today
-      ? "Today"
+      ? t("dashboard.schedule.day.today")
       : new Date(e.start).toLocaleDateString(undefined, { weekday: "long" })
   } · ${timeLabel(e.start)}`;
 };
 
-const relativeDue = (iso: string) => {
+const relativeDue = (t: TranslateFn, iso: string) => {
   const due = startOfDay(new Date(iso)).getTime();
   const today = startOfDay(new Date()).getTime();
   const days = Math.round((due - today) / 86_400_000);
   if (days < 0)
     return {
-      label: `${Math.abs(days)}d overdue`,
+      label: t("dashboard.tasks.dueOverdue", { count: Math.abs(days) }),
       tone: "negative" as const,
     };
-  if (days === 0) return { label: "Today", tone: "pending" as const };
-  if (days === 1) return { label: "Tomorrow", tone: "default" as const };
-  if (days < 7) return { label: `In ${days}d`, tone: "default" as const };
+  if (days === 0)
+    return {
+      label: t("dashboard.schedule.day.today"),
+      tone: "pending" as const,
+    };
+  if (days === 1)
+    return {
+      label: t("dashboard.schedule.day.tomorrow"),
+      tone: "default" as const,
+    };
+  if (days < 7)
+    return {
+      label: t("dashboard.tasks.dueInDays", { count: days }),
+      tone: "default" as const,
+    };
   return {
     label: new Date(iso).toLocaleDateString(undefined, {
       month: "short",
@@ -165,15 +178,15 @@ const relativeDue = (iso: string) => {
 const recSourceIcon = (s: string) =>
   s === "watch" ? Watch : s === "meetily" ? Mic : AudioLines;
 
-const timeAgo = (ts: number) => {
+const timeAgo = (t: TranslateFn, ts: number) => {
   const diff = Date.now() - ts;
   const min = Math.round(diff / 60_000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min} min ago`;
+  if (min < 1) return t("dashboard.recent.justNow");
+  if (min < 60) return t("dashboard.recent.minAgo", { count: min });
   const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr} h ago`;
+  if (hr < 24) return t("dashboard.recent.hAgo", { count: hr });
   const days = Math.round(hr / 24);
-  if (days < 7) return `${days} d ago`;
+  if (days < 7) return t("dashboard.recent.dAgo", { count: days });
   return new Date(ts).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -322,7 +335,11 @@ interface WidgetProps {
   setOpts?: (opts: WidgetOptions) => void;
 }
 
-export function renderWidget(type: WidgetType, props: WidgetProps) {
+export function RenderWidget({
+  type,
+  ...props
+}: WidgetProps & { type: WidgetType }) {
+  const t = useT();
   switch (type) {
     case "next-up":
       return <NextUpWidget {...props} />;
@@ -347,7 +364,7 @@ export function renderWidget(type: WidgetType, props: WidgetProps) {
       return <DossierWidget {...props} />;
     case "schedule":
       return (
-        <Titled title="Horaire">
+        <Titled title={t("dashboard.sections.schedule")}>
           <ScheduleList
             events={scheduleEvents(props.data, String(props.opts.range))}
             byDay={props.opts.range !== "today"}
@@ -360,7 +377,7 @@ export function renderWidget(type: WidgetType, props: WidgetProps) {
       );
     case "projects":
       return (
-        <Titled title="Projets">
+        <Titled title={t("dashboard.sections.projects")}>
           <div className="pt-4">
             <ProjectLauncher
               top={Number(props.opts.top) || 4}
@@ -375,7 +392,7 @@ export function renderWidget(type: WidgetType, props: WidgetProps) {
       );
     case "recent":
       return (
-        <Titled title="Récents">
+        <Titled title={t("dashboard.sections.recent")}>
           <RecentList
             items={recentOf(props.data, String(props.opts.kind))}
             layout={props.preset}
@@ -389,6 +406,10 @@ export function renderWidget(type: WidgetType, props: WidgetProps) {
   }
 }
 
+export const renderWidget = (type: WidgetType, props: WidgetProps) => (
+  <RenderWidget type={type} {...props} />
+);
+
 function Titled({
   title,
   href,
@@ -398,6 +419,7 @@ function Titled({
   href?: string;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-3">
@@ -407,7 +429,7 @@ function Titled({
             href={href}
             className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
           >
-            Tout voir
+            {t("dashboard.sections.viewAll")}
           </Link>
         )}
       </div>
@@ -420,6 +442,7 @@ function Titled({
 /* ---------------------------------------------------------------- next up */
 
 function NextUpWidget({ data, preset, opts }: WidgetProps) {
+  const t = useT();
   const next = data.nextEvent;
   const after = data.upcoming.slice(1, 1 + Number(opts.after || 0));
   const place =
@@ -430,11 +453,11 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
   const empty = (
     <>
       <p className="voice mt-4 text-[24px] text-background md:text-[28px]">
-        Nothing on the calendar.
+        {t("dashboard.nextUp.empty")}
       </p>
       {preset !== "strip" && (
         <p className="mt-2 text-[14px] text-background/70">
-          Enjoy the quiet, or plan the next thing.
+          {t("dashboard.nextUp.emptyHint")}
         </p>
       )}
     </>
@@ -450,7 +473,7 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
           <span className="w-28 shrink-0 tabular-nums text-background/55">
             {isToday(e.start)
               ? e.allDay
-                ? "All day"
+                ? t("dashboard.schedule.allDay")
                 : timeLabel(e.start)
               : `${new Date(e.start).toLocaleDateString(undefined, {
                   weekday: "short",
@@ -467,7 +490,9 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
       <div className="flex h-full items-center gap-6">
         <div className="min-w-0 flex-1">
           <p className="etiquette text-background/60">
-            {next ? `Next up · ${whenLabel(next)}` : "Next up"}
+            {next
+              ? `${t("dashboard.nextUp.title")} · ${whenLabel(t, next)}`
+              : t("dashboard.nextUp.title")}
           </p>
           {next ? (
             <p className="voice event-title mt-3 truncate text-[24px] text-background md:text-[28px]">
@@ -500,7 +525,7 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
           </ul>
         )}
         <Button variant="inverse" className="hidden shrink-0 sm:flex" asChild>
-          <Link href="/calendar">Open calendar</Link>
+          <Link href="/calendar">{t("dashboard.nextUp.openCalendar")}</Link>
         </Button>
       </div>
     );
@@ -509,15 +534,19 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
   if (preset === "compact") {
     return (
       <Link href="/calendar" className="group flex h-full flex-col">
-        <p className="etiquette text-background/60">Next up</p>
+        <p className="etiquette text-background/60">
+          {t("dashboard.nextUp.title")}
+        </p>
         {next ? (
           <>
             <p className="mt-4 text-[34px] font-extrabold leading-none tracking-[-0.02em] text-background">
-              {next.allDay ? "All day" : timeLabel(next.start)}
+              {next.allDay
+                ? t("dashboard.schedule.allDay")
+                : timeLabel(next.start)}
             </p>
             <p className="mt-1 text-[12px] capitalize text-background/60">
               {isToday(next.start)
-                ? "today"
+                ? t("dashboard.nextUp.today")
                 : new Date(next.start).toLocaleDateString(undefined, {
                     weekday: "long",
                     day: "numeric",
@@ -534,7 +563,7 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
           </>
         ) : (
           <p className="voice mt-4 text-[20px] text-background">
-            Nothing on the calendar.
+            {t("dashboard.nextUp.empty")}
           </p>
         )}
         <span className="mt-auto flex h-9 w-9 items-center justify-center self-end rounded-full bg-background text-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
@@ -555,7 +584,9 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
     >
       <div className="min-w-0 flex-1">
         <p className="etiquette text-background/60">
-          {next ? `Next up · ${whenLabel(next)}` : "Next up"}
+          {next
+            ? `${t("dashboard.nextUp.title")} · ${whenLabel(t, next)}`
+            : t("dashboard.nextUp.title")}
         </p>
         {next ? (
           <>
@@ -584,7 +615,7 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
         className="shrink-0 self-start md:self-auto"
         asChild
       >
-        <Link href="/calendar">Open calendar</Link>
+        <Link href="/calendar">{t("dashboard.nextUp.openCalendar")}</Link>
       </Button>
     </div>
   );
@@ -593,6 +624,7 @@ function NextUpWidget({ data, preset, opts }: WidgetProps) {
 /* ------------------------------------------------------------------ today */
 
 function TodayWidget({ data, preset, opts }: WidgetProps) {
+  const t = useT();
   const now = new Date();
   const { dueToday, todayEvents } = data;
   const date = now.toLocaleDateString(undefined, {
@@ -603,14 +635,20 @@ function TodayWidget({ data, preset, opts }: WidgetProps) {
   const line = (
     <p className="mt-3 text-[13px] capitalize">
       {weekday}
-      {opts.week !== false && ` · week ${isoWeek(now)}`}
+      {opts.week !== false &&
+        ` · ${t("dashboard.today.week", { count: isoWeek(now) })}`}
     </p>
   );
   const due = opts.due !== false && (
     <p className="mt-1 font-serif text-[15px] italic leading-[1.3] text-tint-foreground/75">
       {dueToday === 0
-        ? "Nothing due today."
-        : `${dueToday} task${dueToday > 1 ? "s" : ""} due today.`}
+        ? t("dashboard.today.nothingDue")
+        : t(
+            dueToday > 1
+              ? "dashboard.today.dueTasksPlural"
+              : "dashboard.today.dueTasks",
+            { count: dueToday }
+          )}
     </p>
   );
 
@@ -622,7 +660,8 @@ function TodayWidget({ data, preset, opts }: WidgetProps) {
         </p>
         <p className="mt-2 text-[12px] capitalize text-tint-foreground/70">
           {weekday}
-          {opts.week !== false && ` · S${isoWeek(now)}`}
+          {opts.week !== false &&
+            ` · ${t("dashboard.today.weekShort", { count: isoWeek(now) })}`}
         </p>
       </div>
     );
@@ -632,7 +671,9 @@ function TodayWidget({ data, preset, opts }: WidgetProps) {
     return (
       <div className="flex h-full min-h-0 gap-6">
         <div className="shrink-0">
-          <p className="etiquette text-tint-foreground/60">Today</p>
+          <p className="etiquette text-tint-foreground/60">
+            {t("dashboard.today.title")}
+          </p>
           <p className="mt-7 text-[48px] font-extrabold leading-none tracking-[-0.02em]">
             {date}
           </p>
@@ -642,14 +683,21 @@ function TodayWidget({ data, preset, opts }: WidgetProps) {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-tint-foreground/15 pl-6">
           <p className="etiquette text-tint-foreground/60">
             {todayEvents.length === 0
-              ? "No events"
-              : `${todayEvents.length} event${todayEvents.length > 1 ? "s" : ""}`}
+              ? t("dashboard.today.noEvents")
+              : t(
+                  todayEvents.length > 1
+                    ? "dashboard.today.eventsPlural"
+                    : "dashboard.today.events",
+                  { count: todayEvents.length }
+                )}
           </p>
           <ul className="mt-4 min-h-0 flex-1 space-y-2.5 overflow-y-auto">
             {todayEvents.map((e) => (
               <li key={e.id} className="flex items-baseline gap-3 text-[14px]">
                 <span className="w-[4.5rem] shrink-0 whitespace-nowrap tabular-nums text-tint-foreground/60">
-                  {e.allDay ? "All day" : timeLabel(e.start)}
+                  {e.allDay
+                    ? t("dashboard.schedule.allDay")
+                    : timeLabel(e.start)}
                 </span>
                 <span className="truncate font-medium">{e.title}</span>
               </li>
@@ -662,7 +710,9 @@ function TodayWidget({ data, preset, opts }: WidgetProps) {
 
   return (
     <div>
-      <p className="etiquette text-tint-foreground/60">Today</p>
+      <p className="etiquette text-tint-foreground/60">
+        {t("dashboard.today.title")}
+      </p>
       <p className="mt-7 text-[40px] font-extrabold leading-none tracking-[-0.02em]">
         {date}
       </p>
@@ -675,12 +725,13 @@ function TodayWidget({ data, preset, opts }: WidgetProps) {
 /* ------------------------------------------------------------------ tasks */
 
 function TasksWidget({ data, preset, opts }: WidgetProps) {
+  const t = useT();
   const week = endOfDay(addDays(new Date(), 7)).getTime();
-  const filtered = data.openTasks.filter((t) =>
+  const filtered = data.openTasks.filter((task) =>
     opts.filter === "active"
-      ? t.status === "in_progress"
+      ? task.status === "in_progress"
       : opts.filter === "soon"
-        ? !!t.dueDate && new Date(t.dueDate).getTime() <= week
+        ? !!task.dueDate && new Date(task.dueDate).getTime() <= week
         : true
   );
   const limit = opts.limit === "all" ? Infinity : Number(opts.limit) || 10;
@@ -688,10 +739,10 @@ function TasksWidget({ data, preset, opts }: WidgetProps) {
   const showDue = opts.due !== false;
   const label =
     opts.filter === "active"
-      ? "In progress"
+      ? t("dashboard.tasks.inProgress")
       : opts.filter === "soon"
-        ? "Due this week"
-        : "Open tasks";
+        ? t("dashboard.tasks.dueThisWeek")
+        : t("dashboard.tasks.openTasks");
 
   if (preset === "compact") {
     return (
@@ -701,12 +752,12 @@ function TasksWidget({ data, preset, opts }: WidgetProps) {
           {filtered.length}
         </p>
         <ul className="mt-4 min-h-0 space-y-1.5 overflow-hidden">
-          {shown.map((t) => (
+          {shown.map((task) => (
             <li
-              key={t.id}
+              key={task.id}
               className="task-title truncate text-[13px] text-foreground/80"
             >
-              {t.title}
+              {task.title}
             </li>
           ))}
         </ul>
@@ -726,8 +777,8 @@ function TasksWidget({ data, preset, opts }: WidgetProps) {
       </div>
       {filtered.length === 0 ? (
         <Empty
-          title="Nothing here."
-          hint="Anything you add in Tasks shows up here, soonest first."
+          title={t("dashboard.tasks.emptyTitle")}
+          hint={t("dashboard.tasks.emptyHint")}
         />
       ) : (
         <ol
@@ -736,12 +787,13 @@ function TasksWidget({ data, preset, opts }: WidgetProps) {
             preset === "wide" && "gap-x-10 md:columns-2"
           )}
         >
-          {shown.map((t, i) => {
-            const due = showDue && t.dueDate ? relativeDue(t.dueDate) : null;
-            const active = t.status === "in_progress";
+          {shown.map((task, i) => {
+            const due =
+              showDue && task.dueDate ? relativeDue(t, task.dueDate) : null;
+            const active = task.status === "in_progress";
             return (
               <li
-                key={t.id}
+                key={task.id}
                 className={cn(
                   "break-inside-avoid border-b border-border last:border-b-0",
                   active && "my-1.5 rounded-chip border-b-0 bg-tint-soft px-2.5"
@@ -761,7 +813,7 @@ function TasksWidget({ data, preset, opts }: WidgetProps) {
                         : "text-foreground/85"
                     )}
                   >
-                    {t.title}
+                    {task.title}
                   </span>
                   {due && (
                     <Badge
@@ -779,7 +831,7 @@ function TasksWidget({ data, preset, opts }: WidgetProps) {
       )}
       <div className="mt-4 flex items-center gap-3">
         <Button variant="outline" size="sm" asChild>
-          <Link href="/tasks">All tasks</Link>
+          <Link href="/tasks">{t("dashboard.tasks.all")}</Link>
         </Button>
         {filtered.length > shown.length && (
           <span className="text-[12px] text-muted-foreground">
@@ -794,6 +846,7 @@ function TasksWidget({ data, preset, opts }: WidgetProps) {
 /* ---------------------------------------------------------------- dossier */
 
 function DossierWidget({ data, preset, opts }: WidgetProps) {
+  const t = useT();
   const wide = preset !== "half";
   return (
     <Tabs
@@ -801,9 +854,15 @@ function DossierWidget({ data, preset, opts }: WidgetProps) {
       className="flex h-full min-h-0 flex-col"
     >
       <TabsList className="w-full max-w-[520px] shrink-0">
-        <TabsTrigger value="schedule">Schedule</TabsTrigger>
-        <TabsTrigger value="projects">Projects</TabsTrigger>
-        <TabsTrigger value="recent">Recent</TabsTrigger>
+        <TabsTrigger value="schedule">
+          {t("dashboard.sections.schedule")}
+        </TabsTrigger>
+        <TabsTrigger value="projects">
+          {t("dashboard.sections.projects")}
+        </TabsTrigger>
+        <TabsTrigger value="recent">
+          {t("dashboard.sections.recent")}
+        </TabsTrigger>
       </TabsList>
       <div className="filet mt-5 shrink-0" />
       <TabsContent
@@ -848,13 +907,13 @@ function scheduleEvents(data: DashboardData, range: string) {
   });
 }
 
-const dayHeading = (iso: string) => {
+const dayHeading = (t: TranslateFn, iso: string) => {
   const d = startOfDay(new Date(iso));
   const diff = Math.round(
     (d.getTime() - startOfDay(new Date()).getTime()) / 86_400_000
   );
-  if (diff <= 0) return "Today";
-  if (diff === 1) return "Tomorrow";
+  if (diff <= 0) return t("dashboard.schedule.day.today");
+  if (diff === 1) return t("dashboard.schedule.day.tomorrow");
   return d.toLocaleDateString(undefined, {
     weekday: "long",
     month: "short",
@@ -874,17 +933,18 @@ function ScheduleList({
   /** list | column | wide */
   layout: string;
 }) {
+  const t = useT();
   if (events.length === 0)
     return (
       <Empty
-        title="Nothing scheduled."
-        hint="Events from your calendars appear here in order."
+        title={t("dashboard.schedule.emptyTitle")}
+        hint={t("dashboard.schedule.emptyHint")}
       />
     );
 
   const groups: { day: string; items: EventItem[] }[] = [];
   for (const e of events) {
-    const day = byDay ? dayHeading(e.start) : "";
+    const day = byDay ? dayHeading(t, e.start) : "";
     const g = groups[groups.length - 1];
     if (g && g.day === day) g.items.push(e);
     else groups.push({ day, items: [e] });
@@ -904,7 +964,9 @@ function ScheduleList({
                   className="border-b border-border py-3 last:border-b-0"
                 >
                   <p className="text-[12px] tabular-nums text-muted-foreground">
-                    {e.allDay ? "All day" : timeLabel(e.start)}
+                    {e.allDay
+                      ? t("dashboard.schedule.allDay")
+                      : timeLabel(e.start)}
                   </p>
                   <p className="event-title truncate text-[14px] text-foreground">
                     {e.title}
@@ -945,7 +1007,9 @@ function ScheduleList({
                     <span className="truncate">{e.feed?.name ?? "—"}</span>
                   </span>
                   <span className="text-right text-[13px] tabular-nums text-muted-foreground">
-                    {e.allDay ? "All day" : timeLabel(e.start)}
+                    {e.allDay
+                      ? t("dashboard.schedule.allDay")
+                      : timeLabel(e.start)}
                   </span>
                 </li>
               )
@@ -972,11 +1036,12 @@ function RecentList({
   /** list | column | wide */
   layout: string;
 }) {
+  const t = useT();
   if (items.length === 0)
     return (
       <Empty
-        title="Nothing recent."
-        hint="Notes you edit and meetings you record show up here."
+        title={t("dashboard.recent.emptyTitle")}
+        hint={t("dashboard.recent.emptyHint")}
       />
     );
   const column = layout === "column";
@@ -1023,16 +1088,19 @@ function RecentList({
                 </span>
                 {column && (
                   <span className="block text-[12px] text-muted-foreground">
-                    {timeAgo(c.ts)}
+                    {timeAgo(t, c.ts)}
                   </span>
                 )}
               </span>
               {!column && (
                 <span className="text-[13px] text-muted-foreground">
                   <span className="hidden sm:inline">
-                    {c.kind === "note" ? "Note" : "Recording"} ·{" "}
+                    {c.kind === "note"
+                      ? t("dashboard.recent.note")
+                      : t("dashboard.recent.recording")}{" "}
+                    ·{" "}
                   </span>
-                  {timeAgo(c.ts)}
+                  {timeAgo(t, c.ts)}
                 </span>
               )}
             </Link>
@@ -1047,23 +1115,24 @@ function RecentList({
 
 /** « Raccourcis »: the account menu's launch buttons, big enough to tap. */
 function ShortcutsWidget({ preset, opts }: WidgetProps) {
+  const t = useT();
   const { items, loaded, set } = useLaunchers();
   const manage = () => set({ manageOpen: true });
   const showMachine = opts.machine !== false;
   const showAdd = opts.add !== false;
   const machineOf = (l: (typeof items)[number]) =>
-    l.machine?.label || l.machine?.name || "sans machine";
+    l.machine?.label || l.machine?.name || t("dashboard.shortcuts.noMachine");
 
   const header = (
     <div className="flex items-center justify-between gap-3">
-      <p className="etiquette">Raccourcis</p>
+      <p className="etiquette">{t("dashboard.shortcuts.title")}</p>
       {items.length > 0 && (
         <button
           type="button"
           onClick={manage}
           className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
         >
-          Gérer
+          {t("dashboard.shortcuts.manage")}
         </button>
       )}
     </div>
@@ -1090,12 +1159,11 @@ function ShortcutsWidget({ preset, opts }: WidgetProps) {
         {header}
         <div className="flex flex-1 flex-wrap items-center justify-between gap-3 pt-3">
           <p className="max-w-md text-[13px] text-muted-foreground">
-            Un raccourci envoie une commande à une machine : ouvrir un projet,
-            lancer un script, verrouiller l&apos;écran…
+            {t("dashboard.shortcuts.emptyHint")}
           </p>
           <Button variant="outline" size="sm" onClick={manage}>
             <Plus className="h-4 w-4" />
-            Créer un raccourci
+            {t("dashboard.shortcuts.create")}
           </Button>
         </div>
       </div>
@@ -1139,7 +1207,7 @@ function ShortcutsWidget({ preset, opts }: WidgetProps) {
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-dashed border-border">
                   <Plus className="h-4 w-4" />
                 </span>
-                Nouveau
+                {t("common.new")}
               </button>
             </li>
           )}
@@ -1185,7 +1253,7 @@ function ShortcutsWidget({ preset, opts }: WidgetProps) {
     <button
       type="button"
       onClick={manage}
-      aria-label="Nouveau raccourci"
+      aria-label={t("dashboard.shortcuts.newAria")}
       className={cn(
         "flex items-center justify-center rounded-2xl border border-dashed border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground",
         !pad_ && "h-[4.25rem] w-14 shrink-0"
@@ -1217,6 +1285,7 @@ function ShortcutsWidget({ preset, opts }: WidgetProps) {
 /* --------------------------------------------------------------- machines */
 
 function MachinesWidget({ preset, opts }: WidgetProps) {
+  const t = useT();
   const { machines: rows } = useMachineStatus(10000);
   if (preset === "strip" || preset === "half") {
     return (
@@ -1228,9 +1297,11 @@ function MachinesWidget({ preset, opts }: WidgetProps) {
     .sort((a, b) => Number(!a.stats) - Number(!b.stats));
   const grid = preset === "grid";
   return (
-    <Titled title="Machines" href="/machines">
+    <Titled title={t("dashboard.sections.machines")} href="/machines">
       {rows === null ? (
-        <p className="py-6 text-[13px] text-muted-foreground">Chargement…</p>
+        <p className="py-6 text-[13px] text-muted-foreground">
+          {t("common.loading")}
+        </p>
       ) : (
         <ul
           className={cn("mt-3", grid ? "grid grid-cols-2 gap-2" : "space-y-1")}
@@ -1250,7 +1321,7 @@ function MachinesWidget({ preset, opts }: WidgetProps) {
                     {m.label || m.name}
                   </span>
                   <span className="block truncate text-[12px] tabular-nums text-muted-foreground">
-                    {machineNote(m)}
+                    {machineNote(t, m)}
                   </span>
                 </span>
               </Link>
@@ -1266,18 +1337,58 @@ function MachinesWidget({ preset, opts }: WidgetProps) {
 
 const QUICK_LINKS: Record<
   (typeof QUICK_LINK_IDS)[number],
-  { href: string; label: string; icon: typeof Calendar }
+  { href: string; labelKey: string; icon: typeof Calendar }
 > = {
-  calendar: { href: "/calendar", label: "Calendrier", icon: Calendar },
-  tasks: { href: "/tasks", label: "Tâches", icon: ListTodo },
-  focus: { href: "/focus", label: "Focus", icon: Target },
-  email: { href: "/email", label: "Courriel", icon: Mail },
-  notes: { href: "/notes", label: "Notes", icon: NotebookPen },
-  projets: { href: "/projets", label: "Projets", icon: FolderGit2 },
-  contacts: { href: "/contacts", label: "Contacts", icon: Users },
-  machines: { href: "/machines", label: "Machines", icon: Monitor },
-  fiscalite: { href: "/fiscalite", label: "Fiscalité", icon: Receipt },
-  settings: { href: "/settings", label: "Réglages", icon: Settings },
+  calendar: {
+    href: "/calendar",
+    labelKey: "dashboard.quickLinks.calendar",
+    icon: Calendar,
+  },
+  tasks: {
+    href: "/tasks",
+    labelKey: "dashboard.quickLinks.tasks",
+    icon: ListTodo,
+  },
+  focus: {
+    href: "/focus",
+    labelKey: "dashboard.quickLinks.focus",
+    icon: Target,
+  },
+  email: {
+    href: "/email",
+    labelKey: "dashboard.quickLinks.email",
+    icon: Mail,
+  },
+  notes: {
+    href: "/notes",
+    labelKey: "dashboard.quickLinks.notes",
+    icon: NotebookPen,
+  },
+  projets: {
+    href: "/projets",
+    labelKey: "dashboard.quickLinks.projets",
+    icon: FolderGit2,
+  },
+  contacts: {
+    href: "/contacts",
+    labelKey: "dashboard.quickLinks.contacts",
+    icon: Users,
+  },
+  machines: {
+    href: "/machines",
+    labelKey: "dashboard.quickLinks.machines",
+    icon: Monitor,
+  },
+  fiscalite: {
+    href: "/fiscalite",
+    labelKey: "dashboard.quickLinks.fiscalite",
+    icon: Receipt,
+  },
+  settings: {
+    href: "/settings",
+    labelKey: "dashboard.quickLinks.settings",
+    icon: Settings,
+  },
 };
 
 type QuickItem = {
@@ -1316,6 +1427,7 @@ function QuickLinkAnchor({
 }
 
 function QuickLinksWidget({ preset, opts, setOpts }: WidgetProps) {
+  const t = useT();
   const [editorOpen, setEditorOpen] = useState(false);
   const chosen = Array.isArray(opts.links) ? opts.links : [...QUICK_LINK_IDS];
   const custom = (
@@ -1325,11 +1437,11 @@ function QuickLinksWidget({ preset, opts, setOpts }: WidgetProps) {
   const items: QuickItem[] = [
     ...QUICK_LINK_IDS.filter((id) => (chosen as string[]).includes(id)).map(
       (id) => {
-        const { href, label, icon: Icon } = QUICK_LINKS[id];
+        const { href, labelKey, icon: Icon } = QUICK_LINKS[id];
         return {
           key: id,
           href,
-          label,
+          label: t(labelKey),
           external: false,
           mark: (cls: string) => <Icon className={cls} />,
         };
@@ -1357,8 +1469,8 @@ function QuickLinksWidget({ preset, opts, setOpts }: WidgetProps) {
       <button
         type="button"
         onClick={() => setEditorOpen(true)}
-        aria-label="Ajouter un lien"
-        title="Ajouter un lien"
+        aria-label={t("dashboard.quickLinks.addAria")}
+        title={t("dashboard.quickLinks.addAria")}
         className={cn(
           "flex items-center justify-center gap-2 border border-dashed border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground",
           cls
@@ -1369,7 +1481,9 @@ function QuickLinksWidget({ preset, opts, setOpts }: WidgetProps) {
       </button>
     );
 
-  const header = <p className="etiquette">Accès rapide</p>;
+  const header = (
+    <p className="etiquette">{t("dashboard.quickLinks.title")}</p>
+  );
 
   if (items.length === 0)
     return (
@@ -1377,9 +1491,12 @@ function QuickLinksWidget({ preset, opts, setOpts }: WidgetProps) {
         {header}
         <div className="flex flex-1 flex-wrap items-center justify-between gap-3 pt-3">
           <p className="text-[13px] text-muted-foreground">
-            Aucun lien. Ajoute un site, ou un projet depuis Projets.
+            {t("dashboard.quickLinks.emptyHint")}
           </p>
-          {addButton("h-9 rounded-full px-3.5 text-[13px]", "Ajouter")}
+          {addButton(
+            "h-9 rounded-full px-3.5 text-[13px]",
+            t("common.add")
+          )}
         </div>
         {editor}
       </div>
@@ -1436,7 +1553,7 @@ function QuickLinksWidget({ preset, opts, setOpts }: WidgetProps) {
           <li>
             {addButton(
               "mt-1 w-full justify-start rounded-xl border-0 px-2 py-2 text-[13px] hover:bg-secondary",
-              "Ajouter un lien"
+              t("dashboard.quickLinks.addLink")
             )}
           </li>
         )}

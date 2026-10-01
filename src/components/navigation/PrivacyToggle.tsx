@@ -6,6 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { usePrivacy } from "@/components/providers/PrivacyProvider";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 interface PrivacyToggleProps {
@@ -13,6 +14,7 @@ interface PrivacyToggleProps {
 }
 
 export function PrivacyToggle({ className }: PrivacyToggleProps) {
+  const t = useT();
   const { isPrivacyModeActive, togglePrivacyMode } = usePrivacy();
 
   return (
@@ -26,7 +28,9 @@ export function PrivacyToggle({ className }: PrivacyToggleProps) {
         className
       )}
       title={
-        isPrivacyModeActive ? "Disable Privacy Mode" : "Enable Privacy Mode"
+        isPrivacyModeActive
+          ? t("privacy.disable")
+          : t("privacy.enable")
       }
     >
       {isPrivacyModeActive ? (
@@ -35,7 +39,7 @@ export function PrivacyToggle({ className }: PrivacyToggleProps) {
         <Eye className="h-4 w-4" />
       )}
       <span className="hidden sm:inline">
-        {isPrivacyModeActive ? "Privacy On" : "Privacy"}
+        {isPrivacyModeActive ? t("privacy.on") : t("privacy.label")}
       </span>
     </button>
   );

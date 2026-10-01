@@ -1,5 +1,6 @@
 "use client";
 
+import { type TranslateFn, useT } from "@/i18n/client";
 import {
   type Health,
   type Level,
@@ -53,12 +54,14 @@ const size = (u: Usage) =>
 const rate = (kbps: number) =>
   kbps >= 1000 ? `${(kbps / 1000).toFixed(1)} Mb/s` : `${kbps.toFixed(0)} kb/s`;
 
-function uptime(seconds: number) {
+function uptime(t: TranslateFn, seconds: number) {
   const d = Math.floor(seconds / 86400);
-  if (d >= 1) return `allumée depuis ${d} j`;
+  if (d >= 1) return t("machines.uptime.day", { count: d });
   const h = Math.floor(seconds / 3600);
-  if (h >= 1) return `allumée depuis ${h} h`;
-  return `allumée depuis ${Math.max(1, Math.floor(seconds / 60))} min`;
+  if (h >= 1) return t("machines.uptime.hour", { count: h });
+  return t("machines.uptime.min", {
+    count: Math.max(1, Math.floor(seconds / 60)),
+  });
 }
 
 function Meter({
@@ -122,14 +125,16 @@ function Temperature({ value, metric }: { value: number; metric: Metric }) {
 
 /** The live meters of one machine that answers. */
 export function MachineMeters({ stats }: { stats: MachineStats }) {
+  const t = useT();
   const s = stats;
   const foot: React.ReactNode[] = [];
   if (typeof s.temp === "number")
     foot.push(<Temperature key="t" value={s.temp} metric="temp" />);
-  if (typeof s.load === "number") foot.push(`charge ${s.load.toFixed(2)}`);
+  if (typeof s.load === "number")
+    foot.push(t("machines.meters.load", { value: s.load.toFixed(2) }));
   if (s.net) foot.push(`↓ ${rate(s.net.rx)} · ↑ ${rate(s.net.tx)}`);
   if (s.power) foot.push(`${s.power.watts.toFixed(0)} W`);
-  if (typeof s.uptime === "number") foot.push(uptime(s.uptime));
+  if (typeof s.uptime === "number") foot.push(uptime(t, s.uptime));
 
   return (
     <div>
@@ -142,7 +147,7 @@ export function MachineMeters({ stats }: { stats: MachineStats }) {
           metric="ram"
         />
         <Meter
-          label="Disque"
+          label={t("machines.meters.disk")}
           pct={s.disk?.pct}
           detail={s.disk ? size(s.disk) : undefined}
           metric="disk"

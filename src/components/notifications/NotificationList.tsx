@@ -14,6 +14,7 @@ import {
   Undo2,
 } from "lucide-react";
 
+import { useT } from "@/i18n/client";
 import { timeAgoFr } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,7 @@ export function NotificationList({
   onDelete?: (n: NotificationItem) => void;
   dense?: boolean;
 }) {
+  const t = useT();
   const actions = Boolean(onDone || onDelete);
   return (
     <ul>
@@ -141,8 +143,10 @@ export function NotificationList({
                         type="button"
                         className={ACTION}
                         onClick={() => onUndone(n)}
-                        title="Remettre à traiter"
-                        aria-label={`Remettre à traiter : ${n.title}`}
+                        title={t("notifications.action.undone")}
+                        aria-label={t("notifications.action.undoneAria", {
+                          title: n.title,
+                        })}
                       >
                         <Undo2 className="h-3.5 w-3.5" />
                       </button>
@@ -152,8 +156,10 @@ export function NotificationList({
                         type="button"
                         className={ACTION}
                         onClick={() => onDone(n)}
-                        title="Marquer comme traitée"
-                        aria-label={`Marquer comme traitée : ${n.title}`}
+                        title={t("notifications.action.done")}
+                        aria-label={t("notifications.action.doneAria", {
+                          title: n.title,
+                        })}
                       >
                         <Check className="h-4 w-4" />
                       </button>
@@ -166,8 +172,10 @@ export function NotificationList({
                       "hover:bg-negative hover:text-negative-foreground"
                     )}
                     onClick={() => onDelete(n)}
-                    title="Supprimer"
-                    aria-label={`Supprimer : ${n.title}`}
+                    title={t("common.delete")}
+                    aria-label={t("notifications.action.deleteAria", {
+                      title: n.title,
+                    })}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>

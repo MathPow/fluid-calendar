@@ -10,6 +10,7 @@ import { Avatar } from "@/components/projets/ImageField";
 import { ProjectMark } from "@/components/projets/ProjectTile";
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n/client";
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
@@ -75,6 +76,7 @@ export function ProjectLauncher({
   columns?: boolean;
   footer?: boolean;
 } = {}) {
+  const t = useT();
   const { currentStation } = useStationStore();
   const [data, setData] = useState<{
     projects: LauncherProject[];
@@ -125,7 +127,7 @@ export function ProjectLauncher({
   if (!data) {
     return (
       <p className="py-8 text-center text-[13px] text-muted-foreground">
-        Chargement…
+        {t("common.loading")}
       </p>
     );
   }
@@ -134,7 +136,7 @@ export function ProjectLauncher({
     <div>
       {groups.length === 0 ? (
         <p className="py-8 text-center text-[13px] text-muted-foreground">
-          Aucun projet dans cette station.
+          {t("dashboard.projects.emptyStation")}
         </p>
       ) : (
         <div
@@ -201,8 +203,12 @@ export function ProjectLauncher({
                           href={terminal.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title={`Terminal sur ${terminal.machine}`}
-                          aria-label={`Terminal de ${p.name}`}
+                          title={t("projects.tile.terminalTitle.single", {
+                            machine: terminal.machine,
+                          })}
+                          aria-label={t("projects.tile.terminalAria.many", {
+                            name: p.name,
+                          })}
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
                         >
                           <TerminalSquare className="h-4 w-4" />
@@ -217,8 +223,12 @@ export function ProjectLauncher({
                   href="/projets"
                   className="mt-1 inline-block text-[12px] font-medium text-muted-foreground hover:text-foreground"
                 >
-                  + {projects.length - TOP} autre
-                  {projects.length - TOP > 1 ? "s" : ""}
+                  {t(
+                    projects.length - TOP > 1
+                      ? "dashboard.projects.moreOthersPlural"
+                      : "dashboard.projects.moreOthers",
+                    { count: projects.length - TOP }
+                  )}
                 </Link>
               )}
             </section>
@@ -227,9 +237,9 @@ export function ProjectLauncher({
       )}
       {footer && (
         <p className="mt-6 flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
-          <span>L&apos;ordre se règle dans Projets avec « Réorganiser ».</span>
+          <span>{t("dashboard.projects.footerHint")}</span>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/projets">Tous les projets</Link>
+            <Link href="/projets">{t("dashboard.projects.allProjects")}</Link>
           </Button>
         </p>
       )}

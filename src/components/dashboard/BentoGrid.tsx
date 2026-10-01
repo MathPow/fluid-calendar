@@ -62,6 +62,7 @@ import {
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 
+import { type TranslateFn, useT } from "@/i18n/client";
 import {
   type CustomLink,
   DEFAULT_LAYOUT,
@@ -77,6 +78,21 @@ import {
 import { cn } from "@/lib/utils";
 
 import { resolvedLayout, useDashboardLayout } from "@/store/dashboardLayout";
+
+const widgetTitle = (t: TranslateFn, type: WidgetType) =>
+  t(`dashboard.widgets.${type}.title`);
+const widgetDesc = (t: TranslateFn, type: WidgetType) =>
+  t(`dashboard.widgets.${type}.description`);
+const presetLabel = (t: TranslateFn, type: WidgetType, id: string) =>
+  t(`dashboard.widgets.${type}.preset.${id}`);
+const optionLabel = (t: TranslateFn, type: WidgetType, key: string) =>
+  t(`dashboard.widgets.${type}.option.${key}`);
+const choiceLabel = (
+  t: TranslateFn,
+  type: WidgetType,
+  optionKey: string,
+  value: string
+) => t(`dashboard.widgets.${type}.choice.${optionKey}.${value}`);
 
 const ICONS: Record<WidgetType, typeof Bell> = {
   "next-up": CalendarClock,
@@ -191,6 +207,7 @@ export function BentoGrid({
   editing: boolean;
   onExit: () => void;
 }) {
+  const t = useT();
   const { layout, setLayout, load } = useDashboardLayout();
   const saved = resolvedLayout(layout);
   const [draft, setDraft] = useState<Draft>(() => toDraft(saved));
@@ -350,8 +367,11 @@ export function BentoGrid({
     const id = active.id as WidgetType;
     const endedIn = containerOf(id);
     if (dragFrom === GRID && endedIn === TRAY) {
-      toast(`« ${WIDGETS[id].title} » retirée`, {
-        action: { label: "Annuler", onClick: () => addAt([id]) },
+      toast(t("dashboard.bento.toast.removed", { title: widgetTitle(t, id) }), {
+        action: {
+          label: t("common.cancel"),
+          onClick: () => addAt([id]),
+        },
       });
     }
     setDraft((d) => ({ ...d, tray: byCatalogOrder(d.tray) }));
@@ -380,12 +400,18 @@ export function BentoGrid({
   const remove = (type: WidgetType) => {
     setDraft((d) => ({
       ...d,
-      grid: d.grid.filter((t) => t !== type),
+      grid: d.grid.filter((tt) => tt !== type),
       tray: byCatalogOrder([...d.tray, type]),
     }));
-    toast(`« ${WIDGETS[type].title} » retirée`, {
-      action: { label: "Annuler", onClick: () => addAt([type]) },
-    });
+    toast(
+      t("dashboard.bento.toast.removed", { title: widgetTitle(t, type) }),
+      {
+        action: {
+          label: t("common.cancel"),
+          onClick: () => addAt([type]),
+        },
+      }
+    );
   };
 
   const configure = (type: WidgetType, conf: Conf) =>
@@ -401,16 +427,18 @@ export function BentoGrid({
   };
 
   const addSelected = () => {
-    const types = byCatalogOrder([...selected]).filter((t) =>
-      draft.tray.includes(t)
+    const types = byCatalogOrder([...selected]).filter((tt) =>
+      draft.tray.includes(tt)
     );
     addAt(types);
     setSelected(new Set());
     if (types.length)
       toast.success(
         types.length === 1
-          ? `« ${WIDGETS[types[0]].title} » ajoutée`
-          : `${types.length} sections ajoutées`
+          ? t("dashboard.bento.toast.added", {
+              title: widgetTitle(t, types[0]),
+            })
+          : t("dashboard.bento.toast.multiAdded", { count: types.length })
       );
   };
 
@@ -429,8 +457,11 @@ export function BentoGrid({
   const reset = () => {
     const before = draft;
     setDraft(toDraft(DEFAULT_LAYOUT));
-    toast("Disposition par défaut", {
-      action: { label: "Annuler", onClick: () => setDraft(before) },
+    toast(t("dashboard.bento.toast.layoutDefault"), {
+      action: {
+        label: t("common.cancel"),
+        onClick: () => setDraft(before),
+      },
     });
   };
 
@@ -537,7 +568,9 @@ export function BentoGrid({
                 className="rounded-full"
               >
                 <RotateCcw className="h-4 w-4" />
-                <span className="hidden sm:inline">Par défaut</span>
+                <span className="hidden sm:inline">
+                  {t("dashboard.bento.default")}
+                </span>
               </Button>
               <Button
                 variant="ghost"
@@ -545,11 +578,11 @@ export function BentoGrid({
                 onClick={cancel}
                 className="rounded-full"
               >
-                Annuler
+                {t("common.cancel")}
               </Button>
               <Button size="sm" onClick={finish} className="rounded-full px-5">
                 <Check className="h-4 w-4" />
-                Terminé
+                {t("dashboard.bento.done")}
               </Button>
             </div>
           </motion.div>
@@ -574,6 +607,7 @@ function GridArea({
   empty: boolean;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const { setNodeRef } = useDroppable({ id: GRID, disabled: !editing });
   return (
     <div
@@ -590,12 +624,12 @@ function GridArea({
           style={{ height: cellHeight(2) }}
         >
           <p className="text-[15px] font-semibold tracking-title">
-            Le tableau est vide.
+            {t("dashboard.bento.gridEmpty.title")}
           </p>
           <p className="mt-1 text-[13px] text-muted-foreground">
             {editing
-              ? "Glisse une section ici depuis le haut."
-              : "Clique sur « Personnaliser » pour ajouter des sections."}
+              ? t("dashboard.bento.gridEmpty.editing")
+              : t("dashboard.bento.gridEmpty.idle")}
           </p>
         </div>
       )}
@@ -620,6 +654,7 @@ function GridItem({
   onConfigure: (conf: Conf) => void;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const { setNodeRef, attributes, listeners, isDragging } = useSortable({
     id: type,
     disabled: !editing,
@@ -644,8 +679,10 @@ function GridItem({
       ) : (
         <div
           {...(editing ? { ...attributes, ...listeners } : {})}
-          aria-roledescription={editing ? "section déplaçable" : undefined}
-          aria-label={editing ? WIDGETS[type].title : undefined}
+          aria-roledescription={
+            editing ? t("dashboard.bento.sectionDraggable") : undefined
+          }
+          aria-label={editing ? widgetTitle(t, type) : undefined}
           className={cn(
             surface,
             "h-full overflow-hidden",
@@ -676,7 +713,7 @@ function GridItem({
             <span className="flex items-center gap-1.5 rounded-full bg-popover/95 py-1 pl-1.5 pr-3 text-[12px] font-semibold tracking-title text-foreground shadow-tile">
               <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
               <Icon className="h-3.5 w-3.5" />
-              {size.w > 1 && WIDGETS[type].title}
+              {size.w > 1 && widgetTitle(t, type)}
             </span>
           </div>
           <div
@@ -693,8 +730,10 @@ function GridItem({
             <button
               type="button"
               onClick={onRemove}
-              aria-label={`Retirer ${WIDGETS[type].title}`}
-              title="Retirer"
+              aria-label={t("dashboard.bento.removeAria", {
+                title: widgetTitle(t, type),
+              })}
+              title={t("dashboard.bento.remove")}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-popover/95 text-muted-foreground shadow-tile transition-colors hover:bg-negative hover:text-negative-foreground"
             >
               <X className="h-4 w-4" />
@@ -747,6 +786,7 @@ function SectionSettings({
   /** One-column section: icon only, the name chip needs the room. */
   narrow?: boolean;
 }) {
+  const t = useT();
   const meta = WIDGETS[type];
   const current = presetOf({ type, preset: conf.preset });
   const opts = optionsOf({ type, options: conf.options });
@@ -769,19 +809,21 @@ function SectionSettings({
         <PopoverTrigger asChild>
           <button
             type="button"
-            aria-label={`Réglages de ${meta.title}`}
-            title="Format et réglages"
+            aria-label={t("dashboard.bento.settings.aria", {
+              title: widgetTitle(t, type),
+            })}
+            title={t("dashboard.bento.settings.title")}
             className="flex h-8 items-center gap-1.5 rounded-full bg-popover/95 px-3 text-[12px] font-semibold text-muted-foreground shadow-tile transition-colors hover:text-foreground"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            {!narrow && current.label}
+            {!narrow && presetLabel(t, type, current.id)}
           </button>
         </PopoverTrigger>
         <PopoverContent
           align="end"
           className="max-h-[70vh] w-[19rem] overflow-y-auto p-4"
         >
-          <p className="etiquette">Format</p>
+          <p className="etiquette">{t("dashboard.bento.settings.format")}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {meta.presets.map((p) => {
               const on = p.id === current.id;
@@ -801,7 +843,7 @@ function SectionSettings({
                   <PresetShape w={p.w} h={p.h} />
                   <span className="flex w-full items-baseline justify-between gap-2">
                     <span className="text-[13px] font-semibold tracking-title">
-                      {p.label}
+                      {presetLabel(t, type, p.id)}
                     </span>
                     <span className="text-[11px] tabular-nums opacity-60">
                       {p.w}×{p.h}
@@ -815,14 +857,16 @@ function SectionSettings({
           {meta.options.length > 0 && (
             <>
               <div className="mt-5 flex items-center justify-between">
-                <p className="etiquette">Options</p>
+                <p className="etiquette">
+                  {t("dashboard.bento.settings.options")}
+                </p>
                 {customized && (
                   <button
                     type="button"
                     onClick={() => onChange({ ...conf, options: undefined })}
                     className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
                   >
-                    Rétablir
+                    {t("dashboard.bento.settings.restore")}
                   </button>
                 )}
               </div>
@@ -835,7 +879,7 @@ function SectionSettings({
                         key={def.key}
                         className="flex cursor-pointer items-center justify-between gap-3 text-[13px]"
                       >
-                        {def.label}
+                        {optionLabel(t, type, def.key)}
                         <Switch
                           checked={value === true}
                           onCheckedChange={(v) => set(def.key, v)}
@@ -845,7 +889,9 @@ function SectionSettings({
                   if (def.kind === "choice")
                     return (
                       <div key={def.key}>
-                        <p className="text-[13px]">{def.label}</p>
+                        <p className="text-[13px]">
+                          {optionLabel(t, type, def.key)}
+                        </p>
                         <div className="segmented mt-1.5 flex w-full p-1">
                           {def.choices.map((c) => (
                             <button
@@ -855,7 +901,7 @@ function SectionSettings({
                               aria-pressed={value === c.value}
                               className="segmented-item h-7 flex-1 px-2 text-[12px]"
                             >
-                              {c.label}
+                              {choiceLabel(t, type, def.key, c.value)}
                             </button>
                           ))}
                         </div>
@@ -871,7 +917,7 @@ function SectionSettings({
                         className="flex items-center justify-between gap-3"
                       >
                         <p className="text-[13px]">
-                          {def.label}
+                          {optionLabel(t, type, def.key)}
                           <span className="ml-1.5 text-muted-foreground">
                             {links.length}
                           </span>
@@ -881,7 +927,7 @@ function SectionSettings({
                           size="sm"
                           onClick={() => setLinksKey(def.key)}
                         >
-                          Gérer
+                          {t("dashboard.bento.settings.manage")}
                         </Button>
                       </div>
                     );
@@ -889,7 +935,9 @@ function SectionSettings({
                   const list = (Array.isArray(value) ? value : []) as string[];
                   return (
                     <div key={def.key}>
-                      <p className="text-[13px]">{def.label}</p>
+                      <p className="text-[13px]">
+                        {optionLabel(t, type, def.key)}
+                      </p>
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {def.choices.map((c) => {
                           const on = list.includes(c.value);
@@ -914,7 +962,7 @@ function SectionSettings({
                               )}
                             >
                               {on && <Check className="h-3 w-3" />}
-                              {c.label}
+                              {choiceLabel(t, type, def.key, c.value)}
                             </button>
                           );
                         })}
@@ -926,7 +974,7 @@ function SectionSettings({
             </>
           )}
           <p className="mt-4 text-[11px] text-muted-foreground">
-            Sur mobile, chaque section prend toute la largeur.
+            {t("dashboard.bento.settings.mobileHint")}
           </p>
         </PopoverContent>
       </Popover>
@@ -944,6 +992,7 @@ function GhostTile({
   size: Size;
   lifted?: boolean;
 }) {
+  const t = useT();
   const Icon = ICONS[type];
   return (
     <div
@@ -961,7 +1010,7 @@ function GhostTile({
         )}
       />
       <p className="text-[14px] font-semibold tracking-title">
-        {WIDGETS[type].title}
+        {widgetTitle(t, type)}
       </p>
       <p className="text-[12px] tabular-nums text-muted-foreground">
         {size.w}×{size.h}
@@ -991,8 +1040,9 @@ function Tray({
   onAddOne: (t: WidgetType) => void;
   onAddSelected: () => void;
 }) {
+  const t = useT();
   const { setNodeRef, isOver } = useDroppable({ id: TRAY });
-  const picked = items.filter((t) => selected.has(t)).length;
+  const picked = items.filter((it) => selected.has(it)).length;
   return (
     <section
       ref={setNodeRef}
@@ -1007,21 +1057,24 @@ function Tray({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="etiquette">Sections disponibles</p>
+          <p className="etiquette">{t("dashboard.bento.tray.title")}</p>
           <p className="mt-2 text-[13px] text-muted-foreground">
             {dropToRemove
-              ? "Lâche ici pour retirer la section du tableau."
-              : "Glisse une section dans la grille, ou coches-en plusieurs et ajoute-les d'un coup. Pour en retirer une, ramène-la ici."}
+              ? t("dashboard.bento.tray.hintRemove")
+              : t("dashboard.bento.tray.hint")}
           </p>
         </div>
         {items.length > 0 && (
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={onSelectAll}>
-              {picked === items.length ? "Tout décocher" : "Tout cocher"}
+              {picked === items.length
+                ? t("dashboard.bento.tray.uncheckAll")
+                : t("dashboard.bento.tray.checkAll")}
             </Button>
             <Button size="sm" disabled={picked === 0} onClick={onAddSelected}>
               <Plus className="h-4 w-4" />
-              Ajouter{picked > 0 ? ` (${picked})` : ""}
+              {t("common.add")}
+              {picked > 0 ? ` (${picked})` : ""}
             </Button>
           </div>
         )}
@@ -1031,17 +1084,17 @@ function Tray({
         <div className="mt-4 grid min-h-[4.75rem] grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.length === 0 && !dropToRemove && (
             <p className="col-span-full flex items-center justify-center text-[13px] text-muted-foreground">
-              Toutes les sections sont déjà sur le tableau.
+              {t("dashboard.bento.tray.allOnBoard")}
             </p>
           )}
-          {items.map((t) => (
+          {items.map((it) => (
             <TrayItem
-              key={t}
-              type={t}
-              size={sizes[t]}
-              checked={selected.has(t)}
-              onToggle={() => onToggle(t)}
-              onAdd={() => onAddOne(t)}
+              key={it}
+              type={it}
+              size={sizes[it]}
+              checked={selected.has(it)}
+              onToggle={() => onToggle(it)}
+              onAdd={() => onAddOne(it)}
             />
           ))}
         </div>
@@ -1097,6 +1150,7 @@ function TrayCard({
   onAdd?: () => void;
   handleProps?: Record<string, unknown>;
 }) {
+  const t = useT();
   const Icon = ICONS[type];
   return (
     <div
@@ -1121,14 +1175,14 @@ function TrayCard({
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           <span className="truncate text-[14px] font-semibold tracking-title">
-            {WIDGETS[type].title}
+            {widgetTitle(t, type)}
           </span>
           <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
             {size.w}×{size.h}
           </span>
         </span>
         <span className="line-clamp-2 text-[12px] leading-snug text-muted-foreground">
-          {WIDGETS[type].description}
+          {widgetDesc(t, type)}
         </span>
       </span>
       {onAdd && (
@@ -1139,8 +1193,10 @@ function TrayCard({
             onAdd();
           }}
           onPointerDown={(e) => e.stopPropagation()}
-          aria-label={`Ajouter ${WIDGETS[type].title}`}
-          title="Ajouter"
+          aria-label={t("dashboard.bento.tray.addAria", {
+            title: widgetTitle(t, type),
+          })}
+          title={t("common.add")}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <Plus className="h-4 w-4" />

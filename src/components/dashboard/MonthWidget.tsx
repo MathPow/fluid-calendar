@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { useT } from "@/i18n/client";
 import type { WidgetOptions } from "@/lib/dashboard/layout";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +78,7 @@ export function MonthWidget({
   preset: string;
   opts: WidgetOptions;
 }) {
+  const t = useT();
   const settingsStart = useSettingsStore((s) => s.user.weekStartDay);
   const weekStart =
     (opts.weekStart === "auto" ? settingsStart : opts.weekStart) === "monday"
@@ -162,13 +164,16 @@ export function MonthWidget({
             }}
             className="mr-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
           >
-            Aujourd&apos;hui
+            {t("dashboard.month.today")}
           </button>
         )}
-        <NavButton label="Mois précédent" onClick={() => shift(-1)}>
+        <NavButton
+          label={t("dashboard.month.prev")}
+          onClick={() => shift(-1)}
+        >
           <ChevronLeft className="h-4 w-4" />
         </NavButton>
-        <NavButton label="Mois suivant" onClick={() => shift(1)}>
+        <NavButton label={t("dashboard.month.next")} onClick={() => shift(1)}>
           <ChevronRight className="h-4 w-4" />
         </NavButton>
       </div>
@@ -312,7 +317,7 @@ export function MonthWidget({
     <div className="min-h-0 flex-1 overflow-y-auto">
       <p className="text-[13px] font-semibold capitalize tracking-title">
         {sameDay(selected, today)
-          ? "Aujourd'hui"
+          ? t("dashboard.month.today")
           : selected.toLocaleDateString(undefined, {
               weekday: "long",
               day: "numeric",
@@ -320,7 +325,9 @@ export function MonthWidget({
             })}
       </p>
       {!sel || sel.events.length + sel.tasks.length === 0 ? (
-        <p className="mt-2 text-[13px] text-muted-foreground">Rien de prévu.</p>
+        <p className="mt-2 text-[13px] text-muted-foreground">
+          {t("dashboard.month.nothingPlanned")}
+        </p>
       ) : (
         <ul className="mt-2 space-y-1.5">
           {sel.events.map((e) => (
@@ -330,20 +337,25 @@ export function MonthWidget({
                 style={{ backgroundColor: e.feed?.color || EVENT_DOT }}
               />
               <span className="w-14 shrink-0 whitespace-nowrap tabular-nums text-muted-foreground">
-                {e.allDay ? "Journée" : timeLabel(e.start)}
+                {e.allDay ? t("dashboard.month.allDay") : timeLabel(e.start)}
               </span>
               <span className="truncate">{e.title}</span>
             </li>
           ))}
-          {sel.tasks.map((t) => (
-            <li key={t.id} className="flex items-baseline gap-2 text-[13px]">
+          {sel.tasks.map((task) => (
+            <li
+              key={task.id}
+              className="flex items-baseline gap-2 text-[13px]"
+            >
               <span
                 className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-[3px]"
                 style={{ backgroundColor: TASK_DOT }}
               />
-              <span className="w-14 shrink-0 text-muted-foreground">Tâche</span>
+              <span className="w-14 shrink-0 text-muted-foreground">
+                {t("dashboard.month.task")}
+              </span>
               <Link href="/tasks" className="truncate hover:underline">
-                {t.title}
+                {task.title}
               </Link>
             </li>
           ))}
