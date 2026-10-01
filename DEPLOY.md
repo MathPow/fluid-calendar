@@ -5,7 +5,11 @@ Coolify via its GitHub App integration.
 
 - **Coolify app uuid:** `y12cwx669z6c9bw5125h3xvl` (host port 3006)
 - **Source:** `MathPow/fluid-calendar` @ `dreamdash` (build pack: Dockerfile)
-- **Served at:** https://dreamdash.yoursecondmind.com (Cloudflare tunnel + Access)
+- **Served at:** https://dreamdash.yoursecondmind.com — tailnet only, via the Caddy
+  node `dreamdash` (`~/services/dreamdash-proxy`, see its README). DNS-only A
+  record to the node's 100.x IP; tailnet auto-login + PIN step-up
+  (`src/lib/auth/tailnet.ts`, `src/lib/auth/step-up.ts`). Host port 3006 is
+  closed to the LAN by `dreamdash-fw.service`.
 - **Mirror:** `MathPow/DreamDash` @ `main` (push with `git push dreamdash dreamdash:main`)
 
 ## Deploying
