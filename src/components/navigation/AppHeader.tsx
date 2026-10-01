@@ -5,15 +5,20 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
+  Bell,
   Calendar,
   FileText,
   FolderGit2,
   LayoutDashboard,
   ListTodo,
   Mail,
+  Menu as MenuIcon,
+  Monitor,
   Receipt,
   Search,
+  Settings,
   Users,
 } from "lucide-react";
 
@@ -53,6 +58,9 @@ const MENU: NavLink[] = [
  */
 export function AppHeader({ className }: { className?: string }) {
   const pathname = usePathname();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => setDrawerOpen(false), [pathname]);
 
   const isActive = (link: NavLink) =>
     [link.href, ...(link.also ?? [])].some(
@@ -110,10 +118,104 @@ export function AppHeader({ className }: { className?: string }) {
         className
       )}
     >
-      <div className="page flex h-16 items-center gap-3">
+      <div className="page flex h-[52px] items-center gap-2 md:h-16 md:gap-3">
+        <DialogPrimitive.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
+          <DialogPrimitive.Trigger asChild>
+            <button
+              type="button"
+              aria-label="Ouvrir la navigation"
+              className="hidden md:flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary md:hidden"
+            >
+              <MenuIcon className="h-5 w-5" />
+            </button>
+          </DialogPrimitive.Trigger>
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 md:hidden" />
+            <DialogPrimitive.Content
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(85vw,320px)] flex-col overflow-y-auto bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-float md:hidden"
+              onTouchStart={(e) => {
+                const t = e.touches[0];
+                touchStart.current = { x: t.clientX, y: t.clientY };
+              }}
+              onTouchEnd={(e) => {
+                const t = e.changedTouches[0];
+                const start = touchStart.current;
+                if (
+                  start &&
+                  start.x - t.clientX > 70 &&
+                  Math.abs(start.y - t.clientY) < 50
+                )
+                  setDrawerOpen(false);
+                touchStart.current = null;
+              }}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <DialogPrimitive.Title className="text-xl font-bold">
+                  DreamDash
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Close
+                  className="h-10 rounded-full bg-secondary px-3"
+                  aria-label="Fermer la navigation"
+                >
+                  Fermer
+                </DialogPrimitive.Close>
+              </div>
+              <DialogPrimitive.Description className="sr-only">
+                Navigation principale
+              </DialogPrimitive.Description>
+              <nav aria-label="Navigation mobile" className="space-y-1">
+                {[
+                  ...MENU.map((l) => ({
+                    ...l,
+                    label:
+                      l.href === "/calendar"
+                        ? "Calendrier"
+                        : l.href === "/tasks"
+                          ? "Tâches"
+                          : l.label,
+                  })),
+                  { href: "/machines", label: "Machines", icon: Monitor },
+                  {
+                    href: "/notifications",
+                    label: "Notifications",
+                    icon: Bell,
+                  },
+                  { href: "/settings", label: "Paramètres", icon: Settings },
+                ].map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    aria-current={pathname === link.href ? "page" : undefined}
+                    className={cn(
+                      "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium",
+                      pathname === link.href
+                        ? "bg-tint-soft text-foreground"
+                        : "hover:bg-secondary"
+                    )}
+                  >
+                    <link.icon className="h-5 w-5" />
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+              <button
+                type="button"
+                className="mt-4 flex min-h-11 items-center gap-3 rounded-xl bg-secondary px-3"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  openCommandPalette();
+                }}
+              >
+                <Search className="h-5 w-5" />
+                Rechercher
+              </button>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
         <Link
           href="/dashboard"
-          className="shrink-0 text-[22px] font-extrabold leading-none tracking-display text-foreground"
+          className="shrink-0 text-[19px] md:text-[22px] font-extrabold leading-none tracking-display text-foreground"
           aria-label="DreamDash home"
         >
           DreamDash
@@ -121,7 +223,7 @@ export function AppHeader({ className }: { className?: string }) {
 
         <div
           ref={slotRef}
-          className="flex min-w-0 flex-1 basis-0 overflow-hidden pl-4"
+          className="hidden min-w-0 flex-1 basis-0 overflow-hidden pl-4 md:flex"
         >
           {inline && (
             <nav aria-label="Main" className="min-w-0">
@@ -130,18 +232,20 @@ export function AppHeader({ className }: { className?: string }) {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={openCommandPalette}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-border/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="hidden md:flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-border/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             title="Search anything (⌘K)"
             aria-label="Search anything"
           >
             <Search className="h-[18px] w-[18px]" />
           </button>
 
-          <NotificationBell />
+          <div className="hidden md:block">
+            <NotificationBell />
+          </div>
           <AccountMenu />
         </div>
       </div>
@@ -149,7 +253,7 @@ export function AppHeader({ className }: { className?: string }) {
       {/* No room beside the wordmark: under the top row. Swipeable on
           phones (edge fade hints at it), centered on a desktop. */}
       {!inline && (
-        <nav className="relative" aria-label="Main">
+        <nav className="relative hidden md:block" aria-label="Main">
           <div className="page flex overflow-x-auto pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="mx-auto">{links}</div>
           </div>

@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { DndProvider } from "@/components/dnd/DndProvider";
 import { AppHeader } from "@/components/navigation/AppHeader";
-import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { PrivacyProvider } from "@/components/providers/PrivacyProvider";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { SetupCheck } from "@/components/setup/SetupCheck";
@@ -71,7 +71,7 @@ export default function RootLayout({
   }, [setShortcutsOpen]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-dvh flex-col overflow-hidden">
       <SessionProvider>
         <PrivacyProvider>
           <DndProvider>
