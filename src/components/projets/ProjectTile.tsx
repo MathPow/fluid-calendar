@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { Pencil, SquareTerminal } from "lucide-react";
+import { MoreHorizontal, Pencil, SquareTerminal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,6 +16,7 @@ import { useT } from "@/i18n/client";
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
+  readableTextOn,
   terminalUrl,
   timeAgoFr,
 } from "@/lib/projets/meta";
@@ -56,7 +57,10 @@ export function ProjectMark({
         "flex shrink-0 items-center justify-center rounded-2xl text-[15px] font-extrabold text-[#19181c]",
         className ?? "h-11 w-11"
       )}
-      style={{ backgroundColor: color ?? DEFAULT_PROJECT_COLOR }}
+      style={{
+        backgroundColor: color ?? DEFAULT_PROJECT_COLOR,
+        color: readableTextOn(color ?? DEFAULT_PROJECT_COLOR),
+      }}
       aria-hidden
     >
       {initials(name)}
@@ -79,8 +83,45 @@ export function ProjectTile({
   const activities = project._count.activities;
 
   return (
-    <li className="tile flex flex-col p-5 md:p-6">
-      <div className="flex items-center justify-between gap-3">
+    <li className="tile relative flex flex-col p-3 md:p-6">
+      <Link href={href} className="flex min-w-0 flex-col gap-2 md:hidden">
+        <ProjectMark
+          name={project.name}
+          color={project.color}
+          image={capsule ? `/api/project-media/${capsule.id}` : project.image}
+          className="aspect-[4/3] w-full text-2xl"
+        />
+        <h2 className="line-clamp-2 pr-8 text-base font-bold leading-tight">
+          {project.name}
+        </h2>
+        <p className="truncate text-xs text-muted-foreground">
+          {project.organisation?.name || t("projects.tile.noOrganisation")}
+        </p>
+      </Link>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={t("projects.tile.actionsAria", { name: project.name })}
+            className="absolute bottom-8 right-1 flex h-10 w-10 items-center justify-center rounded-full bg-card md:hidden"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link href={href}>{t("projects.tile.openStorePage")}</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onEdit(project)}>
+            <Pencil />
+            {t("common.edit")}
+          </DropdownMenuItem>
+          <div className="px-2">
+            <TerminalButton project={project} />
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <div className="hidden md:flex items-center justify-between gap-3">
         <Link href={href} className="flex min-w-0 items-center gap-3">
           {capsule ? (
             // A small capsule, Steam-list style: keeps tiles the same height.
@@ -127,7 +168,7 @@ export function ProjectTile({
           <button
             type="button"
             onClick={() => onEdit(project)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             aria-label={t("projects.tile.editAria", { name: project.name })}
           >
             <Pencil className="h-4 w-4" />
@@ -136,7 +177,7 @@ export function ProjectTile({
       </div>
 
       {(project.description || latest) && (
-        <Link href={href} className="mt-3 block">
+        <Link href={href} className="mt-3 hidden md:block">
           <p className="line-clamp-2 text-[14px] leading-snug text-muted-foreground">
             {project.description || latest?.summary}
           </p>
@@ -144,7 +185,7 @@ export function ProjectTile({
       )}
 
       {project.children.length > 0 && (
-        <ol className="mt-3 border-t border-border">
+        <ol className="mt-3 hidden md:block border-t border-border">
           {project.children.map((c) => (
             <li key={c.id} className="border-b border-border last:border-b-0">
               <Link
@@ -175,7 +216,7 @@ export function ProjectTile({
       {(project.links.length > 0 ||
         project.contacts.length > 0 ||
         project.stack.length > 0) && (
-        <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
+        <div className="mt-auto hidden md:flex flex-wrap items-center gap-1.5 pt-3">
           {project.links.slice(0, 3).map((l) => (
             <LinkPill key={l.id} kind={l.kind} label={l.label} url={l.url} />
           ))}
@@ -207,7 +248,7 @@ export function ProjectTile({
 }
 
 const iconButton =
-  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground";
+  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground";
 
 /**
  * Opens the project's folder in a machine's web terminal (ttyd). One machine:

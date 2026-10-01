@@ -44,6 +44,7 @@ export function ColorField({
               key={c.hex}
               type="button"
               title={c.name}
+              aria-label={c.name}
               onClick={() => onChange(c.hex)}
               className={cn(
                 "flex h-11 w-14 items-center justify-center rounded-[14px] border-2 transition-transform hover:scale-105",

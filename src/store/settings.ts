@@ -131,6 +131,7 @@ export const useSettingsStore = create<SettingsStore>()(
 
           // `locale` lives in zustand only — the Prisma `userSettings` row has
           // no such column, so strip it before persisting server-side.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { locale: _locale, ...serverSettings } = newSettings;
 
           // Save to database

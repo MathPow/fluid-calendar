@@ -20,13 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { useT } from "@/i18n/client";
-import { cn } from "@/lib/utils";
 
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
 } from "@/lib/projets/meta";
 import type { OrganisationLite, ProjectFull } from "@/lib/projets/queries";
+import { cn } from "@/lib/utils";
 
 import { useStationStore } from "@/store/station";
 
@@ -311,13 +311,17 @@ export function ProjetsBoard({
                 <Search
                   className={cn(
                     "absolute inset-0 h-5 w-5 transition-all duration-300",
-                    askOpen ? "rotate-90 scale-50 opacity-0" : "rotate-0 scale-100 opacity-100"
+                    askOpen
+                      ? "rotate-90 scale-50 opacity-0"
+                      : "rotate-0 scale-100 opacity-100"
                   )}
                 />
                 <X
                   className={cn(
                     "absolute inset-0 h-5 w-5 transition-all duration-300",
-                    askOpen ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-50 opacity-0"
+                    askOpen
+                      ? "rotate-0 scale-100 opacity-100"
+                      : "-rotate-90 scale-50 opacity-0"
                   )}
                 />
               </span>
@@ -354,7 +358,9 @@ export function ProjetsBoard({
           <div
             className={cn(
               "grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out",
-              askOpen ? "mb-4 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+              askOpen
+                ? "mb-4 grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0"
             )}
             inert={!askOpen}
           >
@@ -499,7 +505,7 @@ export function ProjetsBoard({
                 </p>
               ) : (
                 <>
-                  <ul className="mt-5 grid gap-5 lg:grid-cols-2">
+                  <ul className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
                     {(open ? list : list.slice(0, PREVIEW)).map((p) => (
                       <ProjectTile
                         key={p.id}

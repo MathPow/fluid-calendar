@@ -39,8 +39,8 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useCalendarStore } from "@/store/calendar";
-import { useRoutineStore } from "@/store/routine";
 import { useViewStore } from "@/store/calendar";
+import { useRoutineStore } from "@/store/routine";
 
 import { CalendarFeed } from "@/types/calendar";
 
@@ -208,6 +208,7 @@ export function FeedManager() {
           <h3 className="etiquette">{t("calendar.feeds.title")}</h3>
           <button
             onClick={handleSyncAll}
+            aria-label={t("calendar.feeds.syncAll")}
             disabled={syncingAll || feeds.length === 0}
             className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-40"
             title={t("calendar.feeds.syncAll")}

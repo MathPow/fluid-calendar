@@ -9,8 +9,10 @@ import {
   isToday,
   startOfMonth,
 } from "date-fns";
+import { enUS, fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 interface MiniCalendarProps {
@@ -19,6 +21,8 @@ interface MiniCalendarProps {
 }
 
 export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
+  const t = useT();
+  const dateLocale = useLocale() === "fr" ? fr : enUS;
   const [calendarDate, setCalendarDate] = useState(currentDate);
   const monthStart = startOfMonth(calendarDate);
   const monthEnd = endOfMonth(calendarDate);
@@ -63,12 +67,14 @@ export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
         </h2>
         <div className="flex items-center gap-1">
           <button
+            aria-label={t("calendar.miniCalendar.prevMonth")}
             onClick={handlePrevMonth}
             className="rounded-full p-1 text-foreground hover:bg-muted/50"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
+            aria-label={t("calendar.miniCalendar.nextMonth")}
             onClick={handleNextMonth}
             className="rounded-full p-1 text-foreground hover:bg-muted/50"
           >
@@ -98,6 +104,8 @@ export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
         {days.map((day) => (
           <button
             key={day.toISOString()}
+            aria-label={format(day, "EEEE d MMMM yyyy", { locale: dateLocale })}
+            aria-pressed={isSameDay(day, currentDate)}
             onClick={() => onDateClick?.(day)}
             className={cn(
               "mx-0.5 flex h-7 items-center justify-center rounded-full text-xs",

@@ -486,3 +486,34 @@
   outline: 1.5px dashed rgb(25 24 28 / 0.35);
   outline-offset: -2px;
 }
+
+/* Phone controls remain reachable without altering the desktop density. */
+@media (max-width: 767px) {
+  button,
+  [role="button"],
+  .segmented-item {
+    min-height: 40px;
+    min-width: 40px;
+    touch-action: manipulation;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-state="open"],
+  [data-state="closed"] {
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 767px) {
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"] {
+    min-height: 40px;
+  }
+}

@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 import { useLocale, useT } from "@/i18n/client";
-import { PROJECT_COLORS } from "@/lib/projets/meta";
+import { PROJECT_COLORS, readableTextOn } from "@/lib/projets/meta";
 import {
   ROUTINE_KINDS,
   type RoutineKind,
@@ -208,7 +208,7 @@ export function RoutineBlockDialog() {
 
           <div className="space-y-2">
             <Label>{t("calendar.routineDialog.fields.days")}</Label>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
               {dayOrder.map((d) => {
                 const on = form.days.includes(d);
                 return (
@@ -218,7 +218,7 @@ export function RoutineBlockDialog() {
                     onClick={() => toggleDay(d)}
                     aria-pressed={on}
                     className={cn(
-                      "h-10 flex-1 rounded-xl text-[13px] font-semibold transition-colors",
+                      "h-11 min-w-11 rounded-xl text-[13px] font-semibold transition-colors",
                       on
                         ? "bg-foreground text-background"
                         : "bg-secondary text-muted-foreground hover:bg-border/70"
@@ -281,11 +281,12 @@ export function RoutineBlockDialog() {
                       type="button"
                       onClick={() => set("color", i === 0 ? null : hex)}
                       className={cn(
-                        "flex h-9 w-11 items-center justify-center rounded-xl border-2 transition-transform hover:scale-105",
+                        "flex h-11 w-11 items-center justify-center rounded-xl border-2 transition-transform hover:scale-105",
                         active ? "border-foreground" : "border-transparent"
                       )}
                       style={{ backgroundColor: hex }}
                       aria-pressed={active}
+                      aria-label={t("calendar.routineDialog.fields.colorAria", { hex })}
                       title={
                         i === 0
                           ? t("calendar.routineDialog.fields.colorHint")
@@ -294,7 +295,8 @@ export function RoutineBlockDialog() {
                     >
                       {active && (
                         <Check
-                          className="h-4 w-4 text-[#19181c]"
+                          className="h-4 w-4"
+                          style={{ color: readableTextOn(hex) }}
                           strokeWidth={3}
                         />
                       )}

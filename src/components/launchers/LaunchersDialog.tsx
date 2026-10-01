@@ -41,7 +41,6 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { type TranslateFn, useT } from "@/i18n/client";
 import {
-  DESKTOP_ACTIONS,
   USER_DESKTOP_ACTION_IDS,
   type DesktopAction,
   agentOnline,

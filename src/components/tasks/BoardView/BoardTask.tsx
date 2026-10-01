@@ -1,7 +1,5 @@
 "use client";
 
-import { StepsProgress } from "../components/StepsEditor";
-
 import { useDraggable } from "@dnd-kit/core";
 import { Clock, Lock, Pencil, Trash2 } from "lucide-react";
 
@@ -12,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Task, TimePreference } from "@/types/task";
 
 import { contextualDate } from "../utils/task-list-utils";
+import { StepsProgress } from "../components/StepsEditor";
 
 interface BoardTaskProps {
   task: Task;
@@ -27,10 +26,8 @@ const energyLevelColors = {
 
 const timePreferenceColors = {
   [TimePreference.MORNING]: "bg-tint-soft text-foreground",
-  [TimePreference.AFTERNOON]:
-    "bg-pending text-pending-foreground",
-  [TimePreference.EVENING]:
-    "bg-secondary text-muted-foreground",
+  [TimePreference.AFTERNOON]: "bg-pending text-pending-foreground",
+  [TimePreference.EVENING]: "bg-secondary text-muted-foreground",
 };
 
 export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
@@ -189,12 +186,13 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           </div>
         </div>
       </div>
-      <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button
           type="button"
           onClick={() => onEdit(task)}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-primary"
           title={t("tasks.row.edit")}
+          aria-label={t("tasks.row.edit")}
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -203,6 +201,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           onClick={() => onDelete(task.id)}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
           title={t("tasks.row.delete")}
+          aria-label={t("tasks.row.delete")}
         >
           <Trash2 className="h-4 w-4" />
         </button>

@@ -179,7 +179,7 @@ export function AccountMenu() {
                 type="button"
                 onClick={() => setStation(id)}
                 data-active={currentStation === id}
-                className="segmented-item h-8 flex-1 text-[12px]"
+                className="segmented-item h-11 md:h-8 flex-1 text-[12px]"
                 aria-pressed={currentStation === id}
                 title={t(hintKey)}
               >
@@ -215,7 +215,7 @@ export function AccountMenu() {
                 type="button"
                 onClick={() => setTheme(id)}
                 data-active={theme === id}
-                className={cn("segmented-item h-8 flex-1 text-[12px]")}
+                className={cn("segmented-item h-11 md:h-8 flex-1 text-[12px]")}
                 aria-pressed={theme === id}
               >
                 <Icon className="h-3.5 w-3.5" />
