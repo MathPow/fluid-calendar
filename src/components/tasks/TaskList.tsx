@@ -20,7 +20,9 @@ import { useTaskListViewSettings } from "@/store/taskListViewSettings";
 
 import { EnergyLevel, Task, TaskStatus, TimePreference } from "@/types/task";
 
+import { MobileTaskRow } from "./BoardView/MobileTaskRow";
 import { SortableHeader, StatusFilter, TaskRow } from "./components";
+import { STATUS_LABELS } from "./utils/task-list-utils";
 import { formatEnumValue } from "./utils/task-list-utils";
 
 interface TaskListProps {
@@ -52,7 +54,7 @@ export function TaskList({
     setFilters,
     resetFilters,
   } = useTaskListViewSettings();
-  const { activeProject } = useProjectStore();
+  const { activeProject, projects, setActiveProject } = useProjectStore();
 
   const handleSort = (column: typeof sortBy) => {
     if (sortBy === column) {
@@ -215,8 +217,28 @@ export function TaskList({
     search;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center gap-4">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto md:overflow-visible">
+      <select
+        aria-label="Filtrer par projet"
+        className="mb-2 h-11 shrink-0 rounded-xl bg-input px-3 md:hidden"
+        value={activeProject?.id || "all"}
+        onChange={(e) =>
+          setActiveProject(
+            projects.find((p) => p.id === e.target.value) || null
+          )
+        }
+      >
+        <option value="all">Tous les projets</option>
+        {activeProject?.id === "no-project" && (
+          <option value="no-project">Sans projet</option>
+        )}
+        {projects.map((project) => (
+          <option key={project.id} value={project.id}>
+            {project.name}
+          </option>
+        ))}
+      </select>
+      <div className="mb-4 flex flex-wrap items-center gap-2 md:flex-nowrap md:gap-4">
         <StatusFilter
           value={status || []}
           onChange={(value) => setFilters({ status: value })}
@@ -305,7 +327,70 @@ export function TaskList({
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden rounded-[20px] bg-card shadow-tile">
+      <div className="space-y-4 md:hidden">
+        <div className="flex gap-2">
+          <select
+            aria-label="Trier les tâches"
+            className="h-11 min-w-0 flex-1 rounded-xl bg-input px-3"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          >
+            {[
+              ["title", "Titre"],
+              ["dueDate", "Échéance"],
+              ["startDate", "Début"],
+              ["status", "Statut"],
+              ["project", "Projet"],
+              ["priority", "Priorité"],
+              ["energyLevel", "Énergie"],
+              ["preferredTime", "Moment préféré"],
+              ["duration", "Durée"],
+              ["schedule", "Planification"],
+            ].map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="rounded-xl bg-secondary px-3"
+            onClick={() =>
+              setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+            }
+          >
+            {sortDirection === "asc" ? "Croissant" : "Décroissant"}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Glisse à droite pour terminer, à gauche pour supprimer.
+        </p>
+        {Object.values(TaskStatus).map((group) => {
+          const items = sortedTasks.filter((task) => task.status === group);
+          return (
+            <section key={group} className="space-y-2">
+              <h2 className="text-sm font-semibold">
+                {STATUS_LABELS[group] || group} · {items.length}
+              </h2>
+              {items.map((task) => (
+                <MobileTaskRow
+                  key={task.id}
+                  task={task}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onStatusChange={onStatusChange}
+                />
+              ))}
+            </section>
+          );
+        })}
+        {sortedTasks.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No tasks found. Try adjusting your filters or create a new task.
+          </p>
+        )}
+      </div>
+      <div className="hidden flex-1 overflow-hidden rounded-[20px] bg-card shadow-tile md:block">
         <div
           className="overflow-auto"
           style={{ maxHeight: "calc(100vh - 250px)" }}

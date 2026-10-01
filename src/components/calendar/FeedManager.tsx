@@ -38,8 +38,8 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useCalendarStore } from "@/store/calendar";
-import { useRoutineStore } from "@/store/routine";
 import { useViewStore } from "@/store/calendar";
+import { useRoutineStore } from "@/store/routine";
 
 import { CalendarFeed } from "@/types/calendar";
 
@@ -199,6 +199,7 @@ export function FeedManager() {
           <h3 className="etiquette">Calendriers</h3>
           <button
             onClick={handleSyncAll}
+            aria-label="Synchroniser tous les calendriers"
             disabled={syncingAll || feeds.length === 0}
             className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-40"
             title="Rafraîchir tous les calendriers"
@@ -416,7 +417,9 @@ function GhostRow() {
         aria-label="Afficher les blocs fantômes"
       />
       <span className="h-3 w-3 flex-shrink-0 rounded-full border-2 border-dashed border-muted-foreground/60" />
-      <span className="min-w-0 flex-1 truncate text-sm text-foreground">Blocs fantômes</span>
+      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+        Blocs fantômes
+      </span>
       <span className="text-[11px] text-muted-foreground">{blocks}</span>
     </div>
   );

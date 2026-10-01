@@ -89,7 +89,7 @@ export default function RootLayout({
 
             {!bare && <AppHeader />}
 
-            <main className="relative min-h-0 flex-1 overflow-auto">
+            <main className="relative min-h-0 flex-1 overflow-auto max-md:pb-[env(safe-area-inset-bottom)]">
               <NotificationProvider>{children}</NotificationProvider>
             </main>
 

@@ -108,7 +108,7 @@ export function NotificationList({
         const cls = cn(
           "flex w-full items-start gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-secondary group-focus-within/row:bg-secondary",
           // A touch screen has no hover: the actions always show, keep room for them.
-          actions && "[@media(hover:none)]:pr-[4.75rem]"
+          actions && "[@media(hover:none)]:pr-[6.5rem]"
         );
         return (
           <li key={n.id} className="group/row relative">

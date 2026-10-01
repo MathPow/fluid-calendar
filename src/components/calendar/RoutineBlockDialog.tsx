@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-import { PROJECT_COLORS } from "@/lib/projets/meta";
+import { PROJECT_COLORS, readableTextOn } from "@/lib/projets/meta";
 import {
   ROUTINE_KINDS,
   type RoutineKind,
@@ -276,7 +276,8 @@ export function RoutineBlockDialog() {
                       >
                         {active && (
                           <Check
-                            className="h-4 w-4 text-[#19181c]"
+                            className="h-4 w-4"
+                            style={{ color: readableTextOn(hex) }}
                             strokeWidth={3}
                           />
                         )}

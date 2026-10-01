@@ -63,12 +63,14 @@ export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
         </h2>
         <div className="flex items-center gap-1">
           <button
+            aria-label="Mois précédent"
             onClick={handlePrevMonth}
             className="rounded-full p-1 text-foreground hover:bg-muted/50"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
+            aria-label="Mois suivant"
             onClick={handleNextMonth}
             className="rounded-full p-1 text-foreground hover:bg-muted/50"
           >
@@ -98,6 +100,8 @@ export function MiniCalendar({ currentDate, onDateClick }: MiniCalendarProps) {
         {days.map((day) => (
           <button
             key={day.toISOString()}
+            aria-label={format(day, "EEEE d MMMM yyyy")}
+            aria-pressed={isSameDay(day, currentDate)}
             onClick={() => onDateClick?.(day)}
             className={cn(
               "mx-0.5 flex h-7 items-center justify-center rounded-full text-xs",

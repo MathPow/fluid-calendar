@@ -19,9 +19,8 @@ export function MobileTaskRow({
 }) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const swiped = useRef(false);
-  const remove = () => {
-    if (window.confirm(`Supprimer « ${task.title} » ?`)) onDelete(task.id);
-  };
+  // The caller owns the confirmation and persistence, including fetch/error handling.
+  const remove = () => onDelete(task.id);
   return (
     <div
       className="flex items-center gap-1 rounded-xl border border-border bg-card p-1"

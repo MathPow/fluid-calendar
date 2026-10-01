@@ -61,6 +61,14 @@ export function AppHeader({ className }: { className?: string }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => setDrawerOpen(false), [pathname]);
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 768px)");
+    const close = () => {
+      if (query.matches) setDrawerOpen(false);
+    };
+    query.addEventListener("change", close);
+    return () => query.removeEventListener("change", close);
+  }, []);
 
   const isActive = (link: NavLink) =>
     [link.href, ...(link.also ?? [])].some(
@@ -114,7 +122,7 @@ export function AppHeader({ className }: { className?: string }) {
   return (
     <header
       className={cn(
-        "z-30 flex-none border-b border-border/70 bg-background/85 backdrop-blur-md",
+        "z-30 flex-none max-md:pt-[env(safe-area-inset-top)] border-b border-border/70 bg-background/85 backdrop-blur-md",
         className
       )}
     >
@@ -132,7 +140,7 @@ export function AppHeader({ className }: { className?: string }) {
           <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 md:hidden" />
             <DialogPrimitive.Content
-              className="fixed inset-y-0 left-0 z-50 flex w-[min(85vw,320px)] flex-col overflow-y-auto bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-float md:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(85vw,320px)] flex-col overflow-y-auto bg-card p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-float md:hidden"
               onTouchStart={(e) => {
                 const t = e.touches[0];
                 touchStart.current = { x: t.clientX, y: t.clientY };

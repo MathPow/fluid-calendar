@@ -1,7 +1,5 @@
 "use client";
 
-import { StepsProgress } from "../components/StepsEditor";
-
 import { useDraggable } from "@dnd-kit/core";
 import { Clock, Lock, Pencil, Trash2 } from "lucide-react";
 
@@ -19,6 +17,8 @@ import { cn } from "@/lib/utils";
 
 import { Task, TimePreference } from "@/types/task";
 
+import { StepsProgress } from "../components/StepsEditor";
+
 interface BoardTaskProps {
   task: Task;
   onEdit: (task: Task) => void;
@@ -33,10 +33,8 @@ const energyLevelColors = {
 
 const timePreferenceColors = {
   [TimePreference.MORNING]: "bg-tint-soft text-foreground",
-  [TimePreference.AFTERNOON]:
-    "bg-pending text-pending-foreground",
-  [TimePreference.EVENING]:
-    "bg-secondary text-muted-foreground",
+  [TimePreference.AFTERNOON]: "bg-pending text-pending-foreground",
+  [TimePreference.EVENING]: "bg-secondary text-muted-foreground",
 };
 
 // Helper function to format enum values for display
@@ -219,12 +217,13 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           </div>
         </div>
       </div>
-      <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button
           type="button"
           onClick={() => onEdit(task)}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-primary"
           title="Edit task"
+          aria-label="Modifier la tâche"
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -233,6 +232,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           onClick={() => onDelete(task.id)}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
           title="Delete task"
+          aria-label="Supprimer la tâche"
         >
           <Trash2 className="h-4 w-4" />
         </button>

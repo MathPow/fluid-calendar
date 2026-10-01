@@ -15,6 +15,7 @@ import {
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
+  readableTextOn,
   terminalUrl,
   timeAgoFr,
 } from "@/lib/projets/meta";
@@ -55,7 +56,10 @@ export function ProjectMark({
         "flex shrink-0 items-center justify-center rounded-2xl text-[15px] font-extrabold text-[#19181c]",
         className ?? "h-11 w-11"
       )}
-      style={{ backgroundColor: color ?? DEFAULT_PROJECT_COLOR }}
+      style={{
+        backgroundColor: color ?? DEFAULT_PROJECT_COLOR,
+        color: readableTextOn(color ?? DEFAULT_PROJECT_COLOR),
+      }}
       aria-hidden
     >
       {initials(name)}
@@ -79,21 +83,12 @@ export function ProjectTile({
   return (
     <li className="tile relative flex flex-col p-3 md:p-6">
       <Link href={href} className="flex min-w-0 flex-col gap-2 md:hidden">
-        {capsule ? (
-          <img
-            src={`/api/project-media/${capsule.id}`}
-            alt=""
-            loading="lazy"
-            className="aspect-[4/3] w-full rounded-xl object-cover"
-          />
-        ) : (
-          <ProjectMark
-            name={project.name}
-            color={project.color}
-            image={project.image}
-            className="aspect-[4/3] w-full text-2xl"
-          />
-        )}
+        <ProjectMark
+          name={project.name}
+          color={project.color}
+          image={capsule ? `/api/project-media/${capsule.id}` : project.image}
+          className="aspect-[4/3] w-full text-2xl"
+        />
         <h2 className="line-clamp-2 pr-8 text-base font-bold leading-tight">
           {project.name}
         </h2>
