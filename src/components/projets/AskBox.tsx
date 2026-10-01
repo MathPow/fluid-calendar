@@ -9,13 +9,15 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
+import { useT } from "@/i18n/client";
+
 /**
  * Natural-language Q&A over the Projets activity feed. Omit `slug` for a
  * question across all projects; pass it to scope to one repo.
  */
 export function AskBox({
   slug,
-  placeholder = "Pose une question sur ce qui a été fait…",
+  placeholder,
   focus,
   onEscape,
 }: {
@@ -25,6 +27,8 @@ export function AskBox({
   focus?: boolean;
   onEscape?: () => void;
 }) {
+  const t = useT();
+  const resolvedPlaceholder = placeholder ?? t("projects.list.askPlaceholder");
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     // Wait for the opening transition to start so the page doesn't jump.
@@ -77,7 +81,7 @@ export function AskBox({
           }}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           disabled={loading}
           className="h-12 min-w-0 flex-1 rounded-full border-0 bg-input px-5 text-[15px] text-foreground placeholder:text-muted-foreground focus:bg-card focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
         />

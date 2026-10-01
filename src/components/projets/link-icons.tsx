@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Figma,
   Github,
@@ -10,9 +12,9 @@ import {
   Trello,
 } from "lucide-react";
 
+import { useT } from "@/i18n/client";
+import { LINK_KINDS } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
-
-import { linkKindLabel } from "@/lib/projets/meta";
 
 const ICONS: Record<string, typeof Globe> = {
   figma: Figma,
@@ -49,12 +51,17 @@ export function LinkPill({
   url: string;
   onInk?: boolean;
 }) {
+  const t = useT();
   let host = "";
   try {
     host = new URL(url).hostname.replace(/^www\./, "");
   } catch {
     host = url;
   }
+  const known = LINK_KINDS.some((k) => k.id === kind);
+  const kindLabel = known
+    ? t(`projects.linkKinds.${kind}`)
+    : t("projects.linkKinds.fallback");
   return (
     <a
       href={url}
@@ -69,7 +76,7 @@ export function LinkPill({
       )}
     >
       <LinkKindIcon kind={kind} className="h-3.5 w-3.5 shrink-0" />
-      <span className="truncate">{label || linkKindLabel(kind)}</span>
+      <span className="truncate">{label || kindLabel}</span>
       {!label && host && (
         <span className="hidden truncate opacity-60 sm:inline">· {host}</span>
       )}

@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { useT } from "@/i18n/client";
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
@@ -70,6 +71,7 @@ export function ProjectTile({
   project: ProjectFull;
   onEdit: (project: ProjectFull) => void;
 }) {
+  const t = useT();
   const href = `/projets/${encodeURIComponent(project.slug)}`;
   const latest = project.activities[0];
   const capsule = project.media[0];
@@ -107,7 +109,12 @@ export function ProjectTile({
                 {[
                   project.lastActivityAt && timeAgoFr(project.lastActivityAt),
                   activities > 0 &&
-                    `${activities} activité${activities > 1 ? "s" : ""}`,
+                    t(
+                      activities > 1
+                        ? "projects.tile.activityPlural"
+                        : "projects.tile.activity",
+                      { count: activities }
+                    ),
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -121,7 +128,7 @@ export function ProjectTile({
             type="button"
             onClick={() => onEdit(project)}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            aria-label={`Modifier ${project.name}`}
+            aria-label={t("projects.tile.editAria", { name: project.name })}
           >
             <Pencil className="h-4 w-4" />
           </button>
@@ -208,14 +215,15 @@ const iconButton =
  * project lives on has a terminal address.
  */
 function TerminalButton({ project }: { project: ProjectFull }) {
+  const t = useT();
   const terminals = project.locations
     .map((l) => ({
       id: l.id,
       machine: l.machine.label || l.machine.name,
       url: terminalUrl(l.machine.ttydUrl, l.path),
     }))
-    .filter((t): t is { id: string; machine: string; url: string } =>
-      Boolean(t.url)
+    .filter((x): x is { id: string; machine: string; url: string } =>
+      Boolean(x.url)
     );
 
   if (terminals.length === 0) return null;
@@ -226,8 +234,13 @@ function TerminalButton({ project }: { project: ProjectFull }) {
         target="_blank"
         rel="noopener noreferrer"
         className={iconButton}
-        aria-label={`Terminal de ${project.name} sur ${terminals[0].machine}`}
-        title={`Terminal sur ${terminals[0].machine}`}
+        aria-label={t("projects.tile.terminalAria.single", {
+          name: project.name,
+          machine: terminals[0].machine,
+        })}
+        title={t("projects.tile.terminalTitle.single", {
+          machine: terminals[0].machine,
+        })}
       >
         <SquareTerminal className="h-4 w-4" />
       </a>
@@ -239,17 +252,19 @@ function TerminalButton({ project }: { project: ProjectFull }) {
         <button
           type="button"
           className={iconButton}
-          aria-label={`Terminal de ${project.name}`}
-          title="Ouvrir un terminal"
+          aria-label={t("projects.tile.terminalAria.many", {
+            name: project.name,
+          })}
+          title={t("projects.tile.terminalTitle.many")}
         >
           <SquareTerminal className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {terminals.map((t) => (
-          <DropdownMenuItem key={t.id} asChild>
-            <a href={t.url} target="_blank" rel="noopener noreferrer">
-              <SquareTerminal /> {t.machine}
+        {terminals.map((terminal) => (
+          <DropdownMenuItem key={terminal.id} asChild>
+            <a href={terminal.url} target="_blank" rel="noopener noreferrer">
+              <SquareTerminal /> {terminal.machine}
             </a>
           </DropdownMenuItem>
         ))}

@@ -6,6 +6,7 @@ import { Check, Pipette } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 
+import { useT } from "@/i18n/client";
 import { PROJECT_COLORS, isHexColor, readableTextOn } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ export function ColorField({
   value: string;
   onChange: (hex: string) => void;
 }) {
+  const t = useT();
   const inPalette = PROJECT_COLORS.some((c) => c.hex === value.toLowerCase());
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
@@ -58,7 +60,7 @@ export function ColorField({
         })}
         {/* Custom: the swatch opens the native colour picker. */}
         <label
-          title="Couleur personnalisée"
+          title={t("projects.colorField.customTitle")}
           className={cn(
             "relative flex h-11 w-14 cursor-pointer items-center justify-center rounded-[14px] border-2 transition-transform hover:scale-105",
             !inPalette ? "border-foreground" : "border-dashed border-border"
@@ -79,7 +81,7 @@ export function ColorField({
             value={isHexColor(value) ? value : "#000000"}
             onChange={(e) => onChange(e.target.value.toLowerCase())}
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-            aria-label="Choisir une couleur personnalisée"
+            aria-label={t("projects.colorField.customPicker")}
           />
         </label>
       </div>
@@ -95,13 +97,13 @@ export function ColorField({
             commit(e.target.value);
           }}
           onBlur={() => setDraft(value)}
-          placeholder="#1f6f4a"
+          placeholder={t("projects.colorField.hexPlaceholder")}
           spellCheck={false}
           className="h-9 w-32 font-mono text-[14px] uppercase"
-          aria-label="Code hex de la couleur"
+          aria-label={t("projects.colorField.hexAria")}
         />
         <span className="text-[12px] text-muted-foreground">
-          Colle le hex exact de ton logo.
+          {t("projects.colorField.hint")}
         </span>
       </div>
     </div>

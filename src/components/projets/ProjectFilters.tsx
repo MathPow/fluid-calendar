@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 export type FilterOption = { id: string; label: string; count: number };
@@ -61,6 +62,7 @@ export function ProjectFilters({
   stack: FilterOption[];
   resultCount: number;
 }) {
+  const t = useT();
   const set = <K extends keyof ProjectFilterState>(
     key: K,
     v: ProjectFilterState[K]
@@ -83,7 +85,7 @@ export function ProjectFilters({
           role="searchbox"
           value={value.query}
           onChange={(e) => set("query", e.target.value)}
-          placeholder="Rechercher un projet, une techno, un lien, un contact…"
+          placeholder={t("projects.filters.searchPlaceholder")}
           className="h-12 w-full rounded-full bg-secondary pl-11 pr-11 text-[15px] outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
         />
         {value.query && (
@@ -91,7 +93,7 @@ export function ProjectFilters({
             type="button"
             onClick={() => set("query", "")}
             className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-card hover:text-foreground"
-            aria-label="Effacer la recherche"
+            aria-label={t("projects.filters.clearSearch")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -100,14 +102,14 @@ export function ProjectFilters({
 
       <div className="flex flex-wrap items-center gap-2">
         <FilterMenu
-          label="Organisation"
+          label={t("projects.filters.organisation")}
           options={organisations}
           selected={value.organisations}
           onToggle={(id) => toggleIn("organisations", id)}
         />
         {machines.length > 0 && (
           <FilterMenu
-            label="Machine"
+            label={t("projects.filters.machine")}
             options={machines}
             selected={value.machines}
             onToggle={(id) => toggleIn("machines", id)}
@@ -115,7 +117,7 @@ export function ProjectFilters({
         )}
         {stack.length > 0 && (
           <FilterMenu
-            label="Techno"
+            label={t("projects.filters.stack")}
             options={stack}
             selected={value.stack}
             onToggle={(id) => toggleIn("stack", id)}
@@ -133,19 +135,24 @@ export function ProjectFilters({
           )}
         >
           {value.withShowcase && <Check className="h-3.5 w-3.5" />}
-          Avec présentation
+          {t("projects.filters.withShowcase")}
         </button>
         {active && (
           <>
             <span className="ml-1 text-[13px] text-muted-foreground">
-              {resultCount} projet{resultCount > 1 ? "s" : ""}
+              {t(
+                resultCount > 1
+                  ? "projects.filters.resultCountPlural"
+                  : "projects.filters.resultCount",
+                { count: resultCount }
+              )}
             </span>
             <button
               type="button"
               onClick={() => onChange(EMPTY_FILTERS)}
               className="text-[13px] font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
-              Tout effacer
+              {t("projects.filters.clearAll")}
             </button>
           </>
         )}

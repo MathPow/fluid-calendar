@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/i18n/client";
 import type { OrganisationLite } from "@/lib/projets/queries";
 
 import { ReorderDialog } from "./ReorderDialog";
@@ -18,12 +19,13 @@ export function OrganisationOrderDialog({
   /** In their current display order. */
   organisations: OrganisationLite[];
 }) {
+  const t = useT();
   return (
     <ReorderDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Ordre des organisations"
-      description="Le même ordre s'applique dans Projets, le calendrier et les tâches."
+      title={t("projects.reorder.title.organisations")}
+      description={t("projects.reorder.desc.organisations")}
       items={organisations}
       endpoint="/api/organisations/order"
     />

@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n/client";
 import { terminalUrl, timeAgoFr } from "@/lib/projets/meta";
 
 import { MachineDialog, type MachineLite } from "./MachineDialog";
@@ -56,6 +57,7 @@ export function ProjectLocationsTile({
   machines,
 }: ProjectLocationsTileProps) {
   const router = useRouter();
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [machineId, setMachineId] = useState<string>("");
@@ -87,7 +89,7 @@ export function ProjectLocationsTile({
       router.refresh();
       return true;
     } catch (e) {
-      toast.error("Action impossible", {
+      toast.error(t("projects.locationsTile.errorToast"), {
         description: e instanceof Error ? e.message : undefined,
       });
       return false;
@@ -104,7 +106,7 @@ export function ProjectLocationsTile({
         method: "POST",
         body: JSON.stringify({ machineId, path: path.trim() }),
       },
-      "Emplacement enregistré."
+      t("projects.locationsTile.addToast")
     );
     if (ok) {
       setAdding(false);
@@ -121,9 +123,14 @@ export function ProjectLocationsTile({
     <section className="tile mt-5 p-7 md:p-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <p className="etiquette">Emplacements</p>
+          <p className="etiquette">{t("projects.locationsTile.title")}</p>
           <span className="text-[12px] text-muted-foreground">
-            {locations.length} machine{locations.length > 1 ? "s" : ""}
+            {t(
+              locations.length > 1
+                ? "projects.locationsTile.countPlural"
+                : "projects.locationsTile.count",
+              { count: locations.length }
+            )}
           </span>
         </div>
         <Button
@@ -131,15 +138,13 @@ export function ProjectLocationsTile({
           size="sm"
           onClick={() => setAdding((v) => !v)}
         >
-          <Plus /> Ajouter
+          <Plus /> {t("projects.locationsTile.add")}
         </Button>
       </div>
 
       {locations.length === 0 && !adding && (
         <p className="mt-4 max-w-xl text-[14px] text-muted-foreground">
-          Aucun emplacement connu. Ils s&apos;ajoutent tout seuls quand Claude
-          travaille dans le dossier du projet sur une machine équipée du hook,
-          ou à la main avec « Ajouter ».
+          {t("projects.locationsTile.empty")}
         </p>
       )}
 
@@ -165,8 +170,10 @@ export function ProjectLocationsTile({
                       type="button"
                       onClick={() => setEditing(l.machine)}
                       className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      aria-label={`Modifier la machine ${l.machine.label || l.machine.name}`}
-                      title="Nom et adresse du terminal"
+                      aria-label={t("projects.locationsTile.editMachineAria", {
+                        name: l.machine.label || l.machine.name,
+                      })}
+                      title={t("projects.locationsTile.editMachineTitle")}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -180,7 +187,9 @@ export function ProjectLocationsTile({
                 </div>
                 <div className="flex w-full items-center gap-3 pl-12 sm:w-auto sm:pl-0">
                   <span className="mr-auto text-[12px] text-muted-foreground sm:mr-0">
-                    vu {timeAgoFr(l.lastSeenAt)}
+                    {t("projects.locationsTile.seen", {
+                      ago: timeAgoFr(l.lastSeenAt),
+                    })}
                   </span>
                   {/* Opens the folder in VS Code on that desktop (its agent). */}
                   {l.machine.agentSeenAt && (
@@ -198,17 +207,20 @@ export function ProjectLocationsTile({
                               args: { path: l.path },
                             }),
                           },
-                          `Ouverture dans VS Code sur ${l.machine.label || l.machine.name}…`
+                          t("projects.locationsTile.openCodeToast", {
+                            name: l.machine.label || l.machine.name,
+                          })
                         )
                       }
                     >
-                      <Code2 /> VS Code
+                      <Code2 /> {t("projects.locationsTile.vscode")}
                     </Button>
                   )}
                   {url ? (
                     <Button variant="outline" size="sm" asChild>
                       <a href={url} target="_blank" rel="noopener noreferrer">
-                        <TerminalSquare /> Terminal
+                        <TerminalSquare />{" "}
+                        {t("projects.locationsTile.terminal")}
                       </a>
                     </Button>
                   ) : (
@@ -217,22 +229,24 @@ export function ProjectLocationsTile({
                       size="sm"
                       onClick={() => setEditing(l.machine)}
                     >
-                      Ajouter l&apos;adresse du terminal
+                      {t("projects.locationsTile.addTerminal")}
                     </Button>
                   )}
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() =>
-                      window.confirm("Retirer cet emplacement ?") &&
+                      window.confirm(
+                        t("projects.locationsTile.confirmRemove")
+                      ) &&
                       call(
                         `/api/projets/${projectId}/locations?locationId=${encodeURIComponent(l.id)}`,
                         { method: "DELETE" },
-                        "Emplacement retiré."
+                        t("projects.locationsTile.removeToast")
                       )
                     }
                     className="rounded-full p-2 text-muted-foreground hover:bg-negative hover:text-negative-foreground"
-                    aria-label="Retirer l'emplacement"
+                    aria-label={t("projects.locationsTile.removeAria")}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -256,7 +270,9 @@ export function ProjectLocationsTile({
             }}
           >
             <SelectTrigger className="h-10 bg-card">
-              <SelectValue placeholder="Machine" />
+              <SelectValue
+                placeholder={t("projects.locationsTile.machinePlaceholder")}
+              />
             </SelectTrigger>
             <SelectContent>
               {free.map((m) => (
@@ -264,13 +280,15 @@ export function ProjectLocationsTile({
                   {m.label || m.name}
                 </SelectItem>
               ))}
-              <SelectItem value={NEW_MACHINE}>+ Nouvelle machine…</SelectItem>
+              <SelectItem value={NEW_MACHINE}>
+                {t("projects.locationsTile.newMachine")}
+              </SelectItem>
             </SelectContent>
           </Select>
           <Input
             value={path}
             onChange={(e) => setPath(e.target.value)}
-            placeholder="/srv/apps/dehors"
+            placeholder={t("projects.locationsTile.pathPlaceholder")}
             className="h-10 bg-card font-mono text-[13px]"
           />
           <Button
@@ -278,7 +296,7 @@ export function ProjectLocationsTile({
             onClick={addLocation}
             disabled={busy || !machineId || !path.trim()}
           >
-            Enregistrer
+            {t("projects.locationsTile.save")}
           </Button>
         </div>
       )}
@@ -297,12 +315,12 @@ export function ProjectLocationsTile({
             ? await call(
                 `/api/machines/${editing.id}`,
                 { method: "PATCH", body: JSON.stringify(values) },
-                "Machine mise à jour."
+                t("projects.locationsTile.machineUpdated")
               )
             : await call(
                 "/api/machines",
                 { method: "POST", body: JSON.stringify(values) },
-                "Machine ajoutée."
+                t("projects.locationsTile.machineCreated")
               );
           if (ok) {
             setEditing(null);

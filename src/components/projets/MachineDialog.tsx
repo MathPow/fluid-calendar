@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 export interface MachineLite {
@@ -51,14 +52,7 @@ export type MachineValues = {
 
 type FormValues = Required<MachineValues>;
 
-const KINDS = [
-  {
-    id: "local",
-    label: "Machine locale",
-    hint: "Un ordi à la maison ou au bureau",
-  },
-  { id: "vps", label: "VPS", hint: "Un serveur loué (OVH…)" },
-] as const;
+const KINDS = [{ id: "local" }, { id: "vps" }] as const;
 
 /**
  * Create / edit a machine: how the activity hook knows it (hostname), how it's
@@ -83,6 +77,7 @@ export function MachineDialog({
   onSave: (values: MachineValues) => void;
   onDelete?: () => void;
 }) {
+  const t = useT();
   // A machine loaded without its inventory (older callers) must not have those
   // fields blanked on save: they're only sent when they were loaded.
   const hasInventory = !machine || "kind" in machine;
@@ -131,11 +126,12 @@ export function MachineDialog({
       <DialogContent className="flex flex-col gap-0 overflow-y-hidden p-0 md:p-0 max-w-2xl">
         <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 md:px-8 md:pt-8">
           <DialogTitle>
-            {machine ? "Modifier la machine" : "Nouvelle machine"}
+            {machine
+              ? t("projects.machineDialog.title.edit")
+              : t("projects.machineDialog.title.new")}
           </DialogTitle>
           <DialogDescription>
-            Comment la joindre, et l&apos;adresse de son terminal pour ouvrir un
-            projet directement dans son dossier.
+            {t("projects.machineDialog.desc")}
           </DialogDescription>
         </DialogHeader>
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6 md:px-8 md:pb-8">
@@ -180,10 +176,10 @@ export function MachineDialog({
                 )}
               >
                 <span className="block text-[14px] font-semibold tracking-title">
-                  {k.label}
+                  {t(`projects.machineDialog.kinds.${k.id}.label`)}
                 </span>
                 <span className="block text-[12px] text-muted-foreground">
-                  {k.hint}
+                  {t(`projects.machineDialog.kinds.${k.id}.hint`)}
                 </span>
               </button>
             ))}
@@ -192,36 +188,60 @@ export function MachineDialog({
           <div className="grid gap-5 sm:grid-cols-2">
             {field(
               "label",
-              "Nom affiché",
-              v.kind === "vps" ? "VPS Dehors" : "Bureau"
+              t("projects.machineDialog.fields.label"),
+              v.kind === "vps"
+                ? t("projects.machineDialog.fields.labelPlaceholder.vps")
+                : t("projects.machineDialog.fields.labelPlaceholder.local")
             )}
-            {field("name", "Nom d'hôte", "vps-9a93d71e", {
-              mono: true,
-              hint: "Ce que renvoie « hostname » : le hook s'en sert pour la reconnaître.",
-            })}
+            {field(
+              "name",
+              t("projects.machineDialog.fields.name"),
+              t("projects.machineDialog.fields.namePlaceholder"),
+              {
+                mono: true,
+                hint: t("projects.machineDialog.fields.nameHint"),
+              }
+            )}
             {field(
               "host",
-              "Adresse (DNS / Tailscale)",
-              "mathpow.taila15d52.ts.net",
+              t("projects.machineDialog.fields.host"),
+              t("projects.machineDialog.fields.hostPlaceholder"),
               {
                 mono: true,
               }
             )}
-            {field("ip", "IP", "100.76.192.10", { mono: true })}
-            {field("sshUser", "Utilisateur SSH", "ubuntu", { mono: true })}
-            {field("sshKey", "Clé SSH (chemin)", "~/.ssh/id_ed25519", {
-              mono: true,
-              hint: "Le chemin seulement, jamais la clé.",
-            })}
+            {field(
+              "ip",
+              t("projects.machineDialog.fields.ip"),
+              t("projects.machineDialog.fields.ipPlaceholder"),
+              { mono: true }
+            )}
+            {field(
+              "sshUser",
+              t("projects.machineDialog.fields.sshUser"),
+              t("projects.machineDialog.fields.sshUserPlaceholder"),
+              { mono: true }
+            )}
+            {field(
+              "sshKey",
+              t("projects.machineDialog.fields.sshKey"),
+              t("projects.machineDialog.fields.sshKeyPlaceholder"),
+              {
+                mono: true,
+                hint: t("projects.machineDialog.fields.sshKeyHint"),
+              }
+            )}
             {field(
               "provider",
-              "Fournisseur",
-              v.kind === "vps" ? "OVH" : "Maison"
+              t("projects.machineDialog.fields.provider"),
+              v.kind === "vps"
+                ? t("projects.machineDialog.fields.providerPlaceholder.vps")
+                : t("projects.machineDialog.fields.providerPlaceholder.local")
             )}
             {field(
               "ttydUrl",
-              "Terminal (ttyd)",
-              "https://mathpow.taila15d52.ts.net:7681/",
+              t("projects.machineDialog.fields.ttyd"),
+              t("projects.machineDialog.fields.ttydPlaceholder"),
               {
                 mono: true,
                 inputMode: "url",
@@ -229,23 +249,27 @@ export function MachineDialog({
             )}
             {field(
               "statsUrl",
-              "Stats (Netdata)",
-              "http://100.76.192.10:19999",
+              t("projects.machineDialog.fields.stats"),
+              t("projects.machineDialog.fields.statsPlaceholder"),
               {
                 mono: true,
                 inputMode: "url",
-                hint: "Avec l'IP Tailscale (tailscale ip -4) plutôt que le nom : c'est le serveur de DreamDash qui la lit.",
+                hint: t("projects.machineDialog.fields.statsHint"),
               }
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="machine-notes">Notes</Label>
+            <Label htmlFor="machine-notes">
+              {t("projects.machineDialog.fields.notes")}
+            </Label>
             <Textarea
               id="machine-notes"
               value={text("notes")}
               onChange={(e) => set("notes", e.target.value)}
-              placeholder="Ce qui tourne dessus, les pièges…"
+              placeholder={t(
+                "projects.machineDialog.fields.notesPlaceholder"
+              )}
               rows={3}
             />
           </div>
@@ -262,7 +286,7 @@ export function MachineDialog({
                 onClick={onDelete}
                 disabled={busy}
               >
-                <Trash2 /> Supprimer
+                <Trash2 /> {t("projects.machineDialog.actions.delete")}
               </Button>
             )}
             <Button
@@ -272,10 +296,12 @@ export function MachineDialog({
               disabled={busy}
               className="sm:ml-auto"
             >
-              Annuler
+              {t("common.cancel")}
             </Button>
             <Button type="submit" form="machine-form" disabled={busy || !v.name.trim()}>
-              {machine ? "Enregistrer" : "Ajouter"}
+              {machine
+                ? t("projects.machineDialog.actions.save")
+                : t("projects.machineDialog.actions.create")}
             </Button>
           </div>
       </DialogContent>

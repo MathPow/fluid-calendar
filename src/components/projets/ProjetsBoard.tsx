@@ -19,12 +19,12 @@ import { AskBox } from "@/components/projets/AskBox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
-  orgKindLabel,
 } from "@/lib/projets/meta";
 import type { OrganisationLite, ProjectFull } from "@/lib/projets/queries";
 
@@ -67,6 +67,7 @@ export function ProjetsBoard({
   organisations,
   contacts,
 }: ProjetsBoardProps) {
+  const t = useT();
   const { currentStation } = useStationStore();
   const [dialog, setDialog] = useState<{
     open: boolean;
@@ -258,21 +259,35 @@ export function ProjetsBoard({
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">
-            Projets.
+            {t("projects.list.title")}
           </h1>
           <div className="mt-6 flex flex-wrap gap-2">
             <Badge className="px-4 py-2 text-[13px]">
-              {organisations.length} organisation
-              {organisations.length > 1 ? "s" : ""}
+              {t(
+                organisations.length > 1
+                  ? "projects.list.badges.organisationsPlural"
+                  : "projects.list.badges.organisations",
+                { count: organisations.length }
+              )}
             </Badge>
             {counts.sub > 0 && (
               <Badge className="px-4 py-2 text-[13px]">
-                {counts.sub} sous-projet{counts.sub > 1 ? "s" : ""}
+                {t(
+                  counts.sub > 1
+                    ? "projects.list.badges.subprojectsPlural"
+                    : "projects.list.badges.subprojects",
+                  { count: counts.sub }
+                )}
               </Badge>
             )}
             {currentStation !== "both" && (
               <Badge variant="tint" className="px-4 py-2 text-[13px]">
-                Filtre : {currentStation === "work" ? "Client" : "Perso"}
+                {t("projects.list.badges.filter", {
+                  label:
+                    currentStation === "work"
+                      ? t("projects.stations.work")
+                      : t("projects.stations.personal"),
+                })}
               </Badge>
             )}
           </div>
@@ -285,8 +300,12 @@ export function ProjetsBoard({
               className="h-12 w-12 rounded-full"
               onClick={() => setAskOpen((o) => !o)}
               aria-expanded={askOpen}
-              aria-label={askOpen ? "Fermer la question" : "Poser une question sur tous les projets"}
-              title="Poser une question sur tous les projets"
+              aria-label={
+                askOpen
+                  ? t("projects.list.actions.ask.closeAria")
+                  : t("projects.list.actions.ask.openAria")
+              }
+              title={t("projects.list.actions.ask.title")}
             >
               <span className="relative h-5 w-5">
                 <Search
@@ -309,7 +328,7 @@ export function ProjetsBoard({
             size="lg"
             onClick={() => setOrgDialog({ open: true, organisation: null })}
           >
-            <Building2 /> Organisation
+            <Building2 /> {t("projects.list.actions.organisation")}
           </Button>
           {organisations.length > 1 && (
             <Button
@@ -317,14 +336,14 @@ export function ProjetsBoard({
               size="lg"
               onClick={() => setOrderOpen(true)}
             >
-              <ArrowUpDown /> Réorganiser
+              <ArrowUpDown /> {t("projects.list.actions.reorder")}
             </Button>
           )}
           <Button
             size="lg"
             onClick={() => setDialog({ open: true, project: null })}
           >
-            <Plus /> Nouveau projet
+            <Plus /> {t("projects.list.actions.newProject")}
           </Button>
         </div>
       </header>
@@ -347,7 +366,7 @@ export function ProjetsBoard({
                 )}
               >
                 <AskBox
-                  placeholder="Pose une question sur tous les projets…"
+                  placeholder={t("projects.list.actions.ask.placeholder")}
                   focus={askOpen}
                   onEscape={() => setAskOpen(false)}
                 />
@@ -368,20 +387,19 @@ export function ProjetsBoard({
       {projects.length > 0 && !anyVisible ? (
         <div className="tile mt-8 px-6 py-16 text-center">
           <p className="text-[15px] font-semibold tracking-title">
-            Aucun projet dans cette station.
+            {t("projects.list.empty.station.title")}
           </p>
           <p className="mx-auto mt-1 max-w-md text-[13px] text-muted-foreground">
-            Passe le sélecteur Perso / Client / Both dans l&apos;en-tête pour en
-            voir d&apos;autres.
+            {t("projects.list.empty.station.body")}
           </p>
         </div>
       ) : filtering && resultCount === 0 ? (
         <div className="tile mt-8 px-6 py-16 text-center">
           <p className="text-[15px] font-semibold tracking-title">
-            Aucun projet trouvé.
+            {t("projects.list.empty.filter.title")}
           </p>
           <p className="mx-auto mt-1 max-w-md text-[13px] text-muted-foreground">
-            Essaie un autre mot ou retire un filtre.
+            {t("projects.list.empty.filter.body")}
           </p>
         </div>
       ) : (
@@ -406,9 +424,15 @@ export function ProjetsBoard({
                     {org.name}
                   </h2>
                   <p className="mt-1 text-[12px] text-muted-foreground">
-                    {orgKindLabel(org.kind)} · {list.length} projet
-                    {list.length > 1 ? "s" : ""}
-                    {org.isDefault && " · par défaut"}
+                    {t(`projects.orgKinds.${org.kind || "client"}`)} ·{" "}
+                    {t(
+                      list.length > 1
+                        ? "projects.list.section.projectsPlural"
+                        : "projects.list.section.projects",
+                      { count: list.length }
+                    )}
+                    {org.isDefault &&
+                      ` · ${t("projects.list.section.default")}`}
                   </p>
                 </div>
                 <div className="ml-auto flex items-center gap-1">
@@ -417,8 +441,10 @@ export function ProjetsBoard({
                       type="button"
                       onClick={() => setProjectOrder({ org, projects: list })}
                       className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                      aria-label={`Réorganiser les projets de ${org.name}`}
-                      title="Réorganiser les projets"
+                      aria-label={t("projects.list.section.reorderAria", {
+                        name: org.name,
+                      })}
+                      title={t("projects.list.section.reorderTitle")}
                     >
                       <ArrowUpDown className="h-4 w-4" />
                     </button>
@@ -429,7 +455,9 @@ export function ProjetsBoard({
                       setOrgDialog({ open: true, organisation: org })
                     }
                     className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                    aria-label={`Modifier ${org.name}`}
+                    aria-label={t("projects.list.section.editAria", {
+                      name: org.name,
+                    })}
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -444,7 +472,7 @@ export function ProjetsBoard({
                       })
                     }
                   >
-                    <Plus /> Projet
+                    <Plus /> {t("projects.list.section.newProjectShort")}
                   </Button>
                 </div>
               </div>
@@ -467,7 +495,7 @@ export function ProjetsBoard({
               )}
               {list.length === 0 ? (
                 <p className="mt-4 rounded-[20px] bg-secondary/60 px-5 py-6 text-center text-[13px] text-muted-foreground">
-                  Aucun projet ici pour l&apos;instant.
+                  {t("projects.list.section.emptyRow")}
                 </p>
               ) : (
                 <>
@@ -489,12 +517,14 @@ export function ProjetsBoard({
                       >
                         {expanded.has(org.id) ? (
                           <>
-                            <ChevronUp /> Réduire
+                            <ChevronUp /> {t("projects.list.section.collapse")}
                           </>
                         ) : (
                           <>
-                            <ChevronDown /> Voir les {list.length - PREVIEW}{" "}
-                            autres
+                            <ChevronDown />{" "}
+                            {t("projects.list.section.showMore", {
+                              count: list.length - PREVIEW,
+                            })}
                           </>
                         )}
                       </Button>
@@ -519,8 +549,10 @@ export function ProjetsBoard({
       <ReorderDialog
         open={!!projectOrder}
         onOpenChange={(open) => !open && setProjectOrder(null)}
-        title={`Projets de ${projectOrder?.org.name ?? ""}`}
-        description="Cet ordre s'applique ici et dans la liste de l'accueil (les 4 premiers)."
+        title={t("projects.reorder.title.projects", {
+          name: projectOrder?.org.name ?? "",
+        })}
+        description={t("projects.reorder.desc.projects")}
         items={projectOrder?.projects ?? []}
         endpoint="/api/projets/order"
       />

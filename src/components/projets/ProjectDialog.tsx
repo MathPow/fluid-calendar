@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/i18n/client";
 import {
   DEFAULT_PROJECT_COLOR,
   PROJECT_COLORS,
@@ -96,6 +97,7 @@ export function ProjectDialog({
   contacts: initialContacts,
 }: ProjectDialogProps) {
   const router = useRouter();
+  const t = useT();
   const editing = !!project;
 
   const [name, setName] = useState("");
@@ -260,7 +262,7 @@ export function ProjectDialog({
       setNewContactEmail("");
       setNewContactOpen(false);
     } catch (e) {
-      toast.error("Impossible de créer le contact", {
+      toast.error(t("projects.dialog.toasts.contactCreateError"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -270,11 +272,11 @@ export function ProjectDialog({
 
   const submit = async () => {
     if (!name.trim()) {
-      toast.error("Donne un nom au projet.");
+      toast.error(t("projects.dialog.toasts.nameRequired"));
       return;
     }
     if (locations.some((l) => l.path.trim() && l.machineId === NO_MACHINE)) {
-      toast.error("Choisis la machine de chaque dossier.");
+      toast.error(t("projects.dialog.toasts.machineRequired"));
       return;
     }
     // Commit any tool still sitting in the draft field.
@@ -328,13 +330,17 @@ export function ProjectDialog({
           : undefined;
         throw new Error(fieldMsg || data.error || `Erreur ${res.status}`);
       }
-      toast.success(editing ? "Projet mis à jour." : "Projet créé.");
+      toast.success(
+        editing
+          ? t("projects.dialog.toasts.saved")
+          : t("projects.dialog.toasts.created")
+      );
       onOpenChange(false);
       router.refresh();
       if (!editing && data.slug)
         router.push(`/projets/${encodeURIComponent(data.slug)}`);
     } catch (e) {
-      toast.error("Enregistrement impossible", {
+      toast.error(t("projects.dialog.toasts.saveError"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -345,7 +351,7 @@ export function ProjectDialog({
   const remove = async () => {
     if (!project) return;
     const ok = window.confirm(
-      `Supprimer « ${project.name} » ? Le journal d'activité sera perdu; les sous-projets sont conservés.`
+      t("projects.dialog.actions.confirmDelete", { name: project.name })
     );
     if (!ok) return;
     setSubmitting(true);
@@ -354,12 +360,12 @@ export function ProjectDialog({
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
-      toast.success("Projet supprimé.");
+      toast.success(t("projects.dialog.actions.deleteSuccess"));
       onOpenChange(false);
       router.push("/projets");
       router.refresh();
     } catch (e) {
-      toast.error("Suppression impossible", {
+      toast.error(t("projects.dialog.actions.deleteError"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -372,12 +378,14 @@ export function ProjectDialog({
       <DialogContent className="flex flex-col gap-0 overflow-y-hidden p-0 md:p-0 max-w-2xl">
         <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 md:px-8 md:pt-8">
           <DialogTitle>
-            {editing ? "Modifier le projet" : "Nouveau projet"}
+            {editing
+              ? t("projects.dialog.title.edit")
+              : t("projects.dialog.title.new")}
           </DialogTitle>
           <DialogDescription>
             {editing
-              ? "Nom, couleur, liens, outils et contacts du projet."
-              : "Un projet regroupe ses liens, ses outils, ses contacts et ses sous-projets."}
+              ? t("projects.dialog.desc.edit")
+              : t("projects.dialog.desc.new")}
           </DialogDescription>
         </DialogHeader>
 
@@ -396,24 +404,26 @@ export function ProjectDialog({
               fallback={name.trim() ? name.trim().charAt(0).toUpperCase() : "?"}
               color={color}
               shape="rounded"
-              label="Logo du projet"
+              label={t("projects.dialog.fields.logo")}
             />
 
             {/* Name + station */}
             <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
               <div className="space-y-2">
-                <Label htmlFor="project-name">Nom</Label>
+                <Label htmlFor="project-name">
+                  {t("projects.dialog.fields.name")}
+                </Label>
                 <Input
                   id="project-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Dehors"
+                  placeholder={t("projects.dialog.fields.namePlaceholder")}
                   autoFocus
                   className="text-[17px] font-semibold tracking-title"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Type</Label>
+                <Label>{t("projects.dialog.fields.type")}</Label>
                 <div className="segmented">
                   {PROJECT_STATIONS.map((s) => (
                     <button
@@ -423,7 +433,7 @@ export function ProjectDialog({
                       data-active={station === s.id}
                       onClick={() => setStation(s.id)}
                     >
-                      {s.label}
+                      {t(`projects.stations.${s.id}`)}
                     </button>
                   ))}
                 </div>
@@ -432,7 +442,7 @@ export function ProjectDialog({
 
             {/* Colour */}
             <div className="space-y-2">
-              <Label>Couleur</Label>
+              <Label>{t("projects.dialog.fields.color")}</Label>
               <div className="flex flex-wrap gap-2.5">
                 {PROJECT_COLORS.map((c) => {
                   const active = color.toLowerCase() === c.hex;
@@ -464,10 +474,14 @@ export function ProjectDialog({
             {/* Organisation + parent + path */}
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Organisation</Label>
+                <Label>{t("projects.dialog.fields.organisation")}</Label>
                 <Select value={organisation} onValueChange={setOrganisation}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Perso" />
+                    <SelectValue
+                      placeholder={t(
+                        "projects.dialog.fields.organisationPlaceholder"
+                      )}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {[...organisations]
@@ -492,7 +506,10 @@ export function ProjectDialog({
                             {o.name}
                             {o.isDefault && (
                               <span className="text-muted-foreground">
-                                · par défaut
+                                ·{" "}
+                                {t(
+                                  "projects.dialog.fields.organisationDefaultSuffix"
+                                )}
                               </span>
                             )}
                           </span>
@@ -502,14 +519,16 @@ export function ProjectDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Projet parent</Label>
+                <Label>{t("projects.dialog.fields.parent")}</Label>
                 <Select value={parent} onValueChange={setParent}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Aucun" />
+                    <SelectValue
+                      placeholder={t("projects.dialog.fields.parentPlaceholder")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NO_PARENT}>
-                      Aucun (projet principal)
+                      {t("projects.dialog.fields.parentNone")}
                     </SelectItem>
                     {parentOptions.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
@@ -537,10 +556,12 @@ export function ProjectDialog({
               className="flex w-full items-center justify-between rounded-2xl bg-secondary/60 px-4 py-3 text-left text-[14px] font-medium transition-colors hover:bg-secondary"
             >
               <span>
-                {showMore ? "Moins de détails" : "Plus de détails"}
+                {showMore
+                  ? t("projects.dialog.foldHide")
+                  : t("projects.dialog.foldShow")}
                 {!showMore && (
                   <span className="ml-2 text-[12px] font-normal text-muted-foreground">
-                    Machines, description, liens, outils, contacts
+                    {t("projects.dialog.foldHint")}
                   </span>
                 )}
               </span>
@@ -555,10 +576,12 @@ export function ProjectDialog({
             {showMore && (
               <>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label>Machines et dossiers</Label>
+                  <Label>
+                    {t("projects.dialog.fields.locations.title")}
+                  </Label>
                   {locations.length === 0 && (
                     <p className="text-[12px] text-muted-foreground">
-                      Sur quelle machine vit ce projet, et dans quel dossier.
+                      {t("projects.dialog.fields.locations.hint")}
                     </p>
                   )}
                   {locations.map((loc, i) => {
@@ -581,11 +604,17 @@ export function ProjectDialog({
                           onValueChange={(v) => update({ machineId: v })}
                         >
                           <SelectTrigger className="sm:w-[200px] sm:shrink-0">
-                            <SelectValue placeholder="Machine" />
+                            <SelectValue
+                              placeholder={t(
+                                "projects.dialog.fields.locations.machinePlaceholder"
+                              )}
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value={NO_MACHINE}>
-                              Choisir une machine
+                              {t(
+                                "projects.dialog.fields.locations.chooseMachine"
+                              )}
                             </SelectItem>
                             {machines.map((m) => (
                               <SelectItem
@@ -597,7 +626,10 @@ export function ProjectDialog({
                                 {m.kind === "vps" && (
                                   <span className="text-muted-foreground">
                                     {" "}
-                                    · VPS
+                                    ·{" "}
+                                    {t(
+                                      "projects.dialog.fields.locations.vpsSuffix"
+                                    )}
                                   </span>
                                 )}
                               </SelectItem>
@@ -606,17 +638,23 @@ export function ProjectDialog({
                         </Select>
                         <div className="flex min-w-0 flex-1 items-center gap-2">
                           <Input
-                            aria-label="Dossier sur la machine"
+                            aria-label={t(
+                              "projects.dialog.fields.locations.pathAria"
+                            )}
                             value={loc.path}
                             onChange={(e) => update({ path: e.target.value })}
-                            placeholder="/home/uguiso/repos/dehors"
+                            placeholder={t(
+                              "projects.dialog.fields.locations.pathPlaceholder"
+                            )}
                             className="min-w-0 flex-1 font-mono text-[13px]"
                           />
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            aria-label="Retirer"
+                            aria-label={t(
+                              "projects.dialog.fields.locations.removeAria"
+                            )}
                             onClick={() =>
                               setLocations((prev) =>
                                 prev.filter((_, j) => j !== i)
@@ -649,18 +687,22 @@ export function ProjectDialog({
                       ])
                     }
                   >
-                    <Plus /> Machine
+                    <Plus /> {t("projects.dialog.fields.locations.addMachine")}
                   </Button>
                 </div>
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="project-description">Description</Label>
+                  <Label htmlFor="project-description">
+                    {t("projects.dialog.fields.description")}
+                  </Label>
                   <Textarea
                     id="project-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="En une ou deux phrases, c'est quoi ce projet."
+                    placeholder={t(
+                      "projects.dialog.fields.descriptionPlaceholder"
+                    )}
                     rows={2}
                   />
                 </div>
@@ -670,7 +712,9 @@ export function ProjectDialog({
 
                 {/* Stack */}
                 <div className="space-y-3">
-                  <Label htmlFor="project-stack">Outils &amp; techno</Label>
+                  <Label htmlFor="project-stack">
+                    {t("projects.dialog.fields.stack")}
+                  </Label>
                   <div className="flex flex-wrap gap-2">
                     {stack.map((s) => (
                       <span
@@ -684,7 +728,10 @@ export function ProjectDialog({
                             setStack((prev) => prev.filter((x) => x !== s))
                           }
                           className="rounded-full p-0.5 text-muted-foreground hover:bg-card hover:text-foreground"
-                          aria-label={`Retirer ${s}`}
+                          aria-label={t(
+                            "projects.dialog.fields.stackRemoveAria",
+                            { name: s }
+                          )}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -702,21 +749,22 @@ export function ProjectDialog({
                       }
                     }}
                     onBlur={addStack}
-                    placeholder="Next.js, Supabase, Coolify… (Entrée pour ajouter)"
+                    placeholder={t("projects.dialog.fields.stackPlaceholder")}
                   />
                 </div>
 
                 {/* Contacts */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label>Contacts</Label>
+                    <Label>{t("projects.dialog.fields.contacts")}</Label>
                     <Button
                       type="button"
                       variant="secondary"
                       size="sm"
                       onClick={() => setNewContactOpen((v) => !v)}
                     >
-                      <Plus /> Nouveau contact
+                      <Plus />{" "}
+                      {t("projects.dialog.fields.contacts.newContact")}
                     </Button>
                   </div>
                   {newContactOpen && (
@@ -724,13 +772,17 @@ export function ProjectDialog({
                       <Input
                         value={newContactName}
                         onChange={(e) => setNewContactName(e.target.value)}
-                        placeholder="Nom"
+                        placeholder={t(
+                          "projects.dialog.fields.contacts.namePlaceholder"
+                        )}
                         className="h-10 bg-card"
                       />
                       <Input
                         value={newContactEmail}
                         onChange={(e) => setNewContactEmail(e.target.value)}
-                        placeholder="Courriel (optionnel)"
+                        placeholder={t(
+                          "projects.dialog.fields.contacts.emailPlaceholder"
+                        )}
                         className="h-10 bg-card"
                         inputMode="email"
                       />
@@ -741,14 +793,13 @@ export function ProjectDialog({
                         onClick={createContact}
                         disabled={creatingContact || !newContactName.trim()}
                       >
-                        Créer
+                        {t("projects.dialog.fields.contacts.create")}
                       </Button>
                     </div>
                   )}
                   {contacts.length === 0 ? (
                     <p className="text-[13px] text-muted-foreground">
-                      Aucun contact encore. Crée-en un ici ou dans l&apos;onglet
-                      Contacts.
+                      {t("projects.dialog.fields.contacts.empty")}
                     </p>
                   ) : (
                     <>
@@ -756,7 +807,10 @@ export function ProjectDialog({
                         <Input
                           value={contactQuery}
                           onChange={(e) => setContactQuery(e.target.value)}
-                          placeholder={`Chercher parmi ${contacts.length} contacts…`}
+                          placeholder={t(
+                            "projects.dialog.fields.contacts.search",
+                            { count: contacts.length }
+                          )}
                           className="h-10"
                         />
                       )}
@@ -819,7 +873,7 @@ export function ProjectDialog({
               onClick={remove}
               disabled={submitting}
             >
-              <Trash2 /> Supprimer
+              <Trash2 /> {t("projects.dialog.actions.delete")}
             </Button>
           )}
           <Button
@@ -829,7 +883,7 @@ export function ProjectDialog({
             disabled={submitting}
             className="sm:ml-auto"
           >
-            Annuler
+            {t("common.cancel")}
           </Button>
           <Button
             type="submit"
@@ -837,10 +891,10 @@ export function ProjectDialog({
             disabled={submitting || creatingContact}
           >
             {submitting
-              ? "Enregistrement…"
+              ? t("projects.dialog.actions.saving")
               : editing
-                ? "Enregistrer"
-                : "Créer le projet"}
+                ? t("projects.dialog.actions.save")
+                : t("projects.dialog.actions.createCta")}
           </Button>
         </div>
       </DialogContent>

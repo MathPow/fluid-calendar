@@ -20,6 +20,7 @@ import { ShowcaseRunControl } from "@/components/projets/ShowcaseRunControl";
 import { LinkPill } from "@/components/projets/link-icons";
 import { Badge } from "@/components/ui/badge";
 
+import { getLocale, getT } from "@/i18n/server";
 import { prisma } from "@/lib/prisma";
 import {
   DEFAULT_PROJECT_COLOR,
@@ -50,8 +51,8 @@ function hostOf(url: string): string {
   }
 }
 
-function formatStamp(date: Date): string {
-  return date.toLocaleString("fr-CA", {
+function formatStamp(date: Date, locale: string): string {
+  return date.toLocaleString(locale === "fr" ? "fr-CA" : "en-CA", {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -66,6 +67,8 @@ export default async function ProjetDetailPage({
 }) {
   const { slug } = await params; // Next already URL-decodes route params
   const { onglet } = await searchParams;
+  const t = await getT();
+  const locale = await getLocale();
   const [project, projects, contacts, organisations, showcase, media] =
     await Promise.all([
       prisma.agentProject.findUnique({
@@ -171,27 +174,30 @@ export default async function ProjetDetailPage({
   const activityCount = project._count.activities;
   const website = project.links.find((l) => l.kind === "website");
   const facts: StoreFact[] = [
-    showcase?.status && { label: "État", value: showcase.status },
+    showcase?.status && {
+      label: t("projects.detail.facts.status"),
+      value: showcase.status,
+    },
     showcase?.startedAt && {
-      label: "Début",
+      label: t("projects.detail.facts.started"),
       // Stored as a calendar date at UTC midnight; format it in UTC or it
       // slips to the day before in Montréal.
-      value: showcase.startedAt.toLocaleDateString("fr-CA", {
-        dateStyle: "long",
-        timeZone: "UTC",
-      }),
+      value: showcase.startedAt.toLocaleDateString(
+        locale === "fr" ? "fr-CA" : "en-CA",
+        { dateStyle: "long", timeZone: "UTC" }
+      ),
     },
     project.organisation &&
       !project.organisation.isDefault && {
-        label: "Organisation",
+        label: t("projects.detail.facts.organisation"),
         value: project.organisation.name,
       },
     project.lastActivityAt && {
-      label: "Activité",
+      label: t("projects.detail.facts.lastActivity"),
       value: timeAgoFr(project.lastActivityAt),
     },
     website && {
-      label: "Site",
+      label: t("projects.detail.facts.site"),
       value: website.label || hostOf(website.url),
       href: website.url,
     },
@@ -210,7 +216,7 @@ export default async function ProjetDetailPage({
   );
   const presentationTab: ProjectTab = {
     value: "presentation",
-    label: "Présentation",
+    label: t("projects.tabs.presentation"),
     content: showcase ? (
       <>
         {runControl}
@@ -230,7 +236,7 @@ export default async function ProjetDetailPage({
     ...(showcase ? [presentationTab] : []),
     {
       value: "fiche",
-      label: "Fiche",
+      label: t("projects.tabs.fiche"),
       content: (
         <>
           {/* ------------------------------------------ Ink tile + colour tile */}
@@ -239,17 +245,22 @@ export default async function ProjetDetailPage({
               {/* The store page already shows the description up top. */}
               {!showcase && (
                 <div>
-                  <p className="etiquette text-background/60">À propos</p>
+                  <p className="etiquette text-background/60">
+                    {t("projects.detail.sections.about")}
+                  </p>
                   <p className="voice mt-4 text-[24px] text-background md:text-[28px]">
-                    {project.description || "Pas encore de description."}
+                    {project.description ||
+                      t("projects.detail.sections.aboutEmpty")}
                   </p>
                 </div>
               )}
               <div>
-                <p className="etiquette text-background/60">Liens</p>
+                <p className="etiquette text-background/60">
+                  {t("projects.detail.sections.links")}
+                </p>
                 {project.links.length === 0 ? (
                   <p className="mt-3 text-[14px] text-background/60">
-                    Aucun lien — ajoute Figma, Drive, le site, le projet Claude…
+                    {t("projects.detail.sections.linksEmpty")}
                   </p>
                 ) : (
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -271,10 +282,12 @@ export default async function ProjetDetailPage({
               className="rounded-tile p-7 text-[#19181c] md:p-10"
               style={{ backgroundColor: color }}
             >
-              <p className="etiquette text-[#19181c]/60">Outils &amp; techno</p>
+              <p className="etiquette text-[#19181c]/60">
+                {t("projects.detail.sections.stack")}
+              </p>
               {project.stack.length === 0 ? (
                 <p className="mt-4 font-serif text-[15px] italic text-[#19181c]/70">
-                  Rien de renseigné pour l&apos;instant.
+                  {t("projects.detail.sections.stackEmpty")}
                 </p>
               ) : (
                 <ul className="mt-4 flex flex-wrap gap-2">
@@ -291,7 +304,7 @@ export default async function ProjetDetailPage({
               {project.children.length > 0 && (
                 <>
                   <p className="etiquette mt-8 text-[#19181c]/60">
-                    Sous-projets
+                    {t("projects.detail.sections.subprojects")}
                   </p>
                   <p className="mt-3 text-[40px] font-extrabold leading-none tracking-[-0.02em]">
                     {project.children.length}
@@ -304,11 +317,12 @@ export default async function ProjetDetailPage({
           {/* -------------------------------------- Sub-projects + Contacts */}
           <section className="mt-5 grid gap-5 lg:grid-cols-2">
             <div className="tile p-7 md:p-10">
-              <p className="etiquette">Sous-projets</p>
+              <p className="etiquette">
+                {t("projects.detail.sections.subprojects")}
+              </p>
               {project.children.length === 0 ? (
                 <p className="mt-4 text-[14px] text-muted-foreground">
-                  Aucun sous-projet. Le bouton « Sous-projet » en crée un
-                  rattaché à celui-ci.
+                  {t("projects.detail.sections.subprojectsEmpty")}
                 </p>
               ) : (
                 <ol className="mt-4">
@@ -341,17 +355,19 @@ export default async function ProjetDetailPage({
 
             <div className="tile p-7 md:p-10">
               <div className="flex items-center justify-between">
-                <p className="etiquette">Contacts</p>
+                <p className="etiquette">
+                  {t("projects.detail.sections.contacts")}
+                </p>
                 <Link
                   href="/contacts"
                   className="text-[13px] font-medium text-muted-foreground hover:text-foreground"
                 >
-                  Tous les contacts
+                  {t("projects.detail.sections.contactsAll")}
                 </Link>
               </div>
               {project.contacts.length === 0 ? (
                 <p className="mt-4 text-[14px] text-muted-foreground">
-                  Personne n&apos;est rattaché à ce projet.
+                  {t("projects.detail.sections.contactsEmpty")}
                 </p>
               ) : (
                 <ul className="mt-4">
@@ -422,7 +438,7 @@ export default async function ProjetDetailPage({
     ...(showcase ? [] : [presentationTab]),
     {
       value: "taches",
-      label: "Tâches",
+      label: t("projects.tabs.taches"),
       count: openTasks.length,
       content: (
         <ProjectTasksTile
@@ -453,7 +469,7 @@ export default async function ProjetDetailPage({
     },
     {
       value: "journal",
-      label: "Journal",
+      label: t("projects.tabs.journal"),
       count: activityCount,
       content: (
         <>
@@ -464,16 +480,17 @@ export default async function ProjetDetailPage({
           {project.activities.length === 0 ? (
             <div className="tile mt-5 px-6 py-16 text-center">
               <p className="text-[15px] font-semibold tracking-title">
-                Aucune activité enregistrée.
+                {t("projects.detail.sections.journalEmpty.title")}
               </p>
               <p className="mx-auto mt-1 max-w-md text-[13px] text-muted-foreground">
-                Le journal se remplit à chaque tour de travail terminé dans ce
-                projet.
+                {t("projects.detail.sections.journalEmpty.body")}
               </p>
             </div>
           ) : (
             <section className="tile mt-5 p-7 md:p-10">
-              <p className="etiquette">Journal d&apos;activité</p>
+              <p className="etiquette">
+                {t("projects.detail.sections.journal.title")}
+              </p>
               <ol className="mt-4">
                 {project.activities.map((a, i) => (
                   <li
@@ -484,7 +501,7 @@ export default async function ProjetDetailPage({
                     <div className="min-w-0">
                       <div className="mb-3 flex flex-wrap items-center gap-2">
                         <time className="text-[13px] text-muted-foreground">
-                          {formatStamp(a.createdAt)}
+                          {formatStamp(a.createdAt, locale)}
                         </time>
                         {a.agent ? (
                           <Badge
@@ -533,7 +550,7 @@ export default async function ProjetDetailPage({
         className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />{" "}
-        {project.parent ? project.parent.name : "Tous les projets"}
+        {project.parent ? project.parent.name : t("projects.detail.back")}
       </Link>
 
       <header className="mt-6 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -556,16 +573,25 @@ export default async function ProjetDetailPage({
               </Badge>
             )}
             <Badge className="px-4 py-2 text-[13px]">
-              {activityCount} activité{activityCount > 1 ? "s" : ""}
+              {t(
+                activityCount > 1
+                  ? "projects.detail.badges.activityPlural"
+                  : "projects.detail.badges.activity",
+                { count: activityCount }
+              )}
             </Badge>
             {project.lastActivityAt && (
               <Badge className="px-4 py-2 text-[13px]">
-                Dernière activité {timeAgoFr(project.lastActivityAt)}
+                {t("projects.detail.badges.lastActivity", {
+                  ago: timeAgoFr(project.lastActivityAt),
+                })}
               </Badge>
             )}
             {project.locations.length > 1 ? (
               <span className="font-serif text-[15px] italic text-muted-foreground">
-                sur {project.locations.length} machines
+                {t("projects.detail.badges.machines", {
+                  count: project.locations.length,
+                })}
               </span>
             ) : project.locations[0] || project.path ? (
               <span className="font-serif text-[15px] italic text-muted-foreground">

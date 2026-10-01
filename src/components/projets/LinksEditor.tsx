@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n/client";
 import {
   LINK_KINDS,
   type LinkKind,
@@ -59,12 +60,14 @@ export function toLinkPayload(links: FormLink[]) {
 export function LinksEditor({
   links,
   onChange,
-  hint = "Figma, Drive, site web, projet Claude, GitHub…",
+  hint,
 }: {
   links: FormLink[];
   onChange: (links: FormLink[]) => void;
   hint?: string;
 }) {
+  const t = useT();
+  const resolvedHint = hint ?? t("projects.linksEditor.hint.default");
   const update = (i: number, patch: Partial<FormLink>) =>
     onChange(links.map((l, j) => (j === i ? { ...l, ...patch } : l)));
 
@@ -86,7 +89,7 @@ export function LinksEditor({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label>Liens</Label>
+        <Label>{t("projects.linksEditor.label")}</Label>
         <Button
           type="button"
           variant="secondary"
@@ -95,11 +98,11 @@ export function LinksEditor({
             onChange([...links, { kind: "website", label: "", url: "" }])
           }
         >
-          <Plus /> Ajouter un lien
+          <Plus /> {t("projects.linksEditor.add")}
         </Button>
       </div>
       {links.length === 0 ? (
-        <p className="text-[13px] text-muted-foreground">{hint}</p>
+        <p className="text-[13px] text-muted-foreground">{resolvedHint}</p>
       ) : (
         <div className="space-y-2">
           {links.map((l, i) => (
@@ -119,7 +122,7 @@ export function LinksEditor({
                     <SelectItem key={k.id} value={k.id}>
                       <span className="inline-flex items-center gap-2">
                         <LinkKindIcon kind={k.id} className="h-3.5 w-3.5" />
-                        {k.label}
+                        {t(`projects.linkKinds.${k.id}`)}
                       </span>
                     </SelectItem>
                   ))}
@@ -128,21 +131,21 @@ export function LinksEditor({
               <Input
                 value={l.url}
                 onChange={(e) => updateUrl(i, e.target.value)}
-                placeholder="https://…"
+                placeholder={t("projects.linksEditor.urlPlaceholder")}
                 className="h-10 bg-card"
                 inputMode="url"
               />
               <Input
                 value={l.label}
                 onChange={(e) => update(i, { label: e.target.value })}
-                placeholder="Libellé"
+                placeholder={t("projects.linksEditor.labelPlaceholder")}
                 className="h-10 bg-card"
               />
               <button
                 type="button"
                 onClick={() => onChange(links.filter((_, j) => j !== i))}
                 className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-negative hover:text-negative-foreground"
-                aria-label="Retirer le lien"
+                aria-label={t("projects.linksEditor.removeAria")}
               >
                 <X className="h-4 w-4" />
               </button>

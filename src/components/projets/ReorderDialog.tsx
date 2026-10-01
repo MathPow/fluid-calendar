@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { useT } from "@/i18n/client";
 import { DEFAULT_PROJECT_COLOR, initials } from "@/lib/projets/meta";
 
 import { Avatar } from "./ImageField";
@@ -48,6 +49,7 @@ export function ReorderDialog({
   endpoint: string;
 }) {
   const router = useRouter();
+  const t = useT();
   const [order, setOrder] = useState<ReorderItem[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -73,11 +75,11 @@ export function ReorderDialog({
         body: JSON.stringify({ ids: order.map((o) => o.id) }),
       });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
-      toast.success("Ordre enregistré.");
+      toast.success(t("projects.reorder.saved"));
       onOpenChange(false);
       router.refresh();
     } catch (e) {
-      toast.error("Enregistrement impossible", {
+      toast.error(t("projects.reorder.error"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -117,7 +119,9 @@ export function ReorderDialog({
                 onClick={() => move(i, -1)}
                 disabled={i === 0}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-30"
-                aria-label={`Monter ${item.name}`}
+                aria-label={t("projects.reorder.moveUpAria", {
+                  name: item.name,
+                })}
               >
                 <ArrowUp className="h-4 w-4" />
               </button>
@@ -126,7 +130,9 @@ export function ReorderDialog({
                 onClick={() => move(i, 1)}
                 disabled={i === order.length - 1}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-30"
-                aria-label={`Descendre ${item.name}`}
+                aria-label={t("projects.reorder.moveDownAria", {
+                  name: item.name,
+                })}
               >
                 <ArrowDown className="h-4 w-4" />
               </button>
@@ -141,10 +147,12 @@ export function ReorderDialog({
             onClick={() => onOpenChange(false)}
             disabled={saving}
           >
-            Annuler
+            {t("common.cancel")}
           </Button>
           <Button type="button" onClick={save} disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving
+              ? t("projects.reorder.saving")
+              : t("projects.reorder.save")}
           </Button>
         </div>
       </DialogContent>

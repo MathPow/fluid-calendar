@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/i18n/client";
 import { readableTextOn } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
@@ -50,22 +51,24 @@ export function ImageField({
   color,
   shape = "round",
   size = 72,
-  label = "Photo",
+  label,
 }: ImageFieldProps) {
+  const t = useT();
+  const resolvedLabel = label ?? t("projects.imageField.photoLabel");
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Choisis une image.");
+      toast.error(t("projects.imageField.chooseError"));
       return;
     }
     setBusy(true);
     try {
       onChange(await fileToSquareDataUrl(file));
     } catch (e) {
-      toast.error("Image impossible à lire", {
+      toast.error(t("projects.imageField.readError"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -92,7 +95,11 @@ export function ImageField({
             backgroundColor: value ? undefined : (color ?? undefined),
             color: readableTextOn(color),
           }}
-          title={value ? "Changer la photo" : "Ajouter une photo"}
+          title={
+            value
+              ? t("projects.imageField.titleChange")
+              : t("projects.imageField.titleAdd")
+          }
           disabled={busy}
         >
           {value ? (
@@ -116,20 +123,20 @@ export function ImageField({
             type="button"
             onClick={() => onChange(null)}
             className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-muted-foreground shadow-float hover:text-foreground"
-            aria-label="Retirer la photo"
+            aria-label={t("projects.imageField.removeAria")}
           >
             <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
       <div className="text-[13px] text-muted-foreground">
-        <p className="font-medium text-foreground">{label}</p>
+        <p className="font-medium text-foreground">{resolvedLabel}</p>
         <p>
           {busy
-            ? "Traitement…"
+            ? t("projects.imageField.processing")
             : value
-              ? "Clique pour changer."
-              : "Clique pour ajouter. Recadrée en carré, 320 px."}
+              ? t("projects.imageField.clickChange")
+              : t("projects.imageField.clickAdd")}
         </p>
       </div>
       <input

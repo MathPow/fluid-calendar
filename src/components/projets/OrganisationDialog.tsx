@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/i18n/client";
 import {
   DEFAULT_PROJECT_COLOR,
   ORG_KINDS,
@@ -49,6 +50,7 @@ export function OrganisationDialog({
   organisation,
 }: OrganisationDialogProps) {
   const router = useRouter();
+  const t = useT();
   const editing = !!organisation;
 
   const [name, setName] = useState("");
@@ -75,7 +77,7 @@ export function OrganisationDialog({
 
   const submit = async () => {
     if (!name.trim()) {
-      toast.error("Donne un nom à l'organisation.");
+      toast.error(t("projects.orgDialog.toasts.nameRequired"));
       return;
     }
     setSubmitting(true);
@@ -100,12 +102,14 @@ export function OrganisationDialog({
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
       toast.success(
-        editing ? "Organisation mise à jour." : "Organisation créée."
+        editing
+          ? t("projects.orgDialog.toasts.saved")
+          : t("projects.orgDialog.toasts.created")
       );
       onOpenChange(false);
       router.refresh();
     } catch (e) {
-      toast.error("Enregistrement impossible", {
+      toast.error(t("projects.orgDialog.toasts.saveError"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -116,13 +120,18 @@ export function OrganisationDialog({
   const remove = async () => {
     if (!organisation) return;
     const n = organisation._count.projects;
-    const ok = window.confirm(
-      `Supprimer « ${organisation.name} » ?${
-        n > 0
-          ? ` Ses ${n} projet${n > 1 ? "s" : ""} retomberont dans Perso.`
-          : ""
-      }`
-    );
+    const message =
+      n > 0
+        ? t(
+            n > 1
+              ? "projects.orgDialog.confirmDelete.withProjectsPlural"
+              : "projects.orgDialog.confirmDelete.withProjects",
+            { name: organisation.name, count: n }
+          )
+        : t("projects.orgDialog.confirmDelete.simple", {
+            name: organisation.name,
+          });
+    const ok = window.confirm(message);
     if (!ok) return;
     setSubmitting(true);
     try {
@@ -131,11 +140,11 @@ export function OrganisationDialog({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
-      toast.success("Organisation supprimée.");
+      toast.success(t("projects.orgDialog.toasts.deleted"));
       onOpenChange(false);
       router.refresh();
     } catch (e) {
-      toast.error("Suppression impossible", {
+      toast.error(t("projects.orgDialog.toasts.deleteError"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -148,12 +157,11 @@ export function OrganisationDialog({
       <DialogContent className="flex flex-col gap-0 overflow-y-hidden p-0 md:p-0 max-w-2xl">
         <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 md:px-8 md:pt-8">
           <DialogTitle>
-            {editing ? "Modifier l'organisation" : "Nouvelle organisation"}
+            {editing
+              ? t("projects.orgDialog.title.edit")
+              : t("projects.orgDialog.title.new")}
           </DialogTitle>
-          <DialogDescription>
-            Une entreprise ou une marque qui regroupe plusieurs projets, comme
-            DehorsQC ou StayChum.
-          </DialogDescription>
+          <DialogDescription>{t("projects.orgDialog.desc")}</DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6 md:px-8 md:pb-8">
@@ -171,23 +179,25 @@ export function OrganisationDialog({
             fallback={name.trim() ? name.trim().charAt(0).toUpperCase() : "?"}
             color={color}
             shape="rounded"
-            label="Logo"
+            label={t("projects.orgDialog.fields.logo")}
           />
 
           <div className="space-y-2">
-            <Label htmlFor="org-name">Nom</Label>
+            <Label htmlFor="org-name">
+              {t("projects.orgDialog.fields.name")}
+            </Label>
             <Input
               id="org-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="DehorsQC"
+              placeholder={t("projects.orgDialog.fields.namePlaceholder")}
               autoFocus
               className="text-[17px] font-semibold tracking-title"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Type</Label>
+            <Label>{t("projects.orgDialog.fields.type")}</Label>
             <div className="grid gap-2 sm:grid-cols-3">
               {ORG_KINDS.map((k) => {
                 const active = kind === k.id;
@@ -205,33 +215,36 @@ export function OrganisationDialog({
                     )}
                   >
                     <span className="block text-[14px] font-semibold tracking-title">
-                      {k.label}
+                      {t(`projects.orgKinds.${k.id}`)}
                     </span>
                     <span className="block text-[12px] text-muted-foreground">
-                      {k.hint}
+                      {t(`projects.orgKinds.${k.id}Hint`)}
                     </span>
                   </button>
                 );
               })}
             </div>
             <p className="text-[12px] text-muted-foreground">
-              Perso compte dans le filtre Personal de l&apos;en-tête; les deux
-              autres dans Work.
+              {t("projects.orgDialog.fields.typeHint")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Couleur</Label>
+            <Label>{t("projects.orgDialog.fields.color")}</Label>
             <ColorField value={color} onChange={setColor} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="org-description">Description</Label>
+            <Label htmlFor="org-description">
+              {t("projects.orgDialog.fields.description")}
+            </Label>
             <Textarea
               id="org-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="En une phrase, ce que fait cette organisation."
+              placeholder={t(
+                "projects.orgDialog.fields.descriptionPlaceholder"
+              )}
               rows={2}
             />
           </div>
@@ -239,7 +252,7 @@ export function OrganisationDialog({
           <LinksEditor
             links={links}
             onChange={setLinks}
-            hint="Site web, Instagram, Drive, tableau de bord Stripe…"
+            hint={t("projects.linksEditor.hint.organisation")}
           />
 
         </form>
@@ -254,7 +267,7 @@ export function OrganisationDialog({
                 onClick={remove}
                 disabled={submitting}
               >
-                <Trash2 /> Supprimer
+                <Trash2 /> {t("projects.orgDialog.actions.delete")}
               </Button>
             )}
             <Button
@@ -264,14 +277,14 @@ export function OrganisationDialog({
               disabled={submitting}
               className="sm:ml-auto"
             >
-              Annuler
+              {t("common.cancel")}
             </Button>
             <Button type="submit" form="org-form" disabled={submitting}>
               {submitting
-                ? "Enregistrement…"
+                ? t("projects.orgDialog.actions.saving")
                 : editing
-                  ? "Enregistrer"
-                  : "Créer"}
+                  ? t("projects.orgDialog.actions.save")
+                  : t("projects.orgDialog.actions.create")}
             </Button>
           </div>
       </DialogContent>

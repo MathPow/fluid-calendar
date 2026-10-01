@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 export type StoreMedia = {
@@ -38,6 +39,7 @@ export function ProjectStorePage({
   tags: string[];
   about: string | null;
 }) {
+  const t = useT();
   const gallery = media.filter((m) => m.inGallery && !m.capsule);
   const capsule = media.find((m) => m.capsule) ?? gallery[0];
   const [index, setIndex] = useState(0);
@@ -95,7 +97,7 @@ export function ProjectStorePage({
                 type="button"
                 onClick={() => setZoomed(true)}
                 className="block w-full cursor-zoom-in"
-                aria-label="Agrandir"
+                aria-label={t("projects.storePage.expandAria")}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -122,7 +124,7 @@ export function ProjectStorePage({
             </div>
           ) : (
             <div className="flex aspect-[16/10] items-center justify-center rounded-2xl text-background/60">
-              Pas encore d&apos;images.
+              {t("projects.storePage.emptyImages")}
             </div>
           )}
 
@@ -199,7 +201,7 @@ export function ProjectStorePage({
             )}
             {tags.length > 0 && (
               <div>
-                <p className="etiquette">Tags</p>
+                <p className="etiquette">{t("projects.storePage.tagsLabel")}</p>
                 <ul className="mt-2 flex flex-wrap gap-1.5">
                   {tags.map((t) => (
                     <li
@@ -219,7 +221,7 @@ export function ProjectStorePage({
       {/* ------------------------------------------------------ About */}
       {about && (
         <section className="tile mt-5 p-7 md:p-10">
-          <p className="etiquette">À propos de ce projet</p>
+          <p className="etiquette">{t("projects.storePage.aboutLabel")}</p>
           <div
             className={cn(
               "mt-5 max-w-3xl text-[15px] leading-7 text-foreground/90",
@@ -263,7 +265,7 @@ export function ProjectStorePage({
             type="button"
             onClick={() => setZoomed(false)}
             className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25"
-            aria-label="Fermer"
+            aria-label={t("projects.storePage.closeAria")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -286,6 +288,7 @@ function ViewerArrow({
   side: "left" | "right";
   onClick: () => void;
 }) {
+  const t = useT();
   const Icon = side === "left" ? ChevronLeft : ChevronRight;
   return (
     <button
@@ -298,7 +301,11 @@ function ViewerArrow({
         "absolute top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70",
         side === "left" ? "left-3" : "right-3"
       )}
-      aria-label={side === "left" ? "Image précédente" : "Image suivante"}
+      aria-label={
+        side === "left"
+          ? t("projects.storePage.prevAria")
+          : t("projects.storePage.nextAria")
+      }
     >
       <Icon className="h-5 w-5" />
     </button>

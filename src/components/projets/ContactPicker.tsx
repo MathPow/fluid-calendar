@@ -11,6 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+import { useT } from "@/i18n/client";
 import { initials } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +34,7 @@ export function ContactPicker({
   value,
   onChange,
   fallbackLabel,
-  placeholder = "Choisir un contact",
+  placeholder,
 }: {
   contacts: PickerContact[];
   value: string | null;
@@ -41,8 +42,10 @@ export function ContactPicker({
   fallbackLabel?: string;
   placeholder?: string;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const selected = contacts.find((c) => c.id === value) ?? null;
+  const resolvedPlaceholder = placeholder ?? t("projects.contactPicker.placeholder");
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -66,7 +69,9 @@ export function ContactPicker({
             </>
           ) : (
             <span className="min-w-0 flex-1 truncate text-muted-foreground">
-              {fallbackLabel ? `${fallbackLabel} · pas lié` : placeholder}
+              {fallbackLabel
+                ? t("projects.contactPicker.notLinked", { name: fallbackLabel })
+                : resolvedPlaceholder}
             </span>
           )}
           <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -90,12 +95,12 @@ export function ContactPicker({
           }
         >
           <Command.Input
-            placeholder="Rechercher un contact…"
+            placeholder={t("projects.contactPicker.search")}
             className="h-11 w-full border-b border-border bg-transparent px-3 text-[14px] outline-none placeholder:text-muted-foreground"
           />
           <Command.List className="max-h-72 overflow-y-auto p-1">
             <Command.Empty className="px-3 py-6 text-center text-[13px] text-muted-foreground">
-              Aucun contact. Ajoute-le dans l&apos;onglet Contacts.
+              {t("projects.contactPicker.empty")}
             </Command.Empty>
             {contacts.map((c) => (
               <Command.Item

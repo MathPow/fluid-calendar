@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n/client";
 import { timeAgoFr } from "@/lib/projets/meta";
 import type { ShowcaseRunView } from "@/lib/projets/showcase-runs";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ export function ShowcaseRunControl({
   layout?: "bar" | "empty";
 }) {
   const router = useRouter();
+  const t = useT();
   const [run, setRun] = useState(initialRun);
   const [busy, setBusy] = useState(false);
   const [, setTick] = useState(0);
@@ -64,7 +66,7 @@ export function ShowcaseRunControl({
       if (watching.current && next && !isActive(next)) {
         watching.current = false;
         if (next.status === "done") {
-          toast.success("Présentation à jour.");
+          toast.success(t("projects.showcase.toastSuccess"));
           router.refresh();
         }
       }
@@ -96,19 +98,19 @@ export function ShowcaseRunControl({
       };
       if (body.run) setRun(body.run);
       if (!res.ok) {
-        toast.error(body.error || "Impossible de lancer la génération.");
+        toast.error(body.error || t("projects.showcase.toastError"));
       }
       if (body.run && isActive(body.run)) watching.current = true;
     } catch {
-      toast.error("Impossible de lancer la génération.");
+      toast.error(t("projects.showcase.toastError"));
     } finally {
       setBusy(false);
     }
   };
 
   const label = hasShowcase
-    ? "Rafraîchir la présentation"
-    : "Générer la présentation";
+    ? t("projects.showcase.refresh")
+    : t("projects.showcase.generate");
 
   const button = (
     <Button
@@ -118,8 +120,8 @@ export function ShowcaseRunControl({
       size={layout === "bar" ? "sm" : "default"}
       title={
         hasPath
-          ? "Lance Claude Code sur ce projet (skill /project-showcase)"
-          : "Ce projet n'a pas de dossier sur le serveur"
+          ? t("projects.showcase.generateTitle")
+          : t("projects.showcase.noPathTitle")
       }
     >
       {busy || active ? <Loader2 className="animate-spin" /> : <Sparkles />}
@@ -130,19 +132,16 @@ export function ShowcaseRunControl({
   const status = run && <RunStatus run={run} />;
   const noPath = !hasPath && (
     <p className="text-[13px] text-muted-foreground">
-      Ajoute le dossier du projet sur le serveur (« Modifier » → Dossier) pour
-      pouvoir la générer.
+      {t("projects.showcase.noPath")}
     </p>
   );
 
   if (layout === "empty") {
     return (
       <section className="tile mt-6 p-7 md:p-10">
-        <p className="etiquette">Présentation</p>
+        <p className="etiquette">{t("projects.showcase.empty.title")}</p>
         <p className="mt-4 max-w-xl text-[15px] text-muted-foreground">
-          Pas encore de page de présentation. Claude peut la générer à partir du
-          projet : captures d&apos;écran, image d&apos;en-tête, description,
-          étiquettes et texte « À propos ». Compte 10 à 20 minutes.
+          {t("projects.showcase.empty.body")}
         </p>
         <div className="mt-6 flex flex-col items-start gap-3">
           {button}
@@ -162,24 +161,37 @@ export function ShowcaseRunControl({
 }
 
 function RunStatus({ run }: { run: ShowcaseRunView }) {
+  const t = useT();
   const [text, Icon, tone] = (() => {
     switch (run.status) {
       case "queued":
-        return ["En file d'attente", Clock, "text-muted-foreground"] as const;
+        return [
+          t("projects.showcase.status.queued"),
+          Clock,
+          "text-muted-foreground",
+        ] as const;
       case "running":
         return [
-          `En cours… ${sinceFr(run.startedAt ?? run.createdAt)}`,
+          t("projects.showcase.status.running", {
+            since: sinceFr(run.startedAt ?? run.createdAt),
+          }),
           Loader2,
           "text-foreground",
         ] as const;
       case "done":
         return [
-          `Terminé ${timeAgoFr(run.finishedAt ?? run.createdAt)}`,
+          t("projects.showcase.status.done", {
+            ago: timeAgoFr(run.finishedAt ?? run.createdAt),
+          }),
           Check,
           "text-muted-foreground",
         ] as const;
       default:
-        return ["Échec", AlertTriangle, "text-destructive"] as const;
+        return [
+          t("projects.showcase.status.failed"),
+          AlertTriangle,
+          "text-destructive",
+        ] as const;
     }
   })();
 
@@ -201,7 +213,7 @@ function RunStatus({ run }: { run: ShowcaseRunView }) {
       </p>
       {run.status === "queued" && (
         <p className="mt-0.5 text-muted-foreground">
-          Le runner du serveur la prendra sous peu.
+          {t("projects.showcase.queuedHint")}
         </p>
       )}
       {run.status === "failed" && run.error && (
@@ -210,7 +222,7 @@ function RunStatus({ run }: { run: ShowcaseRunView }) {
       {run.log && run.status !== "queued" && run.status !== "running" && (
         <details className="mt-1">
           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-            Journal du runner
+            {t("projects.showcase.runnerLog")}
           </summary>
           <pre className="mt-2 max-h-64 max-w-[calc(100vw-4rem)] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-secondary p-3 text-[11px] leading-5 sm:max-w-xl">
             {run.log}
