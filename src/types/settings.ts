@@ -3,12 +3,16 @@ export type WeekStartDay = "monday" | "sunday";
 export type ThemeMode = "light" | "dark" | "system";
 export type CalendarView = "day" | "week" | "month" | "agenda";
 
+export type UserLocale = "fr" | "en";
+
 export interface UserSettings {
   theme: ThemeMode;
   defaultView: CalendarView;
   timeZone: string;
   weekStartDay: WeekStartDay;
   timeFormat: TimeFormat;
+  // Persisted via zustand (no Prisma migration). Default "fr".
+  locale?: UserLocale;
 }
 
 export interface CalendarSettings {

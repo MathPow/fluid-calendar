@@ -34,18 +34,35 @@ import {
 
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/client";
+
 import { useShortcutsStore } from "@/store/shortcuts";
 import { type Station, useStationStore } from "@/store/station";
 
 const STATIONS: {
   id: Station;
-  label: string;
-  hint: string;
+  labelKey: string;
+  hintKey: string;
   icon: typeof User;
 }[] = [
-  { id: "personal", label: "Perso", hint: "Perso seulement", icon: User },
-  { id: "work", label: "Travail", hint: "Clients seulement", icon: Briefcase },
-  { id: "both", label: "Tout", hint: "Tout afficher", icon: Layers },
+  {
+    id: "personal",
+    labelKey: "account.station.personal.label",
+    hintKey: "account.station.personal.hint",
+    icon: User,
+  },
+  {
+    id: "work",
+    labelKey: "account.station.work.label",
+    hintKey: "account.station.work.hint",
+    icon: Briefcase,
+  },
+  {
+    id: "both",
+    labelKey: "account.station.both.label",
+    hintKey: "account.station.both.hint",
+    icon: Layers,
+  },
 ];
 
 /**
@@ -53,6 +70,7 @@ const STATIONS: {
  * portal's "Menu compte".
  */
 export function AccountMenu() {
+  const t = useT();
   const { data: session, status } = useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { setOpen: setShortcutsOpen } = useShortcutsStore();
@@ -87,17 +105,19 @@ export function AccountMenu() {
           <button
             type="button"
             className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-card p-1 text-[14px] font-medium text-foreground shadow-tile transition-shadow hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:pr-3"
-            aria-label="Account menu"
+            aria-label={t("account.menu.aria")}
           >
             <span className="relative">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={session.user?.image || ""} alt={name} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
-              {StationBadge && (
+              {StationBadge && station && (
                 <span
                   className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background ring-2 ring-card"
-                  title={`Station : ${station?.label}`}
+                  title={t("account.station.aria", {
+                    label: t(station.labelKey),
+                  })}
                 >
                   <StationBadge className="h-2.5 w-2.5" />
                 </span>
@@ -111,7 +131,9 @@ export function AccountMenu() {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent className="w-72 p-3" align="end" sideOffset={10}>
-          <p className="etiquette px-2 pb-2 pt-1">Signed in as</p>
+          <p className="etiquette px-2 pb-2 pt-1">
+            {t("account.signedInAs")}
+          </p>
           <div className="rounded-chip bg-tint-soft px-3 py-2.5">
             <p className="truncate text-[15px] font-semibold tracking-title">
               {name}
@@ -126,7 +148,9 @@ export function AccountMenu() {
           {/* Launch buttons: one tap sends a saved command to a machine. */}
           {launchers.length > 0 && (
             <>
-              <p className="etiquette px-2 pb-2 pt-4">Raccourcis</p>
+              <p className="etiquette px-2 pb-2 pt-4">
+                {t("account.shortcuts")}
+              </p>
               <div className="grid grid-cols-3 gap-1.5">
                 {launchers.map((l) => (
                   <DropdownMenuItem
@@ -147,9 +171,9 @@ export function AccountMenu() {
 
           <DropdownMenuSeparator className="my-3" />
 
-          <p className="etiquette px-2 pb-2">Station</p>
+          <p className="etiquette px-2 pb-2">{t("account.station.title")}</p>
           <div className="segmented mb-4 w-full p-1">
-            {STATIONS.map(({ id, label, hint, icon: Icon }) => (
+            {STATIONS.map(({ id, labelKey, hintKey, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
@@ -157,23 +181,35 @@ export function AccountMenu() {
                 data-active={currentStation === id}
                 className="segmented-item h-8 flex-1 text-[12px]"
                 aria-pressed={currentStation === id}
-                title={hint}
+                title={t(hintKey)}
               >
                 <Icon className="h-3.5 w-3.5" />
-                <span>{label}</span>
+                <span>{t(labelKey)}</span>
               </button>
             ))}
           </div>
 
-          <p className="etiquette px-2 pb-2">Apparence</p>
+          <p className="etiquette px-2 pb-2">{t("common.appearance")}</p>
           <div className="segmented mb-3 w-full p-1">
             {(
               [
-                { id: "light", label: "Clair", icon: Sun },
-                { id: "dark", label: "Sombre", icon: Moon },
-                { id: "system", label: "Système", icon: Monitor },
+                {
+                  id: "light",
+                  labelKey: "settings.appearance.theme.light",
+                  icon: Sun,
+                },
+                {
+                  id: "dark",
+                  labelKey: "settings.appearance.theme.dark",
+                  icon: Moon,
+                },
+                {
+                  id: "system",
+                  labelKey: "settings.appearance.theme.system",
+                  icon: Monitor,
+                },
               ] as const
-            ).map(({ id, label, icon: Icon }) => (
+            ).map(({ id, labelKey, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
@@ -183,7 +219,7 @@ export function AccountMenu() {
                 aria-pressed={theme === id}
               >
                 <Icon className="h-3.5 w-3.5" />
-                <span>{label}</span>
+                <span>{t(labelKey)}</span>
               </button>
             ))}
           </div>
@@ -193,12 +229,12 @@ export function AccountMenu() {
             onSelect={() => setLaunchers({ manageOpen: true })}
           >
             <Rocket />
-            <span>Gérer les raccourcis</span>
+            <span>{t("account.launchers.manage")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings" className="cursor-pointer">
               <Settings />
-              <span>Settings</span>
+              <span>{t("nav.settings")}</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -206,7 +242,7 @@ export function AccountMenu() {
             onSelect={() => setShortcutsOpen(true)}
           >
             <HelpCircle />
-            <span>Keyboard shortcuts</span>
+            <span>{t("account.keyboardShortcuts")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer text-muted-foreground"
@@ -214,7 +250,9 @@ export function AccountMenu() {
             disabled={isLoggingOut}
           >
             <LogOut />
-            <span>{isLoggingOut ? "Logging out…" : "Log out"}</span>
+            <span>
+              {isLoggingOut ? t("account.loggingOut") : t("account.logout")}
+            </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

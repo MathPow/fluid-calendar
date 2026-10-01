@@ -45,6 +45,7 @@ const defaultSettings: Settings & { accounts: ConnectedAccount[] } = {
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     weekStartDay: "sunday",
     timeFormat: "12h",
+    locale: "fr",
   },
   calendar: {
     workingHours: {
@@ -128,13 +129,17 @@ export const useSettingsStore = create<SettingsStore>()(
           // Update local state
           const newSettings = { ...state.user, ...settings };
 
+          // `locale` lives in zustand only — the Prisma `userSettings` row has
+          // no such column, so strip it before persisting server-side.
+          const { locale: _locale, ...serverSettings } = newSettings;
+
           // Save to database
           fetch("/api/user-settings", {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(newSettings),
+            body: JSON.stringify(serverSettings),
           }).catch((error) => {
             logger.error(
               "Failed to save user settings to database",

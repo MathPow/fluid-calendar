@@ -21,11 +21,13 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n/client";
+
 import { AccountMenu } from "./AccountMenu";
 
 interface NavLink {
   href: string;
-  label: string;
+  labelKey: string;
   icon: typeof LayoutDashboard;
   /** Other routes that live under this section (they keep it highlighted). */
   also?: string[];
@@ -34,14 +36,14 @@ interface NavLink {
 // Eight sections. Focus lives under Tasks, Sessions under Notes and Machines
 // under Contacts — each of those pages carries its own segmented switch.
 const MENU: NavLink[] = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/calendar", label: "Calendar", icon: Calendar },
-  { href: "/tasks", label: "Tasks", icon: ListTodo, also: ["/focus"] },
-  { href: "/email", label: "Email", icon: Mail },
-  { href: "/notes", label: "Notes", icon: FileText, also: ["/sessions"] },
-  { href: "/projets", label: "Projets", icon: FolderGit2 },
-  { href: "/contacts", label: "Contacts", icon: Users, also: ["/machines"] },
-  { href: "/fiscalite", label: "Fiscalité", icon: Receipt },
+  { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { href: "/calendar", labelKey: "nav.calendar", icon: Calendar },
+  { href: "/tasks", labelKey: "nav.tasks", icon: ListTodo, also: ["/focus"] },
+  { href: "/email", labelKey: "nav.email", icon: Mail },
+  { href: "/notes", labelKey: "nav.notes", icon: FileText, also: ["/sessions"] },
+  { href: "/projets", labelKey: "nav.projects", icon: FolderGit2 },
+  { href: "/contacts", labelKey: "nav.contacts", icon: Users, also: ["/machines"] },
+  { href: "/fiscalite", labelKey: "nav.fiscalite", icon: Receipt },
 ];
 
 /**
@@ -52,6 +54,7 @@ const MENU: NavLink[] = [
  * it's a swipeable strip that keeps every label so you find items by name.
  */
 export function AppHeader({ className }: { className?: string }) {
+  const t = useT();
   const pathname = usePathname();
 
   const isActive = (link: NavLink) =>
@@ -81,7 +84,7 @@ export function AppHeader({ className }: { className?: string }) {
   const links = (
     <div ref={navRef} className="segmented w-max shrink-0">
       {MENU.map((link) => {
-        const { href, label, icon: Icon } = link;
+        const { href, labelKey, icon: Icon } = link;
         return (
           <Link
             key={href}
@@ -90,7 +93,7 @@ export function AppHeader({ className }: { className?: string }) {
             className="segmented-item h-10 px-3.5"
           >
             <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </Link>
         );
       })}
@@ -114,7 +117,7 @@ export function AppHeader({ className }: { className?: string }) {
         <Link
           href="/dashboard"
           className="shrink-0 text-[22px] font-extrabold leading-none tracking-display text-foreground"
-          aria-label="DreamDash home"
+          aria-label={t("nav.header.home")}
         >
           DreamDash
         </Link>
@@ -124,7 +127,7 @@ export function AppHeader({ className }: { className?: string }) {
           className="flex min-w-0 flex-1 basis-0 overflow-hidden pl-4"
         >
           {inline && (
-            <nav aria-label="Main" className="min-w-0">
+            <nav aria-label={t("nav.header.aria")} className="min-w-0">
               {links}
             </nav>
           )}
@@ -135,8 +138,8 @@ export function AppHeader({ className }: { className?: string }) {
             type="button"
             onClick={openCommandPalette}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-border/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            title="Search anything (⌘K)"
-            aria-label="Search anything"
+            title={t("nav.header.searchTitle")}
+            aria-label={t("nav.header.search")}
           >
             <Search className="h-[18px] w-[18px]" />
           </button>
@@ -149,7 +152,7 @@ export function AppHeader({ className }: { className?: string }) {
       {/* No room beside the wordmark: under the top row. Swipeable on
           phones (edge fade hints at it), centered on a desktop. */}
       {!inline && (
-        <nav className="relative" aria-label="Main">
+        <nav className="relative" aria-label={t("nav.header.aria")}>
           <div className="page flex overflow-x-auto pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="mx-auto">{links}</div>
           </div>

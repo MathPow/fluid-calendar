@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 
 import { AccountManager } from "@/components/settings/AccountManager";
+import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 import { AutoScheduleSettings } from "@/components/settings/AutoScheduleSettings";
 import { CalendarSettings } from "@/components/settings/CalendarSettings";
 import { ImportExportSettings } from "@/components/settings/ImportExportSettings";
@@ -21,6 +22,8 @@ import { Card } from "@/components/ui/card";
 
 import { isSaasEnabled } from "@/lib/config";
 import { cn } from "@/lib/utils";
+
+import { useT } from "@/i18n/client";
 
 import { useAdmin } from "@/hooks/use-admin";
 
@@ -42,6 +45,7 @@ const WaitlistPage = dynamic(
 );
 
 type SettingsTab =
+  | "appearance"
   | "accounts"
   | "stations"
   | "user"
@@ -57,6 +61,7 @@ type SettingsTab =
   | "notifications";
 
 export default function SettingsPage() {
+  const t = useT();
   const [isHydrated, setIsHydrated] = useState(false);
   const { isAdmin, isLoading: isAdminLoading } = useAdmin();
   const { initializeSettings } = useSettingsStore();
@@ -68,22 +73,23 @@ export default function SettingsPage() {
 
   const tabs = useMemo(() => {
     const baseTabs = [
-      { id: "accounts", label: "Accounts" },
-      { id: "stations", label: "Stations" },
-      { id: "user", label: "User" },
-      { id: "calendar", label: "Calendar" },
-      { id: "auto-schedule", label: "Auto-Schedule" },
-      { id: "task-sync", label: "Task Sync" },
-      { id: "notifications", label: "Notifications" },
-      { id: "import-export", label: "Import/Export" },
+      { id: "appearance", label: t("settings.tabs.appearance") },
+      { id: "accounts", label: t("settings.tabs.accounts") },
+      { id: "stations", label: t("settings.tabs.stations") },
+      { id: "user", label: t("settings.tabs.user") },
+      { id: "calendar", label: t("settings.tabs.calendar") },
+      { id: "auto-schedule", label: t("settings.tabs.autoSchedule") },
+      { id: "task-sync", label: t("settings.tabs.taskSync") },
+      { id: "notifications", label: t("settings.tabs.notifications") },
+      { id: "import-export", label: t("settings.tabs.importExport") },
     ] as const;
 
     // Add admin-only tabs
     if (isAdmin) {
       const adminTabs = [
-        { id: "system", label: "System" },
-        { id: "logs", label: "Logs" },
-        { id: "user-management", label: "Users" },
+        { id: "system", label: t("settings.tabs.system") },
+        { id: "logs", label: t("settings.tabs.logs") },
+        { id: "user-management", label: t("settings.tabs.userManagement") },
       ] as const;
 
       // Only add the waitlist tab if SAAS features are enabled
@@ -91,8 +97,8 @@ export default function SettingsPage() {
         return [
           ...baseTabs,
           ...adminTabs,
-          { id: "waitlist", label: "Beta Waitlist" },
-          { id: "admin-dashboard", label: "Admin Dashboard" },
+          { id: "waitlist", label: t("settings.tabs.waitlist") },
+          { id: "admin-dashboard", label: t("settings.tabs.adminDashboard") },
         ] as const;
       }
 
@@ -100,9 +106,9 @@ export default function SettingsPage() {
     }
 
     return baseTabs;
-  }, [isAdmin]);
+  }, [isAdmin, t]);
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>("accounts");
+  const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
 
   // Check initial hash and handle changes
   useEffect(() => {
@@ -111,6 +117,7 @@ export default function SettingsPage() {
 
       // Check if the hash is a valid tab ID, regardless of admin status
       const allPossibleTabIds: SettingsTab[] = [
+        "appearance",
         "accounts",
         "stations",
         "user",
@@ -165,7 +172,7 @@ export default function SettingsPage() {
     if (adminOnlyTabs.includes(activeTab) && isAdminLoading) {
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
-          <p className="text-muted-foreground">Checking access privileges...</p>
+          <p className="text-muted-foreground">{t("settings.admin.checking")}</p>
         </div>
       );
     }
@@ -174,15 +181,19 @@ export default function SettingsPage() {
     if (adminOnlyTabs.includes(activeTab) && !isAdmin) {
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
-          <h2 className="mb-4 text-2xl font-bold">Admin Access Required</h2>
+          <h2 className="mb-4 text-2xl font-bold">
+            {t("settings.admin.required.title")}
+          </h2>
           <p className="text-muted-foreground">
-            You need administrator privileges to access this section.
+            {t("settings.admin.required.description")}
           </p>
         </div>
       );
     }
 
     switch (activeTab) {
+      case "appearance":
+        return <AppearanceSettings />;
       case "accounts":
         return <AccountManager />;
       case "stations":
@@ -207,19 +218,21 @@ export default function SettingsPage() {
         return <ImportExportSettings />;
       case "waitlist":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<div>{t("settings.loading")}</div>}>
             <WaitlistPage />
           </Suspense>
         );
       case "admin-dashboard":
         return (
           <div className="flex flex-col items-center justify-center p-8 text-center">
-            <h2 className="mb-4 text-2xl font-bold">Admin Dashboard</h2>
+            <h2 className="mb-4 text-2xl font-bold">
+              {t("settings.adminDashboard.title")}
+            </h2>
             <p className="mb-4 text-muted-foreground">
-              Access the full admin dashboard to manage the application.
+              {t("settings.adminDashboard.description")}
             </p>
             <Button asChild>
-              <a href="/admin">Go to Admin Dashboard</a>
+              <a href="/admin">{t("settings.adminDashboard.cta")}</a>
             </Button>
           </div>
         );
@@ -232,7 +245,7 @@ export default function SettingsPage() {
     <div className="page pb-16 pt-8 md:pt-12">
       <header>
         <h1 className="display text-[44px] sm:text-[56px] md:text-[72px]">
-          Settings.
+          {t("settings.title")}
         </h1>
         <div className="filet mt-8" />
       </header>
@@ -240,7 +253,7 @@ export default function SettingsPage() {
       <div className="mt-8 flex flex-col gap-5 lg:flex-row lg:items-start">
         <aside className="lg:sticky lg:top-4 lg:w-[280px] lg:shrink-0">
           <Card className="p-5 md:p-7">
-            <p className="etiquette mb-3">Sections</p>
+            <p className="etiquette mb-3">{t("settings.sections")}</p>
             <nav className="-mx-1 flex gap-1 overflow-x-auto lg:mx-0 lg:flex-col lg:overflow-visible">
               {tabs.map((tab, i) => {
                 const active = activeTab === tab.id;
