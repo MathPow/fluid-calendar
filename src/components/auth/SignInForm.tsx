@@ -14,12 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { useT } from "@/i18n/client";
 import { isPublicSignupEnabledClient } from "@/lib/auth/client-public-signup";
 import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "SignInForm";
 
 export function SignInForm() {
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -57,11 +59,11 @@ export function SignInForm() {
       });
 
       if (result?.error) {
-        toast.error("Authentication failed", {
-          description: "Please check your email and password and try again.",
+        toast.error(t("auth.signIn.toasts.authFailed"), {
+          description: t("auth.signIn.toasts.authFailedDesc"),
         });
       } else {
-        toast.success("Signed in successfully");
+        toast.success(t("auth.signIn.toasts.signedIn"));
 
         // The token is set in the background, so we'll redirect after a minimal delay
         // to ensure the token is available for the next request
@@ -76,8 +78,8 @@ export function SignInForm() {
         { error: error instanceof Error ? error.message : "Unknown error" },
         LOG_SOURCE
       );
-      toast.error("An error occurred", {
-        description: "Please try again later.",
+      toast.error(t("auth.signIn.toasts.errorOccurred"), {
+        description: t("auth.signIn.toasts.tryLater"),
       });
     } finally {
       setIsLoading(false);
@@ -104,12 +106,12 @@ export function SignInForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error("Registration failed", {
-          description: data.error || "Please try again later.",
+        toast.error(t("auth.signIn.toasts.registerFailed"), {
+          description: data.error || t("auth.signIn.toasts.tryLater"),
         });
       } else {
-        toast.success("Account created successfully", {
-          description: "You can now sign in with your credentials.",
+        toast.success(t("auth.signIn.toasts.accountCreated"), {
+          description: t("auth.signIn.toasts.accountCreatedDesc"),
         });
         setActiveTab("signin");
       }
@@ -119,8 +121,8 @@ export function SignInForm() {
         { error: error instanceof Error ? error.message : "Unknown error" },
         LOG_SOURCE
       );
-      toast.error("An error occurred", {
-        description: "Please try again later.",
+      toast.error(t("auth.signIn.toasts.errorOccurred"), {
+        description: t("auth.signIn.toasts.tryLater"),
       });
     } finally {
       setIsLoading(false);
@@ -136,26 +138,26 @@ export function SignInForm() {
         >
           {publicSignupEnabled && (
             <TabsList className="mb-6 grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Sign up</TabsTrigger>
+              <TabsTrigger value="signin">{t("auth.signIn.tabs.signIn")}</TabsTrigger>
+              <TabsTrigger value="signup">{t("auth.signIn.tabs.signUp")}</TabsTrigger>
             </TabsList>
           )}
 
           <TabsContent value="signin">
             <form onSubmit={handleEmailSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("auth.signIn.labels.email")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@example.com"
+                  placeholder={t("auth.signIn.placeholders.email")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("auth.signIn.labels.password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -171,7 +173,9 @@ export function SignInForm() {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in…" : "Sign in"}
+                {isLoading
+                  ? t("auth.signIn.actions.signingIn")
+                  : t("auth.signIn.actions.signIn")}
               </Button>
               <div className="text-center">
                 <Button
@@ -180,7 +184,7 @@ export function SignInForm() {
                   onClick={() => router.push("/auth/reset-password")}
                   type="button"
                 >
-                  Forgot password?
+                  {t("auth.signIn.actions.forgotPassword")}
                 </Button>
               </div>
             </form>
@@ -190,28 +194,34 @@ export function SignInForm() {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Name (Optional)</Label>
+                  <Label htmlFor="signup-name">
+                    {t("auth.signIn.labels.nameOptional")}
+                  </Label>
                   <Input
                     id="signup-name"
                     type="text"
-                    placeholder="Your Name"
+                    placeholder={t("auth.signIn.placeholders.name")}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="signup-email">
+                    {t("auth.signIn.labels.email")}
+                  </Label>
                   <Input
                     id="signup-email"
                     type="email"
-                    placeholder="name@example.com"
+                    placeholder={t("auth.signIn.placeholders.email")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
+                  <Label htmlFor="signup-password">
+                    {t("auth.signIn.labels.password")}
+                  </Label>
                   <Input
                     id="signup-password"
                     type="password"
@@ -227,7 +237,9 @@ export function SignInForm() {
                   className="w-full"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Creating account…" : "Create account"}
+                  {isLoading
+                    ? t("auth.signIn.actions.creatingAccount")
+                    : t("auth.signIn.actions.createAccount")}
                 </Button>
               </form>
             </TabsContent>
@@ -235,7 +247,7 @@ export function SignInForm() {
         </Tabs>
       </CardContent>
       <CardFooter className="justify-center px-7 pb-7 text-center text-[12px] leading-relaxed text-muted-foreground md:px-8 md:pb-8">
-        Private instance. Sessions stay on this device until you log out.
+        {t("auth.signIn.footer")}
       </CardFooter>
     </Card>
   );

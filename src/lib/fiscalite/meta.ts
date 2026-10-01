@@ -40,6 +40,14 @@ export const LEGAL_FORMS: { id: LegalForm; label: string; hint: string }[] = [
   },
 ];
 
+/** i18n key per legal form (label + hint). */
+export const LEGAL_FORM_KEYS: Record<LegalForm, { label: string; hint: string }> = {
+  individuelle: { label: "fiscalite.legalForm.individuelle.label", hint: "fiscalite.legalForm.individuelle.hint" },
+  senc: { label: "fiscalite.legalForm.senc.label", hint: "fiscalite.legalForm.senc.hint" },
+  societe: { label: "fiscalite.legalForm.societe.label", hint: "fiscalite.legalForm.societe.hint" },
+  personnel: { label: "fiscalite.legalForm.personnel.label", hint: "fiscalite.legalForm.personnel.hint" },
+};
+
 export const isPersonal = (profile: { legalForm: string }) => profile.legalForm === "personnel";
 
 /**
@@ -50,16 +58,30 @@ export const PAID_BY_ME = "moi";
 export const paidByLabel = (paidBy: string | null | undefined) =>
   paidBy === PAID_BY_ME ? "moi" : paidBy || null;
 
+/** i18n key for the "moi" paidBy value. */
+export const PAID_BY_ME_KEY = "fiscalite.paidBy.me";
+
 export const SALES_TAX_STATUSES: { id: SalesTaxStatus; label: string; hint: string }[] = [
   { id: "petit", label: "Petit fournisseur", hint: "Pas inscrit, tu ne factures pas de taxes" },
   { id: "inscrit", label: "Inscrit TPS/TVQ", hint: "Tu factures et tu récupères les taxes" },
 ];
+
+export const SALES_TAX_STATUS_KEYS: Record<SalesTaxStatus, { label: string; hint: string }> = {
+  petit: { label: "fiscalite.salesTax.petit.label", hint: "fiscalite.salesTax.petit.hint" },
+  inscrit: { label: "fiscalite.salesTax.inscrit.label", hint: "fiscalite.salesTax.inscrit.hint" },
+};
 
 export const FILING_FREQUENCIES: { id: FilingFrequency; label: string }[] = [
   { id: "annuelle", label: "Annuelle" },
   { id: "trimestrielle", label: "Trimestrielle" },
   { id: "mensuelle", label: "Mensuelle" },
 ];
+
+export const FILING_FREQUENCY_KEYS: Record<FilingFrequency, string> = {
+  annuelle: "fiscalite.filingFrequency.annuelle",
+  trimestrielle: "fiscalite.filingFrequency.trimestrielle",
+  mensuelle: "fiscalite.filingFrequency.mensuelle",
+};
 
 export interface ExpenseCategory {
   id: string;
@@ -171,6 +193,19 @@ export const INCOME_CATEGORIES = [
   { id: "interets-revenus", label: "Intérêts" },
   { id: "autres-revenus", label: "Autres revenus" },
 ];
+
+/** i18n label keys per expense category id. */
+export const EXPENSE_CATEGORY_LABEL_KEYS: Record<string, string> = Object.fromEntries(
+  EXPENSE_CATEGORIES.map((c) => [c.id, `fiscalite.category.expense.${c.id}.label`])
+);
+/** i18n hint keys per expense category id (only when a hint is provided). */
+export const EXPENSE_CATEGORY_HINT_KEYS: Record<string, string> = Object.fromEntries(
+  EXPENSE_CATEGORIES.filter((c) => c.hint).map((c) => [c.id, `fiscalite.category.expense.${c.id}.hint`])
+);
+/** i18n label keys per income category id. */
+export const INCOME_CATEGORY_LABEL_KEYS: Record<string, string> = Object.fromEntries(
+  INCOME_CATEGORIES.map((c) => [c.id, `fiscalite.category.income.${c.id}.label`])
+);
 
 /** Spreadsheet account names that mean one of our categories. */
 const CATEGORY_ALIASES: Record<string, string> = {
@@ -342,6 +377,15 @@ export const PERSONAL_INCOME_CATEGORIES: BudgetCategory[] = [
   { id: "p-autres-revenus", label: "Autres revenus", color: "#cfcac2" },
 ];
 
+/** i18n label keys for personal expense categories. */
+export const PERSONAL_EXPENSE_CATEGORY_KEYS: Record<string, string> = Object.fromEntries(
+  PERSONAL_EXPENSE_CATEGORIES.map((c) => [c.id, `fiscalite.category.personalExpense.${c.id}`])
+);
+/** i18n label keys for personal income categories. */
+export const PERSONAL_INCOME_CATEGORY_KEYS: Record<string, string> = Object.fromEntries(
+  PERSONAL_INCOME_CATEGORIES.map((c) => [c.id, `fiscalite.category.personalIncome.${c.id}`])
+);
+
 export function personalCategory(id: string | null | undefined): BudgetCategory | undefined {
   return [...PERSONAL_EXPENSE_CATEGORIES, ...PERSONAL_INCOME_CATEGORIES].find((c) => c.id === id);
 }
@@ -411,12 +455,29 @@ export function categoryLabel(direction: string, id: string | null | undefined):
   return list.find((c) => c.id === id)?.label ?? id;
 }
 
+/**
+ * Translated category label. Returns the raw string when the category comes
+ * from a custom spreadsheet account (keeps the user's own label).
+ */
+export function tCategoryLabel(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  direction: string,
+  id: string | null | undefined
+): string {
+  if (!id) return t("fiscalite.category.none");
+  if (PERSONAL_EXPENSE_CATEGORY_KEYS[id]) return t(PERSONAL_EXPENSE_CATEGORY_KEYS[id]);
+  if (PERSONAL_INCOME_CATEGORY_KEYS[id]) return t(PERSONAL_INCOME_CATEGORY_KEYS[id]);
+  if (direction === "revenu" && INCOME_CATEGORY_LABEL_KEYS[id]) return t(INCOME_CATEGORY_LABEL_KEYS[id]);
+  if (direction !== "revenu" && EXPENSE_CATEGORY_LABEL_KEYS[id]) return t(EXPENSE_CATEGORY_LABEL_KEYS[id]);
+  return id;
+}
+
 // ---------------------------------------------------------------------------
 // Money
 // ---------------------------------------------------------------------------
 
-export function formatMoney(cents: number, opts?: { signed?: boolean }): string {
-  const s = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(
+export function formatMoney(cents: number, opts?: { signed?: boolean; locale?: string }): string {
+  const s = new Intl.NumberFormat(opts?.locale ?? "fr-CA", { style: "currency", currency: "CAD" }).format(
     cents / 100
   );
   return opts?.signed && cents > 0 ? `+${s}` : s;
@@ -523,6 +584,12 @@ export interface Deadline {
   date: Date;
   title: string;
   detail: string;
+  /** i18n key for the title (optional; `title` is still the French fallback). */
+  titleKey?: string;
+  /** i18n key for the detail. */
+  detailKey?: string;
+  /** Parameters interpolated into `detailKey` when translating. */
+  detailParams?: Record<string, string | number>;
   kind: "impot" | "taxes" | "acompte" | "paie";
   /** Only applies in some cases (worded in `detail`). */
   conditional?: boolean;
@@ -538,21 +605,27 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
     out.push({
       date: addMonths(end, 2),
       title: "Payer le solde d'impôt de la société",
+      titleKey: "fiscalite.deadline.societe.balance.title",
       detail:
         "2 mois après la fin d'exercice (3 mois pour une SPCC qui a droit à la déduction pour petite entreprise).",
+      detailKey: "fiscalite.deadline.societe.balance.detail",
       kind: "impot",
     });
     out.push({
       date: addMonths(end, 6),
       title: "Produire la CO-17 (Revenu Québec) et la T2 (ARC)",
+      titleKey: "fiscalite.deadline.societe.co17.title",
       detail:
         "6 mois après la fin d'exercice, avec les états financiers. La mise à jour annuelle du Registraire des entreprises se fait avec la CO-17.",
+      detailKey: "fiscalite.deadline.societe.co17.detail",
       kind: "impot",
     });
     out.push({
       date: ymd(year + 1, 2, 28),
       title: "T4 / RL-1 et sommaires",
+      titleKey: "fiscalite.deadline.societe.t4.title",
       detail: "Si la société t'a versé un salaire (ou à d'autres): fin février. Dividendes: T5 / RL-3.",
+      detailKey: "fiscalite.deadline.societe.t4.detail",
       kind: "paie",
       conditional: true,
     });
@@ -560,20 +633,26 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
     out.push({
       date: ymd(year + 1, 3, 31),
       title: "Produire la TP-600 et remettre les RL-15 aux associés",
+      titleKey: "fiscalite.deadline.senc.tp600.title",
       detail:
         "Déclaration de renseignements de la SENC (Revenu Québec). La T5013 fédérale seulement si elle est requise (gros revenus ou actifs, associé société…).",
+      detailKey: "fiscalite.deadline.senc.tp600.detail",
       kind: "impot",
     });
     out.push({
       date: ymd(year + 1, 4, 30),
       title: "Chaque associé paie son solde d'impôt",
+      titleKey: "fiscalite.deadline.senc.balance.title",
       detail: "La SENC ne paie pas d'impôt: chacun paie sur sa part du bénéfice (plus RRQ / RQAP).",
+      detailKey: "fiscalite.deadline.senc.balance.detail",
       kind: "impot",
     });
     out.push({
       date: ymd(year + 1, 6, 15),
       title: "Chaque associé produit TP-1 + TP-80 et T1 + T2125",
+      titleKey: "fiscalite.deadline.senc.file.title",
       detail: "Avec sa part du bénéfice (RL-15) et ses propres dépenses non remboursées (ligne 9943).",
+      detailKey: "fiscalite.deadline.senc.file.detail",
       kind: "impot",
     });
     for (const [m, d] of [
@@ -585,7 +664,9 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
       out.push({
         date: ymd(year, m, d),
         title: "Acompte provisionnel (chaque associé)",
+        titleKey: "fiscalite.deadline.senc.acompte.title",
         detail: "Si l'impôt d'un associé à payer dépasse 1 800 $. Chacun reçoit ses propres avis.",
+        detailKey: "fiscalite.deadline.senc.acompte.detail",
         kind: "acompte",
         conditional: true,
       });
@@ -600,8 +681,10 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
       out.push({
         date: ymd(year, m, d),
         title: "Acompte provisionnel",
+        titleKey: "fiscalite.deadline.individuelle.acompte.title",
         detail:
           "Si ton impôt à payer dépasse 1 800 $ (Québec, et 1 800 $ au fédéral pour un résident du Québec) cette année et l'une des deux précédentes. Les avis te le disent.",
+        detailKey: "fiscalite.deadline.individuelle.acompte.detail",
         kind: "acompte",
         conditional: true,
       });
@@ -609,14 +692,18 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
     out.push({
       date: ymd(year + 1, 4, 30),
       title: "Payer le solde d'impôt (et RRQ / RQAP)",
+      titleKey: "fiscalite.deadline.individuelle.balance.title",
       detail:
         "Même si tu as jusqu'au 15 juin pour produire, les intérêts courent à partir du 30 avril.",
+      detailKey: "fiscalite.deadline.individuelle.balance.detail",
       kind: "impot",
     });
     out.push({
       date: ymd(year + 1, 6, 15),
       title: "Produire TP-1 + TP-80 (Québec) et T1 + T2125 (fédéral)",
+      titleKey: "fiscalite.deadline.individuelle.file.title",
       detail: "Date limite pour les travailleurs autonomes (et leur conjoint).",
+      detailKey: "fiscalite.deadline.individuelle.file.detail",
       kind: "impot",
     });
   }
@@ -625,8 +712,10 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
     out.push({
       date: ymd(year + 1, 6, 15),
       title: "Mise à jour annuelle au Registraire des entreprises",
+      titleKey: "fiscalite.deadline.req.title",
       detail:
         "Entre le 15 février et le 15 juin, dans les Services en ligne du REQ, avec les droits annuels. Sans elle, l'immatriculation peut être radiée. Vérifie la date sur ton avis.",
+      detailKey: "fiscalite.deadline.req.detail",
       kind: "impot",
     });
   }
@@ -640,20 +729,26 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
         out.push({
           date: ymd(year + 1, 4, 30),
           title: "Payer la TPS/TVQ de l'année",
+          titleKey: "fiscalite.deadline.taxes.individuelle.pay.title",
           detail: "Déclarant annuel travailleur autonome: paiement au 30 avril…",
+          detailKey: "fiscalite.deadline.taxes.individuelle.pay.detail",
           kind: "taxes",
         });
         out.push({
           date: ymd(year + 1, 6, 15),
           title: "Produire la déclaration TPS/TVQ annuelle",
+          titleKey: "fiscalite.deadline.taxes.individuelle.file.title",
           detail: "…et déclaration au 15 juin. Une seule déclaration à Revenu Québec couvre les deux taxes.",
+          detailKey: "fiscalite.deadline.taxes.individuelle.file.detail",
           kind: "taxes",
         });
       } else {
         out.push({
           date: addMonths(end, 3),
           title: "Déclaration et paiement TPS/TVQ annuels",
+          titleKey: "fiscalite.deadline.taxes.business.title",
           detail: "3 mois après la fin d'exercice. Une seule déclaration à Revenu Québec.",
+          detailKey: "fiscalite.deadline.taxes.business.detail",
           kind: "taxes",
         });
       }
@@ -664,7 +759,10 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
         out.push({
           date: addMonths(periodEnd, 1),
           title: `TPS/TVQ · période au ${formatDay(periodEnd, { short: true })}`,
+          titleKey: "fiscalite.deadline.taxes.period.title",
+          detailParams: { periodEnd: formatDay(periodEnd, { short: true }) },
           detail: "Déclaration et paiement 1 mois après la fin de la période.",
+          detailKey: "fiscalite.deadline.taxes.period.detail",
           kind: "taxes",
         });
       }
@@ -674,8 +772,8 @@ export function deadlinesFor(profile: TaxProfileLite, year: number): Deadline[] 
   return out.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
-export function formatDay(date: Date, opts?: { short?: boolean }): string {
-  return new Intl.DateTimeFormat("fr-CA", {
+export function formatDay(date: Date, opts?: { short?: boolean; locale?: string }): string {
+  return new Intl.DateTimeFormat(opts?.locale ?? "fr-CA", {
     day: "numeric",
     month: opts?.short ? "short" : "long",
     year: opts?.short ? undefined : "numeric",
@@ -809,6 +907,10 @@ export function smallSupplierTest(invoices: InvoiceLite[], today = new Date()) {
 export interface InvoiceIssue {
   level: "warn" | "info";
   text: string;
+  /** i18n key for the issue text. */
+  key?: string;
+  /** Parameters for the `key` interpolation. */
+  params?: Record<string, string | number>;
 }
 
 /** What to fix on one invoice before it's audit-proof. */
@@ -816,46 +918,56 @@ export function invoiceIssues(inv: InvoiceLite, profile: TaxProfileLite): Invoic
   const out: InvoiceIssue[] = [];
   if (isPersonal(profile)) {
     // A personal budget has no tax rules: only the category matters.
-    if (inv.direction === "depense" && !inv.category) out.push({ level: "info", text: "Choisis une catégorie pour ton budget." });
+    if (inv.direction === "depense" && !inv.category)
+      out.push({ level: "info", text: "Choisis une catégorie pour ton budget.", key: "fiscalite.issue.personal.category" });
     return out;
   }
   const registered = profile.salesTaxStatus === "inscrit";
-  if (!inv.hasFile) out.push({ level: "info", text: "Pas de pièce jointe: garde la facture 6 ans." });
+  if (!inv.hasFile) out.push({ level: "info", text: "Pas de pièce jointe: garde la facture 6 ans.", key: "fiscalite.issue.noFile" });
 
   const sum = inv.subtotalCents + inv.gstCents + inv.qstCents;
   if (inv.totalCents && Math.abs(sum - inv.totalCents) > 2) {
     out.push({
       level: "info",
       text: `Sous-total + taxes (${formatMoney(sum)}) ≠ total (${formatMoney(inv.totalCents)}): pourboire, frais ou erreur?`,
+      key: "fiscalite.issue.totalMismatch",
+      params: { sum: formatMoney(sum), total: formatMoney(inv.totalCents) },
     });
   }
 
   if (inv.direction === "depense") {
-    if (!inv.category) out.push({ level: "warn", text: "Choisis une catégorie (ligne de la T2125)." });
+    if (!inv.category) out.push({ level: "warn", text: "Choisis une catégorie (ligne de la T2125).", key: "fiscalite.issue.noCategory" });
     if (registered && inv.gstCents + inv.qstCents > 0 && inv.totalCents >= 100_00 && !inv.partyTaxNumber) {
       out.push({
         level: "warn",
         text: "Facture de 100 $ et plus: il faut le no TPS/TVQ du fournisseur pour réclamer les CTI/RTI.",
+        key: "fiscalite.issue.missingSupplierTaxNo",
       });
     }
     if (inv.category === "repas") {
-      out.push({ level: "info", text: "Repas: note avec qui et le but d'affaires." });
+      out.push({ level: "info", text: "Repas: note avec qui et le but d'affaires.", key: "fiscalite.issue.mealsNote" });
     }
   } else {
     if (!registered && inv.gstCents + inv.qstCents > 0) {
       out.push({
         level: "warn",
         text: "Tu factures des taxes sans être inscrit: inscris-toi ou retire-les.",
+        key: "fiscalite.issue.taxesWithoutRegistration",
       });
     }
     if (registered && inv.gstCents + inv.qstCents === 0 && inv.subtotalCents > 0) {
       out.push({
         level: "info",
         text: "Facture émise sans TPS/TVQ: normal seulement si détaxée, exonérée ou client hors Québec/Canada.",
+        key: "fiscalite.issue.issuedWithoutTaxes",
       });
     }
     if (registered && (!profile.gstNumber || !profile.qstNumber)) {
-      out.push({ level: "info", text: "Tes nos TPS/TVQ doivent paraître sur tes factures (ajoute-les au profil)." });
+      out.push({
+        level: "info",
+        text: "Tes nos TPS/TVQ doivent paraître sur tes factures (ajoute-les au profil).",
+        key: "fiscalite.issue.missingOwnTaxNumbers",
+      });
     }
   }
   return out;
@@ -872,6 +984,12 @@ export const MOVEMENT_KINDS: { id: MovementKind; label: string; hint: string }[]
   { id: "remboursement", label: "Remboursement", hint: "La SENC rembourse l'associé" },
   { id: "retrait", label: "Retrait", hint: "L'associé se verse une part des profits" },
 ];
+
+export const MOVEMENT_KIND_KEYS: Record<MovementKind, { label: string; hint: string }> = {
+  avance: { label: "fiscalite.movementKind.avance.label", hint: "fiscalite.movementKind.avance.hint" },
+  remboursement: { label: "fiscalite.movementKind.remboursement.label", hint: "fiscalite.movementKind.remboursement.hint" },
+  retrait: { label: "fiscalite.movementKind.retrait.label", hint: "fiscalite.movementKind.retrait.hint" },
+};
 
 export interface MovementLite {
   id: string;

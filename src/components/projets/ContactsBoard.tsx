@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 import { DEFAULT_PROJECT_COLOR, initials, relationLabel } from "@/lib/projets/meta";
@@ -61,6 +62,7 @@ const ALL = "__all__";
  * of that station (unattached contacts always show).
  */
 export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProps) {
+  const t = useT();
   const { currentStation } = useStationStore();
   const [contacts, setContacts] = useState<ContactFull[]>(initial);
   const [query, setQuery] = useState("");
@@ -107,10 +109,10 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
   const allTags = useMemo(() => {
     const map = new Map<string, ContactTagRow & { count: number }>();
     for (const c of contacts)
-      for (const t of c.labels) {
-        const row = map.get(t.id) ?? { ...t, count: 0 };
+      for (const lbl of c.labels) {
+        const row = map.get(lbl.id) ?? { ...lbl, count: 0 };
         row.count++;
-        map.set(t.id, row);
+        map.set(lbl.id, row);
       }
     return [...map.values()].sort(
       (a, b) => b.count - a.count || a.name.localeCompare(b.name, "fr")
@@ -184,7 +186,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
     } catch (e) {
       setContacts((prev) => prev.map((x) => (x.id === c.id ? { ...x, favorite: !next } : x)));
-      toast.error("Impossible de changer le favori", {
+      toast.error(t("toasts.contacts.favoriteFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     }
@@ -203,20 +205,43 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
     <div className="page pb-16 pt-8 md:pt-12">
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">Contacts.</h1>
+          <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">
+            {t("contacts.board.title")}
+          </h1>
           <div className="mt-6 flex flex-wrap gap-2">
             <Badge className="px-4 py-2 text-[13px]">
-              {contacts.length - companyCount} personne{contacts.length - companyCount > 1 ? "s" : ""}
-              {companyCount > 0 && ` · ${companyCount} entreprise${companyCount > 1 ? "s" : ""}`}
+              {t(
+                contacts.length - companyCount > 1
+                  ? "contacts.board.badge.peoplePlural"
+                  : "contacts.board.badge.people",
+                { count: contacts.length - companyCount }
+              )}
+              {companyCount > 0 &&
+                ` · ${t(
+                  companyCount > 1
+                    ? "contacts.board.badge.companiesPlural"
+                    : "contacts.board.badge.companies",
+                  { count: companyCount }
+                )}`}
             </Badge>
             {favoriteCount > 0 && (
               <Badge variant="pending" className="px-4 py-2 text-[13px]">
-                {favoriteCount} favori{favoriteCount > 1 ? "s" : ""}
+                {t(
+                  favoriteCount > 1
+                    ? "contacts.board.badge.favoritesPlural"
+                    : "contacts.board.badge.favorites",
+                  { count: favoriteCount }
+                )}
               </Badge>
             )}
             {currentStation !== "both" && (
               <Badge variant="tint" className="px-4 py-2 text-[13px]">
-                Filtre : {currentStation === "work" ? "Client" : "Perso"}
+                {t("contacts.board.badge.stationFilter", {
+                  station:
+                    currentStation === "work"
+                      ? t("contacts.board.station.work")
+                      : t("contacts.board.station.perso"),
+                })}
               </Badge>
             )}
           </div>
@@ -224,7 +249,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
         <div className="flex flex-wrap items-center gap-3">
           <ContactsSwitch />
           <Button size="lg" onClick={() => setDialog({ open: true, contact: null })}>
-            <Plus /> Nouveau contact
+            <Plus /> {t("contacts.board.newContact")}
           </Button>
         </div>
       </header>
@@ -237,20 +262,20 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Nom, entreprise, tag, mot-clé, note…"
+              placeholder={t("contacts.board.searchPlaceholder")}
               className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
             />
           </div>
 
           <div className="segmented h-11">
             <button type="button" className="segmented-item" data-active={type === "all"} onClick={() => setType("all")}>
-              Tous
+              {t("contacts.board.filter.all")}
             </button>
             <button type="button" className="segmented-item" data-active={type === "person"} onClick={() => setType("person")}>
-              <User className="h-3.5 w-3.5" /> Personnes
+              <User className="h-3.5 w-3.5" /> {t("contacts.board.filter.people")}
             </button>
             <button type="button" className="segmented-item" data-active={type === "company"} onClick={() => setType("company")}>
-              <Building2 className="h-3.5 w-3.5" /> Entreprises
+              <Building2 className="h-3.5 w-3.5" /> {t("contacts.board.filter.companies")}
             </button>
           </div>
 
@@ -266,7 +291,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
             )}
           >
             <Star className={cn("h-4 w-4", onlyFavorites && "fill-current")} />
-            Favoris
+            {t("contacts.board.filter.favorites")}
           </button>
 
           <Popover>
@@ -281,7 +306,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                 )}
               >
                 <Tags className="h-4 w-4" />
-                Tags
+                {t("contacts.board.filter.tags")}
                 {tagFilter.length > 0 && (
                   <span className="rounded-full bg-background/20 px-1.5 text-[11px] tabular-nums">
                     {tagFilter.length}
@@ -292,17 +317,17 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
             <PopoverContent align="start" className="w-72 p-2">
               {allTags.length === 0 ? (
                 <p className="px-2 py-3 text-[13px] text-muted-foreground">
-                  Aucun tag sur tes contacts.
+                  {t("contacts.board.tagsPopover.empty")}
                 </p>
               ) : (
                 <ul className="max-h-72 overflow-y-auto">
-                  {allTags.map((t) => {
-                    const on = tagFilter.includes(t.id);
+                  {allTags.map((tag) => {
+                    const on = tagFilter.includes(tag.id);
                     return (
-                      <li key={t.id}>
+                      <li key={tag.id}>
                         <button
                           type="button"
-                          onClick={() => toggleTag(t.id)}
+                          onClick={() => toggleTag(tag.id)}
                           aria-pressed={on}
                           className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] hover:bg-secondary"
                         >
@@ -318,11 +343,11 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                           </span>
                           <span
                             className="h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: t.color ?? "#d9d6d0" }}
+                            style={{ backgroundColor: tag.color ?? "#d9d6d0" }}
                           />
-                          <span className="flex-1 truncate font-medium">{t.name}</span>
+                          <span className="flex-1 truncate font-medium">{tag.name}</span>
                           <span className="text-[12px] tabular-nums text-muted-foreground">
-                            {t.count}
+                            {tag.count}
                           </span>
                         </button>
                       </li>
@@ -332,7 +357,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
               )}
               {tagFilter.length > 1 && (
                 <p className="px-2.5 pt-1 text-[11px] text-muted-foreground">
-                  Contacts qui ont tous les tags cochés.
+                  {t("contacts.board.tagsPopover.andHint")}
                 </p>
               )}
               <div className="mt-1 border-t border-border pt-1">
@@ -341,7 +366,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                   onClick={() => setManageTags(true)}
                   className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] text-muted-foreground hover:bg-secondary hover:text-foreground"
                 >
-                  <Pencil className="h-3.5 w-3.5" /> Gérer les tags
+                  <Pencil className="h-3.5 w-3.5" /> {t("contacts.board.tagsPopover.manage")}
                 </button>
               </div>
             </PopoverContent>
@@ -354,10 +379,10 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                 relation !== ALL && "bg-tint-soft"
               )}
             >
-              <SelectValue placeholder="Relation" />
+              <SelectValue placeholder={t("contacts.board.filter.relationLabel")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Toutes les relations</SelectItem>
+              <SelectItem value={ALL}>{t("contacts.board.filter.allRelations")}</SelectItem>
               {relations.map((r) => (
                 <SelectItem key={r} value={r}>
                   {relationLabel(r)}
@@ -370,10 +395,10 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
             <SelectTrigger
               className={cn("h-11 w-auto min-w-[9rem] rounded-full", job !== ALL && "bg-tint-soft")}
             >
-              <SelectValue placeholder="Job" />
+              <SelectValue placeholder={t("contacts.board.filter.jobLabel")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Tous les jobs</SelectItem>
+              <SelectItem value={ALL}>{t("contacts.board.filter.allJobs")}</SelectItem>
               {jobs.map((j) => (
                 <SelectItem key={j} value={j}>
                   {j}
@@ -384,7 +409,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
 
           {filtersActive && (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
-              <X /> Réinitialiser
+              <X /> {t("contacts.board.filter.reset")}
             </Button>
           )}
         </div>
@@ -393,27 +418,32 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
       {visible.length === 0 ? (
         <div className="tile mt-8 px-6 py-16 text-center">
           <p className="text-[15px] font-semibold tracking-title">
-            {contacts.length === 0 ? "Aucun contact pour l'instant." : "Aucun contact ne correspond."}
+            {contacts.length === 0
+              ? t("contacts.board.empty.title")
+              : t("contacts.board.noMatch.title")}
           </p>
           <p className="mx-auto mt-1 max-w-md text-[13px] text-muted-foreground">
             {contacts.length === 0
-              ? "Ajoute les gens avec qui tu travailles; tu pourras les rattacher à tes projets."
-              : "Essaie un autre mot, retire un filtre, ou change la station dans l'en-tête."}
+              ? t("contacts.board.empty.description")
+              : t("contacts.board.noMatch.description")}
           </p>
           {contacts.length === 0 ? (
             <Button className="mt-6" onClick={() => setDialog({ open: true, contact: null })}>
-              <Plus /> Nouveau contact
+              <Plus /> {t("contacts.board.newContact")}
             </Button>
           ) : (
             <Button variant="outline" className="mt-6" onClick={resetFilters}>
-              Réinitialiser les filtres
+              {t("contacts.board.noMatch.resetFilters")}
             </Button>
           )}
         </div>
       ) : (
         <>
           <p className="mt-5 text-[13px] text-muted-foreground">
-            {visible.length} sur {contacts.length}
+            {t("contacts.board.countOf", {
+              shown: visible.length,
+              total: contacts.length,
+            })}
           </p>
           <ul className="mt-3 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((c) => (
@@ -437,7 +467,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                       {c.type === "company" && <Building2 className="h-3.5 w-3.5 shrink-0" />}
                       <span className="truncate">
                         {[c.role, c.type === "company" ? null : c.company].filter(Boolean).join(" · ") ||
-                          (c.type === "company" ? "Entreprise" : "—")}
+                          (c.type === "company" ? t("contacts.board.card.companyFallback") : "—")}
                       </span>
                     </p>
                   </div>
@@ -446,7 +476,11 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                       type="button"
                       onClick={() => toggleFavorite(c)}
                       aria-pressed={c.favorite}
-                      aria-label={c.favorite ? `Retirer ${c.name} des favoris` : `Mettre ${c.name} en favori`}
+                      aria-label={
+                        c.favorite
+                          ? t("contacts.board.card.unfavorite", { name: c.name })
+                          : t("contacts.board.card.favorite", { name: c.name })
+                      }
                       className={cn(
                         "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
                         c.favorite
@@ -460,7 +494,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                       type="button"
                       onClick={() => setDialog({ open: true, contact: c })}
                       className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                      aria-label={`Modifier ${c.name}`}
+                      aria-label={t("contacts.board.card.edit", { name: c.name })}
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -469,12 +503,12 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
 
                 {c.labels.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-1.5">
-                    {c.labels.map((t) => (
+                    {c.labels.map((lbl) => (
                       <TagChip
-                        key={t.id}
-                        tag={t}
-                        active={tagFilter.includes(t.id)}
-                        onClick={() => toggleTag(t.id)}
+                        key={lbl.id}
+                        tag={lbl}
+                        active={tagFilter.includes(lbl.id)}
+                        onClick={() => toggleTag(lbl.id)}
                       />
                     ))}
                   </div>
@@ -492,7 +526,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                         type="button"
                         onClick={() => setRelation(c.relation as string)}
                         className="inline-flex items-center gap-1.5 rounded-full bg-tint-soft px-3 py-1 text-[12px] font-medium transition-colors hover:bg-tint"
-                        title="Filtrer sur cette relation"
+                        title={t("contacts.board.card.relationFilter")}
                       >
                         {relationLabel(c.relation)}
                         {c.relationDetail && (
@@ -502,16 +536,16 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
                         )}
                       </button>
                     )}
-                    {c.tags.map((t) => (
+                    {c.tags.map((tag) => (
                       <button
-                        key={t}
+                        key={tag}
                         type="button"
-                        onClick={() => setQuery(t)}
+                        onClick={() => setQuery(tag)}
                         className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-border/70 hover:text-foreground"
-                        title="Chercher ce mot-clé"
+                        title={t("contacts.board.card.keywordSearch")}
                       >
                         <Tag className="h-3 w-3" />
-                        {t}
+                        {tag}
                       </button>
                     ))}
                   </div>
@@ -550,7 +584,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
 
                 {c.projects.length > 0 && (
                   <div className="mt-auto pt-5">
-                    <p className="etiquette">Projets</p>
+                    <p className="etiquette">{t("contacts.board.card.projects")}</p>
                     <ul className="mt-2 flex flex-wrap gap-1.5">
                       {c.projects.map(({ project }) => (
                         <li key={project.id}>

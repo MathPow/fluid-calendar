@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+import { useT } from "@/i18n/client";
 import { isSaasEnabled } from "@/lib/config";
 import { type TaskProjectGroup, groupTaskProjects } from "@/lib/projets/group-task-projects";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ interface TaskListMapping {
 }
 
 export function ProjectSidebar() {
+  const t = useT();
   const {
     projects,
     loading,
@@ -114,18 +116,18 @@ export function ProjectSidebar() {
 
         if (response.ok) {
           if (isSaasEnabled) {
-            toast.success("Task sync initiated for project");
+            toast.success(t("toasts.projects.syncInitiated"));
           } else {
             const { fetchTasks } = useTaskStore.getState();
             await fetchTasks();
-            toast.success("Sync Completed");
+            toast.success(t("toasts.projects.syncCompleted"));
           }
         } else {
-          toast.error("Failed to sync tasks for project");
+          toast.error(t("toasts.projects.syncFailed"));
         }
       } catch (error) {
         console.error("Failed to sync project tasks:", error);
-        toast.error("Failed to sync tasks for project");
+        toast.error(t("toasts.projects.syncFailed"));
       } finally {
         setSyncingProjects((prev) => {
           const next = new Set(prev);
@@ -134,7 +136,7 @@ export function ProjectSidebar() {
         });
       }
     },
-    [syncingProjects]
+    [syncingProjects, t]
   );
 
   const activeProjects = projects.filter(

@@ -1,8 +1,12 @@
+"use client";
+
 import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+
+import { useT } from "@/i18n/client";
 
 interface AvailableCalendar {
   id: string;
@@ -19,6 +23,7 @@ interface Props {
 }
 
 export function AvailableCalendars({ accountId, provider }: Props) {
+  const t = useT();
   const [isLoading, setIsLoading] = useState(true);
   const [calendars, setCalendars] = useState<AvailableCalendar[]>([]);
   const [addingCalendars, setAddingCalendars] = useState<Set<string>>(
@@ -142,7 +147,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
   if (calendars.length === 0) {
     return (
       <div className="py-4 text-center text-muted-foreground">
-        No available calendars found
+        {t("settings.availableCalendars.empty")}
       </div>
     );
   }
@@ -158,7 +163,9 @@ export function AvailableCalendars({ accountId, provider }: Props) {
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="capitalize">
                 {calendar.accessRole?.toLowerCase() ||
-                  (calendar.canEdit ? "owner" : "reader")}
+                  (calendar.canEdit
+                    ? t("settings.availableCalendars.role.owner")
+                    : t("settings.availableCalendars.role.reader"))}
               </Badge>
               <span className="text-sm">{calendar.name}</span>
             </div>
@@ -167,7 +174,9 @@ export function AvailableCalendars({ accountId, provider }: Props) {
               onClick={() => handleAddCalendar(calendar)}
               disabled={addingCalendars.has(calendar.id)}
             >
-              {addingCalendars.has(calendar.id) ? "Adding..." : "Add"}
+              {addingCalendars.has(calendar.id)
+                ? t("settings.availableCalendars.adding")
+                : t("common.add")}
             </Button>
           </div>
         ))}
@@ -179,7 +188,7 @@ export function AvailableCalendars({ accountId, provider }: Props) {
           onClick={loadAvailableCalendars}
           disabled={isLoading}
         >
-          Refresh
+          {t("settings.availableCalendars.refresh")}
         </Button>
       </div>
     </div>

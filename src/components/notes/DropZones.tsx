@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Loader2, Save, Send, Zap } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 const AUDIO_EXT = /\.(m4a|mp3|wav|ogg|webm|aac|caf|flac)$/i;
@@ -50,6 +51,7 @@ async function saveNoteFile(file: File): Promise<string> {
 }
 
 function SaveZone({ onSaved }: { onSaved?: () => void }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
 
   const handle = async (files: File[]) => {
@@ -59,15 +61,21 @@ function SaveZone({ onSaved }: { onSaved?: () => void }) {
       for (const f of files) {
         if (isAudio(f)) {
           await uploadRecording(f);
-          toast.success(`Saved to Recordings: ${f.name}`);
+          toast.success(
+            t("notes.dropZones.savedRecording", { name: f.name })
+          );
         } else {
           const path = await saveNoteFile(f);
-          toast.success(`Saved note: ${path.replace(/^\//, "")}`);
+          toast.success(
+            t("notes.dropZones.savedNote", { path: path.replace(/^\//, "") })
+          );
         }
       }
       onSaved?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't save that.");
+      toast.error(
+        err instanceof Error ? err.message : t("notes.dropZones.saveFailed")
+      );
     } finally {
       setBusy(false);
     }
@@ -75,8 +83,8 @@ function SaveZone({ onSaved }: { onSaved?: () => void }) {
 
   return (
     <Dropper
-      title="Save to DreamDash"
-      subtitle="Audio → Recordings · Notes → vault"
+      title={t("notes.dropZones.save.title")}
+      subtitle={t("notes.dropZones.save.subtitle")}
       icon={<Save className="h-5 w-5" />}
       accept="audio/*,.md,.txt,.markdown"
       busy={busy}
@@ -87,6 +95,7 @@ function SaveZone({ onSaved }: { onSaved?: () => void }) {
 }
 
 function CommandZone() {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState("");
 
@@ -112,9 +121,9 @@ function CommandZone() {
         if (isAudio(f)) await sendAudio(f);
         else await sendText(await f.text());
       }
-      toast.success("Command sent — it'll run in a moment.");
+      toast.success(t("notes.dropZones.commandSent"));
     } catch {
-      toast.error("Couldn't send that command.");
+      toast.error(t("notes.dropZones.commandFailed"));
     } finally {
       setBusy(false);
     }
@@ -126,10 +135,10 @@ function CommandZone() {
     setBusy(true);
     try {
       await sendText(text.trim());
-      toast.success("Command sent — it'll run in a moment.");
+      toast.success(t("notes.dropZones.commandSent"));
       setText("");
     } catch {
-      toast.error("Couldn't send that command.");
+      toast.error(t("notes.dropZones.commandFailed"));
     } finally {
       setBusy(false);
     }
@@ -137,8 +146,8 @@ function CommandZone() {
 
   return (
     <Dropper
-      title="Quick command"
-      subtitle="Audio or text → runs an action, then discarded"
+      title={t("notes.dropZones.command.title")}
+      subtitle={t("notes.dropZones.command.subtitle")}
       icon={<Zap className="h-5 w-5" />}
       accept="audio/*,.md,.txt"
       busy={busy}
@@ -148,14 +157,14 @@ function CommandZone() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="…or type a command"
+          placeholder={t("notes.dropZones.command.inputPlaceholder")}
           className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-primary"
         />
         <button
           type="submit"
           disabled={busy || !text.trim()}
           className="rounded-lg bg-primary p-1.5 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          title="Send command"
+          title={t("notes.dropZones.command.sendTitle")}
         >
           <Send className="h-3.5 w-3.5" />
         </button>
@@ -183,6 +192,7 @@ function Dropper({
   accent?: boolean;
   children?: React.ReactNode;
 }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
 
@@ -227,7 +237,7 @@ function Dropper({
           <span className="block text-sm font-semibold">{title}</span>
           <span className="block text-xs text-muted-foreground">{subtitle}</span>
           <span className="mt-1 block text-xs text-muted-foreground/70">
-            Drop a file or click to browse
+            {t("notes.dropZones.dropOrBrowse")}
           </span>
         </span>
       </button>

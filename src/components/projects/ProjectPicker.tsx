@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n/client";
 import { isOrgOwnList } from "@/lib/projets/group-task-projects";
 
 import { useProjectStore } from "@/store/project";
@@ -92,6 +93,7 @@ interface ProjectPickerProps {
  * Task lists that aren't attached to any project are offered at the end.
  */
 export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
+  const t = useT();
   const { fetchProjects } = useProjectStore();
   const { options, reload } = useLinkOptions();
   const [busy, setBusy] = useState(false);
@@ -162,7 +164,7 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
       await Promise.all([fetchProjects(), reload()]);
       onChange(list.id);
     } catch (e) {
-      toast.error("Could not attach the project", {
+      toast.error(t("toasts.projects.attachFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -235,6 +237,7 @@ const ORG_ONLY = "__org_only__";
  * organisation is chosen.
  */
 export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
+  const t = useT();
   const { fetchProjects } = useProjectStore();
   const { options, reload } = useLinkOptions();
   const [busy, setBusy] = useState(false);
@@ -298,7 +301,7 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
     try {
       await fn();
     } catch (e) {
-      toast.error("Impossible de classer la tâche", { description: e instanceof Error ? e.message : undefined });
+      toast.error(t("toasts.tasks.classifyFailed"), { description: e instanceof Error ? e.message : undefined });
     } finally {
       setBusy(false);
     }

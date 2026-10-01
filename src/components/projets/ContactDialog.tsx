@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 import {
@@ -55,6 +56,7 @@ export function ContactDialog({
   companyNames = [],
 }: ContactDialogProps) {
   const router = useRouter();
+  const t = useT();
   const editing = !!contact;
 
   const [type, setType] = useState<ContactType>("person");
@@ -117,7 +119,7 @@ export function ContactDialog({
 
   const submit = async () => {
     if (!name.trim()) {
-      toast.error("Donne un nom au contact.");
+      toast.error(t("toasts.contacts.needName"));
       return;
     }
     const finalTags = tagDraft.trim()
@@ -138,7 +140,7 @@ export function ContactDialog({
           image,
           favorite,
           tags: finalTags,
-          tagIds: labels.map((t) => t.id),
+          tagIds: labels.map((l) => l.id),
           email: email.trim() || null,
           phone: phone.trim() || null,
           links: links
@@ -158,11 +160,13 @@ export function ContactDialog({
           : undefined;
         throw new Error(fieldMsg || data.error || `Erreur ${res.status}`);
       }
-      toast.success(editing ? "Contact mis à jour." : "Contact créé.");
+      toast.success(
+        editing ? t("toasts.contacts.updated") : t("toasts.contacts.created")
+      );
       onOpenChange(false);
       router.refresh();
     } catch (e) {
-      toast.error("Enregistrement impossible", {
+      toast.error(t("toasts.contacts.saveFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -172,16 +176,17 @@ export function ContactDialog({
 
   const remove = async () => {
     if (!contact) return;
-    if (!window.confirm(`Supprimer « ${contact.name} » ?`)) return;
+    if (!window.confirm(t("contacts.dialog.confirmDelete", { name: contact.name })))
+      return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/contacts/${contact.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
-      toast.success("Contact supprimé.");
+      toast.success(t("toasts.contacts.deleted"));
       onOpenChange(false);
       router.refresh();
     } catch (e) {
-      toast.error("Suppression impossible", {
+      toast.error(t("toasts.contacts.deleteFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -193,23 +198,27 @@ export function ContactDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex flex-col gap-0 overflow-y-hidden p-0 md:p-0 max-w-xl">
         <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 md:px-8 md:pt-8">
-          <DialogTitle>{editing ? "Modifier le contact" : "Nouveau contact"}</DialogTitle>
+          <DialogTitle>
+            {editing
+              ? t("contacts.dialog.title.edit")
+              : t("contacts.dialog.title.new")}
+          </DialogTitle>
           <DialogDescription>
-            Une personne ou une entreprise — rattachable à plusieurs projets.
+            {t("contacts.dialog.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6 md:px-8 md:pb-8">
         <div className="segmented w-fit">
-          {CONTACT_TYPES.map((t) => (
+          {CONTACT_TYPES.map((ct) => (
             <button
-              key={t.id}
+              key={ct.id}
               type="button"
               className="segmented-item"
-              data-active={type === t.id}
-              onClick={() => setType(t.id)}
+              data-active={type === ct.id}
+              onClick={() => setType(ct.id)}
             >
-              {t.label}
+              {ct.label}
             </button>
           ))}
         </div>
@@ -228,17 +237,25 @@ export function ContactDialog({
             fallback={name.trim() ? initials(name) : "?"}
             color={type === "company" ? "#bfd3a8" : "#a8ccff"}
             shape={type === "company" ? "rounded" : "round"}
-            label={type === "company" ? "Logo" : "Photo de profil"}
+            label={
+              type === "company"
+                ? t("contacts.dialog.image.logo")
+                : t("contacts.dialog.image.photo")
+            }
           />
 
           <div className="space-y-2">
-            <Label htmlFor="contact-name">Nom</Label>
+            <Label htmlFor="contact-name">{t("contacts.dialog.name")}</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="contact-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={type === "company" ? "Studio Verve" : "Marie-Ève Tremblay"}
+                placeholder={
+                  type === "company"
+                    ? t("contacts.dialog.namePlaceholder.company")
+                    : t("contacts.dialog.namePlaceholder.person")
+                }
                 autoFocus
                 className="text-[17px] font-semibold tracking-title"
               />
@@ -246,7 +263,11 @@ export function ContactDialog({
                 type="button"
                 onClick={() => setFavorite((v) => !v)}
                 aria-pressed={favorite}
-                title={favorite ? "Retirer des favoris" : "Mettre en favori"}
+                title={
+                  favorite
+                    ? t("contacts.dialog.favorite.remove")
+                    : t("contacts.dialog.favorite.set")
+                }
                 className={cn(
                   "flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] transition-colors",
                   favorite
@@ -262,12 +283,14 @@ export function ContactDialog({
           <div className="grid gap-5 sm:grid-cols-2">
             {type === "person" && (
               <div className="space-y-2">
-                <Label htmlFor="contact-company">Entreprise</Label>
+                <Label htmlFor="contact-company">
+                  {t("contacts.dialog.company")}
+                </Label>
                 <Input
                   id="contact-company"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
-                  placeholder="Studio Verve"
+                  placeholder={t("contacts.dialog.companyPlaceholder")}
                   list="contact-company-suggestions"
                 />
                 {companyNames.length > 0 && (
@@ -281,7 +304,9 @@ export function ContactDialog({
             )}
             <div className={cn("space-y-2", type === "company" && "sm:col-span-2")}>
               <Label htmlFor="contact-role">
-                {type === "company" ? "Secteur / catégorie" : "Job / catégorie"}
+                {type === "company"
+                  ? t("contacts.dialog.role.company")
+                  : t("contacts.dialog.role.person")}
               </Label>
               <SearchableSelect
                 id="contact-role"
@@ -290,83 +315,85 @@ export function ContactDialog({
                 options={roleOptions(type)}
                 placeholder={
                   type === "company"
-                    ? "Tech, événementiel, immobilier…"
-                    : "Entrepreneur, Pro, Étudiant…"
+                    ? t("contacts.dialog.rolePlaceholder.company")
+                    : t("contacts.dialog.rolePlaceholder.person")
                 }
                 allowCustom
               />
             </div>
             <div className="space-y-2">
-              <Label>Relation</Label>
+              <Label>{t("contacts.dialog.relation")}</Label>
               <SearchableSelect
                 value={relation === NO_RELATION ? "" : relation}
                 onChange={(v) => setRelation(v || NO_RELATION)}
                 options={[
-                  { value: "", label: "Non précisée" },
+                  { value: "", label: t("contacts.dialog.relation.unspecified") },
                   ...RELATION_KINDS.map((k) => ({ value: k.id, label: k.label })),
                 ]}
-                placeholder="Choisir…"
+                placeholder={t("contacts.dialog.relationPlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contact-relation-detail">Précision</Label>
+              <Label htmlFor="contact-relation-detail">
+                {t("contacts.dialog.relationDetail")}
+              </Label>
               <Input
                 id="contact-relation-detail"
                 value={relationDetail}
                 onChange={(e) => setRelationDetail(e.target.value)}
-                placeholder="Beau-père de Félix-Antoine, classe au cégep…"
+                placeholder={t("contacts.dialog.relationDetailPlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contact-email">Courriel</Label>
+              <Label htmlFor="contact-email">{t("contacts.dialog.email")}</Label>
               <Input
                 id="contact-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="marie@studioverve.com"
+                placeholder={t("contacts.dialog.emailPlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contact-phone">Téléphone</Label>
+              <Label htmlFor="contact-phone">{t("contacts.dialog.phone")}</Label>
               <Input
                 id="contact-phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="514 555-0199"
+                placeholder={t("contacts.dialog.phonePlaceholder")}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Réseaux</Label>
+            <Label>{t("contacts.dialog.networks")}</Label>
             <SocialLinksField links={links} onChange={setLinks} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contact-labels">Tags</Label>
+            <Label htmlFor="contact-labels">{t("contacts.dialog.tags")}</Label>
             <ContactTagPicker value={labels} onChange={setLabels} />
             <p className="text-[12px] text-muted-foreground">
-              Officiels et réutilisés : on les filtre dans Contacts.
+              {t("contacts.dialog.tagsHint")}
             </p>
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="contact-tags">Mots-clés privés</Label>
+            <Label htmlFor="contact-tags">{t("contacts.dialog.keywords")}</Label>
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {tags.map((t) => (
+                {tags.map((tag) => (
                   <span
-                    key={t}
+                    key={tag}
                     className="inline-flex items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1.5 text-[13px] font-medium"
                   >
-                    {t}
+                    {tag}
                     <button
                       type="button"
-                      onClick={() => setTags((prev) => prev.filter((x) => x !== t))}
+                      onClick={() => setTags((prev) => prev.filter((x) => x !== tag))}
                       className="rounded-full p-0.5 text-muted-foreground hover:bg-card hover:text-foreground"
-                      aria-label={`Retirer ${t}`}
+                      aria-label={t("contacts.dialog.keyword.remove", { name: tag })}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -385,36 +412,39 @@ export function ContactDialog({
                 }
               }}
               onBlur={addTags}
-              placeholder="tristan clientèle, podcast, lévis… (Entrée pour ajouter)"
+              placeholder={t("contacts.dialog.keywordsPlaceholder")}
             />
             <p className="text-[12px] text-muted-foreground">
-              Pour toi seulement : des repères que la recherche retrouve, sans être affichés en
-              grand sur la fiche.
+              {t("contacts.dialog.keywordsHint")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contact-notes">Notes</Label>
+            <Label htmlFor="contact-notes">{t("contacts.dialog.notes")}</Label>
             <Textarea
               id="contact-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Préférences, contexte, ce qu'il faut se rappeler."
+              placeholder={t("contacts.dialog.notesPlaceholder")}
               rows={3}
             />
           </div>
 
           <div className="space-y-3">
-            <Label>Projets</Label>
+            <Label>{t("contacts.dialog.projects")}</Label>
             {projects.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">Aucun projet à rattacher.</p>
+              <p className="text-[13px] text-muted-foreground">
+                {t("contacts.dialog.projects.empty")}
+              </p>
             ) : (
               <>
                 {projects.length > 6 && (
                   <Input
                     value={projectQuery}
                     onChange={(e) => setProjectQuery(e.target.value)}
-                    placeholder={`Chercher parmi ${projects.length} projets…`}
+                    placeholder={t("contacts.dialog.projects.searchPlaceholder", {
+                      count: projects.length,
+                    })}
                     className="h-10"
                   />
                 )}
@@ -467,7 +497,7 @@ export function ContactDialog({
               onClick={remove}
               disabled={submitting}
             >
-              <Trash2 /> Supprimer
+              <Trash2 /> {t("common.delete")}
             </Button>
           )}
           <Button
@@ -477,10 +507,14 @@ export function ContactDialog({
             disabled={submitting}
             className="sm:ml-auto"
           >
-            Annuler
+            {t("common.cancel")}
           </Button>
           <Button type="submit" form="contact-form" disabled={submitting}>
-            {submitting ? "Enregistrement…" : editing ? "Enregistrer" : "Créer le contact"}
+            {submitting
+              ? t("common.saving")
+              : editing
+                ? t("contacts.dialog.submit.save")
+                : t("contacts.dialog.submit.create")}
           </Button>
         </div>
       </DialogContent>

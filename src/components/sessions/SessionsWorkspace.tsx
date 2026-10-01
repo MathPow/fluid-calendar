@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, Mic, Plus, RefreshCw } from "lucide-react";
 
 import { SessionEditor, StatusBadge } from "@/components/sessions/SessionEditor";
+import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 interface SessionListItem {
@@ -25,11 +26,14 @@ function formatDuration(sec: number): string {
   return h > 0 ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`;
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? ""
-    : d.toLocaleDateString("fr-CA", { month: "short", day: "numeric" });
+    : d.toLocaleDateString(locale === "fr" ? "fr-CA" : "en-CA", {
+        month: "short",
+        day: "numeric",
+      });
 }
 
 /**
@@ -38,6 +42,8 @@ function formatDate(iso: string): string {
  * compiled result is pulled by Claude Code over MCP.
  */
 export function SessionsWorkspace() {
+  const t = useT();
+  const locale = useLocale();
   const [items, setItems] = useState<SessionListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -72,10 +78,14 @@ export function SessionsWorkspace() {
   const create = async () => {
     setCreating(true);
     try {
-      const title = `Appel du ${new Date().toLocaleDateString("fr-CA", {
-        day: "numeric",
-        month: "long",
-      })}`;
+      const dateLabel = new Date().toLocaleDateString(
+        locale === "fr" ? "fr-CA" : "en-CA",
+        {
+          day: "numeric",
+          month: "long",
+        }
+      );
+      const title = t("sessions.workspace.defaultTitle", { date: dateLabel });
       const res = await fetch("/api/sessions", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -86,7 +96,7 @@ export function SessionsWorkspace() {
       await load({ quiet: true });
       setSelectedId(data.session.id);
     } catch {
-      alert("Impossible de créer la session.");
+      alert(t("sessions.workspace.alert.createFailed"));
     } finally {
       setCreating(false);
     }
@@ -98,16 +108,23 @@ export function SessionsWorkspace() {
       <div className="flex w-72 flex-none flex-col border-r border-border bg-card">
         <div className="flex items-center justify-between gap-2 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold">Sessions</h2>
+            <h2 className="text-sm font-semibold">
+              {t("sessions.workspace.title")}
+            </h2>
             <p className="text-xs text-muted-foreground">
-              {items.length} {items.length === 1 ? "session" : "sessions"}
+              {t(
+                items.length === 1
+                  ? "sessions.workspace.countOne"
+                  : "sessions.workspace.countOther",
+                { count: items.length }
+              )}
             </p>
           </div>
           <button
             type="button"
             onClick={() => load()}
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-            title="Rafraîchir"
+            title={t("sessions.workspace.refresh")}
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </button>
@@ -125,19 +142,18 @@ export function SessionsWorkspace() {
             ) : (
               <Plus className="h-4 w-4" />
             )}
-            Nouvelle session
+            {t("sessions.workspace.newSession")}
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 pb-4">
           {loading ? (
             <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
             </div>
           ) : items.length === 0 ? (
             <p className="px-2 py-3 text-sm text-muted-foreground">
-              Aucune session. Crées-en une, mets ton lexique, dépose les audios de
-              l&apos;appel.
+              {t("sessions.workspace.empty")}
             </p>
           ) : (
             <ul className="space-y-0.5">
@@ -157,7 +173,7 @@ export function SessionsWorkspace() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{s.title}</span>
                       <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                        <span>{formatDate(s.createdAt)}</span>
+                        <span>{formatDate(s.createdAt, locale)}</span>
                         {s.totalDurationSec > 0 && (
                           <span>· {formatDuration(s.totalDurationSec)}</span>
                         )}
@@ -179,10 +195,9 @@ export function SessionsWorkspace() {
           <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-muted-foreground">
             <Mic className="h-10 w-10 opacity-40" />
             <p className="max-w-sm text-sm">
-              Choisis une session, ou crées-en une nouvelle. Le lexique se remplit
-              <strong className="text-foreground"> avant </strong>
-              la transcription — c&apos;est lui qui fait écrire correctement les noms
-              d&apos;entreprises et de projets.
+              {t("sessions.workspace.pickHint.before")}
+              <strong className="text-foreground"> {t("sessions.workspace.pickHint.strong")} </strong>
+              {t("sessions.workspace.pickHint.after")}
             </p>
           </div>
         ) : (

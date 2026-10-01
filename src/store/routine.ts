@@ -1,7 +1,17 @@
 import { toast } from "sonner";
 import { create } from "zustand";
 
+import { translate } from "@/i18n/catalogs";
+import { useSettingsStore } from "@/store/settings";
+
 import type { RoutineBlockLite, RoutineLayerLite } from "@/lib/routine";
+
+const tr = (k: string, params?: Record<string, string | number>) =>
+  translate(
+    (useSettingsStore.getState().user.locale as "fr" | "en") || "fr",
+    k,
+    params
+  );
 
 export type BlockDraft = Omit<RoutineBlockLite, "id" | "layerId"> & {
   layerId?: string;
@@ -48,10 +58,13 @@ async function send<T>(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Erreur du serveur");
+    throw new Error(err.error || tr("toasts.routine.serverError"));
   }
   return res.json();
 }
+
+const errMsg = (e: unknown) =>
+  e instanceof Error && e.message ? e.message : tr("toasts.common.saveFailed");
 
 /** Calendar layers (« Semaine type ») and their routine blocks. */
 export const useRoutineStore = create<RoutineState>()((set, get) => ({
@@ -89,7 +102,7 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
           l.id === id ? { ...l, visible: !visible } : l
         ),
       });
-      toast.error((e as Error).message);
+      toast.error(errMsg(e));
     }
   },
 
@@ -102,7 +115,7 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
       await Promise.all(changed.map((l) => send(`/api/routine/layers/${l.id}`, "PATCH", { visible })));
     } catch (e) {
       set({ layers: get().layers.map((l) => (ids.has(l.id) ? { ...l, visible: !visible } : l)) });
-      toast.error((e as Error).message);
+      toast.error(errMsg(e));
     }
   },
 
@@ -115,7 +128,7 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
       );
       set({ layers: [...get().layers, layer] });
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(errMsg(e));
     }
   },
 
@@ -128,7 +141,7 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
       );
       set({ layers: get().layers.map((l) => (l.id === id ? layer : l)) });
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(errMsg(e));
     }
   },
 
@@ -139,7 +152,7 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
       await send(`/api/routine/layers/${id}`, "DELETE");
     } catch (e) {
       set({ layers: before });
-      toast.error((e as Error).message);
+      toast.error(errMsg(e));
     }
   },
 
@@ -150,7 +163,7 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
       await get().load();
       return true;
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(errMsg(e));
       return false;
     }
   },
@@ -170,7 +183,7 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
       return true;
     } catch (e) {
       set({ layers: before });
-      toast.error((e as Error).message);
+      toast.error(errMsg(e));
       return false;
     }
   },
@@ -187,7 +200,7 @@ export const useRoutineStore = create<RoutineState>()((set, get) => ({
       await send(`/api/routine/blocks/${id}`, "DELETE");
     } catch (e) {
       set({ layers: before });
-      toast.error((e as Error).message);
+      toast.error(errMsg(e));
     }
   },
 }));

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect } from "react";
 
 import { Label } from "@/components/ui/label";
@@ -11,6 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
+import { useT } from "@/i18n/client";
 import {
   formatTime,
   parseSelectedCalendars,
@@ -25,6 +28,7 @@ import { useSettingsStore } from "@/store/settings";
 import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function AutoScheduleSettings() {
+  const t = useT();
   const { autoSchedule, updateAutoScheduleSettings } = useSettingsStore();
   const { feeds, loadFromDatabase } = useCalendarStore();
 
@@ -34,13 +38,13 @@ export function AutoScheduleSettings() {
   }, [loadFromDatabase]);
 
   const workingDays = [
-    { value: 0, label: "Sunday" },
-    { value: 1, label: "Monday" },
-    { value: 2, label: "Tuesday" },
-    { value: 3, label: "Wednesday" },
-    { value: 4, label: "Thursday" },
-    { value: 5, label: "Friday" },
-    { value: 6, label: "Saturday" },
+    { value: 0, labelKey: "common.weekday.sunday" },
+    { value: 1, labelKey: "common.weekday.monday" },
+    { value: 2, labelKey: "common.weekday.tuesday" },
+    { value: 3, labelKey: "common.weekday.wednesday" },
+    { value: 4, labelKey: "common.weekday.thursday" },
+    { value: 5, labelKey: "common.weekday.friday" },
+    { value: 6, labelKey: "common.weekday.saturday" },
   ];
 
   const timeOptions = Array.from({ length: 24 }, (_, i) => ({
@@ -53,14 +57,16 @@ export function AutoScheduleSettings() {
   );
   const workDays = parseWorkDays(autoSchedule.workDays);
 
+  const notSet = t("settings.autoSchedule.notSet");
+
   return (
     <SettingsSection
-      title="Auto-Schedule Settings"
-      description="Configure how tasks are automatically scheduled in your calendar."
+      title={t("settings.autoSchedule.title")}
+      description={t("settings.autoSchedule.description")}
     >
       <SettingRow
-        label="Calendars to Consider"
-        description="Select which calendars to check for conflicts when auto-scheduling"
+        label={t("settings.autoSchedule.calendars.label")}
+        description={t("settings.autoSchedule.calendars.description")}
       >
         <div className="space-y-2">
           {feeds.map((feed) => (
@@ -87,20 +93,20 @@ export function AutoScheduleSettings() {
           ))}
           {feeds.length === 0 && (
             <div className="text-sm text-muted-foreground">
-              No calendars found. Please add calendars in the Calendar Settings.
+              {t("settings.autoSchedule.calendars.empty")}
             </div>
           )}
         </div>
       </SettingRow>
 
       <SettingRow
-        label="Working Hours"
-        description="Set your preferred working hours for task scheduling"
+        label={t("settings.autoSchedule.workingHours.label")}
+        description={t("settings.autoSchedule.workingHours.description")}
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Start Time</Label>
+              <Label>{t("settings.autoSchedule.workingHours.startTime")}</Label>
               <Select
                 value={autoSchedule.workHourStart.toString()}
                 onValueChange={(value) =>
@@ -122,7 +128,7 @@ export function AutoScheduleSettings() {
               </Select>
             </div>
             <div>
-              <Label>End Time</Label>
+              <Label>{t("settings.autoSchedule.workingHours.endTime")}</Label>
               <Select
                 value={autoSchedule.workHourEnd.toString()}
                 onValueChange={(value) =>
@@ -146,7 +152,7 @@ export function AutoScheduleSettings() {
           </div>
 
           <div>
-            <Label>Working Days</Label>
+            <Label>{t("settings.autoSchedule.workingHours.workingDays")}</Label>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {workingDays.map((day) => (
                 <div key={day.value} className="flex items-center space-x-2">
@@ -161,7 +167,7 @@ export function AutoScheduleSettings() {
                       });
                     }}
                   />
-                  <Label className="text-sm">{day.label}</Label>
+                  <Label className="text-sm">{t(day.labelKey)}</Label>
                 </div>
               ))}
             </div>
@@ -170,12 +176,12 @@ export function AutoScheduleSettings() {
       </SettingRow>
 
       <SettingRow
-        label="Energy Level Time Preferences"
-        description="Map your energy levels to specific time ranges"
+        label={t("settings.autoSchedule.energy.label")}
+        description={t("settings.autoSchedule.energy.description")}
       >
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label>High Energy Hours</Label>
+            <Label>{t("settings.autoSchedule.energy.high")}</Label>
             <div className="grid grid-cols-2 gap-4">
               <Select
                 value={autoSchedule.highEnergyStart?.toString() || "none"}
@@ -186,10 +192,10 @@ export function AutoScheduleSettings() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Not Set" />
+                  <SelectValue placeholder={notSet} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Not Set</SelectItem>
+                  <SelectItem value="none">{notSet}</SelectItem>
                   {timeOptions.map((time) => (
                     <SelectItem key={time.value} value={time.value.toString()}>
                       {time.label}
@@ -206,10 +212,10 @@ export function AutoScheduleSettings() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Not Set" />
+                  <SelectValue placeholder={notSet} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Not Set</SelectItem>
+                  <SelectItem value="none">{notSet}</SelectItem>
                   {timeOptions.map((time) => (
                     <SelectItem key={time.value} value={time.value.toString()}>
                       {time.label}
@@ -221,7 +227,7 @@ export function AutoScheduleSettings() {
           </div>
 
           <div className="space-y-2">
-            <Label>Medium Energy Hours</Label>
+            <Label>{t("settings.autoSchedule.energy.medium")}</Label>
             <div className="grid grid-cols-2 gap-4">
               <Select
                 value={autoSchedule.mediumEnergyStart?.toString() || "none"}
@@ -233,10 +239,10 @@ export function AutoScheduleSettings() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Not Set" />
+                  <SelectValue placeholder={notSet} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Not Set</SelectItem>
+                  <SelectItem value="none">{notSet}</SelectItem>
                   {timeOptions.map((time) => (
                     <SelectItem key={time.value} value={time.value.toString()}>
                       {time.label}
@@ -253,10 +259,10 @@ export function AutoScheduleSettings() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Not Set" />
+                  <SelectValue placeholder={notSet} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Not Set</SelectItem>
+                  <SelectItem value="none">{notSet}</SelectItem>
                   {timeOptions.map((time) => (
                     <SelectItem key={time.value} value={time.value.toString()}>
                       {time.label}
@@ -268,7 +274,7 @@ export function AutoScheduleSettings() {
           </div>
 
           <div className="space-y-2">
-            <Label>Low Energy Hours</Label>
+            <Label>{t("settings.autoSchedule.energy.low")}</Label>
             <div className="grid grid-cols-2 gap-4">
               <Select
                 value={autoSchedule.lowEnergyStart?.toString() || "none"}
@@ -279,10 +285,10 @@ export function AutoScheduleSettings() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Not Set" />
+                  <SelectValue placeholder={notSet} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Not Set</SelectItem>
+                  <SelectItem value="none">{notSet}</SelectItem>
                   {timeOptions.map((time) => (
                     <SelectItem key={time.value} value={time.value.toString()}>
                       {time.label}
@@ -299,10 +305,10 @@ export function AutoScheduleSettings() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Not Set" />
+                  <SelectValue placeholder={notSet} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Not Set</SelectItem>
+                  <SelectItem value="none">{notSet}</SelectItem>
                   {timeOptions.map((time) => (
                     <SelectItem key={time.value} value={time.value.toString()}>
                       {time.label}
@@ -316,8 +322,8 @@ export function AutoScheduleSettings() {
       </SettingRow>
 
       <SettingRow
-        label="Buffer Time"
-        description="Minutes to leave between scheduled tasks"
+        label={t("settings.autoSchedule.buffer.label")}
+        description={t("settings.autoSchedule.buffer.description")}
       >
         <div className="space-y-4">
           <Slider
@@ -330,14 +336,16 @@ export function AutoScheduleSettings() {
             step={5}
           />
           <div className="text-sm text-muted-foreground">
-            Current buffer: {autoSchedule.bufferMinutes} minutes
+            {t("settings.autoSchedule.buffer.current", {
+              minutes: autoSchedule.bufferMinutes,
+            })}
           </div>
         </div>
       </SettingRow>
 
       <SettingRow
-        label="Project Grouping"
-        description="Try to schedule tasks from the same project together"
+        label={t("settings.autoSchedule.groupByProject.label")}
+        description={t("settings.autoSchedule.groupByProject.description")}
       >
         <Switch
           checked={autoSchedule.groupByProject}

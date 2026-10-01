@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { useT } from "@/i18n/client";
 import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "CalDAVAccountForm";
@@ -45,6 +48,7 @@ export function CalDAVAccountForm({
   onSuccess,
   onCancel,
 }: CalDAVAccountFormProps) {
+  const t = useT();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [formData, setFormData] = useState({
@@ -76,7 +80,7 @@ export function CalDAVAccountForm({
   const handleTest = async () => {
     // Validate form
     if (!formData.serverUrl || !formData.username || !formData.password) {
-      setErrorMessage("Please fill in all required fields");
+      setErrorMessage(t("settings.caldav.errors.missingFields"));
       return;
     }
 
@@ -116,7 +120,7 @@ export function CalDAVAccountForm({
       setTestResults(data as TestResult);
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to connect to CalDAV server");
+        throw new Error(data.error || t("settings.caldav.errors.connectFailed"));
       }
 
       logger.info(
@@ -135,7 +139,7 @@ export function CalDAVAccountForm({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Failed to connect to CalDAV server"
+          : t("settings.caldav.errors.connectFailed")
       );
     } finally {
       setIsTesting(false);
@@ -148,7 +152,7 @@ export function CalDAVAccountForm({
 
     // Validate form
     if (!formData.serverUrl || !formData.username || !formData.password) {
-      setErrorMessage("Please fill in all required fields");
+      setErrorMessage(t("settings.caldav.errors.missingFields"));
       return;
     }
 
@@ -185,13 +189,15 @@ export function CalDAVAccountForm({
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
-          errorData.error || "Failed to connect to CalDAV server"
+          errorData.error || t("settings.caldav.errors.connectFailed")
         );
       }
 
       await response.json();
 
-      alert(`Successfully connected to CalDAV server for ${formData.username}`);
+      alert(
+        t("settings.caldav.successAlert", { username: formData.username })
+      );
 
       if (onSuccess) {
         onSuccess();
@@ -207,7 +213,7 @@ export function CalDAVAccountForm({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Failed to connect to CalDAV server"
+          : t("settings.caldav.errors.connectFailed")
       );
     } finally {
       setIsSubmitting(false);
@@ -220,7 +226,9 @@ export function CalDAVAccountForm({
 
     return (
       <div className="mt-4 rounded-xl border bg-secondary p-4 ">
-        <h3 className="mb-2 font-medium">Connection Test Results</h3>
+        <h3 className="mb-2 font-medium">
+          {t("settings.caldav.testResults.title")}
+        </h3>
 
         {testResults.steps &&
           testResults.steps.map((step, index) => (
@@ -244,20 +252,23 @@ export function CalDAVAccountForm({
                 <span className="font-medium">{step.step}</span>
                 {step.status === "success" && step.calendars !== undefined && (
                   <span className="ml-2 text-sm text-muted-foreground">
-                    ({step.calendars} calendars found)
+                    {t("settings.caldav.testResults.calendarsFound", {
+                      count: step.calendars,
+                    })}
                   </span>
                 )}
               </div>
 
               {step.error && (
                 <div className="ml-6 mt-1 whitespace-pre-wrap text-sm text-negative-foreground">
-                  Error: {step.error}
+                  {t("settings.caldav.testResults.errorLabel")}: {step.error}
                 </div>
               )}
 
               {step.calendarNames && step.calendarNames.length > 0 && (
                 <div className="ml-6 mt-1 text-sm text-muted-foreground">
-                  Calendars: {step.calendarNames.join(", ")}
+                  {t("settings.caldav.testResults.calendarsLabel")}:{" "}
+                  {step.calendarNames.join(", ")}
                 </div>
               )}
             </div>
@@ -265,7 +276,9 @@ export function CalDAVAccountForm({
 
         {testResults.error && !testResults.steps?.some((s) => s.error) && (
           <div className="mt-2 text-negative-foreground">
-            <div className="font-medium">Error:</div>
+            <div className="font-medium">
+              {t("settings.caldav.testResults.errorLabel")}:
+            </div>
             <div className="whitespace-pre-wrap text-sm">
               {testResults.error}
             </div>
@@ -274,7 +287,7 @@ export function CalDAVAccountForm({
 
         {testResults.success && (
           <div className="mt-2 font-medium text-positive-foreground">
-            Connection successful! You can now connect your account.
+            {t("settings.caldav.testResults.success")}
           </div>
         )}
       </div>
@@ -284,11 +297,8 @@ export function CalDAVAccountForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Connect CalDAV Account</CardTitle>
-        <CardDescription>
-          Add your CalDAV calendar account from services like Fastmail, iCloud,
-          or other CalDAV providers
-        </CardDescription>
+        <CardTitle>{t("settings.caldav.title")}</CardTitle>
+        <CardDescription>{t("settings.caldav.description")}</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
@@ -303,7 +313,8 @@ export function CalDAVAccountForm({
               className="mb-2.5 text-[15px] leading-normal"
               htmlFor="serverUrl"
             >
-              Server URL <span className="text-negative-foreground">*</span>
+              {t("settings.caldav.serverUrl.label")}{" "}
+              <span className="text-negative-foreground">*</span>
             </Label>
             <Input
               id="serverUrl"
@@ -314,7 +325,7 @@ export function CalDAVAccountForm({
               required
             />
             <p className="mt-1 text-sm text-muted-foreground">
-              For Fastmail: https://caldav.fastmail.com
+              {t("settings.caldav.serverUrl.hint")}
             </p>
           </fieldset>
 
@@ -323,7 +334,8 @@ export function CalDAVAccountForm({
               className="mb-2.5 text-[15px] leading-normal"
               htmlFor="username"
             >
-              Username <span className="text-negative-foreground">*</span>
+              {t("settings.caldav.username.label")}{" "}
+              <span className="text-negative-foreground">*</span>
             </Label>
             <Input
               id="username"
@@ -334,7 +346,7 @@ export function CalDAVAccountForm({
               required
             />
             <p className="mt-1 text-sm text-muted-foreground">
-              For Fastmail: Use your full email address
+              {t("settings.caldav.username.hint")}
             </p>
           </fieldset>
 
@@ -343,7 +355,8 @@ export function CalDAVAccountForm({
               className="mb-2.5 text-[15px] leading-normal"
               htmlFor="password"
             >
-              Password <span className="text-negative-foreground">*</span>
+              {t("settings.caldav.password.label")}{" "}
+              <span className="text-negative-foreground">*</span>
             </Label>
             <Input
               id="password"
@@ -355,14 +368,13 @@ export function CalDAVAccountForm({
               required
             />
             <p className="mt-1 text-sm text-muted-foreground">
-              For Fastmail: Use an app-specific password from Settings →
-              Password & Security
+              {t("settings.caldav.password.hint")}
             </p>
           </fieldset>
 
           <fieldset className="mb-4">
             <Label className="mb-2.5 text-[15px] leading-normal" htmlFor="path">
-              Path (Optional)
+              {t("settings.caldav.path.label")}
             </Label>
             <Input
               id="path"
@@ -372,7 +384,7 @@ export function CalDAVAccountForm({
               onChange={handleChange}
             />
             <p className="mt-1 text-sm text-muted-foreground">
-              For Fastmail: /dav/calendars/user/youremail@fastmail.com
+              {t("settings.caldav.path.hint")}
             </p>
           </fieldset>
 
@@ -384,7 +396,9 @@ export function CalDAVAccountForm({
               disabled={isTesting || isSubmitting}
               className="w-full"
             >
-              {isTesting ? "Testing Connection..." : "Test Connection"}
+              {isTesting
+                ? t("settings.caldav.testing")
+                : t("settings.caldav.testConnection")}
             </Button>
           </div>
 
@@ -398,10 +412,12 @@ export function CalDAVAccountForm({
             onClick={onCancel}
             disabled={isSubmitting || isTesting}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button type="submit" disabled={isSubmitting || isTesting}>
-            {isSubmitting ? "Connecting..." : "Connect"}
+            {isSubmitting
+              ? t("settings.caldav.connecting")
+              : t("settings.caldav.connect")}
           </Button>
         </CardFooter>
       </form>

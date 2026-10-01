@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useEffect, useState } from "react";
 
 import { AlertCircle } from "lucide-react";
@@ -13,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { useT } from "@/i18n/client";
 import { logger } from "@/lib/logger";
 
 import { useSettingsStore } from "@/store/settings";
@@ -28,6 +31,7 @@ interface IntegrationStatus {
 }
 
 export function AccountManager() {
+  const t = useT();
   const { accounts, refreshAccounts, removeAccount } = useSettingsStore();
   const [showAvailableFor, setShowAvailableFor] = useState<string | null>(null);
   const [showCalDAVForm, setShowCalDAVForm] = useState(false);
@@ -92,19 +96,18 @@ export function AccountManager() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Connected Accounts</CardTitle>
-          <CardDescription>
-            Manage your connected calendar accounts
-          </CardDescription>
+          <CardTitle>{t("settings.account.title")}</CardTitle>
+          <CardDescription>{t("settings.account.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {!integrationStatus.google.configured && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Missing Google Credentials</AlertTitle>
+              <AlertTitle>
+                {t("settings.account.missingGoogle.title")}
+              </AlertTitle>
               <AlertDescription>
-                Please contact your administrator to configure Google Calendar
-                integration.
+                {t("settings.account.missingGoogle.description")}
               </AlertDescription>
             </Alert>
           )}
@@ -112,10 +115,11 @@ export function AccountManager() {
           {!integrationStatus.outlook.configured && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Missing Outlook Credentials</AlertTitle>
+              <AlertTitle>
+                {t("settings.account.missingOutlook.title")}
+              </AlertTitle>
               <AlertDescription>
-                Please contact your administrator to configure Outlook Calendar
-                integration.
+                {t("settings.account.missingOutlook.description")}
               </AlertDescription>
             </Alert>
           )}
@@ -125,16 +129,16 @@ export function AccountManager() {
               onClick={() => handleConnect("GOOGLE")}
               disabled={!integrationStatus.google.configured || isLoading}
             >
-              Connect Google Calendar
+              {t("settings.account.connectGoogle")}
             </Button>
             <Button
               onClick={() => handleConnect("OUTLOOK")}
               disabled={!integrationStatus.outlook.configured || isLoading}
             >
-              Connect Outlook Calendar
+              {t("settings.account.connectOutlook")}
             </Button>
             <Button onClick={() => setShowCalDAVForm(true)} variant="outline">
-              Connect CalDAV Calendar
+              {t("settings.account.connectCalDAV")}
             </Button>
           </div>
 
@@ -172,7 +176,9 @@ export function AccountManager() {
                           {account.email}
                         </span>
                         <Badge variant="outline" className="text-xs">
-                          {account.calendars.length} calendars
+                          {t("settings.account.calendarsCount", {
+                            count: account.calendars.length,
+                          })}
                         </Badge>
                       </div>
                       <div className="flex gap-2">
@@ -181,15 +187,16 @@ export function AccountManager() {
                           variant="outline"
                           onClick={() => toggleAvailableCalendars(account.id)}
                         >
-                          {showAvailableFor === account.id ? "Hide" : "Show"}{" "}
-                          Calendars
+                          {showAvailableFor === account.id
+                            ? t("settings.account.hideCalendars")
+                            : t("settings.account.showCalendars")}
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => handleRemove(account.id)}
                         >
-                          Remove
+                          {t("common.remove")}
                         </Button>
                       </div>
                     </div>

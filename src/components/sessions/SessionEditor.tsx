@@ -20,6 +20,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { TranscriptSearch } from "@/components/sessions/TranscriptSearch";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 interface Target {
@@ -110,6 +111,7 @@ export function SessionEditor({
   onChanged: () => void;
   onDeleted: () => void;
 }) {
+  const t = useT();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -195,7 +197,7 @@ export function SessionEditor({
       await load({ quiet: true });
       onChanged();
     } catch {
-      alert("Le téléversement a échoué.");
+      alert(t("sessions.editor.alert.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
@@ -209,7 +211,7 @@ export function SessionEditor({
     );
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Impossible de lancer la compilation.");
+      alert(data.error ?? t("sessions.editor.alert.compileFailed"));
       return;
     }
     setSession((s) => (s ? { ...s, status: "processing", statusError: null } : s));
@@ -217,14 +219,14 @@ export function SessionEditor({
   };
 
   const removeRecording = async (id: string) => {
-    if (!confirm("Retirer cet audio de la session ?")) return;
+    if (!confirm(t("sessions.editor.confirm.removeRecording"))) return;
     await fetch(`/api/recordings/${id}`, { method: "DELETE" });
     await load({ quiet: true });
     onChanged();
   };
 
   const removeSession = async () => {
-    if (!confirm("Supprimer cette session, ses audios et sa transcription ?")) return;
+    if (!confirm(t("sessions.editor.confirm.removeSession"))) return;
     await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
     onDeleted();
   };
@@ -240,14 +242,14 @@ export function SessionEditor({
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
+        <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
       </div>
     );
   }
   if (!session) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-destructive">
-        Session introuvable.
+        {t("sessions.editor.notFound")}
       </div>
     );
   }
@@ -271,7 +273,7 @@ export function SessionEditor({
             type="button"
             onClick={removeSession}
             className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            title="Supprimer la session"
+            title={t("sessions.editor.deleteSession")}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -281,8 +283,8 @@ export function SessionEditor({
       {/* --- Step 1: lexicon, BEFORE transcription --- */}
       <Step
         n={1}
-        title="Lexique"
-        hint="À remplir avant de transcrire : ces mots sont injectés dans le décodeur de Whisper, pas corrigés après coup. Noms d'entreprises, de projets, des deux personnes qui parlent. Un par ligne, avec un contexte optionnel après un « = »."
+        title={t("sessions.editor.step1.title")}
+        hint={t("sessions.editor.step1.hint")}
       >
         <textarea
           value={lexicon}
@@ -290,11 +292,13 @@ export function SessionEditor({
           onBlur={() => lexicon !== (session.lexicon ?? "") && save({ lexicon })}
           rows={7}
           spellCheck={false}
-          placeholder={"Mathys\nStayChum = notre app de colocation\nUguiso Technologies\nplan d'affaires"}
+          placeholder={t("sessions.editor.step1.lexiconPlaceholder")}
           className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none focus:border-primary"
         />
         <div className="mt-2 flex items-center gap-3">
-          <label className="text-xs text-muted-foreground">Langue</label>
+          <label className="text-xs text-muted-foreground">
+            {t("sessions.editor.step1.language")}
+          </label>
           <select
             value={language}
             onChange={(e) => {
@@ -303,12 +307,12 @@ export function SessionEditor({
             }}
             className="rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary"
           >
-            <option value="">Détection auto</option>
-            <option value="fr">Français</option>
-            <option value="en">Anglais</option>
+            <option value="">{t("sessions.editor.step1.langAuto")}</option>
+            <option value="fr">{t("sessions.editor.step1.langFr")}</option>
+            <option value="en">{t("sessions.editor.step1.langEn")}</option>
           </select>
           <span className="text-xs text-muted-foreground">
-            Forcer la langue évite que Whisper dérive en anglais sur un appel bilingue.
+            {t("sessions.editor.step1.langHint")}
           </span>
         </div>
       </Step>
@@ -316,8 +320,8 @@ export function SessionEditor({
       {/* --- Step 2: audio --- */}
       <Step
         n={2}
-        title="Audios de l'appel"
-        hint="Plusieurs fichiers sont bouts à bout dans l'ordre d'ajout : les timestamps du digest suivent cette ligne de temps continue."
+        title={t("sessions.editor.step2.title")}
+        hint={t("sessions.editor.step2.hint")}
       >
         <input
           ref={fileInput}
@@ -338,7 +342,9 @@ export function SessionEditor({
           ) : (
             <Upload className="h-4 w-4" />
           )}
-          {uploading ? "Téléversement…" : "Ajouter des fichiers audio"}
+          {uploading
+            ? t("sessions.editor.step2.uploading")
+            : t("sessions.editor.step2.addAudio")}
         </button>
 
         {hasAudio && (
@@ -360,9 +366,11 @@ export function SessionEditor({
                 ) : r.segmentCount > 0 ? (
                   <span
                     className="text-xs text-primary"
-                    title={`${r.segmentCount} segments indexés`}
+                    title={t("sessions.editor.step2.indexedCount", {
+                      count: r.segmentCount,
+                    })}
                   >
-                    indexé
+                    {t("sessions.editor.step2.indexed")}
                   </span>
                 ) : null}
                 <a
@@ -370,7 +378,7 @@ export function SessionEditor({
                   target="_blank"
                   rel="noreferrer"
                   className="rounded p-1 text-muted-foreground hover:text-foreground"
-                  title="Écouter"
+                  title={t("sessions.editor.step2.listen")}
                 >
                   <Play className="h-3.5 w-3.5" />
                 </a>
@@ -378,7 +386,7 @@ export function SessionEditor({
                   type="button"
                   onClick={() => removeRecording(r.id)}
                   className="rounded p-1 text-muted-foreground hover:text-destructive"
-                  title="Retirer"
+                  title={t("common.remove")}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -391,15 +399,15 @@ export function SessionEditor({
       {/* --- Step 3: the brief --- */}
       <Step
         n={3}
-        title="Ton brief"
-        hint="Ce que tu attends de Claude avec cet appel. Ça oriente autant le digest (ce qui compte est retenu) que le travail ensuite."
+        title={t("sessions.editor.step3.title")}
+        hint={t("sessions.editor.step3.hint")}
       >
         <textarea
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
           onBlur={() => brief !== (session.brief ?? "") && save({ brief })}
           rows={6}
-          placeholder="Ex. : On a revu le pricing et la section 4 du plan d'affaires. Applique les changements de pricing sur le site, et réécris §4 avec les nouvelles projections. Demande-moi avant de toucher au wording de la page d'accueil."
+          placeholder={t("sessions.editor.step3.placeholder")}
           className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm leading-6 outline-none focus:border-primary"
         />
       </Step>
@@ -407,17 +415,17 @@ export function SessionEditor({
       {/* --- Step 4: targets --- */}
       <Step
         n={4}
-        title="Cibles sur ta machine"
-        hint="Chemins absolus. DreamDash n'y touche jamais — il les transmet à Claude Code, qui tourne chez toi et a l'accès disque."
+        title={t("sessions.editor.step4.title")}
+        hint={t("sessions.editor.step4.hint")}
       >
         <ul className="space-y-2">
-          {targets.map((t, i) => (
+          {targets.map((tg, i) => (
             <li key={i} className="flex items-center gap-2">
               <select
-                value={t.kind}
+                value={tg.kind}
                 onChange={(e) => {
                   const next = [...targets];
-                  next[i] = { ...t, kind: e.target.value as "repo" | "doc" };
+                  next[i] = { ...tg, kind: e.target.value as "repo" | "doc" };
                   setTargets(next);
                   save({ targets: next });
                 }}
@@ -427,10 +435,10 @@ export function SessionEditor({
                 <option value="doc">doc</option>
               </select>
               <input
-                value={t.path}
+                value={tg.path}
                 onChange={(e) => {
                   const next = [...targets];
-                  next[i] = { ...t, path: e.target.value };
+                  next[i] = { ...tg, path: e.target.value };
                   setTargets(next);
                 }}
                 onBlur={() => save({ targets: targets.filter((x) => x.path.trim()) })}
@@ -438,14 +446,14 @@ export function SessionEditor({
                 className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-primary"
               />
               <input
-                value={t.note ?? ""}
+                value={tg.note ?? ""}
                 onChange={(e) => {
                   const next = [...targets];
-                  next[i] = { ...t, note: e.target.value };
+                  next[i] = { ...tg, note: e.target.value };
                   setTargets(next);
                 }}
                 onBlur={() => save({ targets: targets.filter((x) => x.path.trim()) })}
-                placeholder="quoi faire ici"
+                placeholder={t("sessions.editor.step4.notePlaceholder")}
                 className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs outline-none focus:border-primary"
               />
               <button
@@ -467,7 +475,7 @@ export function SessionEditor({
           onClick={() => setTargets([...targets, { path: "", kind: "repo" }])}
           className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <Plus className="h-3.5 w-3.5" /> Ajouter une cible
+          <Plus className="h-3.5 w-3.5" /> {t("sessions.editor.step4.addTarget")}
         </button>
       </Step>
 
@@ -485,7 +493,9 @@ export function SessionEditor({
             ) : (
               <Sparkles className="h-4 w-4" />
             )}
-            {busy ? "Compilation en cours…" : "Transcrire et compiler"}
+            {busy
+              ? t("sessions.editor.compile.inProgress")
+              : t("sessions.editor.compile.run")}
           </button>
 
           {transcribed && !busy && (
@@ -493,9 +503,9 @@ export function SessionEditor({
               type="button"
               onClick={() => compile(true)}
               className="rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
-              title="Retranscrire depuis zéro — nécessaire après avoir modifié le lexique"
+              title={t("sessions.editor.compile.retranscribeTitle")}
             >
-              Retranscrire avec le lexique à jour
+              {t("sessions.editor.compile.retranscribe")}
             </button>
           )}
 
@@ -506,23 +516,24 @@ export function SessionEditor({
               className="ml-auto inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:border-primary hover:text-primary"
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "Copié" : "Copier la mission"}
+              {copied
+                ? t("sessions.editor.compile.copied")
+                : t("sessions.editor.compile.copyMission")}
             </button>
           )}
         </div>
 
         {busy && (
           <p className="mt-3 text-xs text-muted-foreground">
-            Whisper transcrit sur canardo, puis le digest se construit par tranches de
-            10 minutes. Sur plusieurs heures d&apos;audio, compte un bon moment — tu peux
-            fermer la page.
+            {t("sessions.editor.compile.busyHint")}
           </p>
         )}
 
         {session.status === "error" && session.statusError && (
           <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
             <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-              <AlertCircle className="h-4 w-4" /> La compilation a échoué
+              <AlertCircle className="h-4 w-4" />{" "}
+              {t("sessions.editor.compile.failed")}
             </div>
             <p className="mt-1 text-xs text-destructive/80">{session.statusError}</p>
           </div>
@@ -531,7 +542,7 @@ export function SessionEditor({
         {session.status === "ready" && (
           <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
             <FileCode2 className="h-3.5 w-3.5" />
-            Claude peut aussi la tirer lui-même :{" "}
+            {t("sessions.editor.compile.alsoByClaude")}{" "}
             <code className="rounded bg-muted px-1 py-0.5">
               get_mission({session.id})
             </code>
@@ -543,7 +554,8 @@ export function SessionEditor({
       {session.digest && (
         <section className="rounded-xl border border-border bg-card p-4">
           <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-            <Sparkles className="h-4 w-4 text-primary" /> Digest
+            <Sparkles className="h-4 w-4 text-primary" />{" "}
+            {t("sessions.editor.digest")}
           </h3>
           <div className="prose-sm text-sm leading-7 text-foreground/90">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{session.digest}</ReactMarkdown>
@@ -555,8 +567,10 @@ export function SessionEditor({
         <details className="rounded-xl border border-border bg-card p-4">
           <summary className="cursor-pointer text-sm font-semibold">
             <FileText className="mr-1.5 inline h-4 w-4 text-primary" />
-            Table des matières ({session.toc.split("\n").filter((l) => l.startsWith("-")).length}{" "}
-            tranches)
+            {t("sessions.editor.toc", {
+              count: session.toc.split("\n").filter((l) => l.startsWith("-"))
+                .length,
+            })}
           </summary>
           <div className="mt-3 text-sm leading-6 text-foreground/90">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{session.toc}</ReactMarkdown>
@@ -571,12 +585,22 @@ export function SessionEditor({
 
 /** Shared status pill, also used by the list pane. */
 export function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    draft: { label: "brouillon", className: "text-muted-foreground" },
-    processing: { label: "compilation", className: "text-primary" },
-    ready: { label: "prête", className: "text-emerald-600 dark:text-emerald-400" },
-    error: { label: "erreur", className: "text-destructive" },
+  const t = useT();
+  const map: Record<string, { key: string; className: string }> = {
+    draft: {
+      key: "sessions.status.draft",
+      className: "text-muted-foreground",
+    },
+    processing: {
+      key: "sessions.status.processing",
+      className: "text-primary",
+    },
+    ready: {
+      key: "sessions.status.ready",
+      className: "text-emerald-600 dark:text-emerald-400",
+    },
+    error: { key: "sessions.status.error", className: "text-destructive" },
   };
   const s = map[status] ?? map.draft;
-  return <span className={cn("text-xs", s.className)}>{s.label}</span>;
+  return <span className={cn("text-xs", s.className)}>{t(s.key)}</span>;
 }

@@ -5,12 +5,15 @@ import { usePathname } from "next/navigation";
 
 import { Server, Users } from "lucide-react";
 
+import { useT } from "@/i18n/client";
+
 /** Contacts ↔ Machines: one section in the header, two pages. */
 export function ContactsSwitch() {
   const pathname = usePathname();
+  const t = useT();
   const items = [
-    { href: "/contacts", label: "Contacts", icon: Users },
-    { href: "/machines", label: "Machines", icon: Server },
+    { href: "/contacts", label: t("contacts.switch.contacts"), icon: Users },
+    { href: "/machines", label: t("contacts.switch.machines"), icon: Server },
   ];
   return (
     <div className="segmented">

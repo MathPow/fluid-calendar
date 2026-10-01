@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 
+import { useT, type TranslateFn } from "@/i18n/client";
 import { PROVIDER_PRESETS } from "@/lib/mail/providers";
 import { cn } from "@/lib/utils";
 
@@ -57,9 +58,9 @@ interface MessageDetail extends MessageSummary {
   attachments: { filename: string; size: number; contentType: string }[];
 }
 
-const fmtAddr = (a: Address[]) =>
+const fmtAddr = (a: Address[], unknownLabel: string) =>
   a.map((x) => x.name || x.address || "").filter(Boolean).join(", ") ||
-  "(unknown)";
+  unknownLabel;
 
 const fmtDate = (iso: string | null) => {
   if (!iso) return "";
@@ -94,6 +95,34 @@ const keyOf = (m: ListedMessage) => `${m.accountId}:${m.mailbox}:${m.uid}`;
 
 const accountLabel = (a: Account) => a.displayName || a.email;
 
+/** User-facing label for a known IMAP folder; falls back to the raw name. */
+const folderLabel = (t: TranslateFn, name: string) => {
+  const key = `mail.folder.${name.toLowerCase()}`;
+  const translated = t(key);
+  return translated === key ? name : translated;
+};
+
+/** Provider label/hint lookup — falls back to the preset's own copy. */
+const translateProviderLabel = (
+  t: TranslateFn,
+  id: string,
+  fallback: string
+) => {
+  const key = `mail.provider.${id}.label`;
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+};
+
+const translateProviderHint = (
+  t: TranslateFn,
+  id: string,
+  fallback: string
+) => {
+  const key = `mail.provider.${id}.hint`;
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+};
+
 /** Short chip label for the mobile switcher: display name or local part. */
 const shortLabel = (a: Account) => a.displayName || a.email.split("@")[0];
 
@@ -102,6 +131,7 @@ const defaultTarget = (visible: Account[]) =>
   visible.length >= 2 ? ALL : (visible[0]?.id ?? null);
 
 export function EmailClient() {
+  const t = useT();
   const currentStation = useStationStore((s) => s.currentStation);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const accountsRef = useRef<Account[]>([]);
@@ -157,7 +187,7 @@ export function EmailClient() {
         const res = await fetch(`/api/mail/messages?${params}`);
         if (!res.ok) {
           const e = await res.json().catch(() => ({}));
-          throw new Error(e.error || "Failed to load mail");
+          throw new Error(e.error || t("mail.errors.loadFailed"));
         }
         const data = await res.json();
         const list: (MessageSummary & Partial<ListedMessage>)[] =
@@ -176,13 +206,15 @@ export function EmailClient() {
           );
         }
       } catch (err) {
-        setListError(err instanceof Error ? err.message : "Failed to load mail");
+        setListError(
+          err instanceof Error ? err.message : t("mail.errors.loadFailed")
+        );
         setMessages([]);
       } finally {
         setLoadingList(false);
       }
     },
-    []
+    [t]
   );
 
   // Initial load — « Toutes les boîtes » when several accounts are visible
@@ -256,7 +288,7 @@ export function EmailClient() {
         mailbox: m.mailbox,
       });
       const res = await fetch(`/api/mail/messages/${m.uid}?${params}`);
-      if (!res.ok) throw new Error("Failed to load message");
+      if (!res.ok) throw new Error(t("mail.loadMessageFailed"));
       const data = await res.json();
       setDetail(data.message);
       // Optimistically mark read in the list.
@@ -328,15 +360,17 @@ export function EmailClient() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Mail className="h-7 w-7" />
           </div>
-          <h1 className="mt-4 text-xl font-semibold">Connect your mailbox</h1>
+          <h1 className="mt-4 text-xl font-semibold">
+            {t("mail.empty.title")}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add your iCloud or Zoho account to read and reply to mail right here.
+            {t("mail.empty.description")}
           </p>
           <button
             onClick={() => setShowConnect(true)}
             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            <Plus className="h-4 w-4" /> Connect account
+            <Plus className="h-4 w-4" /> {t("mail.empty.connect")}
           </button>
         </div>
         {showConnect && (
@@ -373,14 +407,14 @@ export function EmailClient() {
             onClick={startCompose}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            <PenSquare className="h-4 w-4" /> Compose
+            <PenSquare className="h-4 w-4" /> {t("mail.compose")}
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2">
           {unified ? (
             <div className="space-y-2 px-2 py-1.5">
-              <p className="etiquette">Boîtes de réception</p>
+              <p className="etiquette">{t("mail.inboxes")}</p>
               <ul className="space-y-1">
                 {visibleAccounts.map((a) => (
                   <li
@@ -409,14 +443,15 @@ export function EmailClient() {
                     )}
                   >
                     <Inbox className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{f}</span>
+                    <span className="truncate">{folderLabel(t, f)}</span>
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
             <div className="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" /> Loading folders…
+              <Loader2 className="h-3 w-3 animate-spin" />{" "}
+              {t("mail.loadingFolders")}
             </div>
           )}
         </div>
@@ -425,7 +460,7 @@ export function EmailClient() {
         <div className="border-t border-border p-2">
           {visibleAccounts.length === 0 && accounts.length > 0 && (
             <p className="px-2 py-1.5 text-xs text-muted-foreground">
-              No accounts in this station.
+              {t("mail.noAccountsInStation")}
             </p>
           )}
           {showAllEntry && (
@@ -439,7 +474,7 @@ export function EmailClient() {
               )}
             >
               <Mails className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Toutes les boîtes</span>
+              <span className="truncate">{t("mail.allInboxes")}</span>
             </button>
           )}
           {visibleAccounts.map((a) => (
@@ -463,7 +498,7 @@ export function EmailClient() {
             onClick={() => setShowConnect(true)}
             className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent"
           >
-            <Plus className="h-3.5 w-3.5" /> Add account
+            <Plus className="h-3.5 w-3.5" /> {t("mail.addAccount")}
           </button>
         </div>
       </div>
@@ -485,7 +520,7 @@ export function EmailClient() {
                   aria-pressed={unified}
                   className="segmented-item"
                 >
-                  Toutes les boîtes
+                  {t("mail.allInboxes")}
                 </button>
               )}
               {visibleAccounts.map((a) => (
@@ -505,7 +540,7 @@ export function EmailClient() {
           <button
             onClick={startCompose}
             className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-            title="Compose"
+            title={t("mail.compose")}
           >
             <PenSquare className="h-4 w-4" />
           </button>
@@ -519,7 +554,7 @@ export function EmailClient() {
             >
               {folders.map((f) => (
                 <option key={f} value={f}>
-                  {f}
+                  {folderLabel(t, f)}
                 </option>
               ))}
             </select>
@@ -535,7 +570,9 @@ export function EmailClient() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={
-              unified ? "Rechercher dans toutes les boîtes…" : `Search ${mailbox}…`
+              unified
+                ? t("mail.searchAll")
+                : t("mail.searchIn", { mailbox: folderLabel(t, mailbox) })
             }
             className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
@@ -545,7 +582,7 @@ export function EmailClient() {
               accountId && loadMessages(accountId, mailbox, search, false)
             }
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            title="Refresh"
+            title={t("mail.refresh")}
           >
             <RefreshCw className={cn("h-4 w-4", loadingList && "animate-spin")} />
           </button>
@@ -555,7 +592,7 @@ export function EmailClient() {
           <p className="flex items-center gap-1.5 border-b border-border px-3 py-1.5 text-xs text-destructive">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">
-              Injoignable : {failedBoxes.join(", ")}
+              {t("mail.unreachable", { boxes: failedBoxes.join(", ") })}
             </span>
           </p>
         )}
@@ -563,7 +600,7 @@ export function EmailClient() {
         <div className="flex-1 overflow-y-auto">
           {loadingList ? (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
             </div>
           ) : listError ? (
             <div className="flex flex-col items-center gap-2 px-4 py-8 text-center text-sm text-destructive">
@@ -572,7 +609,7 @@ export function EmailClient() {
             </div>
           ) : messages.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No messages.
+              {t("mail.noMessages")}
             </p>
           ) : (
             <ul>
@@ -601,7 +638,7 @@ export function EmailClient() {
                             !m.seen ? "font-semibold" : "font-medium"
                           )}
                         >
-                          {fmtAddr(m.from)}
+                          {fmtAddr(m.from, t("mail.unknownSender"))}
                         </span>
                         {m.hasAttachments && (
                           <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
@@ -650,22 +687,25 @@ export function EmailClient() {
             <Mail className="h-10 w-10 opacity-40" />
             <p className="mt-3 text-sm">
               {unified
-                ? "Sélectionne un message."
-                : `Select a message${activeAccount ? ` in ${activeAccount.email}` : ""}.`}
+                ? t("mail.selectMessage")
+                : activeAccount
+                  ? t("mail.selectMessageIn", { email: activeAccount.email })
+                  : t("mail.selectMessage")}
             </p>
           </div>
         ) : loadingDetail ? (
           <div className="flex h-full flex-col">
             <BackBar onBack={closeMessage} />
             <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading message…
+              <Loader2 className="h-4 w-4 animate-spin" />{" "}
+              {t("mail.loadingMessage")}
             </div>
           </div>
         ) : !detail ? (
           <div className="flex h-full flex-col">
             <BackBar onBack={closeMessage} />
             <div className="flex flex-1 items-center justify-center text-sm text-destructive">
-              Couldn&apos;t load that message.
+              {t("mail.loadMessageFailed")}
             </div>
           </div>
         ) : (
@@ -676,7 +716,7 @@ export function EmailClient() {
             account={
               selectedAccount && (unified || accounts.length > 1)
                 ? {
-                    label: `${accountLabel(selectedAccount)} · ${selected.mailbox}`,
+                    label: `${accountLabel(selectedAccount)} · ${folderLabel(t, selected.mailbox)}`,
                     dot: dotFor(selectedAccount.id),
                   }
                 : undefined
@@ -714,13 +754,14 @@ export function EmailClient() {
 
 /** Mobile-only "back to the list" bar above the reading pane. */
 function BackBar({ onBack }: { onBack: () => void }) {
+  const t = useT();
   return (
     <div className="border-b border-border px-2 py-1.5 md:hidden">
       <button
         onClick={onBack}
         className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
       >
-        <ChevronLeft className="h-4 w-4" /> Retour
+        <ChevronLeft className="h-4 w-4" /> {t("common.back")}
       </button>
     </div>
   );
@@ -738,6 +779,7 @@ function MessageView({
   /** Which box it came from — shown when several boxes are in play. */
   account?: { label: string; dot: string };
 }) {
+  const t = useT();
   return (
     <article className="flex h-full flex-col">
       <BackBar onBack={onBack} />
@@ -756,18 +798,19 @@ function MessageView({
             onClick={onReply}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
           >
-            <Reply className="h-4 w-4" /> Reply
+            <Reply className="h-4 w-4" /> {t("mail.reply")}
           </button>
         </div>
         <div className="space-y-0.5 text-sm">
           <p>
-            <span className="text-muted-foreground">From </span>
-            {fmtAddr(detail.from)}
+            <span className="text-muted-foreground">{t("mail.fromLabel")} </span>
+            {fmtAddr(detail.from, t("mail.unknownSender"))}
           </p>
           <p>
-            <span className="text-muted-foreground">To </span>
-            {fmtAddr(detail.to)}
-            {detail.cc.length > 0 && ` · Cc ${fmtAddr(detail.cc)}`}
+            <span className="text-muted-foreground">{t("mail.toLabel")} </span>
+            {fmtAddr(detail.to, t("mail.unknownSender"))}
+            {detail.cc.length > 0 &&
+              ` · ${t("mail.ccLabel")} ${fmtAddr(detail.cc, t("mail.unknownSender"))}`}
           </p>
           {detail.date && (
             <p className="text-xs text-muted-foreground">
@@ -794,14 +837,14 @@ function MessageView({
         {detail.html ? (
           // Sandboxed iframe: no allow-scripts → email JS can't run (XSS-safe).
           <iframe
-            title="Message body"
+            title={t("mail.messageBody")}
             sandbox=""
             className="h-full w-full bg-white"
             srcDoc={detail.html}
           />
         ) : (
           <pre className="whitespace-pre-wrap p-5 font-sans text-sm leading-7 text-foreground/90">
-            {detail.text || "(empty message)"}
+            {detail.text || t("mail.emptyMessage")}
           </pre>
         )}
       </div>
@@ -829,6 +872,7 @@ function ComposeModal({
   initial: ComposeState;
   onClose: () => void;
 }) {
+  const t = useT();
   const [accountId, setAccountId] = useState(initial.accountId);
   const [to, setTo] = useState(initial.to);
   const [cc, setCc] = useState(initial.cc);
@@ -857,11 +901,13 @@ function ComposeModal({
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        throw new Error(e.error || "Failed to send");
+        throw new Error(e.error || t("mail.errors.sendFailed"));
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send");
+      setError(
+        err instanceof Error ? err.message : t("mail.errors.sendFailed")
+      );
     } finally {
       setSending(false);
     }
@@ -871,10 +917,13 @@ function ComposeModal({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6">
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-t-xl border border-border bg-card shadow-xl sm:rounded-xl">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">New message</h2>
+          <h2 className="text-sm font-semibold">
+            {t("mail.compose.title")}
+          </h2>
           <button
             onClick={onClose}
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label={t("common.close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -882,7 +931,9 @@ function ComposeModal({
         <div className="space-y-px overflow-y-auto">
           {accounts.length > 1 ? (
             <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
-              <span className="w-14 shrink-0 text-muted-foreground">From</span>
+              <span className="w-14 shrink-0 text-muted-foreground">
+                {t("mail.compose.from")}
+              </span>
               <select
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
@@ -897,32 +948,42 @@ function ComposeModal({
             </div>
           ) : (
             <Field
-              label="From"
+              label={t("mail.compose.from")}
               value={accounts.find((a) => a.id === accountId)?.email ?? ""}
               readOnly
             />
           )}
-          <FieldInput label="To" value={to} onChange={setTo} placeholder="recipient@example.com" />
+          <FieldInput
+            label={t("mail.compose.to")}
+            value={to}
+            onChange={setTo}
+            placeholder={t("mail.compose.toPlaceholder")}
+          />
           {showCc ? (
-            <FieldInput label="Cc" value={cc} onChange={setCc} placeholder="cc@example.com" />
+            <FieldInput
+              label={t("mail.compose.cc")}
+              value={cc}
+              onChange={setCc}
+              placeholder={t("mail.compose.ccPlaceholder")}
+            />
           ) : (
             <button
               onClick={() => setShowCc(true)}
               className="px-4 py-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
-              + Add Cc
+              + {t("mail.compose.addCc")}
             </button>
           )}
           <FieldInput
-            label="Subject"
+            label={t("mail.compose.subject")}
             value={subject}
             onChange={setSubject}
-            placeholder="Subject"
+            placeholder={t("mail.compose.subjectPlaceholder")}
           />
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Write your message…"
+            placeholder={t("mail.compose.bodyPlaceholder")}
             rows={12}
             className="w-full resize-none bg-transparent px-4 py-3 text-sm outline-none placeholder:text-muted-foreground"
           />
@@ -935,7 +996,7 @@ function ComposeModal({
             onClick={onClose}
             className="rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
           >
-            Discard
+            {t("mail.compose.discard")}
           </button>
           <button
             onClick={send}
@@ -947,7 +1008,7 @@ function ComposeModal({
             ) : (
               <Send className="h-4 w-4" />
             )}
-            Send
+            {t("mail.compose.send")}
           </button>
         </div>
       </div>
@@ -962,6 +1023,7 @@ function ConnectModal({
   onClose: () => void;
   onConnected: () => void;
 }) {
+  const t = useT();
   const [provider, setProvider] = useState("icloud");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -990,11 +1052,13 @@ function ConnectModal({
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        throw new Error(e.error || "Couldn't connect");
+        throw new Error(e.error || t("mail.errors.connectFailed"));
       }
       onConnected();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't connect");
+      setError(
+        err instanceof Error ? err.message : t("mail.errors.connectFailed")
+      );
     } finally {
       setBusy(false);
     }
@@ -1004,10 +1068,13 @@ function ConnectModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold">Connect a mailbox</h2>
+          <h2 className="text-base font-semibold">
+            {t("mail.connect.title")}
+          </h2>
           <button
             onClick={onClose}
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label={t("common.close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -1026,28 +1093,28 @@ function ConnectModal({
                     : "border-border text-muted-foreground hover:bg-accent"
                 )}
               >
-                {p.label}
+                {translateProviderLabel(t, p.id, p.label)}
               </button>
             ))}
           </div>
 
           {preset?.hint && (
             <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              {preset.hint}
+              {translateProviderHint(t, preset.id, preset.hint)}
             </p>
           )}
 
-          <Labeled label="Email address">
+          <Labeled label={t("mail.connect.email")}>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
-              placeholder="you@icloud.com"
+              placeholder={t("mail.connect.emailPlaceholder")}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </Labeled>
 
-          <Labeled label="App-specific password">
+          <Labeled label={t("mail.connect.appPassword")}>
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -1059,7 +1126,7 @@ function ConnectModal({
 
           {provider === "imap" && (
             <div className="grid grid-cols-2 gap-2">
-              <Labeled label="IMAP host">
+              <Labeled label={t("mail.connect.imapHost")}>
                 <input
                   value={imapHost}
                   onChange={(e) => setImapHost(e.target.value)}
@@ -1067,7 +1134,7 @@ function ConnectModal({
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                 />
               </Labeled>
-              <Labeled label="SMTP host">
+              <Labeled label={t("mail.connect.smtpHost")}>
                 <input
                   value={smtpHost}
                   onChange={(e) => setSmtpHost(e.target.value)}
@@ -1078,11 +1145,11 @@ function ConnectModal({
             </div>
           )}
 
-          <Labeled label="Display name (optional)">
+          <Labeled label={t("mail.connect.displayName")}>
             <input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your Name"
+              placeholder={t("mail.connect.displayNamePlaceholder")}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </Labeled>
@@ -1095,7 +1162,7 @@ function ConnectModal({
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {busy ? "Verifying…" : "Connect"}
+            {busy ? t("mail.connect.verifying") : t("mail.connect.submit")}
           </button>
         </div>
       </div>

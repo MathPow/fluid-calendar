@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 import { useTaskStore } from "@/store/task";
@@ -55,10 +56,12 @@ function linkifyText(text: string): React.ReactNode[] {
 }
 
 export function FocusedTask({ task }: FocusedTaskProps) {
+  const t = useT();
+
   if (!task) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
-        <p className="text-lg text-muted-foreground">No task selected</p>
+        <p className="text-lg text-muted-foreground">{t("focus.noTaskSelected")}</p>
       </div>
     );
   }
@@ -98,7 +101,7 @@ export function FocusedTask({ task }: FocusedTaskProps) {
       <div className="mb-6 grid grid-cols-2 gap-4">
         {task.dueDate && (
           <div>
-            <h3 className="mb-1 text-sm font-medium">Due Date</h3>
+            <h3 className="mb-1 text-sm font-medium">{t("focus.dueDate")}</h3>
             <p className="text-muted-foreground">
               {format(task.dueDate, "PPP")}
             </p>
@@ -106,7 +109,7 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         )}
         {task.completedAt && task.status === TaskStatus.COMPLETED && (
           <div>
-            <h3 className="mb-1 text-sm font-medium">Completed On</h3>
+            <h3 className="mb-1 text-sm font-medium">{t("focus.completedOn")}</h3>
             <p className="text-muted-foreground">
               {format(task.completedAt, "PPP p")}
             </p>
@@ -114,13 +117,15 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         )}
         {task.duration && (
           <div>
-            <h3 className="mb-1 text-sm font-medium">Estimated Duration</h3>
-            <p className="text-muted-foreground">{task.duration} minutes</p>
+            <h3 className="mb-1 text-sm font-medium">{t("focus.estimatedDuration")}</h3>
+            <p className="text-muted-foreground">
+              {t("focus.minutes", { count: task.duration })}
+            </p>
           </div>
         )}
         {task.scheduleScore && (
           <div>
-            <h3 className="mb-1 text-sm font-medium">Focus Score</h3>
+            <h3 className="mb-1 text-sm font-medium">{t("focus.focusScore")}</h3>
             <p className="text-muted-foreground">
               {task.scheduleScore.toFixed(2)}
             </p>
@@ -128,8 +133,8 @@ export function FocusedTask({ task }: FocusedTaskProps) {
         )}
         {task.isRecurring && (
           <div>
-            <h3 className="mb-1 text-sm font-medium">Recurring Task</h3>
-            <p className="text-muted-foreground">This task repeats</p>
+            <h3 className="mb-1 text-sm font-medium">{t("focus.recurringTask")}</h3>
+            <p className="text-muted-foreground">{t("focus.taskRepeats")}</p>
           </div>
         )}
       </div>
@@ -137,7 +142,7 @@ export function FocusedTask({ task }: FocusedTaskProps) {
       {/* Task description with hyperlinks */}
       {task.description && (
         <div className="border-t border-border pt-4">
-          <h3 className="mb-2 text-sm font-medium">Description</h3>
+          <h3 className="mb-2 text-sm font-medium">{t("focus.description")}</h3>
           <div className="task-description overflow-auto whitespace-pre-wrap text-muted-foreground">
             {linkifyText(task.description)}
           </div>
@@ -148,13 +153,14 @@ export function FocusedTask({ task }: FocusedTaskProps) {
 }
 
 function FocusSteps({ task }: { task: Task }) {
+  const t = useT();
   const { toggleStep } = useTaskStore();
   const steps = task.steps ?? [];
   const done = steps.filter((s) => s.done).length;
   return (
     <section className="mb-6 rounded-2xl bg-secondary/60 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-medium">Steps</h3>
+        <h3 className="text-sm font-medium">{t("focus.steps")}</h3>
         <span className="text-[12px] tabular-nums text-muted-foreground">
           {done}/{steps.length}
         </span>
@@ -173,7 +179,7 @@ function FocusSteps({ task }: { task: Task }) {
                 checked={s.done}
                 onCheckedChange={(v) =>
                   toggleStep(task.id, s.id, v === true).catch(() =>
-                    toast.error("Could not update the step")
+                    toast.error(t("focus.stepUpdateFailed"))
                   )
                 }
               />

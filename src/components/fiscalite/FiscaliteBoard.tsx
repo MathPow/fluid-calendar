@@ -25,28 +25,30 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 
+import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 import {
   type Budgets,
   DEFAULT_PROFILE,
   isPersonal,
-  FILING_FREQUENCIES,
-  LEGAL_FORMS,
+  FILING_FREQUENCY_KEYS,
+  LEGAL_FORM_KEYS,
   PAID_BY_ME,
+  PAID_BY_ME_KEY,
   SMALL_SUPPLIER_LIMIT_CENTS,
-  categoryLabel,
   deadlinesFor,
   fiscalYearOf,
   fiscalYearRange,
   formatDay,
   formatMoney,
   invoiceIssues,
-  paidByLabel,
   partnerSummaries,
   smallSupplierTest,
   summarize,
+  tCategoryLabel,
 } from "@/lib/fiscalite/meta";
+import type { FilingFrequency, LegalForm } from "@/lib/fiscalite/meta";
 import type { InvoiceView, MovementView } from "@/lib/fiscalite/queries";
 import { INVOICE_MIMES, MAX_INVOICE_BYTES } from "@/lib/fiscalite/schemas";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
@@ -84,6 +86,15 @@ export function FiscaliteBoard({
   invoices: initial,
   movements: initialMovements,
 }: FiscaliteBoardProps) {
+  const t = useT();
+  const locale = useLocale();
+  const paidByLabelI18n = (paidBy: string | null | undefined) =>
+    paidBy === PAID_BY_ME ? t(PAID_BY_ME_KEY) : paidBy || null;
+  // Custom spreadsheet categories have no key: keep their own label.
+  const byCategoryLabel = (id: string, label: string) => {
+    const translated = tCategoryLabel(t, "depense", id);
+    return translated === id ? label : translated;
+  };
   const [invoices, setInvoices] = useState(initial);
   const [profiles, setProfiles] = useState(initialProfiles);
   const [movements, setMovements] = useState(initialMovements);
@@ -157,11 +168,11 @@ export function FiscaliteBoard({
   const personal = isPersonal(profile);
   const configured = !!savedProfile?.setUp;
   const missingIdentity = [
-    !profile.legalName && "nom légal",
-    !profile.neq && "NEQ",
-    profile.salesTaxStatus === "inscrit" && !profile.gstNumber && "no TPS",
-    profile.salesTaxStatus === "inscrit" && !profile.qstNumber && "no TVQ",
-    !profile.address && "adresse",
+    !profile.legalName && t("fiscalite.identity.legalName"),
+    !profile.neq && t("fiscalite.identity.neq"),
+    profile.salesTaxStatus === "inscrit" && !profile.gstNumber && t("fiscalite.identity.gstNumber"),
+    profile.salesTaxStatus === "inscrit" && !profile.qstNumber && t("fiscalite.identity.qstNumber"),
+    !profile.address && t("fiscalite.identity.address"),
   ].filter((v): v is string => !!v);
 
   const setTracked = async (organisationId: string, tracked: boolean) => {
@@ -176,7 +187,7 @@ export function FiscaliteBoard({
       setProfiles((prev) => [...prev.filter((p) => p.organisationId !== organisationId), data]);
       if (tracked) pickOrg(organisationId);
     } catch (e) {
-      toast.error("Modification impossible", {
+      toast.error(t("toasts.fiscalite.updateFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     }
@@ -256,11 +267,11 @@ export function FiscaliteBoard({
       } else rejected.push(file.name);
     }
     if (rejected.length) {
-      toast.error("Fichiers ignorés", {
-        description: `${rejected.join(", ")} · PDF, image, Excel ou CSV seulement.`,
+      toast.error(t("toasts.fiscalite.filesIgnored"), {
+        description: t("toasts.fiscalite.filesIgnored.description", { files: rejected.join(", ") }),
       });
     }
-    if (ok.length > 1) toast(`${ok.length} fichiers: un à la fois.`);
+    if (ok.length > 1) toast(t("toasts.fiscalite.oneAtATime", { count: ok.length }));
     setQueue((q) => [...q, ...ok]);
   };
 
@@ -276,11 +287,11 @@ export function FiscaliteBoard({
   if (!org) {
     return (
       <div className="page pb-16 pt-8 md:pt-12">
-        <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">Fiscalité.</h1>
+        <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">{t("fiscalite.board.title")}</h1>
         <p className="mt-6 max-w-xl text-muted-foreground">
           {allOrgs.length
-            ? "Choisis les organisations que tu exploites pour faire un profit: seules celles-là apparaissent ici."
-            : "Crée d'abord une organisation dans Projets pour y classer des factures."}
+            ? t("fiscalite.board.pickProfitEmpty")
+            : t("fiscalite.board.createOrgFirst")}
         </p>
         {allOrgs.length > 0 && <div className="tile mt-8 max-w-xl p-4">{picker}</div>}
       </div>
@@ -314,19 +325,19 @@ export function FiscaliteBoard({
     >
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">Fiscalité.</h1>
+          <h1 className="display text-[44px] sm:text-[64px] md:text-[80px]">{t("fiscalite.board.title")}</h1>
           <div className="mt-6 flex flex-wrap gap-2">
             <Badge className="px-4 py-2 text-[13px]">
-              {LEGAL_FORMS.find((f) => f.id === profile.legalForm)?.label}
+              {t(LEGAL_FORM_KEYS[profile.legalForm as LegalForm]?.label ?? "fiscalite.legalForm.individuelle.label")}
             </Badge>
             {!personal && (
               <Badge variant={registered ? "positive" : "default"} className="px-4 py-2 text-[13px]">
-                {registered ? "Inscrit TPS/TVQ" : "Petit fournisseur"}
+                {registered ? t("fiscalite.badge.registered") : t("fiscalite.badge.smallSupplier")}
               </Badge>
             )}
             {warnCount > 0 && (
               <Badge variant="pending" className="px-4 py-2 text-[13px]">
-                {warnCount} facture{warnCount > 1 ? "s" : ""} à corriger
+                {t("fiscalite.badge.invoicesToFix", { count: warnCount })}
               </Badge>
             )}
           </div>
@@ -354,24 +365,24 @@ export function FiscaliteBoard({
           </div>
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger asChild>
-              <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" aria-label="Choisir les organisations">
+              <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" aria-label={t("fiscalite.board.pickOrgs")}>
                 <SlidersHorizontal />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80 p-3">
-              <p className="etiquette px-2 pb-2 pt-1">Organisations à but lucratif</p>
+              <p className="etiquette px-2 pb-2 pt-1">{t("fiscalite.board.profitOrgs")}</p>
               {picker}
             </PopoverContent>
           </Popover>
           {/* The budget has its own month picker. */}
           <div className={cn("segmented h-11", personal && "hidden")}>
-            <button type="button" className="segmented-item h-9 px-2" onClick={() => setYear(year - 1)} aria-label="Année précédente">
+            <button type="button" className="segmented-item h-9 px-2" onClick={() => setYear(year - 1)} aria-label={t("fiscalite.board.prevYear")}>
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="px-2 text-[14px] font-semibold tabular-nums">
-              {profile.legalForm === "societe" && profile.fiscalYearEnd !== "12-31" ? `Exercice ${year}` : year}
+              {profile.legalForm === "societe" && profile.fiscalYearEnd !== "12-31" ? t("fiscalite.board.fiscalYear", { year }) : year}
             </span>
-            <button type="button" className="segmented-item h-9 px-2" onClick={() => setYear(year + 1)} aria-label="Année suivante">
+            <button type="button" className="segmented-item h-9 px-2" onClick={() => setYear(year + 1)} aria-label={t("fiscalite.board.nextYear")}>
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -393,12 +404,12 @@ export function FiscaliteBoard({
         <Upload className="h-7 w-7 text-muted-foreground" />
         <div>
           <p className="text-[17px] font-semibold tracking-title">
-            {personal ? `Dépose un reçu (${org.name})` : `Dépose une facture de ${org.name}`}
+            {personal ? t("fiscalite.drop.personal.title", { org: org.name }) : t("fiscalite.drop.business.title", { org: org.name })}
           </p>
           <p className="mt-1 text-[13px] text-muted-foreground">
             {personal
-              ? "PDF ou photo · Excel ou CSV de ta banque · plusieurs à la fois"
-              : "PDF ou photo · émise ou reçue · ou un classeur Excel / CSV · plusieurs à la fois"}
+              ? t("fiscalite.drop.personal.hint")
+              : t("fiscalite.drop.business.hint")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -410,7 +421,7 @@ export function FiscaliteBoard({
               setDialog({ open: true, invoice: null, file: null });
             }}
           >
-            <FilePlus2 /> Saisie sans fichier
+            <FilePlus2 /> {t("fiscalite.drop.manualEntry")}
           </Button>
         </div>
         <input
@@ -449,66 +460,65 @@ export function FiscaliteBoard({
         <div className="min-w-0 space-y-6">
           {/* Year at a glance */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Revenus (avant taxes)" value={formatMoney(summary.revenueCents)} />
+            <Stat label={t("fiscalite.stat.revenue")} value={formatMoney(summary.revenueCents, { locale })} />
             <Stat
-              label="Dépenses déductibles"
-              value={formatMoney(summary.deductibleCents)}
-              hint={summary.capitalCents ? `+ ${formatMoney(summary.capitalCents)} d'équipement (DPA)` : undefined}
+              label={t("fiscalite.stat.deductible")}
+              value={formatMoney(summary.deductibleCents, { locale })}
+              hint={summary.capitalCents ? t("fiscalite.stat.deductible.hint", { amount: formatMoney(summary.capitalCents, { locale }) }) : undefined}
             />
             <Stat
-              label="Bénéfice estimé"
-              value={formatMoney(summary.profitCents)}
+              label={t("fiscalite.stat.profit")}
+              value={formatMoney(summary.profitCents, { locale })}
               tone={summary.profitCents < 0 ? "neg" : undefined}
             />
             {registered ? (
               <Stat
-                label="TPS + TVQ à remettre"
-                value={formatMoney(netGst + netQst)}
-                hint={`TPS ${formatMoney(netGst)} · TVQ ${formatMoney(netQst)}`}
+                label={t("fiscalite.stat.taxesDue")}
+                value={formatMoney(netGst + netQst, { locale })}
+                hint={t("fiscalite.stat.taxesDue.hint", { gst: formatMoney(netGst, { locale }), qst: formatMoney(netQst, { locale }) })}
                 tone={netGst + netQst < 0 ? "pos" : undefined}
               />
             ) : (
               <Stat
-                label="Taxes payées (non récupérables)"
-                value={formatMoney(summary.gstPaid + summary.qstPaid)}
-                hint="Incluses dans tes dépenses"
+                label={t("fiscalite.stat.taxesPaid")}
+                value={formatMoney(summary.gstPaid + summary.qstPaid, { locale })}
+                hint={t("fiscalite.stat.taxesPaid.hint")}
               />
             )}
           </div>
           {paidByMeCents > 0 && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <Stat
-                label="Payé de ma poche"
-                value={formatMoney(paidByMeCents)}
+                label={t("fiscalite.stat.paidByMe")}
+                value={formatMoney(paidByMeCents, { locale })}
                 hint={
                   profile.legalForm === "societe"
-                    ? "Ce que la société te doit"
-                    : "Dépenses réglées avec ton compte perso"
+                    ? t("fiscalite.stat.paidByMe.hint.societe")
+                    : t("fiscalite.stat.paidByMe.hint.individuelle")
                 }
               />
             </div>
           )}
           <p className="text-[12px] text-muted-foreground">
-            {formatDay(range.start)} → {formatDay(range.end)} · {yearInvoices.length} facture
-            {yearInvoices.length > 1 ? "s" : ""}
+            {formatDay(range.start, { locale })} → {formatDay(range.end, { locale })} · {t("fiscalite.board.invoiceCount", { count: yearInvoices.length })}
           </p>
 
           {/* Invoice list */}
           <section className="tile p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-3">
-                <h2 className="text-[20px] font-bold tracking-title">Factures</h2>
+                <h2 className="text-[20px] font-bold tracking-title">{t("fiscalite.invoices.title")}</h2>
                 <ExcelActions organisation={org} year={year} />
               </div>
               <div className="segmented">
                 {(
                   [
-                    ["all", "Toutes"],
-                    ["depense", "Dépenses"],
-                    ["revenu", "Revenus"],
+                    ["all", t("fiscalite.filter.all")],
+                    ["depense", t("fiscalite.filter.expenses")],
+                    ["revenu", t("fiscalite.filter.incomes")],
                   ] as const
                 ).map(([id, label]) => (
-                  <button key={id} type="button" className="segmented-item" data-active={filter === id} onClick={() => setFilter(id)}>
+                  <button key={id} type="button" className="segmented-item" data-active={filter === id} onClick={() => setFilter(id as "all" | "depense" | "revenu")}>
                     {label}
                   </button>
                 ))}
@@ -517,7 +527,7 @@ export function FiscaliteBoard({
 
             {visible.length === 0 ? (
               <p className="mt-6 text-[14px] text-muted-foreground">
-                Aucune facture pour cette période. Dépose la première ci-dessus.
+                {t("fiscalite.invoices.empty")}
               </p>
             ) : (
               <ul className="mt-4 divide-y divide-border">
@@ -542,29 +552,29 @@ export function FiscaliteBoard({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-1.5 truncate text-[15px] font-medium">
-                            {inv.party || inv.description || "Sans nom"}
+                            {inv.party || inv.description || t("fiscalite.invoices.untitled")}
                             {inv.file && <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
                           </span>
                           <span className="block truncate text-[12px] text-muted-foreground">
-                            {formatDay(new Date(inv.date), { short: true })} · {categoryLabel(inv.direction, inv.category)}
-                            {inv.number ? ` · no ${inv.number}` : ""}
-                            {inv.paidBy ? ` · payé par ${paidByLabel(inv.paidBy)}` : ""}
+                            {formatDay(new Date(inv.date), { short: true, locale })} · {tCategoryLabel(t, inv.direction, inv.category)}
+                            {inv.number ? ` · ${t("fiscalite.invoices.number", { number: inv.number })}` : ""}
+                            {inv.paidBy ? ` · ${t("fiscalite.invoices.paidBy", { who: paidByLabelI18n(inv.paidBy) ?? "" })}` : ""}
                           </span>
                           {warn.length > 0 && (
                             <span className="mt-1 flex items-center gap-1 text-[12px] text-pending-foreground">
                               <AlertTriangle className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{warn[0].text}</span>
+                              <span className="truncate">{warn[0].key ? t(warn[0].key, warn[0].params) : warn[0].text}</span>
                             </span>
                           )}
                         </span>
                         <span className="text-right">
                           <span className={cn("block text-[15px] font-semibold tabular-nums", income && "text-positive-foreground")}>
                             {income ? "+" : "−"}
-                            {formatMoney(inv.totalCents)}
+                            {formatMoney(inv.totalCents, { locale })}
                           </span>
                           {inv.gstCents + inv.qstCents > 0 && (
                             <span className="block text-[11px] tabular-nums text-muted-foreground">
-                              taxes {formatMoney(inv.gstCents + inv.qstCents)}
+                              {t("fiscalite.invoices.taxes", { amount: formatMoney(inv.gstCents + inv.qstCents, { locale }) })}
                             </span>
                           )}
                         </span>
@@ -579,23 +589,23 @@ export function FiscaliteBoard({
 
           {summary.byCategory.length > 0 && (
             <section className="tile p-5 sm:p-6">
-              <h2 className="text-[20px] font-bold tracking-title">Dépenses par ligne</h2>
+              <h2 className="text-[20px] font-bold tracking-title">{t("fiscalite.byCategory.title")}</h2>
               <p className="mt-1 text-[13px] text-muted-foreground">
                 {profile.legalForm === "societe"
-                  ? "Regroupées comme dans l'état des résultats de ta T2 / CO-17."
-                  : "Ce que tu reportes dans le TP-80 (Québec) et la T2125 (fédéral)."}
+                  ? t("fiscalite.byCategory.hint.societe")
+                  : t("fiscalite.byCategory.hint.individuelle")}
               </p>
               <ul className="mt-4 space-y-2">
                 {summary.byCategory.map((c) => (
                   <li key={c.id} className="flex items-baseline gap-3 text-[14px]">
                     <span className="w-12 shrink-0 text-[12px] tabular-nums text-muted-foreground">{c.line ?? ""}</span>
-                    <span className="min-w-0 flex-1 truncate">{c.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{byCategoryLabel(c.id, c.label)}</span>
                     {c.deductibleCents !== c.cents && (
                       <span className="text-[12px] tabular-nums text-muted-foreground">
-                        {formatMoney(c.cents)} →
+                        {formatMoney(c.cents, { locale })} →
                       </span>
                     )}
-                    <span className="font-medium tabular-nums">{formatMoney(c.deductibleCents || c.cents)}</span>
+                    <span className="font-medium tabular-nums">{formatMoney(c.deductibleCents || c.cents, { locale })}</span>
                   </li>
                 ))}
               </ul>
@@ -607,59 +617,62 @@ export function FiscaliteBoard({
         <aside className={cn("space-y-6", !configured && "order-first lg:order-none")}>
           {!configured ? (
             <section className="tile-ink p-6">
-              <p className="etiquette text-background/60">Étape 1</p>
+              <p className="etiquette text-background/60">{t("fiscalite.setup.step")}</p>
               <h2 className="mt-3 text-[22px] font-bold leading-tight tracking-title">
-                Dis-moi comment {org.name} est constituée.
+                {t("fiscalite.setup.title", { org: org.name })}
               </h2>
               <p className="mt-2 text-[14px] text-background/70">
-                Entreprise individuelle ou société, inscrite aux taxes ou non: tout le reste en découle
-                (formulaires, échéances, taxes à remettre).
+                {t("fiscalite.setup.hint")}
               </p>
               <Button variant="secondary" className="mt-5" onClick={() => setProfileOpen(true)}>
-                Remplir le profil
+                {t("fiscalite.setup.fill")}
               </Button>
             </section>
           ) : (
             <section className="tile p-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="etiquette">Profil d&apos;entreprise</p>
+                  <p className="etiquette">{t("fiscalite.profile.title")}</p>
                   <h2 className="mt-2 truncate text-[18px] font-bold tracking-title">
                     {profile.legalName || org.name}
                   </h2>
                   <p className="text-[13px] text-muted-foreground">
-                    {LEGAL_FORMS.find((f) => f.id === profile.legalForm)?.label}
+                    {LEGAL_FORM_KEYS[profile.legalForm as LegalForm] ? t(LEGAL_FORM_KEYS[profile.legalForm as LegalForm].label) : ""}
                     {profile.activity ? ` · ${profile.activity}` : ""}
                   </p>
                 </div>
                 <Button size="sm" variant="secondary" onClick={() => setProfileOpen(true)}>
-                  <Pencil /> Modifier
+                  <Pencil /> {t("common.edit")}
                 </Button>
               </div>
               <dl className="mt-4 space-y-1.5 text-[13px]">
                 {profile.neq && <Row k="NEQ">{profile.neq}</Row>}
-                {profile.rqNumber && <Row k="No Revenu Québec">{profile.rqNumber}</Row>}
-                {profile.businessNumber && <Row k="NE fédéral">{profile.businessNumber}</Row>}
+                {profile.rqNumber && <Row k={t("fiscalite.profile.rqNumber")}>{profile.rqNumber}</Row>}
+                {profile.businessNumber && <Row k={t("fiscalite.profile.businessNumber")}>{profile.businessNumber}</Row>}
                 {profile.startedAt && (
-                  <Row k="Depuis">{formatDay(new Date(`${profile.startedAt.slice(0, 10)}T00:00:00Z`))}</Row>
+                  <Row k={t("fiscalite.profile.since")}>{formatDay(new Date(`${profile.startedAt.slice(0, 10)}T00:00:00Z`), { locale })}</Row>
                 )}
-                <Row k="Déclarations">
+                <Row k={t("fiscalite.profile.returns")}>
                   {profile.legalForm === "societe"
                     ? "CO-17 + T2"
                     : senc
-                      ? "TP-600 · associés: TP-80 + T2125"
+                      ? t("fiscalite.profile.returns.senc")
                       : "TP-1 (TP-80) + T1 (T2125)"}
                 </Row>
                 {profile.legalForm === "societe" && (
-                  <Row k="Fin d'exercice">{formatDay(fiscalYearRange(profile, year).end, { short: true })}</Row>
+                  <Row k={t("fiscalite.profile.yearEnd")}>{formatDay(fiscalYearRange(profile, year).end, { short: true, locale })}</Row>
                 )}
                 <Row k="TPS/TVQ">
                   {registered
-                    ? `Inscrit · ${FILING_FREQUENCIES.find((f) => f.id === profile.filingFrequency)?.label.toLowerCase()}`
-                    : "Petit fournisseur"}
+                    ? t("fiscalite.profile.registered", {
+                        frequency: FILING_FREQUENCY_KEYS[profile.filingFrequency as FilingFrequency]
+                          ? t(FILING_FREQUENCY_KEYS[profile.filingFrequency as FilingFrequency]).toLowerCase()
+                          : "",
+                      })
+                    : t("fiscalite.badge.smallSupplier")}
                 </Row>
                 {senc && (
-                  <Row k="Associés">
+                  <Row k={t("fiscalite.profile.partners")}>
                     {(profile.partners ?? [])
                       .map((p, i) =>
                         profile.partnerShares?.length === profile.partners?.length
@@ -669,17 +682,17 @@ export function FiscaliteBoard({
                       .join(", ") || "—"}
                   </Row>
                 )}
-                {registered && <Row k="No TVQ">{profile.qstNumber || "—"}</Row>}
-                {registered && <Row k="No TPS">{profile.gstNumber || "—"}</Row>}
+                {registered && <Row k={t("fiscalite.identity.qstNumber")}>{profile.qstNumber || "—"}</Row>}
+                {registered && <Row k={t("fiscalite.identity.gstNumber")}>{profile.gstNumber || "—"}</Row>}
                 {(profile.address || profile.city) && (
-                  <Row k="Adresse">
+                  <Row k={t("fiscalite.profile.address")}>
                     {[profile.address, profile.city, profile.province, profile.postalCode].filter(Boolean).join(", ")}
                   </Row>
                 )}
-                {profile.email && <Row k="Courriel">{profile.email}</Row>}
-                {profile.phone && <Row k="Téléphone">{profile.phone}</Row>}
+                {profile.email && <Row k={t("fiscalite.profile.email")}>{profile.email}</Row>}
+                {profile.phone && <Row k={t("fiscalite.profile.phone")}>{profile.phone}</Row>}
                 {profile.accountant && (
-                  <Row k="Comptable">
+                  <Row k={t("fiscalite.profile.accountant")}>
                     {profile.accountantEmail ? (
                       <a href={`mailto:${profile.accountantEmail}`} className="underline underline-offset-2">
                         {profile.accountant}
@@ -696,7 +709,7 @@ export function FiscaliteBoard({
                   onClick={() => setProfileOpen(true)}
                   className="mt-4 w-full rounded-xl bg-secondary px-3 py-2 text-left text-[12px] text-muted-foreground hover:bg-border/70"
                 >
-                  À compléter: {missingIdentity.join(", ")}
+                  {t("fiscalite.profile.toComplete", { fields: missingIdentity.join(", ") })}
                 </button>
               )}
             </section>
@@ -704,20 +717,24 @@ export function FiscaliteBoard({
 
           <section className="tile p-6">
             <p className="etiquette flex items-center gap-1.5">
-              <CalendarClock className="h-3.5 w-3.5" /> Prochaines échéances
+              <CalendarClock className="h-3.5 w-3.5" /> {t("fiscalite.deadlines.title")}
             </p>
             <ul className="mt-4 space-y-4">
               {deadlines.map((d, i) => (
                 <li key={i} className="flex gap-3">
                   <span className="w-14 shrink-0 text-[13px] font-semibold tabular-nums">
-                    {formatDay(d.date, { short: true })}
+                    {formatDay(d.date, { short: true, locale })}
                   </span>
                   <span className="min-w-0">
                     <span className="block text-[14px] font-medium leading-snug">
-                      {d.title}
-                      {d.conditional && <span className="font-normal text-muted-foreground"> · si applicable</span>}
+                      {d.titleKey ? t(d.titleKey, d.detailParams) : d.title}
+                      {d.conditional && (
+                        <span className="font-normal text-muted-foreground"> · {t("fiscalite.deadlines.ifApplicable")}</span>
+                      )}
                     </span>
-                    <span className="block text-[12px] text-muted-foreground">{d.detail}</span>
+                    <span className="block text-[12px] text-muted-foreground">
+                      {d.detailKey ? t(d.detailKey, d.detailParams) : d.detail}
+                    </span>
                   </span>
                 </li>
               ))}
@@ -737,12 +754,12 @@ export function FiscaliteBoard({
 
           {!registered && (
             <section className="tile p-6">
-              <p className="etiquette">Seuil du petit fournisseur</p>
+              <p className="etiquette">{t("fiscalite.supplier.title")}</p>
               <p className="mt-3 text-[24px] font-bold tabular-nums tracking-title">
-                {formatMoney(supplier.total)}
+                {formatMoney(supplier.total, { locale })}
                 <span className="text-[14px] font-medium text-muted-foreground">
                   {" "}
-                  / {formatMoney(SMALL_SUPPLIER_LIMIT_CENTS)}
+                  / {formatMoney(SMALL_SUPPLIER_LIMIT_CENTS, { locale })}
                 </span>
               </p>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
@@ -753,27 +770,26 @@ export function FiscaliteBoard({
               </div>
               <p className="mt-3 text-[13px] text-muted-foreground">
                 {supplier.quarterOver
-                  ? "Plus de 30 000 $ dans un seul trimestre: tu dois t'inscrire et facturer les taxes dès la vente qui fait dépasser."
+                  ? t("fiscalite.supplier.quarterOver")
                   : supplier.over
-                    ? "Dépassé sur quatre trimestres: inscris-toi aux TPS/TVQ (Revenu Québec gère les deux) au plus tard dans le mois suivant."
-                    : "Ventes des quatre derniers trimestres (celui en cours inclus). Au-delà de 30 000 $, l'inscription TPS/TVQ devient obligatoire."}
+                    ? t("fiscalite.supplier.over")
+                    : t("fiscalite.supplier.under")}
               </p>
             </section>
           )}
 
           <section className="tile p-6">
-            <p className="etiquette">À savoir</p>
+            <p className="etiquette">{t("fiscalite.tips.title")}</p>
             <ul className="mt-4 space-y-3 text-[13px] leading-relaxed">
-              {tips(profile.legalForm, registered).map((t) => (
-                <li key={t} className="flex gap-2">
+              {tips(profile.legalForm, registered).map((key) => (
+                <li key={key} className="flex gap-2">
                   <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40" />
-                  <span>{t}</span>
+                  <span>{t(key)}</span>
                 </li>
               ))}
             </ul>
             <p className="voice-note mt-5 text-[13px]">
-              Règles générales, pas un avis professionnel: pour ta déclaration finale, fais valider par un
-              comptable.
+              {t("fiscalite.tips.disclaimer")}
             </p>
           </section>
         </aside>
@@ -838,35 +854,35 @@ function tips(legalForm: string, registered: boolean): string[] {
   const out: string[] = [];
   if (legalForm === "senc") {
     out.push(
-      "La SENC ne paie pas d'impôt: son bénéfice est partagé entre les associés (RL-15), et chacun l'ajoute à ses revenus avec RRQ et RQAP. Mettez chacun 25 à 30 % de votre part de côté.",
-      "Les retraits ne sont pas une dépense: c'est ta part des profits qui sort. L'impôt se calcule sur la part du bénéfice, retirée ou pas.",
-      "Une dépense payée de ta poche pour la SENC: note-la « Payé par » toi; la SENC la déduit et te la doit. Une dépense que tu gardes à ta charge, tu la déduis toi-même (ligne 9943).",
-      "Un contrat de société écrit (parts, qui fait quoi, sortie d'un associé) vous évitera bien des chicanes."
+      "fiscalite.tips.senc.partnersTaxed",
+      "fiscalite.tips.senc.drawings",
+      "fiscalite.tips.senc.paidByMe",
+      "fiscalite.tips.senc.agreement"
     );
   } else if (legalForm === "societe") {
     out.push(
-      "La société paie son propre impôt (autour de 12 % au Québec avec la déduction pour petite entreprise, si elle y a droit). Toi, tu es imposé sur ce que tu te verses.",
-      "Salaire ou dividendes: le salaire crée des cotisations RRQ et des T4/RL-1 à produire; le dividende est plus simple mais ne cotise pas. C'est LA question à poser à ton comptable.",
-      "Ne paie pas tes dépenses perso avec le compte de la société: ça devient un avantage imposable."
+      "fiscalite.tips.societe.ownTax",
+      "fiscalite.tips.societe.salaryDividends",
+      "fiscalite.tips.societe.noPersonal"
     );
   } else {
     out.push(
-      "Ton bénéfice s'ajoute à tes autres revenus, et tu paies les deux parts de RRQ (≈ 12,8 %) plus le RQAP. Mets de côté 25 à 30 % de ton bénéfice.",
-      "Un compte bancaire séparé pour l'entreprise rend tout ça beaucoup plus simple.",
-      "Bureau à domicile: déductible au prorata de la superficie, mais seulement jusqu'à ramener le bénéfice à zéro."
+      "fiscalite.tips.individuelle.setAside",
+      "fiscalite.tips.individuelle.bankAccount",
+      "fiscalite.tips.individuelle.homeOffice"
     );
   }
   if (registered) {
     out.push(
-      "TPS/TVQ perçues ≠ ton argent: réserve-les dès l'encaissement. Tu remets la différence avec celles payées sur tes achats (CTI/RTI).",
-      "Pour réclamer les taxes d'un achat de 100 $ et plus, la facture doit montrer le no TPS/TVQ du fournisseur."
+      "fiscalite.tips.registered.notYourMoney",
+      "fiscalite.tips.registered.supplierNumber"
     );
   } else {
     out.push(
-      "Petit fournisseur: tu ne factures pas de taxes, et celles que tu paies font partie de tes dépenses. T'inscrire volontairement peut valoir le coup si tu achètes beaucoup d'équipement."
+      "fiscalite.tips.smallSupplier.voluntary"
     );
   }
-  out.push("Garde chaque facture et reçu 6 ans: c'est exactement ce que ce dossier fait.");
+  out.push("fiscalite.tips.keepReceipts");
   return out;
 }
 
@@ -882,6 +898,7 @@ function OrgPicker({
   invoiceCount: (id: string) => number;
   onChange: (id: string, tracked: boolean) => void;
 }) {
+  const t = useT();
   return (
     <ul className="space-y-1">
       {organisations.map((o) => {
@@ -900,7 +917,7 @@ function OrgPicker({
                 <span className="block truncate text-[14px] font-medium">{o.name}</span>
                 {n > 0 && (
                   <span className="block text-[12px] text-muted-foreground">
-                    {n} facture{n > 1 ? "s" : ""}
+                    {t("fiscalite.board.invoiceCount", { count: n })}
                   </span>
                 )}
               </span>

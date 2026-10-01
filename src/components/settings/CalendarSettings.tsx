@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,12 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n/client";
 import { useCalendarStore } from "@/store/calendar";
 import { useSettingsStore } from "@/store/settings";
 
 import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function CalendarSettings() {
+  const t = useT();
   const { calendar, updateCalendarSettings, user, updateUserSettings } =
     useSettingsStore();
   const { feeds, loadFromDatabase } = useCalendarStore();
@@ -27,23 +31,23 @@ export function CalendarSettings() {
   }, [loadFromDatabase]);
 
   const workingDays = [
-    { value: 0, label: "Sunday" },
-    { value: 1, label: "Monday" },
-    { value: 2, label: "Tuesday" },
-    { value: 3, label: "Wednesday" },
-    { value: 4, label: "Thursday" },
-    { value: 5, label: "Friday" },
-    { value: 6, label: "Saturday" },
+    { value: 0, labelKey: "common.weekday.sunday" },
+    { value: 1, labelKey: "common.weekday.monday" },
+    { value: 2, labelKey: "common.weekday.tuesday" },
+    { value: 3, labelKey: "common.weekday.wednesday" },
+    { value: 4, labelKey: "common.weekday.thursday" },
+    { value: 5, labelKey: "common.weekday.friday" },
+    { value: 6, labelKey: "common.weekday.saturday" },
   ];
 
   return (
     <SettingsSection
-      title="Calendar Settings"
-      description="Configure your calendar display and event defaults."
+      title={t("settings.calendar.title")}
+      description={t("settings.calendar.description")}
     >
       <SettingRow
-        label="Default Calendar"
-        description="Choose which calendar new events are added to by default"
+        label={t("settings.calendar.defaultCalendar.label")}
+        description={t("settings.calendar.defaultCalendar.description")}
       >
         <Select
           value={calendar.defaultCalendarId || "none"}
@@ -54,10 +58,14 @@ export function CalendarSettings() {
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select a default calendar" />
+            <SelectValue
+              placeholder={t("settings.calendar.defaultCalendar.placeholder")}
+            />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Select a default calendar</SelectItem>
+            <SelectItem value="none">
+              {t("settings.calendar.defaultCalendar.placeholder")}
+            </SelectItem>
             {feeds
               .filter((feed) => feed.enabled)
               .map((feed) => (
@@ -70,8 +78,8 @@ export function CalendarSettings() {
       </SettingRow>
 
       <SettingRow
-        label="Week Start Day"
-        description="Set which day of the week your calendar should start on"
+        label={t("settings.calendar.weekStart.label")}
+        description={t("settings.calendar.weekStart.description")}
       >
         <Select
           value={user.weekStartDay}
@@ -82,18 +90,20 @@ export function CalendarSettings() {
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select start day" />
+            <SelectValue
+              placeholder={t("settings.calendar.weekStart.placeholder")}
+            />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="sunday">Sunday</SelectItem>
-            <SelectItem value="monday">Monday</SelectItem>
+            <SelectItem value="sunday">{t("common.weekday.sunday")}</SelectItem>
+            <SelectItem value="monday">{t("common.weekday.monday")}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
 
       <SettingRow
-        label="Working Hours"
-        description="Set your working hours for better calendar visualization"
+        label={t("settings.calendar.workingHours.label")}
+        description={t("settings.calendar.workingHours.description")}
       >
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
@@ -109,12 +119,14 @@ export function CalendarSettings() {
                 })
               }
             />
-            <Label htmlFor="show-working-hours">Show working hours</Label>
+            <Label htmlFor="show-working-hours">
+              {t("settings.calendar.workingHours.show")}
+            </Label>
           </div>
 
           <div className="flex space-x-4">
             <div className="flex-1">
-              <Label>Start Time</Label>
+              <Label>{t("settings.calendar.workingHours.startTime")}</Label>
               <Input
                 type="time"
                 value={calendar.workingHours.start}
@@ -129,7 +141,7 @@ export function CalendarSettings() {
               />
             </div>
             <div className="flex-1">
-              <Label>End Time</Label>
+              <Label>{t("settings.calendar.workingHours.endTime")}</Label>
               <Input
                 type="time"
                 value={calendar.workingHours.end}
@@ -146,7 +158,7 @@ export function CalendarSettings() {
           </div>
 
           <div>
-            <Label>Working Days</Label>
+            <Label>{t("settings.calendar.workingHours.workingDays")}</Label>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {workingDays.map((day) => (
                 <div key={day.value} className="flex items-center space-x-2">
@@ -168,7 +180,7 @@ export function CalendarSettings() {
                     }}
                   />
                   <Label htmlFor={`day-${day.value}`} className="text-sm">
-                    {day.label}
+                    {t(day.labelKey)}
                   </Label>
                 </div>
               ))}
