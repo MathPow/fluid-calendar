@@ -7,6 +7,7 @@ import { GripVertical, Plus, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 import type { TaskStepInput } from "@/types/task";
@@ -21,6 +22,7 @@ interface StepsEditorProps {
  * (drag handle: move up/down with the arrow keys), add with Enter.
  */
 export function StepsEditor({ steps, onChange }: StepsEditorProps) {
+  const t = useT();
   const [draft, setDraft] = useState("");
 
   const done = steps.filter((s) => s.done).length;
@@ -70,8 +72,8 @@ export function StepsEditor({ steps, onChange }: StepsEditorProps) {
             <button
               type="button"
               className="cursor-ns-resize rounded p-0.5 text-muted-foreground/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              title="Move (↑ / ↓)"
-              aria-label={`Move step ${i + 1}`}
+              title={t("tasks.steps.moveTitle")}
+              aria-label={t("tasks.steps.moveAria", { index: i + 1 })}
               onKeyDown={(e) => {
                 if (e.key === "ArrowUp") {
                   e.preventDefault();
@@ -87,7 +89,7 @@ export function StepsEditor({ steps, onChange }: StepsEditorProps) {
             <Checkbox
               checked={!!s.done}
               onCheckedChange={(v) => update(i, { done: v === true })}
-              aria-label={`Step ${i + 1} done`}
+              aria-label={t("tasks.steps.doneAria", { index: i + 1 })}
             />
             <input
               value={s.title}
@@ -102,13 +104,13 @@ export function StepsEditor({ steps, onChange }: StepsEditorProps) {
                 "h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-[14px] text-foreground focus:outline-none focus:ring-0",
                 s.done && "text-muted-foreground line-through"
               )}
-              aria-label={`Step ${i + 1} title`}
+              aria-label={t("tasks.steps.titleAria", { index: i + 1 })}
             />
             <button
               type="button"
               onClick={() => remove(i)}
               className="rounded-full p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-negative hover:text-negative-foreground focus-visible:opacity-100 group-hover:opacity-100"
-              aria-label={`Remove step ${i + 1}`}
+              aria-label={t("tasks.steps.removeAria", { index: i + 1 })}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -126,7 +128,11 @@ export function StepsEditor({ steps, onChange }: StepsEditorProps) {
               add();
             }
           }}
-          placeholder={steps.length === 0 ? "First step… (Enter to add)" : "Next step…"}
+          placeholder={
+            steps.length === 0
+              ? t("tasks.steps.firstPlaceholder")
+              : t("tasks.steps.nextPlaceholder")
+          }
           className="h-10"
         />
         <button
@@ -134,7 +140,7 @@ export function StepsEditor({ steps, onChange }: StepsEditorProps) {
           onClick={add}
           disabled={!draft.trim()}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-border/70 disabled:opacity-40"
-          aria-label="Add step"
+          aria-label={t("tasks.steps.addAria")}
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -151,6 +157,7 @@ export function StepsProgress({
   steps: { done: boolean }[] | undefined;
   className?: string;
 }) {
+  const t = useT();
   if (!steps || steps.length === 0) return null;
   const done = steps.filter((s) => s.done).length;
   const complete = done === steps.length;
@@ -161,7 +168,7 @@ export function StepsProgress({
         complete ? "bg-positive text-positive-foreground" : "bg-secondary text-muted-foreground",
         className
       )}
-      title={`${done} of ${steps.length} steps done`}
+      title={t("tasks.steps.progressTitle", { done, total: steps.length })}
     >
       <span className="h-1 w-8 overflow-hidden rounded-full bg-foreground/10">
         <span

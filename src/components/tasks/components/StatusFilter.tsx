@@ -5,9 +5,9 @@ import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { TaskStatus } from "@/types/task";
+import { useT } from "@/i18n/client";
 
-import { formatEnumValue } from "../utils/task-list-utils";
+import { TaskStatus } from "@/types/task";
 
 interface StatusFilterProps {
   value: TaskStatus[];
@@ -15,6 +15,7 @@ interface StatusFilterProps {
 }
 
 export function StatusFilter({ value = [], onChange }: StatusFilterProps) {
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -60,10 +61,10 @@ export function StatusFilter({ value = [], onChange }: StatusFilterProps) {
       >
         <span className="truncate">
           {value.length === 0
-            ? "All Status"
+            ? t("tasks.filters.allStatus")
             : value.length === Object.keys(TaskStatus).length
-              ? "All Status"
-              : `${value.length} selected`}
+              ? t("tasks.filters.allStatus")
+              : t("tasks.filters.statusSelected", { count: value.length })}
         </span>
         <ChevronDown
           className={`h-4 w-4 text-muted-foreground transition-transform ${
@@ -80,7 +81,7 @@ export function StatusFilter({ value = [], onChange }: StatusFilterProps) {
               className="h-auto p-0 text-xs hover:bg-transparent hover:text-primary"
               onClick={handleSelectAll}
             >
-              Select All
+              {t("tasks.filters.statusSelectAll")}
             </Button>
             <Button
               variant="ghost"
@@ -88,7 +89,7 @@ export function StatusFilter({ value = [], onChange }: StatusFilterProps) {
               className="h-auto p-0 text-xs hover:bg-transparent hover:text-primary"
               onClick={handleSelectNone}
             >
-              Clear
+              {t("tasks.filters.statusClear")}
             </Button>
           </div>
           {Object.values(TaskStatus).map((status) => (
@@ -102,7 +103,7 @@ export function StatusFilter({ value = [], onChange }: StatusFilterProps) {
                 className="h-3 w-3"
               />
               <span className="ml-2 text-sm text-foreground">
-                {formatEnumValue(status)}
+                {t(`tasks.status.${status}`)}
               </span>
             </label>
           ))}

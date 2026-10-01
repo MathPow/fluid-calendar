@@ -2,11 +2,11 @@
 
 import { useDroppable } from "@dnd-kit/core";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 import { Task, TaskStatus } from "@/types/task";
 
-import { STATUS_LABELS } from "../utils/task-list-utils";
 import { BoardTask } from "./BoardTask";
 
 interface ColumnProps {
@@ -34,17 +34,8 @@ const statusHeaderColors = {
   [TaskStatus.COMPLETED]: "bg-positive text-positive-foreground",
 };
 
-// Helper function to format enum values for display
-const formatEnumValue = (value: string) => {
-  if (STATUS_LABELS[value]) return STATUS_LABELS[value];
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
 export function Column({ status, tasks, onEdit, onDelete }: ColumnProps) {
+  const t = useT();
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   });
@@ -67,7 +58,7 @@ export function Column({ status, tasks, onEdit, onDelete }: ColumnProps) {
                 statusHeaderColors[status]
               )}
             >
-              {formatEnumValue(status)}
+              {t(`tasks.status.${status}`)}
             </span>
             <span className="text-sm text-muted-foreground">
               {tasks.length}

@@ -5,19 +5,13 @@ import { StepsProgress } from "../components/StepsEditor";
 import { useDraggable } from "@dnd-kit/core";
 import { Clock, Lock, Pencil, Trash2 } from "lucide-react";
 
-import {
-  format,
-  isFutureDate,
-  isThisWeek,
-  isThisYear,
-  isToday,
-  isTomorrow,
-  newDate,
-  newDateFromYMD,
-} from "@/lib/date-utils";
+import { useT } from "@/i18n/client";
+import { format, newDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 import { Task, TimePreference } from "@/types/task";
+
+import { contextualDate } from "../utils/task-list-utils";
 
 interface BoardTaskProps {
   task: Task;
@@ -39,45 +33,8 @@ const timePreferenceColors = {
     "bg-secondary text-muted-foreground",
 };
 
-// Helper function to format enum values for display
-const formatEnumValue = (value: string) => {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
-const formatContextualDate = (date: Date) => {
-  const localDate = newDateFromYMD(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate()
-  );
-  const now = newDate();
-  now.setHours(0, 0, 0, 0);
-
-  const isOverdue = localDate < now && !isToday(localDate);
-  const isFuture = isFutureDate(localDate);
-  let text = "";
-  if (isToday(localDate)) {
-    text = "Today";
-  } else if (isTomorrow(localDate)) {
-    text = "Tomorrow";
-  } else if (isThisWeek(localDate)) {
-    text = format(localDate, "EEEE");
-  } else if (isThisYear(localDate)) {
-    text = format(localDate, "MMM d");
-  } else {
-    text = format(localDate, "MMM d, yyyy");
-  }
-  if (isOverdue) {
-    text = `Overdue: ${text}`;
-  }
-  return { text, isOverdue, isFuture };
-};
-
 export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
+  const t = useT();
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: task.id,
@@ -92,6 +49,18 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
       }
     : undefined;
+
+  const renderDueDate = (date: Date) => {
+    const info = contextualDate(date, { utcMidnight: true });
+    const base =
+      info.kind === "today"
+        ? t("tasks.date.today")
+        : info.kind === "tomorrow"
+          ? t("tasks.date.tomorrow")
+          : info.base;
+    const text = info.isOverdue ? t("tasks.date.overdue", { text: base }) : base;
+    return { text, isOverdue: info.isOverdue };
+  };
 
   return (
     <div className="group relative">
@@ -111,12 +80,12 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
               {task.isAutoScheduled && (
                 <div
                   className="flex items-center gap-1 text-primary"
-                  title="Auto-scheduled"
+                  title={t("tasks.row.autoScheduled")}
                 >
                   <Clock className="h-4 w-4" />
                   {task.scheduleLocked && (
                     <Lock className="h-3 w-3">
-                      <title>Schedule locked</title>
+                      <title>{t("tasks.row.scheduleLocked")}</title>
                     </Lock>
                   )}
                 </div>
@@ -158,7 +127,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
                   energyLevelColors[task.energyLevel]
                 )}
               >
-                {formatEnumValue(task.energyLevel)}
+                {t(`tasks.energy.${task.energyLevel}`)}
               </span>
             )}
 
@@ -169,7 +138,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
                   timePreferenceColors[task.preferredTime]
                 )}
               >
-                {formatEnumValue(task.preferredTime)}
+                {t(`tasks.time.${task.preferredTime}`)}
               </span>
             )}
 
@@ -177,17 +146,18 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
               <span className="text-muted-foreground">{task.duration}m</span>
             )}
 
-            {task.dueDate && (
-              <span
-                className={cn(
-                  formatContextualDate(newDate(task.dueDate)).isOverdue
-                    ? "text-destructive"
-                    : "text-muted-foreground"
-                )}
-              >
-                {formatContextualDate(newDate(task.dueDate)).text}
-              </span>
-            )}
+            {task.dueDate && (() => {
+              const due = renderDueDate(newDate(task.dueDate));
+              return (
+                <span
+                  className={cn(
+                    due.isOverdue ? "text-destructive" : "text-muted-foreground"
+                  )}
+                >
+                  {due.text}
+                </span>
+              );
+            })()}
 
             {task.project && (
               <div className="flex items-center gap-1">
@@ -224,7 +194,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           type="button"
           onClick={() => onEdit(task)}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-primary"
-          title="Edit task"
+          title={t("tasks.row.edit")}
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -232,7 +202,7 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
           type="button"
           onClick={() => onDelete(task.id)}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
-          title="Delete task"
+          title={t("tasks.row.delete")}
         >
           <Trash2 className="h-4 w-4" />
         </button>

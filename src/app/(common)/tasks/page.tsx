@@ -15,6 +15,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
+import { useT } from "@/i18n/client";
+
 import { useProjectStore } from "@/store/project";
 import { useTaskStore } from "@/store/task";
 import { useTaskModalStore } from "@/store/taskModal";
@@ -23,6 +25,7 @@ import { useTaskPageSettings } from "@/store/taskPageSettings";
 import { NewTask, Task, TaskStatus } from "@/types/task";
 
 export default function TasksPage() {
+  const t = useT();
   const {
     tasks,
     tags,
@@ -67,7 +70,7 @@ export default function TasksPage() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (confirm("Are you sure you want to delete this task?")) {
+    if (confirm(t("tasks.confirm.delete"))) {
       await deleteTask(taskId);
       await fetchTasks();
       await fetchProjects();
@@ -104,8 +107,8 @@ export default function TasksPage() {
       }
     } catch (error) {
       console.error("Error updating task:", error);
-      toast.error("Failed to update task", {
-        description: "Please try again later.",
+      toast.error(t("tasks.toasts.updateFailedTitle"), {
+        description: t("tasks.toasts.updateFailedDesc"),
       });
     }
   };
@@ -132,13 +135,13 @@ export default function TasksPage() {
         <div className="border-b border-border px-4 pb-4 pt-5 md:px-8 md:pb-5 md:pt-7">
           {/* Row 1: title + create button */}
           <div className="flex items-center justify-between gap-2">
-            <h1 className="display text-[32px] md:text-[40px]">Tasks.</h1>
+            <h1 className="display text-[32px] md:text-[40px]">{t("tasks.title")}</h1>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => scheduleAllTasks()} className="hidden md:inline-flex">
-                Auto Schedule
+                {t("tasks.actions.autoSchedule")}
               </Button>
               <Button data-create-task-button onClick={handleCreateTaskClick}>
-                + Task
+                {t("tasks.actions.newTask")}
               </Button>
             </div>
           </div>
@@ -151,7 +154,7 @@ export default function TasksPage() {
               data-active={viewMode === "list"}
             >
               <ListTodo className="h-4 w-4" />
-              List
+              {t("tasks.view.list")}
             </button>
             <button
               onClick={() => setViewMode("board")}
@@ -159,11 +162,11 @@ export default function TasksPage() {
               data-active={viewMode === "board"}
             >
               <Kanban className="h-4 w-4" />
-              Board
+              {t("tasks.view.board")}
             </button>
             <Link href="/focus" className="segmented-item">
               <Target className="h-4 w-4" />
-              Focus
+              {t("tasks.view.focus")}
             </Link>
           </div>
 

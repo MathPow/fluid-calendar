@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-// Import missing functions
-import { isThisWeek, isThisYear, isToday, isTomorrow } from "date-fns";
 import { Check, TriangleAlert, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -18,10 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT, type TranslateFn } from "@/i18n/client";
 import {
   createUTCMidnightDate,
-  format,
-  isFutureDate,
   newDate,
   newDateFromYMD,
 } from "@/lib/date-utils";
@@ -32,8 +29,8 @@ import { useProjectStore } from "@/store/project";
 import { EnergyLevel, Priority, Task, TimePreference } from "@/types/task";
 
 import {
+  contextualDate,
   energyLevelColors,
-  formatEnumValue,
   priorityColors,
   timePreferenceColors,
 } from "../utils/task-list-utils";
@@ -46,12 +43,25 @@ interface EditableCellProps {
   onSave: (task: Task) => void;
 }
 
+function renderContextualDate(t: TranslateFn, date: Date) {
+  const info = contextualDate(date, { utcMidnight: true });
+  const base =
+    info.kind === "today"
+      ? t("tasks.date.today")
+      : info.kind === "tomorrow"
+        ? t("tasks.date.tomorrow")
+        : info.base;
+  const text = info.isOverdue ? t("tasks.date.overdue", { text: base }) : base;
+  return { text, isOverdue: info.isOverdue, isFuture: info.isFuture };
+}
+
 export function EditableCell({
   task,
   field,
   value,
   onSave,
 }: EditableCellProps) {
+  const t = useT();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const editRef = useRef<HTMLDivElement>(null);
@@ -154,7 +164,7 @@ export function EditableCell({
                 : "border border-border text-muted-foreground"
             }`}
           >
-            {value ? formatEnumValue(value) : "Set energy"}
+            {value ? t(`tasks.energy.${value}`) : t("tasks.editable.setEnergy")}
           </span>
         ) : field === "preferredTime" ? (
           <span
@@ -164,7 +174,7 @@ export function EditableCell({
                 : "border border-border text-muted-foreground"
             }`}
           >
-            {value ? formatEnumValue(value) : "Set time"}
+            {value ? t(`tasks.time.${value}`) : t("tasks.editable.setTime")}
           </span>
         ) : field === "priority" ? (
           <span
@@ -174,7 +184,7 @@ export function EditableCell({
                 : "border border-border text-muted-foreground"
             }`}
           >
-            {value ? formatEnumValue(value) : "Set priority"}
+            {value ? t(`tasks.priority.${value}`) : t("tasks.editable.setPriority")}
           </span>
         ) : field === "duration" ? (
           <span
@@ -182,29 +192,34 @@ export function EditableCell({
               value ? "text-muted-foreground" : "text-muted-foreground/70"
             }`}
           >
-            {value ? `${value}m` : "Set duration"}
+            {value ? `${value}m` : t("tasks.editable.setDuration")}
           </span>
         ) : field === "dueDate" ? (
-          <span
-            className={`group flex items-center gap-1 text-sm ${
-              value
-                ? formatContextualDate(newDate(value)).isOverdue
-                  ? "text-destructive"
-                  : "text-muted-foreground"
-                : "text-muted-foreground/70"
-            }`}
-          >
-            {value ? (
-              <>
-                {formatContextualDate(newDate(value)).text}
-                {formatContextualDate(newDate(value)).isOverdue && (
-                  <TriangleAlert className="h-4 w-4 text-destructive" />
+          (() => {
+            const due = value ? renderContextualDate(t, newDate(value)) : null;
+            return (
+              <span
+                className={`group flex items-center gap-1 text-sm ${
+                  due
+                    ? due.isOverdue
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                    : "text-muted-foreground/70"
+                }`}
+              >
+                {due ? (
+                  <>
+                    {due.text}
+                    {due.isOverdue && (
+                      <TriangleAlert className="h-4 w-4 text-destructive" />
+                    )}
+                  </>
+                ) : (
+                  t("tasks.editable.setDueDate")
                 )}
-              </>
-            ) : (
-              "Set due date"
-            )}
-          </span>
+              </span>
+            );
+          })()
         ) : field === "startDate" ? (
           <span
             className={`text-sm ${
@@ -212,8 +227,8 @@ export function EditableCell({
             }`}
           >
             {value
-              ? formatContextualDate(newDate(value)).text
-              : "Set start date"}
+              ? renderContextualDate(t, newDate(value)).text
+              : t("tasks.editable.setStartDate")}
           </span>
         ) : field === "projectId" ? (
           <div className="flex items-center gap-2">
@@ -230,7 +245,7 @@ export function EditableCell({
                 </span>
               </>
             ) : (
-              <span className="text-sm text-muted-foreground">No project</span>
+              <span className="text-sm text-muted-foreground">{t("tasks.editable.noProject")}</span>
             )}
           </div>
         ) : (
@@ -268,13 +283,13 @@ export function EditableCell({
           }}
         >
           <SelectTrigger className="h-8 min-w-[140px]">
-            <SelectValue placeholder="No Energy Level" />
+            <SelectValue placeholder={t("tasks.editable.noEnergyLevel")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">No Energy Level</SelectItem>
+            <SelectItem value="none">{t("tasks.editable.noEnergyLevel")}</SelectItem>
             {Object.values(EnergyLevel).map((level) => (
               <SelectItem key={level} value={level}>
-                {formatEnumValue(level)}
+                {t(`tasks.energy.${level}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -291,13 +306,13 @@ export function EditableCell({
           }}
         >
           <SelectTrigger className="h-8 min-w-[140px]">
-            <SelectValue placeholder="No Time Preference" />
+            <SelectValue placeholder={t("tasks.editable.noTimePreference")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">No Time Preference</SelectItem>
+            <SelectItem value="none">{t("tasks.editable.noTimePreference")}</SelectItem>
             {Object.values(TimePreference).map((time) => (
               <SelectItem key={time} value={time}>
-                {formatEnumValue(time)}
+                {t(`tasks.time.${time}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -314,13 +329,13 @@ export function EditableCell({
           }}
         >
           <SelectTrigger className="h-8 min-w-[140px]">
-            <SelectValue placeholder="No Priority" />
+            <SelectValue placeholder={t("tasks.editable.noPriority")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">No Priority</SelectItem>
+            <SelectItem value="none">{t("tasks.editable.noPriority")}</SelectItem>
             {Object.values(Priority).map((priority) => (
               <SelectItem key={priority} value={priority}>
-                {formatEnumValue(priority)}
+                {t(`tasks.priority.${priority}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -336,7 +351,7 @@ export function EditableCell({
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}
             className="h-8 w-20"
-            placeholder="Minutes"
+            placeholder={t("tasks.editable.minutesPlaceholder")}
             min="1"
             autoFocus
           />
@@ -452,12 +467,12 @@ export function EditableCell({
                   <span>{task.project.name}</span>
                 </div>
               ) : (
-                "No project"
+                t("tasks.editable.noProject")
               )}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">No project</SelectItem>
+            <SelectItem value="none">{t("tasks.editable.noProject")}</SelectItem>
             {groupTaskProjects(projects).map((group) => (
               <SelectGroup key={group.key}>
                 {group.general ? (
@@ -509,35 +524,3 @@ export function EditableCell({
     </div>
   );
 }
-
-// Helper functions
-const formatContextualDate = (date: Date) => {
-  // For UTC midnight dates (e.g. 2025-03-10T00:00:00.000Z),
-  // just use the date components to create a local date
-  const localDate = newDateFromYMD(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate()
-  );
-  const now = newDate();
-  now.setHours(0, 0, 0, 0);
-
-  const isOverdue = localDate < now && !isToday(localDate);
-  const isFuture = isFutureDate(localDate);
-  let text = "";
-  if (isToday(localDate)) {
-    text = "Today";
-  } else if (isTomorrow(localDate)) {
-    text = "Tomorrow";
-  } else if (isThisWeek(localDate)) {
-    text = format(localDate, "EEEE");
-  } else if (isThisYear(localDate)) {
-    text = format(localDate, "MMM d");
-  } else {
-    text = format(localDate, "MMM d, yyyy");
-  }
-  if (isOverdue) {
-    text = `Overdue: ${text}`;
-  }
-  return { text, isOverdue, isFuture };
-};

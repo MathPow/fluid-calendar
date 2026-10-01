@@ -1,29 +1,15 @@
 import {
   format,
+  isFutureDate,
   isThisWeek,
   isThisYear,
   isToday,
   isTomorrow,
   newDate,
+  newDateFromYMD,
 } from "@/lib/date-utils";
 
 import { Priority, TaskStatus, TimePreference } from "@/types/task";
-
-// Helper function to format enum values for display
-/** Status names that aren't just the enum value capitalised. */
-export const STATUS_LABELS: Record<string, string> = {
-  ready: "Prêt (à prioriser)",
-  blocked: "Bloquant",
-};
-
-export const formatEnumValue = (value: string) => {
-  if (STATUS_LABELS[value]) return STATUS_LABELS[value];
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
 
 export const statusColors = {
   [TaskStatus.BACKLOG]: "bg-slate-500/20 text-slate-700 dark:text-slate-400",
@@ -55,23 +41,64 @@ export const priorityColors = {
   [Priority.NONE]: "bg-muted text-muted-foreground",
 };
 
-// Format date in a contextual way (Today, Tomorrow, etc.)
-export const formatContextualDate = (date: Date) => {
+export type ContextualDateKind = "today" | "tomorrow" | "weekday" | "date";
+
+export interface ContextualDate {
+  kind: ContextualDateKind;
+  /** Pre-formatted base (weekday name or short/long date). Empty for today/tomorrow. */
+  base: string;
+  isOverdue: boolean;
+  isFuture: boolean;
+}
+
+/**
+ * Break a date into a `{ kind, base }` shape so the caller can translate.
+ * `utcMidnight` reinterprets a UTC-midnight value (e.g. dueDate) as a local date.
+ */
+export const contextualDate = (
+  date: Date,
+  options?: { utcMidnight?: boolean }
+): ContextualDate => {
+  const localDate = options?.utcMidnight
+    ? newDateFromYMD(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate()
+      )
+    : date;
+
   const now = newDate();
-  const isOverdue = date < now && !isToday(date);
-  let text;
+  if (options?.utcMidnight) now.setHours(0, 0, 0, 0);
 
-  if (isToday(date)) {
-    text = `Today, ${format(date, "p")}`;
-  } else if (isTomorrow(date)) {
-    text = `Tomorrow, ${format(date, "p")}`;
-  } else if (isThisWeek(date)) {
-    text = format(date, "EEEE, p");
-  } else if (isThisYear(date)) {
-    text = format(date, "MMM d, p");
-  } else {
-    text = format(date, "MMM d, yyyy, p");
+  const isOverdue = localDate < now && !isToday(localDate);
+  const isFuture = isFutureDate(localDate);
+
+  if (isToday(localDate)) {
+    return { kind: "today", base: "", isOverdue, isFuture };
   }
-
-  return { text, isOverdue };
+  if (isTomorrow(localDate)) {
+    return { kind: "tomorrow", base: "", isOverdue, isFuture };
+  }
+  if (isThisWeek(localDate)) {
+    return {
+      kind: "weekday",
+      base: format(localDate, "EEEE"),
+      isOverdue,
+      isFuture,
+    };
+  }
+  if (isThisYear(localDate)) {
+    return {
+      kind: "date",
+      base: format(localDate, "MMM d"),
+      isOverdue,
+      isFuture,
+    };
+  }
+  return {
+    kind: "date",
+    base: format(localDate, "MMM d, yyyy"),
+    isOverdue,
+    isFuture,
+  };
 };

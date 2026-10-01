@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n/client";
 import { newDate } from "@/lib/date-utils";
 
 import { useProjectStore } from "@/store/project";
@@ -21,7 +22,6 @@ import { useTaskListViewSettings } from "@/store/taskListViewSettings";
 import { EnergyLevel, Task, TaskStatus, TimePreference } from "@/types/task";
 
 import { SortableHeader, StatusFilter, TaskRow } from "./components";
-import { formatEnumValue } from "./utils/task-list-utils";
 
 interface TaskListProps {
   tasks: Task[];
@@ -38,6 +38,7 @@ export function TaskList({
   onStatusChange,
   onInlineEdit,
 }: TaskListProps) {
+  const t = useT();
   const {
     sortBy,
     sortDirection,
@@ -232,13 +233,13 @@ export function TaskList({
           }
         >
           <SelectTrigger className="h-9 w-[140px]">
-            <SelectValue placeholder="All Energy" />
+            <SelectValue placeholder={t("tasks.filters.allEnergy")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">All Energy</SelectItem>
+            <SelectItem value="none">{t("tasks.filters.allEnergy")}</SelectItem>
             {Object.values(EnergyLevel).map((level) => (
               <SelectItem key={level} value={level}>
-                {formatEnumValue(level)}
+                {t(`tasks.energy.${level}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -254,13 +255,13 @@ export function TaskList({
           }
         >
           <SelectTrigger className="h-9 w-[140px]">
-            <SelectValue placeholder="All Times" />
+            <SelectValue placeholder={t("tasks.filters.allTimes")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">All Times</SelectItem>
+            <SelectItem value="none">{t("tasks.filters.allTimes")}</SelectItem>
             {Object.values(TimePreference).map((time) => (
               <SelectItem key={time} value={time}>
-                {formatEnumValue(time)}
+                {t(`tasks.time.${time}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -272,7 +273,7 @@ export function TaskList({
             onChange={(e) =>
               setFilters({ search: e.target.value || undefined })
             }
-            placeholder="Search tasks..."
+            placeholder={t("tasks.filters.search")}
             className="h-9"
           />
           {hasActiveFilters && (
@@ -283,7 +284,7 @@ export function TaskList({
               className="h-9"
             >
               <X className="mr-1 h-4 w-4" />
-              Clear Filters
+              {t("tasks.filters.clear")}
             </Button>
           )}
         </div>
@@ -300,7 +301,7 @@ export function TaskList({
             htmlFor="hideUpcomingTasks"
             className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
-            Hide upcoming tasks
+            {t("tasks.filters.hideUpcoming")}
           </label>
         </div>
       </div>
@@ -321,7 +322,7 @@ export function TaskList({
                 </th>
                 <SortableHeader
                   column="status"
-                  label="Status"
+                  label={t("tasks.list.col.status")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
@@ -329,14 +330,14 @@ export function TaskList({
                 />
                 <SortableHeader
                   column="title"
-                  label="Title"
+                  label={t("tasks.list.col.title")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
                 />
                 <SortableHeader
                   column="priority"
-                  label="Priority"
+                  label={t("tasks.list.col.priority")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
@@ -344,7 +345,7 @@ export function TaskList({
                 />
                 <SortableHeader
                   column="energyLevel"
-                  label="Energy"
+                  label={t("tasks.list.col.energy")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
@@ -352,7 +353,7 @@ export function TaskList({
                 />
                 <SortableHeader
                   column="preferredTime"
-                  label="Time"
+                  label={t("tasks.list.col.time")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
@@ -360,7 +361,7 @@ export function TaskList({
                 />
                 <SortableHeader
                   column="dueDate"
-                  label="Due Date"
+                  label={t("tasks.list.col.dueDate")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
@@ -368,7 +369,7 @@ export function TaskList({
                 />
                 <SortableHeader
                   column="duration"
-                  label="Duration"
+                  label={t("tasks.list.col.duration")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
@@ -376,7 +377,7 @@ export function TaskList({
                 />
                 <SortableHeader
                   column="project"
-                  label="Project"
+                  label={t("tasks.list.col.project")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
@@ -384,21 +385,21 @@ export function TaskList({
                 />
                 <SortableHeader
                   column="schedule"
-                  label="Schedule"
+                  label={t("tasks.list.col.schedule")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
                 />
                 <SortableHeader
                   column="startDate"
-                  label="Start Date"
+                  label={t("tasks.list.col.startDate")}
                   currentSort={sortBy}
                   direction={sortDirection}
                   onSort={handleSort}
                   className="w-40"
                 />
                 <th scope="col" className="relative w-10 px-3 py-2">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("tasks.list.col.actions")}</span>
                 </th>
               </tr>
             </thead>
@@ -417,7 +418,7 @@ export function TaskList({
           </table>
           {sortedTasks.length === 0 && (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              No tasks found. Try adjusting your filters or create a new task.
+              {t("tasks.list.empty")}
             </div>
           )}
         </div>

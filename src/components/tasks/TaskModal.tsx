@@ -27,6 +27,7 @@ import { OrgProjectPicker } from "@/components/projects/ProjectPicker";
 
 import { StepsEditor } from "./components/StepsEditor";
 
+import { useT } from "@/i18n/client";
 import { format, newDate } from "@/lib/date-utils";
 import { RecurrenceConverterFactory } from "@/lib/task-sync/recurrence/recurrence-converter-factory";
 import { cn } from "@/lib/utils";
@@ -42,8 +43,6 @@ import {
   TimePreference,
  TaskStepInput } from "@/types/task";
 
-import { STATUS_LABELS } from "./utils/task-list-utils";
-
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -53,16 +52,6 @@ interface TaskModalProps {
   onCreateTag: (name: string, color?: string) => Promise<Tag>;
   initialProjectId?: string | null;
 }
-
-//TODO: move to utils
-const formatEnumValue = (value: string) => {
-  if (STATUS_LABELS[value]) return STATUS_LABELS[value];
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
 
 // Helper function to convert external recurrence rule to RRule format
 function getStandardRRule(task?: Task): RRule {
@@ -94,6 +83,7 @@ export function TaskModal({
   onCreateTag,
   initialProjectId,
 }: TaskModalProps) {
+  const t = useT();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [steps, setSteps] = useState<TaskStepInput[]>([]);
@@ -244,12 +234,12 @@ export function TaskModal({
       <DialogContent className="flex flex-col overflow-y-hidden sm:max-w-[500px]">
         {isSubmitting && <LoadingOverlay />}
         <DialogHeader>
-          <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
+          <DialogTitle>{task ? t("tasks.dialog.title.edit") : t("tasks.dialog.title.new")}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-4 overflow-y-auto">
           <div>
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">{t("tasks.dialog.fields.title")}</Label>
             <Input
               id="title"
               ref={titleInputRef}
@@ -260,7 +250,7 @@ export function TaskModal({
           </div>
 
           <div>
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t("tasks.dialog.fields.description")}</Label>
             <Textarea
               id="description"
               value={description}
@@ -270,7 +260,7 @@ export function TaskModal({
           </div>
 
           <div>
-            <Label>Steps</Label>
+            <Label>{t("tasks.dialog.fields.steps")}</Label>
             <div className="mt-2">
               <StepsEditor steps={steps} onChange={setSteps} />
             </div>
@@ -278,18 +268,18 @@ export function TaskModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">{t("tasks.dialog.fields.status")}</Label>
               <Select
                 value={status}
                 onValueChange={(value) => setStatus(value as TaskStatus)}
               >
                 <SelectTrigger>
-                  <SelectValue>{formatEnumValue(status)}</SelectValue>
+                  <SelectValue>{t(`tasks.status.${status}`)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(TaskStatus).map((s) => (
                     <SelectItem key={s} value={s}>
-                      {formatEnumValue(s)}
+                      {t(`tasks.status.${s}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -297,7 +287,7 @@ export function TaskModal({
             </div>
 
             <div>
-              <Label htmlFor="dueDate">Due Date</Label>
+              <Label htmlFor="dueDate">{t("tasks.dialog.fields.dueDate")}</Label>
               <Input
                 type="date"
                 id="dueDate"
@@ -307,7 +297,7 @@ export function TaskModal({
             </div>
 
             <div>
-              <Label htmlFor="startDate">Start Date</Label>
+              <Label htmlFor="startDate">{t("tasks.dialog.fields.startDate")}</Label>
               <Input
                 type="date"
                 id="startDate"
@@ -315,12 +305,12 @@ export function TaskModal({
                 onChange={(e) => setStartDate(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Optional: Task won&apos;t be scheduled before this date
+                {t("tasks.dialog.fields.startDateHint")}
               </p>
             </div>
 
             <div>
-              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Label htmlFor="duration">{t("tasks.dialog.fields.duration")}</Label>
               <Input
                 type="number"
                 id="duration"
@@ -331,20 +321,20 @@ export function TaskModal({
             </div>
 
             <div>
-              <Label htmlFor="priority">Priority</Label>
+              <Label htmlFor="priority">{t("tasks.dialog.fields.priority")}</Label>
               <Select
                 value={priority || Priority.NONE}
                 onValueChange={(value) => setPriority(value as Priority)}
               >
                 <SelectTrigger>
                   <SelectValue>
-                    {formatEnumValue(priority || Priority.NONE)}
+                    {t(`tasks.priority.${priority || Priority.NONE}`)}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(Priority).map((level) => (
                     <SelectItem key={level} value={level}>
-                      {formatEnumValue(level)}
+                      {t(`tasks.priority.${level}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -352,7 +342,7 @@ export function TaskModal({
             </div>
 
             <div>
-              <Label htmlFor="energyLevel">Energy Level</Label>
+              <Label htmlFor="energyLevel">{t("tasks.dialog.fields.energyLevel")}</Label>
               <Select
                 value={energyLevel || "none"}
                 onValueChange={(value) =>
@@ -360,15 +350,15 @@ export function TaskModal({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="None">
-                    {energyLevel ? formatEnumValue(energyLevel) : "None"}
+                  <SelectValue placeholder={t("common.none")}>
+                    {energyLevel ? t(`tasks.energy.${energyLevel}`) : t("common.none")}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="none">{t("common.none")}</SelectItem>
                   {Object.values(EnergyLevel).map((level) => (
                     <SelectItem key={level} value={level}>
-                      {formatEnumValue(level)}
+                      {t(`tasks.energy.${level}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -376,7 +366,7 @@ export function TaskModal({
             </div>
 
             <div>
-              <Label htmlFor="preferredTime">Preferred Time</Label>
+              <Label htmlFor="preferredTime">{t("tasks.dialog.fields.preferredTime")}</Label>
               <Select
                 value={preferredTime || "none"}
                 onValueChange={(value) =>
@@ -386,15 +376,15 @@ export function TaskModal({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="None">
-                    {preferredTime ? formatEnumValue(preferredTime) : "None"}
+                  <SelectValue placeholder={t("common.none")}>
+                    {preferredTime ? t(`tasks.time.${preferredTime}`) : t("common.none")}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="none">{t("common.none")}</SelectItem>
                   {Object.values(TimePreference).map((time) => (
                     <SelectItem key={time} value={time}>
-                      {formatEnumValue(time)}
+                      {t(`tasks.time.${time}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -405,9 +395,9 @@ export function TaskModal({
           <div className="space-y-4 border-t pt-2">
             <div className="flex items-center justify-between">
               <div>
-                <Label>Auto-Schedule</Label>
+                <Label>{t("tasks.dialog.autoSchedule.title")}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Let the system schedule this task automatically
+                  {t("tasks.dialog.autoSchedule.desc")}
                 </p>
               </div>
               <Switch
@@ -420,9 +410,9 @@ export function TaskModal({
               <>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Lock Schedule</Label>
+                    <Label>{t("tasks.dialog.lockSchedule.title")}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Prevent automatic rescheduling
+                      {t("tasks.dialog.lockSchedule.desc")}
                     </p>
                   </div>
                   <Switch
@@ -434,13 +424,16 @@ export function TaskModal({
                 {task?.scheduledStart && task?.scheduledEnd && (
                   <div className="rounded-md bg-primary/10 p-3">
                     <div className="text-sm text-primary">
-                      Scheduled for{" "}
-                      {format(newDate(task.scheduledStart), "PPp")} to{" "}
-                      {format(newDate(task.scheduledEnd), "p")}
+                      {t("tasks.dialog.scheduled.text", {
+                        start: format(newDate(task.scheduledStart), "PPp"),
+                        end: format(newDate(task.scheduledEnd), "p"),
+                      })}
                     </div>
                     {task.scheduleScore && (
                       <div className="mt-1 text-sm text-primary/70">
-                        Confidence: {Math.round(task.scheduleScore * 100)}%
+                        {t("tasks.dialog.scheduled.confidence", {
+                          percent: Math.round(task.scheduleScore * 100),
+                        })}
                       </div>
                     )}
                   </div>
@@ -454,7 +447,7 @@ export function TaskModal({
           </div>
 
           <div>
-            <Label>Tags</Label>
+            <Label>{t("tasks.dialog.fields.tags")}</Label>
             <div className="mt-2 flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <label
@@ -492,7 +485,7 @@ export function TaskModal({
               <Input
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
-                placeholder="New tag name"
+                placeholder={t("tasks.dialog.tag.newNamePlaceholder")}
               />
               <Input
                 type="color"
@@ -506,7 +499,7 @@ export function TaskModal({
                 disabled={!newTagName.trim()}
                 variant="secondary"
               >
-                Add Tag
+                {t("tasks.dialog.tag.add")}
               </Button>
             </div>
           </div>
@@ -535,18 +528,17 @@ export function TaskModal({
                   }
                 }}
               />
-              <Label htmlFor="recurring">Make this a recurring task</Label>
+              <Label htmlFor="recurring">{t("tasks.dialog.recurring.toggle")}</Label>
             </div>
             {isRecurring && !dueDate && (
               <div className="ml-6 mt-1 text-sm text-primary">
-                A recurring task needs a start date. Today has been set as the
-                default.
+                {t("tasks.dialog.recurring.todaySet")}
               </div>
             )}
             {isRecurring && (
               <div className="mt-2 space-y-3 pl-6">
                 <div>
-                  <Label>Repeat every</Label>
+                  <Label>{t("tasks.dialog.recurring.repeatEvery")}</Label>
                   <div className="mt-1 flex items-center gap-2">
                     <Input
                       type="number"
@@ -616,16 +608,16 @@ export function TaskModal({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={RRule.DAILY.toString()}>
-                          days
+                          {t("tasks.dialog.recurring.unit.days")}
                         </SelectItem>
                         <SelectItem value={RRule.WEEKLY.toString()}>
-                          weeks
+                          {t("tasks.dialog.recurring.unit.weeks")}
                         </SelectItem>
                         <SelectItem value={RRule.MONTHLY.toString()}>
-                          months
+                          {t("tasks.dialog.recurring.unit.months")}
                         </SelectItem>
                         <SelectItem value={RRule.YEARLY.toString()}>
-                          years
+                          {t("tasks.dialog.recurring.unit.years")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -637,10 +629,14 @@ export function TaskModal({
 
           <div className="flex justify-end gap-3 border-t pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting || !title.trim()}>
-              {isSubmitting ? "Saving..." : task ? "Update" : "Create"}
+              {isSubmitting
+                ? t("tasks.dialog.submit.saving")
+                : task
+                  ? t("tasks.dialog.submit.update")
+                  : t("tasks.dialog.submit.create")}
             </Button>
           </div>
         </form>

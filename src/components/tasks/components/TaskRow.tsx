@@ -17,13 +17,14 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n/client";
 import { format, isFutureDate, newDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 import { Task, TaskStatus } from "@/types/task";
 
 import { useDraggableTask } from "../../dnd/useDragAndDrop";
-import { formatEnumValue, statusColors } from "../utils/task-list-utils";
+import { statusColors } from "../utils/task-list-utils";
 import { StepsProgress } from "./StepsEditor";
 import { EditableCell } from "./EditableCell";
 
@@ -42,6 +43,7 @@ export function TaskRow({
   onStatusChange,
   onInlineEdit,
 }: TaskRowProps) {
+  const t = useT();
   const { draggableProps, isDragging } = useDraggableTask(task);
   const isFutureTask = task.startDate && isFutureDate(task.startDate);
 
@@ -92,7 +94,7 @@ export function TaskRow({
                   statusColors[task.status]
                 )}
               >
-                {formatEnumValue(task.status)}
+                {t(`tasks.status.${task.status}`)}
               </span>
             </SelectTrigger>
             <SelectContent>
@@ -104,7 +106,7 @@ export function TaskRow({
                       statusColors[status]
                     )}
                   >
-                    {formatEnumValue(status)}
+                    {t(`tasks.status.${status}`)}
                   </span>
                 </SelectItem>
               ))}
@@ -130,8 +132,8 @@ export function TaskRow({
             }}
             title={
               task.status === TaskStatus.COMPLETED
-                ? "Mark as todo"
-                : "Mark as completed"
+                ? t("tasks.row.markTodo")
+                : t("tasks.row.markCompleted")
             }
           >
             <Check className="h-5 w-5" />
@@ -151,28 +153,28 @@ export function TaskRow({
 
           {isFutureTask && (
             <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-              Upcoming
+              {t("tasks.row.upcoming")}
             </span>
           )}
 
           {task.isRecurring && (
             <RefreshCw className="h-4 w-4 shrink-0 text-muted-foreground">
-              <title>Recurring task</title>
+              <title>{t("tasks.row.recurring")}</title>
             </RefreshCw>
           )}
           {task.isAutoScheduled && (
             <Clock className="h-4 w-4 shrink-0 text-muted-foreground">
-              <title>Auto-scheduled</title>
+              <title>{t("tasks.row.autoScheduled")}</title>
             </Clock>
           )}
           {task.scheduleLocked && (
             <Lock className="h-4 w-4 shrink-0 text-pending-foreground">
-              <title>Schedule locked</title>
+              <title>{t("tasks.row.scheduleLocked")}</title>
             </Lock>
           )}
           {task.externalTaskId && (
             <Cloud className="h-4 w-4 shrink-0 text-muted-foreground">
-              <title>{`Synced from ${task.source}`}</title>
+              <title>{t("tasks.row.syncedFrom", { source: task.source ?? "" })}</title>
             </Cloud>
           )}
         </div>
@@ -230,11 +232,11 @@ export function TaskRow({
           {task.isAutoScheduled ? (
             <div className="flex items-center gap-1">
               <Clock className="h-4 w-4 text-primary">
-                <title>Auto-scheduled</title>
+                <title>{t("tasks.row.autoScheduled")}</title>
               </Clock>
               {task.scheduleLocked && (
                 <Lock className="h-3 w-3 text-primary">
-                  <title>Schedule locked</title>
+                  <title>{t("tasks.row.scheduleLocked")}</title>
                 </Lock>
               )}
               {task.scheduledStart && task.scheduledEnd && (
@@ -250,7 +252,7 @@ export function TaskRow({
               )}
             </div>
           ) : (
-            <span className="text-sm text-muted-foreground">Manual</span>
+            <span className="text-sm text-muted-foreground">{t("tasks.row.manual")}</span>
           )}
         </div>
       </td>
@@ -272,7 +274,7 @@ export function TaskRow({
               e.stopPropagation();
               onEdit(task);
             }}
-            title="Edit task"
+            title={t("tasks.row.edit")}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -284,7 +286,7 @@ export function TaskRow({
               e.stopPropagation();
               onDelete(task.id);
             }}
-            title="Delete task"
+            title={t("tasks.row.delete")}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
