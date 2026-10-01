@@ -1,5 +1,7 @@
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
+import type { Locale } from "@/i18n/config";
+
 /**
  * Weekly routine blocks ("Semaine type"): expanding them into dated
  * occurrences, and cutting them around real events. Shared by the calendar
@@ -11,18 +13,32 @@ export type RoutineKind = "work" | "sleep" | "sport" | "detente" | "perso" | "ot
 export const ROUTINE_KINDS: {
   value: RoutineKind;
   label: string;
+  labelKey: string;
   color: string;
   schedulable: boolean;
 }[] = [
-  { value: "work", label: "Travail", color: "#a8ccff", schedulable: true },
-  { value: "sleep", label: "Sommeil", color: "#c9b8f0", schedulable: false },
-  { value: "sport", label: "Sport", color: "#9fe0bd", schedulable: false },
-  { value: "detente", label: "Détente", color: "#ffc2b8", schedulable: false },
-  { value: "perso", label: "Perso", color: "#ffd88a", schedulable: false },
-  { value: "other", label: "Autre", color: "#d9d4cc", schedulable: false },
+  { value: "work", label: "Travail", labelKey: "calendar.routineKinds.work", color: "#a8ccff", schedulable: true },
+  { value: "sleep", label: "Sommeil", labelKey: "calendar.routineKinds.sleep", color: "#c9b8f0", schedulable: false },
+  { value: "sport", label: "Sport", labelKey: "calendar.routineKinds.sport", color: "#9fe0bd", schedulable: false },
+  { value: "detente", label: "Détente", labelKey: "calendar.routineKinds.detente", color: "#ffc2b8", schedulable: false },
+  { value: "perso", label: "Perso", labelKey: "calendar.routineKinds.perso", color: "#ffd88a", schedulable: false },
+  { value: "other", label: "Autre", labelKey: "calendar.routineKinds.other", color: "#d9d4cc", schedulable: false },
 ];
 
 export const WEEKDAYS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+const WEEKDAYS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS_SHORT_FR = ["D", "L", "M", "M", "J", "V", "S"];
+const WEEKDAYS_SHORT_EN = ["S", "M", "T", "W", "T", "F", "S"];
+
+/** Single-letter day abbreviation for compact day pickers. */
+export function weekdayShort(day: number, locale: Locale = "fr"): string {
+  return (locale === "en" ? WEEKDAYS_SHORT_EN : WEEKDAYS_SHORT_FR)[day];
+}
+
+/** Three-letter day abbreviation used in the "Lun–Ven" style ranges. */
+function weekdayAbbr(day: number, locale: Locale = "fr"): string {
+  return (locale === "en" ? WEEKDAYS_EN : WEEKDAYS_FR)[day];
+}
 
 export type RoutineBlockLite = {
   id: string;
@@ -74,8 +90,17 @@ export function crossesMidnight(
 }
 
 /** "Lun–Ven", "Lun, Mer, Ven", "Tous les jours"… */
-export function formatDays(days: number[], weekStartsMonday = true): string {
-  if (days.length === 7) return "Tous les jours";
+export function formatDays(
+  days: number[],
+  weekStartsMonday = true,
+  locale: Locale = "fr"
+): string {
+  if (days.length === 7) {
+    return locale === "en" ? "Every day" : "Tous les jours";
+  }
+  if (days.length === 2 && days.includes(0) && days.includes(6)) {
+    return locale === "en" ? "Weekends" : "Fin de semaine";
+  }
   const order = weekStartsMonday
     ? [1, 2, 3, 4, 5, 6, 0]
     : [0, 1, 2, 3, 4, 5, 6];
@@ -83,9 +108,9 @@ export function formatDays(days: number[], weekStartsMonday = true): string {
   const idx = sorted.map((d) => order.indexOf(d));
   const contiguous = idx.every((v, i) => i === 0 || v === idx[i - 1] + 1);
   if (sorted.length >= 3 && contiguous) {
-    return `${WEEKDAYS_FR[sorted[0]]}–${WEEKDAYS_FR[sorted[sorted.length - 1]]}`;
+    return `${weekdayAbbr(sorted[0], locale)}–${weekdayAbbr(sorted[sorted.length - 1], locale)}`;
   }
-  return sorted.map((d) => WEEKDAYS_FR[d]).join(", ");
+  return sorted.map((d) => weekdayAbbr(d, locale)).join(", ");
 }
 
 /**

@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { useT } from "@/i18n/client";
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
@@ -62,6 +63,7 @@ const NONE = "__none__";
  * calendar renames it, moves it to an organisation, or tags its station.
  */
 export function FeedManager() {
+  const t = useT();
   const [syncingFeeds, setSyncingFeeds] = useState<Set<string>>(new Set());
   const [syncingAll, setSyncingAll] = useState(false);
   const [organisations, setOrganisations] = useState<OrganisationRow[]>([]);
@@ -101,7 +103,7 @@ export function FeedManager() {
     if (!ordered.some((o) => o.isDefault)) {
       sections.push({
         key: "perso",
-        title: "Perso",
+        title: t("calendar.feeds.perso"),
         color: "#ffd166",
         image: null,
         feeds: feeds.filter(
@@ -110,7 +112,7 @@ export function FeedManager() {
       });
     }
     return sections.filter((s) => s.feeds.length > 0 || s.key === "perso");
-  }, [feeds, organisations]);
+  }, [feeds, organisations, t]);
 
   const patchFeed = useCallback(
     async (
@@ -128,28 +130,35 @@ export function FeedManager() {
         await loadFromDatabase();
         toast.success(done);
       } catch (e) {
-        toast.error("Modification impossible", {
+        toast.error(t("calendar.feeds.toasts.updateFailed"), {
           description: e instanceof Error ? e.message : undefined,
         });
       }
     },
-    [loadFromDatabase]
+    [loadFromDatabase, t]
   );
 
   const renameFeed = useCallback(
     (feed: CalendarFeed) => {
-      const name = window.prompt("Nouveau nom du calendrier", feed.name);
+      const name = window.prompt(
+        t("calendar.feeds.prompt.rename"),
+        feed.name
+      );
       if (!name || name.trim() === feed.name) return;
-      patchFeed(feed, { name: name.trim() }, "Calendrier renommé.");
+      patchFeed(
+        feed,
+        { name: name.trim() },
+        t("calendar.feeds.toasts.renamed")
+      );
     },
-    [patchFeed]
+    [patchFeed, t]
   );
 
   const handleRemoveFeed = useCallback(
     async (feed: CalendarFeed) => {
       if (
         !window.confirm(
-          `Supprimer le calendrier « ${feed.name} » et ses événements ?`
+          t("calendar.feeds.confirm.delete", { name: feed.name })
         )
       )
         return;
@@ -159,7 +168,7 @@ export function FeedManager() {
         console.error("Failed to remove feed:", error);
       }
     },
-    [removeFeed]
+    [removeFeed, t]
   );
 
   const handleSyncAll = useCallback(async () => {
@@ -196,12 +205,12 @@ export function FeedManager() {
       </div>
       <div className="space-y-5 p-4">
         <div className="flex items-center justify-between">
-          <h3 className="etiquette">Calendriers</h3>
+          <h3 className="etiquette">{t("calendar.feeds.title")}</h3>
           <button
             onClick={handleSyncAll}
             disabled={syncingAll || feeds.length === 0}
             className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-40"
-            title="Rafraîchir tous les calendriers"
+            title={t("calendar.feeds.syncAll")}
           >
             <RefreshCw
               className={cn("h-4 w-4", syncingAll && "animate-spin")}
@@ -211,7 +220,7 @@ export function FeedManager() {
 
         {feeds.length === 0 && (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            Aucun calendrier pour l&apos;instant
+            {t("calendar.feeds.empty")}
           </p>
         )}
 
@@ -247,7 +256,7 @@ export function FeedManager() {
             </div>
             {group.feeds.length === 0 ? (
               <p className="px-1 text-[12px] text-muted-foreground">
-                Aucun calendrier.
+                {t("calendar.feeds.emptyGroup")}
               </p>
             ) : (
               group.feeds.map((feed) => (
@@ -273,7 +282,11 @@ export function FeedManager() {
                     {feed.station && (
                       <span
                         className="text-muted-foreground"
-                        title={feed.station === "work" ? "Client" : "Perso"}
+                        title={
+                          feed.station === "work"
+                            ? t("calendar.feeds.station.work")
+                            : t("calendar.feeds.station.personal")
+                        }
                       >
                         {feed.station === "work" ? (
                           <Briefcase className="h-3.5 w-3.5" />
@@ -294,7 +307,7 @@ export function FeedManager() {
                       onClick={() => handleSyncFeed(feed.id)}
                       disabled={syncingFeeds.has(feed.id)}
                       className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
-                      title="Rafraîchir"
+                      title={t("calendar.feeds.actions.refresh")}
                     >
                       <RefreshCw
                         className={cn(
@@ -307,18 +320,20 @@ export function FeedManager() {
                       <DropdownMenuTrigger asChild>
                         <button
                           className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                          aria-label={`Options de ${feed.name}`}
+                          aria-label={t("calendar.feeds.feedOptionsAria", {
+                            name: feed.name,
+                          })}
                         >
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuItem onSelect={() => renameFeed(feed)}>
-                          <Pencil /> Renommer
+                          <Pencil /> {t("calendar.feeds.actions.rename")}
                         </DropdownMenuItem>
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>
-                            <Building2 /> Organisation
+                            <Building2 /> {t("calendar.feeds.actions.organisation")}
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
                             <DropdownMenuRadioGroup
@@ -327,12 +342,12 @@ export function FeedManager() {
                                 patchFeed(
                                   feed,
                                   { organisationId: v === NONE ? null : v },
-                                  "Calendrier déplacé."
+                                  t("calendar.feeds.toasts.moved")
                                 )
                               }
                             >
                               <DropdownMenuRadioItem value={NONE}>
-                                Perso
+                                {t("calendar.feeds.perso")}
                               </DropdownMenuRadioItem>
                               {organisations
                                 .filter((o) => !o.isDefault)
@@ -349,11 +364,11 @@ export function FeedManager() {
                         </DropdownMenuSub>
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>
-                            <User /> Station
+                            <User /> {t("calendar.feeds.actions.station")}
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
                             <DropdownMenuLabel>
-                              Visible quand le sélecteur est sur…
+                              {t("calendar.feeds.station.visibleWhen")}
                             </DropdownMenuLabel>
                             <DropdownMenuRadioGroup
                               value={feed.station ?? NONE}
@@ -361,18 +376,18 @@ export function FeedManager() {
                                 patchFeed(
                                   feed,
                                   { station: v === NONE ? null : v },
-                                  "Station mise à jour."
+                                  t("calendar.feeds.toasts.stationUpdated")
                                 )
                               }
                             >
                               <DropdownMenuRadioItem value={NONE}>
-                                Toujours
+                                {t("calendar.feeds.station.always")}
                               </DropdownMenuRadioItem>
                               <DropdownMenuRadioItem value="personal">
-                                Perso
+                                {t("calendar.feeds.station.personal")}
                               </DropdownMenuRadioItem>
                               <DropdownMenuRadioItem value="work">
-                                Client
+                                {t("calendar.feeds.station.work")}
                               </DropdownMenuRadioItem>
                             </DropdownMenuRadioGroup>
                           </DropdownMenuSubContent>
@@ -382,7 +397,7 @@ export function FeedManager() {
                           className="text-negative-foreground focus:bg-negative focus:text-negative-foreground"
                           onSelect={() => handleRemoveFeed(feed)}
                         >
-                          <Trash2 /> Supprimer
+                          <Trash2 /> {t("common.delete")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -402,6 +417,7 @@ export function FeedManager() {
  * one checkbox hides or shows them all. Per-layer switches live under Calques.
  */
 function GhostRow() {
+  const t = useT();
   const layers = useRoutineStore((s) => s.layers);
   const setAllVisible = useRoutineStore((s) => s.setAllVisible);
   const blocks = layers.reduce((n, l) => n + l.blocks.length, 0);
@@ -413,10 +429,12 @@ function GhostRow() {
         checked={visible}
         onCheckedChange={() => setAllVisible(!visible)}
         className="h-4 w-4"
-        aria-label="Afficher les blocs fantômes"
+        aria-label={t("calendar.feeds.ghostRow.aria")}
       />
       <span className="h-3 w-3 flex-shrink-0 rounded-full border-2 border-dashed border-muted-foreground/60" />
-      <span className="min-w-0 flex-1 truncate text-sm text-foreground">Blocs fantômes</span>
+      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+        {t("calendar.feeds.ghostRow.label")}
+      </span>
       <span className="text-[11px] text-muted-foreground">{blocks}</span>
     </div>
   );

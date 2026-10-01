@@ -16,13 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
+import { useLocale, useT } from "@/i18n/client";
 import { PROJECT_COLORS } from "@/lib/projets/meta";
 import {
   ROUTINE_KINDS,
   type RoutineKind,
-  WEEKDAYS_FR,
   crossesMidnight,
   routineColor,
+  weekdayShort,
 } from "@/lib/routine";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,8 @@ const EMPTY = {
 
 /** Create / edit one block of the weekly routine. Driven by the routine store. */
 export function RoutineBlockDialog() {
+  const t = useT();
+  const locale = useLocale();
   const dialog = useRoutineStore((s) => s.dialog);
   const layers = useRoutineStore((s) => s.layers);
   const { closeDialog, createBlock, updateBlock, deleteBlock } =
@@ -93,10 +96,14 @@ export function RoutineBlockDialog() {
     setForm((f) => ({
       ...f,
       kind,
-      // A title still equal to the previous kind's label follows the new kind.
+      // A title still equal to the previous kind's label (in any language)
+      // follows the new kind.
       title:
-        !f.title || ROUTINE_KINDS.some((k) => k.label === f.title)
-          ? preset.label
+        !f.title ||
+        ROUTINE_KINDS.some(
+          (k) => k.label === f.title || t(k.labelKey) === f.title
+        )
+          ? t(preset.labelKey)
           : f.title,
       schedulable: block ? f.schedulable : preset.schedulable,
     }));
@@ -112,11 +119,10 @@ export function RoutineBlockDialog() {
 
   const submit = async () => {
     setSaving(true);
+    const preset = ROUTINE_KINDS.find((k) => k.value === form.kind)!;
     const draft = {
       ...form,
-      title:
-        form.title.trim() ||
-        ROUTINE_KINDS.find((k) => k.value === form.kind)!.label,
+      title: form.title.trim() || t(preset.labelKey),
     };
     const ok = block
       ? await updateBlock(block.id, draft)
@@ -141,11 +147,12 @@ export function RoutineBlockDialog() {
       <DialogContent className="flex flex-col gap-0 overflow-y-hidden p-0 md:p-0 max-w-lg">
         <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 md:px-8 md:pt-8">
           <DialogTitle>
-            {block ? "Modifier le bloc" : "Nouveau bloc"}
+            {block
+              ? t("calendar.routineDialog.title.edit")
+              : t("calendar.routineDialog.title.new")}
           </DialogTitle>
           <DialogDescription>
-            Un moment qui revient chaque semaine. Il s&apos;affiche derrière ton
-            calendrier et s&apos;efface là où un vrai événement le remplace.
+            {t("calendar.routineDialog.desc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -159,7 +166,7 @@ export function RoutineBlockDialog() {
           }}
         >
           <div className="space-y-2">
-            <Label>Type</Label>
+            <Label>{t("calendar.routineDialog.fields.type")}</Label>
             <div className="flex flex-wrap gap-2">
               {ROUTINE_KINDS.map((k) => (
                 <button
@@ -178,27 +185,29 @@ export function RoutineBlockDialog() {
                     className="h-2.5 w-2.5 rounded-full"
                     style={{ backgroundColor: k.color }}
                   />
-                  {k.label}
+                  {t(k.labelKey)}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="routine-title">Titre</Label>
+            <Label htmlFor="routine-title">
+              {t("calendar.routineDialog.fields.title")}
+            </Label>
             <Input
               id="routine-title"
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
-              placeholder={
-                ROUTINE_KINDS.find((k) => k.value === form.kind)!.label
-              }
+              placeholder={t(
+                ROUTINE_KINDS.find((k) => k.value === form.kind)!.labelKey
+              )}
               className="text-[16px] font-semibold tracking-title"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Jours</Label>
+            <Label>{t("calendar.routineDialog.fields.days")}</Label>
             <div className="flex gap-1.5">
               {dayOrder.map((d) => {
                 const on = form.days.includes(d);
@@ -215,7 +224,7 @@ export function RoutineBlockDialog() {
                         : "bg-secondary text-muted-foreground hover:bg-border/70"
                     )}
                   >
-                    {WEEKDAYS_FR[d]}
+                    {weekdayShort(d, locale)}
                   </button>
                 );
               })}
@@ -224,7 +233,9 @@ export function RoutineBlockDialog() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="routine-start">Début</Label>
+              <Label htmlFor="routine-start">
+                {t("calendar.routineDialog.fields.start")}
+              </Label>
               <Input
                 id="routine-start"
                 type="time"
@@ -234,7 +245,9 @@ export function RoutineBlockDialog() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="routine-end">Fin</Label>
+              <Label htmlFor="routine-end">
+                {t("calendar.routineDialog.fields.end")}
+              </Label>
               <Input
                 id="routine-end"
                 type="time"
@@ -246,12 +259,14 @@ export function RoutineBlockDialog() {
           </div>
           {form.startTime !== form.endTime && crossesMidnight(form) && (
             <p className="-mt-3 text-[12px] text-muted-foreground">
-              Finit le lendemain à {form.endTime}.
+              {t("calendar.routineDialog.crossesMidnight", {
+                endTime: form.endTime,
+              })}
             </p>
           )}
 
           <div className="space-y-2">
-            <Label>Couleur</Label>
+            <Label>{t("calendar.routineDialog.fields.color")}</Label>
             <div className="flex flex-wrap gap-2">
               {[
                 ROUTINE_KINDS.find((k) => k.value === form.kind)!.color,
@@ -271,7 +286,11 @@ export function RoutineBlockDialog() {
                       )}
                       style={{ backgroundColor: hex }}
                       aria-pressed={active}
-                      title={i === 0 ? "Couleur du type" : undefined}
+                      title={
+                        i === 0
+                          ? t("calendar.routineDialog.fields.colorHint")
+                          : undefined
+                      }
                     >
                       {active && (
                         <Check
@@ -288,11 +307,10 @@ export function RoutineBlockDialog() {
           <label className="flex items-start justify-between gap-4 rounded-2xl bg-secondary px-4 py-3">
             <span>
               <span className="block text-[14px] font-semibold tracking-title">
-                Planifier des tâches ici
+                {t("calendar.routineDialog.fields.schedulable.title")}
               </span>
               <span className="block text-[12px] text-muted-foreground">
-                La planification automatique place tes tâches seulement dans les
-                blocs cochés.
+                {t("calendar.routineDialog.fields.schedulable.desc")}
               </span>
             </span>
             <Switch
@@ -303,7 +321,7 @@ export function RoutineBlockDialog() {
 
           {layers.length > 1 && (
             <div className="space-y-2">
-              <Label>Calque</Label>
+              <Label>{t("calendar.routineDialog.fields.layer")}</Label>
               <div className="flex flex-wrap gap-2">
                 {layers.map((l) => (
                   <button
@@ -337,7 +355,7 @@ export function RoutineBlockDialog() {
                 onClick={remove}
                 disabled={saving}
               >
-                <Trash2 /> Supprimer
+                <Trash2 /> {t("common.delete")}
               </Button>
             )}
             <Button
@@ -347,10 +365,14 @@ export function RoutineBlockDialog() {
               disabled={saving}
               className="sm:ml-auto"
             >
-              Annuler
+              {t("common.cancel")}
             </Button>
             <Button type="submit" form="routine-form" disabled={saving || form.days.length === 0}>
-              {saving ? "Enregistrement…" : block ? "Enregistrer" : "Créer"}
+              {saving
+                ? t("calendar.routineDialog.actions.saving")
+                : block
+                  ? t("common.save")
+                  : t("calendar.routineDialog.actions.create")}
             </Button>
           </div>
       </DialogContent>

@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { useLocale, useT } from "@/i18n/client";
 import {
   type RoutineBlockLite,
   crossesMidnight,
@@ -69,6 +70,8 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
  * and move blocks right in the week view.
  */
 export function RoutineLayers() {
+  const t = useT();
+  const locale = useLocale();
   const layers = useRoutineStore((s) => s.layers);
   const loaded = useRoutineStore((s) => s.loaded);
   const editing = useRoutineStore((s) => s.editing);
@@ -97,13 +100,13 @@ export function RoutineLayers() {
       <div className="flex items-center gap-2 px-1">
         <Layers className="h-4 w-4 text-muted-foreground" />
         <span className="flex-1 text-[13px] font-semibold tracking-title">
-          Blocs fantômes · calques
+          {t("calendar.routineLayers.title")}
         </span>
         <button
           type="button"
           onClick={() => store.openNewBlock()}
           className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          title="Nouveau bloc"
+          title={t("calendar.routineDialog.title.new")}
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -112,8 +115,7 @@ export function RoutineLayers() {
       {loaded && !hasBlocks && (
         <div className="rounded-2xl bg-secondary px-4 py-3.5">
           <p className="text-[13px] leading-snug text-muted-foreground">
-            Dessine ta semaine type (travail, sommeil, sport) derrière ton
-            calendrier. Les vrais événements passent par-dessus.
+            {t("calendar.routineLayers.emptyBody")}
           </p>
           <button
             type="button"
@@ -121,7 +123,9 @@ export function RoutineLayers() {
             disabled={seeding}
             className="mt-3 rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-semibold text-background disabled:opacity-50"
           >
-            {seeding ? "Création…" : "Commencer avec un modèle"}
+            {seeding
+              ? t("calendar.routineLayers.emptyCtaLoading")
+              : t("calendar.routineLayers.emptyCta")}
           </button>
         </div>
       )}
@@ -132,7 +136,9 @@ export function RoutineLayers() {
             <Checkbox
               checked={layer.visible}
               onCheckedChange={() => store.toggleLayer(layer.id)}
-              aria-label={`Afficher ${layer.name}`}
+              aria-label={t("calendar.routineLayers.showLayerAria", {
+                name: layer.name,
+              })}
             />
             <span className="flex-1 truncate text-[14px] font-medium">
               {layer.name}
@@ -145,7 +151,9 @@ export function RoutineLayers() {
                 <button
                   type="button"
                   className="rounded-full p-1 text-muted-foreground opacity-60 hover:bg-muted/50 hover:text-foreground group-hover:opacity-100"
-                  aria-label={`Options de ${layer.name}`}
+                  aria-label={t("calendar.routineLayers.layerOptionsAria", {
+                    name: layer.name,
+                  })}
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
@@ -154,28 +162,34 @@ export function RoutineLayers() {
                 <DropdownMenuItem
                   onSelect={() => store.openNewBlock({ layerId: layer.id })}
                 >
-                  <Plus /> Ajouter un bloc
+                  <Plus /> {t("calendar.routineLayers.actions.newBlock")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => {
                     const name = window
-                      .prompt("Nom du calque", layer.name)
+                      .prompt(
+                        t("calendar.routineLayers.prompt.renameLayer"),
+                        layer.name
+                      )
                       ?.trim();
                     if (name && name !== layer.name)
                       store.renameLayer(layer.id, name);
                   }}
                 >
-                  <Pencil /> Renommer
+                  <Pencil /> {t("calendar.routineLayers.actions.rename")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => {
                     const name = window
-                      .prompt("Nom du nouveau calque", "Été")
+                      .prompt(
+                        t("calendar.routineLayers.prompt.newLayer"),
+                        t("calendar.routineLayers.prompt.newLayerDefault")
+                      )
                       ?.trim();
                     if (name) store.createLayer(name);
                   }}
                 >
-                  <Layers /> Nouveau calque
+                  <Layers /> {t("calendar.routineLayers.actions.newLayer")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -183,14 +197,16 @@ export function RoutineLayers() {
                   onSelect={() => {
                     if (
                       window.confirm(
-                        `Supprimer « ${layer.name} » et ses blocs ?`
+                        t("calendar.routineLayers.confirm.deleteLayer", {
+                          name: layer.name,
+                        })
                       )
                     ) {
                       store.deleteLayer(layer.id);
                     }
                   }}
                 >
-                  <Trash2 /> Supprimer
+                  <Trash2 /> {t("calendar.routineLayers.actions.delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -213,10 +229,11 @@ export function RoutineLayers() {
                       {b.title}
                     </span>
                     <span className="block truncate text-[11px] text-muted-foreground">
-                      {formatDays(b.days, weekStartsMonday)} · {b.startTime}–
-                      {b.endTime}
+                      {formatDays(b.days, weekStartsMonday, locale)} ·{" "}
+                      {b.startTime}–{b.endTime}
                       {crossesMidnight(b) && " (+1)"}
-                      {b.schedulable && " · tâches"}
+                      {b.schedulable &&
+                        ` · ${t("calendar.routineLayers.blockSchedulable")}`}
                     </span>
                   </span>
                 </button>
@@ -238,7 +255,9 @@ export function RoutineLayers() {
           )}
         >
           <PenLine className="h-4 w-4" />
-          {editing ? "Terminer" : "Dessiner dans la semaine"}
+          {editing
+            ? t("calendar.routineLayers.editingCta.stop")
+            : t("calendar.routineLayers.editingCta.start")}
         </button>
       )}
     </div>

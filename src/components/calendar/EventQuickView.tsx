@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { useT } from "@/i18n/client";
 import { format, isFutureDate, newDate } from "@/lib/date-utils";
 import { isTaskOverdue } from "@/lib/task-utils";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ export function EventQuickView({
   onStatusChange,
   referenceElement,
 }: EventQuickViewProps) {
+  const t = useT();
   const getStatusColor = (status: string | undefined) => {
     switch (status?.toUpperCase()) {
       case "ACCEPTED":
@@ -115,19 +117,19 @@ export function EventQuickView({
                 <>
                   {taskItem?.isRecurring && (
                     <Repeat className="h-4 w-4 text-primary">
-                      <title>Recurring task</title>
+                      <title>{t("calendar.event.quickView.recurringTask")}</title>
                     </Repeat>
                   )}
                   {taskItem?.scheduleLocked && (
                     <Lock className="h-4 w-4 text-warning">
-                      <title>Schedule locked</title>
+                      <title>{t("calendar.event.quickView.scheduleLocked")}</title>
                     </Lock>
                   )}
                 </>
               ) : (
                 eventItem?.isRecurring && (
                   <Repeat className="h-4 w-4 text-primary">
-                    <title>Recurring event</title>
+                    <title>{t("calendar.event.quickView.recurringEvent")}</title>
                   </Repeat>
                 )
               )}
@@ -151,8 +153,8 @@ export function EventQuickView({
                   )}
                   title={
                     taskItem.status === TaskStatus.COMPLETED
-                      ? "Mark as todo"
-                      : "Mark as completed"
+                      ? t("calendar.event.quickView.markTodo")
+                      : t("calendar.event.quickView.markCompleted")
                   }
                 >
                   <Check className="h-4 w-4" />
@@ -161,14 +163,14 @@ export function EventQuickView({
               <button
                 onClick={onEdit}
                 className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
-                title="Edit"
+                title={t("common.edit")}
               >
                 <Pencil className="h-4 w-4" />
               </button>
               <button
                 onClick={onDelete}
                 className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive"
-                title="Delete"
+                title={t("common.delete")}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -213,7 +215,8 @@ export function EventQuickView({
                             getStatusColor(attendee.status)
                           )}
                         >
-                          {attendee.status?.toLowerCase() || "pending"}
+                          {attendee.status?.toLowerCase() ||
+                            t("calendar.event.quickView.pending")}
                         </span>
                       </div>
                     ))}
@@ -242,12 +245,14 @@ export function EventQuickView({
                         "text-primary font-medium"
                       )}
                     >
-                      Due {format(newDate(taskItem.dueDate), "PPp")}
-                      {isOverdue && " (OVERDUE)"}
-                      {isFutureDate(taskItem.dueDate) && " (UPCOMING)"}
+                      {t("calendar.event.quickView.due")}{" "}
+                      {format(newDate(taskItem.dueDate), "PPp")}
+                      {isOverdue && ` ${t("calendar.event.quickView.overdue")}`}
+                      {isFutureDate(taskItem.dueDate) &&
+                        ` ${t("calendar.event.quickView.upcoming")}`}
                     </span>
                   ) : (
-                    <span>No due date</span>
+                    <span>{t("calendar.event.quickView.noDueDate")}</span>
                   )}
                 </div>
                 <span
@@ -273,8 +278,10 @@ export function EventQuickView({
                       "text-primary font-medium"
                     )}
                   >
-                    Starts {format(newDate(taskItem.startDate), "PPp")}
-                    {isFutureDate(taskItem.startDate) && " (UPCOMING)"}
+                    {t("calendar.event.quickView.starts")}{" "}
+                    {format(newDate(taskItem.startDate), "PPp")}
+                    {isFutureDate(taskItem.startDate) &&
+                      ` ${t("calendar.event.quickView.upcoming")}`}
                   </span>
                 </div>
               )}
@@ -288,9 +295,11 @@ export function EventQuickView({
                       priorityColors[taskItem.priority]
                     )}
                   >
-                    {taskItem.priority.charAt(0).toUpperCase() +
-                      taskItem.priority.slice(1)}{" "}
-                    Priority
+                    {t("calendar.event.quickView.priority", {
+                      level: t(
+                        `calendar.event.quickView.priorityLevel.${taskItem.priority}`
+                      ),
+                    })}
                   </span>
                 </div>
               )}
@@ -302,13 +311,13 @@ export function EventQuickView({
                     <Calendar className="h-4 w-4 flex-shrink-0" />
                     <div className="flex-1">
                       <div>
-                        Scheduled:{" "}
+                        {t("calendar.event.quickView.scheduled")}:{" "}
                         {format(newDate(taskItem.scheduledStart), "PPp")} -{" "}
                         {format(newDate(taskItem.scheduledEnd), "p")}
                       </div>
                       {taskItem.scheduleScore !== undefined && (
                         <div className="text-xs text-muted-foreground">
-                          Confidence:{" "}
+                          {t("calendar.event.quickView.confidence")}:{" "}
                           {Math.round((taskItem.scheduleScore ?? 0) * 100)}%
                         </div>
                       )}
@@ -336,7 +345,11 @@ export function EventQuickView({
               {taskItem.duration && (
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 flex-shrink-0" />
-                  <span>Duration: {taskItem.duration} minutes</span>
+                  <span>
+                    {t("calendar.event.quickView.duration", {
+                      minutes: taskItem.duration,
+                    })}
+                  </span>
                 </div>
               )}
 

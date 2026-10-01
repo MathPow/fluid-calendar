@@ -15,6 +15,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 
 import { TaskModal } from "@/components/tasks/TaskModal";
 
+import { useT } from "@/i18n/client";
 import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { newDate } from "@/lib/date-utils";
 
@@ -42,6 +43,7 @@ interface DayViewProps {
 }
 
 export function DayView({ currentDate, onDateClick }: DayViewProps) {
+  const t = useT();
   const { feeds, getAllCalendarItems, isLoading, removeEvent, updateEvent } =
     useCalendarStore();
   const { user: userSettings, calendar: calendarSettings } = useSettingsStore();
@@ -288,12 +290,12 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
     if (!quickViewItem) return;
 
     if (isTask) {
-      if (confirm("Are you sure you want to delete this task?")) {
+      if (confirm(t("calendar.confirm.deleteTask"))) {
         await useTaskStore.getState().deleteTask(quickViewItem.id);
         handleQuickViewClose();
       }
     } else {
-      if (confirm("Are you sure you want to delete this event?")) {
+      if (confirm(t("calendar.confirm.deleteEvent"))) {
         await removeEvent(
           quickViewItem.id,
           quickViewItem.isRecurring ? "series" : "single"
