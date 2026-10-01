@@ -37,6 +37,14 @@ export default function TasksPage() {
     scheduleAllTasks,
   } = useTaskStore();
   const { fetchProjects, activeProject } = useProjectStore();
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const update = () => setMobile(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   const { viewMode, setViewMode } = useTaskPageSettings();
   const { isOpen, setOpen } = useTaskModalStore();
 
@@ -134,7 +142,11 @@ export default function TasksPage() {
           <div className="flex items-center justify-between gap-2">
             <h1 className="display text-[32px] md:text-[40px]">Tasks.</h1>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => scheduleAllTasks()} className="hidden md:inline-flex">
+              <Button
+                variant="outline"
+                onClick={() => scheduleAllTasks()}
+                className="hidden md:inline-flex"
+              >
                 Auto Schedule
               </Button>
               <Button data-create-task-button onClick={handleCreateTaskClick}>
@@ -148,14 +160,14 @@ export default function TasksPage() {
             <button
               onClick={() => setViewMode("list")}
               className="segmented-item"
-              data-active={viewMode === "list"}
+              data-active={mobile || viewMode === "list"}
             >
               <ListTodo className="h-4 w-4" />
               List
             </button>
             <button
               onClick={() => setViewMode("board")}
-              className="segmented-item"
+              className="segmented-item hidden md:inline-flex"
               data-active={viewMode === "board"}
             >
               <Kanban className="h-4 w-4" />
@@ -175,7 +187,7 @@ export default function TasksPage() {
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 pb-20 md:p-6 md:pb-6">
-          {viewMode === "list" ? (
+          {!mobile && viewMode === "list" ? (
             <TaskList
               tasks={tasks}
               onEdit={(task) => {

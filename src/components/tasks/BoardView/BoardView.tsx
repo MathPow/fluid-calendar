@@ -9,7 +9,9 @@ import { useTaskListViewSettings } from "@/store/taskListViewSettings";
 
 import { Task, TaskStatus } from "@/types/task";
 
+import { STATUS_LABELS } from "../utils/task-list-utils";
 import { Column } from "./Column";
+import { MobileTaskRow } from "./MobileTaskRow";
 
 interface BoardViewProps {
   tasks: Task[];
@@ -103,7 +105,28 @@ export function BoardView({
 
   return (
     <div className="flex h-full flex-col bg-background p-4">
-      <div className="flex flex-1 gap-4 overflow-auto">
+      <div className="space-y-4 overflow-y-auto md:hidden">
+        <p className="text-xs text-muted-foreground">
+          Glisse à droite pour terminer, à gauche pour supprimer.
+        </p>
+        {Object.values(TaskStatus).map((status) => (
+          <section key={status} className="space-y-2">
+            <h2 className="text-sm font-semibold">
+              {STATUS_LABELS[status] || status} · {columns[status].length}
+            </h2>
+            {columns[status].map((task) => (
+              <MobileTaskRow
+                key={task.id}
+                task={task}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onStatusChange={onStatusChange}
+              />
+            ))}
+          </section>
+        ))}
+      </div>
+      <div className="hidden flex-1 gap-4 overflow-auto md:flex">
         <DndContext onDragEnd={handleDragEnd}>
           {Object.values(TaskStatus).map((status) => (
             <Column
