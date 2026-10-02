@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { tNow } from "@/i18n/now";
 import {
   DEFAULT_LAYOUT,
   type WidgetSlot,
@@ -29,8 +30,8 @@ function save(layout: WidgetSlot[] | null) {
       });
       if (!r.ok) throw new Error(`Erreur ${r.status}`);
     } catch {
-      toast.error("Disposition non enregistrée", {
-        description: "Elle reste sur cet appareil ; réessaie plus tard.",
+      toast.error(tNow("toasts.dashboard.layoutSaveFailed"), {
+        description: tNow("toasts.dashboard.layoutSaveFailed.description"),
       });
     }
   }, 600);

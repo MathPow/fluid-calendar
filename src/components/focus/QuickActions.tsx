@@ -7,6 +7,7 @@ import { Clock, Pencil, Trash2 } from "lucide-react";
 import { TaskModal } from "@/components/tasks/TaskModal";
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n/client";
 import { logger } from "@/lib/logger";
 
 import { useFocusModeStore } from "@/store/focusMode";
@@ -15,6 +16,7 @@ import { useTaskStore } from "@/store/task";
 import { NewTask } from "@/types/task";
 
 export function QuickActions() {
+  const t = useT();
   const { completeCurrentTask, postponeTask, getCurrentTask } =
     useFocusModeStore();
   const { updateTask, deleteTask, fetchTasks, tags, createTag } =
@@ -41,7 +43,7 @@ export function QuickActions() {
   const handleDeleteTask = async () => {
     if (!currentTask) return;
 
-    if (confirm("Are you sure you want to delete this task?")) {
+    if (confirm(t("tasks.confirm.delete"))) {
       try {
         await deleteTask(currentTask.id);
         await fetchTasks();
@@ -56,7 +58,7 @@ export function QuickActions() {
 
   return (
     <div className="flex flex-col space-y-4 p-4">
-      <h2 className="text-lg font-semibold">Quick Actions</h2>
+      <h2 className="text-lg font-semibold">{t("focus.quickActions.title")}</h2>
 
       <div className="flex flex-col space-y-2">
         {/* Complete Task */}
@@ -68,7 +70,7 @@ export function QuickActions() {
         >
           <span className="flex items-center">
             <span className="mr-2">✅</span>
-            Complete Task
+            {t("focus.quickActions.complete")}
           </span>
         </Button>
 
@@ -81,7 +83,7 @@ export function QuickActions() {
         >
           <span className="flex items-center">
             <Pencil className="mr-2 h-4 w-4" />
-            Edit Task
+            {t("focus.quickActions.edit")}
           </span>
         </Button>
 
@@ -94,12 +96,12 @@ export function QuickActions() {
         >
           <span className="flex items-center">
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete Task
+            {t("focus.quickActions.delete")}
           </span>
         </Button>
 
         <div className="my-2 h-px bg-border" />
-        <h3 className="text-sm font-medium">Postpone Task</h3>
+        <h3 className="text-sm font-medium">{t("focus.quickActions.postpone")}</h3>
 
         {/* Postpone Actions */}
         <div className="flex flex-wrap gap-2">
@@ -110,7 +112,7 @@ export function QuickActions() {
             className="flex items-center"
             disabled={!currentTask}
           >
-            <Clock className="mr-1 h-3 w-3" /> 1 hour
+            <Clock className="mr-1 h-3 w-3" /> {t("focus.quickActions.oneHour")}
           </Button>
           <Button
             variant="outline"
@@ -119,7 +121,7 @@ export function QuickActions() {
             className="flex items-center"
             disabled={!currentTask}
           >
-            <Clock className="mr-1 h-3 w-3" /> 3 hours
+            <Clock className="mr-1 h-3 w-3" /> {t("focus.quickActions.threeHours")}
           </Button>
           <Button
             variant="outline"
@@ -128,7 +130,7 @@ export function QuickActions() {
             className="flex items-center"
             disabled={!currentTask}
           >
-            <Clock className="mr-1 h-3 w-3" /> 1 day
+            <Clock className="mr-1 h-3 w-3" /> {t("focus.quickActions.oneDay")}
           </Button>
           <Button
             variant="outline"
@@ -137,7 +139,7 @@ export function QuickActions() {
             className="flex items-center"
             disabled={!currentTask}
           >
-            <Clock className="mr-1 h-3 w-3" /> 1 week
+            <Clock className="mr-1 h-3 w-3" /> {t("focus.quickActions.oneWeek")}
           </Button>
         </div>
       </div>

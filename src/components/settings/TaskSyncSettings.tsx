@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { useT } from "@/i18n";
 import {
   Calendar,
   ExternalLink,
@@ -83,6 +84,7 @@ function OrganisationSelect({
   disabled?: boolean;
   className?: string;
 }) {
+  const t = useT();
   return (
     <Select
       value={value || NONE}
@@ -90,10 +92,12 @@ function OrganisationSelect({
       disabled={disabled}
     >
       <SelectTrigger id={id} className={className}>
-        <SelectValue placeholder="No organisation" />
+        <SelectValue placeholder={t("settings.taskSync.noOrganisation")} />
       </SelectTrigger>
       <SelectContent className="max-h-72">
-        <SelectItem value={NONE}>No organisation</SelectItem>
+        <SelectItem value={NONE}>
+          {t("settings.taskSync.noOrganisation")}
+        </SelectItem>
         {organisations.map((o) => (
           <SelectItem key={o.id} value={o.id}>
             <span className="inline-flex items-center gap-2">
@@ -144,6 +148,7 @@ interface TaskList {
 
 export function TaskSyncSettings() {
   const { accounts } = useSettingsStore();
+  const t = useT();
 
   // State
   const [providers, setProviders] = useState<TaskProvider[]>([]);
@@ -228,7 +233,10 @@ export function TaskSyncSettings() {
           }
 
           // If we couldn't get an email, show unknown
-          return { ...provider, accountEmail: "Unknown Account" };
+          return {
+            ...provider,
+            accountEmail: t("settings.taskSync.unknownAccount"),
+          };
         })
       );
 
@@ -239,7 +247,7 @@ export function TaskSyncSettings() {
         setSelectedProvider(enrichedProviders[enrichedProviders.length - 1]);
       }
     } catch (error) {
-      setError("Failed to load task providers");
+      setError(t("settings.taskSync.errors.loadProviders"));
       logger.error(
         "Failed to fetch task providers",
         { error: error instanceof Error ? error.message : "Unknown error" },
@@ -248,7 +256,7 @@ export function TaskSyncSettings() {
     } finally {
       setIsLoadingProviders(false);
     }
-  }, [accounts, selectedProvider]);
+  }, [accounts, selectedProvider, t]);
   // Load providers and projects when component mounts
   useEffect(() => {
     fetchProviders();
@@ -314,39 +322,46 @@ export function TaskSyncSettings() {
   }, []);
 
   // Fetch task lists for a provider
-  const fetchTaskLists = useCallback(async (providerId: string) => {
-    setIsLoading(true);
-    setError(null);
+  const fetchTaskLists = useCallback(
+    async (providerId: string) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await fetch(
-        `/api/task-sync/providers/${providerId}/lists`
-      );
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.reason || "Failed to load task lists");
+      try {
+        const response = await fetch(
+          `/api/task-sync/providers/${providerId}/lists`
+        );
+        if (!response.ok) {
+          const data = await response.json().catch(() => null);
+          throw new Error(
+            data?.reason || t("settings.taskSync.errors.loadLists")
+          );
+        }
+
+        const data = await response.json();
+        setTaskLists(data);
+      } catch (error) {
+        // Never leave the boards of another connection on screen.
+        setTaskLists([]);
+        setError(
+          error instanceof Error
+            ? error.message
+            : t("settings.taskSync.errors.loadLists")
+        );
+        logger.error(
+          "Failed to fetch task lists",
+          {
+            error: error instanceof Error ? error.message : "Unknown error",
+            providerId,
+          },
+          LOG_SOURCE
+        );
+      } finally {
+        setIsLoading(false);
       }
-
-      const data = await response.json();
-      setTaskLists(data);
-    } catch (error) {
-      // Never leave the boards of another connection on screen.
-      setTaskLists([]);
-      setError(
-        error instanceof Error ? error.message : "Failed to load task lists"
-      );
-      logger.error(
-        "Failed to fetch task lists",
-        {
-          error: error instanceof Error ? error.message : "Unknown error",
-          providerId,
-        },
-        LOG_SOURCE
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [t]
+  );
 
   // Load task lists for the selected provider
   useEffect(() => {
@@ -360,7 +375,7 @@ export function TaskSyncSettings() {
   const createProvider = async () => {
     if (!newProviderName || !selectedAccount) {
       // Show error toast for missing fields
-      toast.error("Please enter a name and select an account");
+      toast.error(t("toasts.settings.taskSync.missingNameAccount"));
       return;
     }
 
@@ -369,7 +384,8 @@ export function TaskSyncSettings() {
     try {
       // Find account email for UI display
       const account = accounts.find((acc) => acc.id === selectedAccount);
-      const accountEmail = account?.email || "Unknown Account";
+      const accountEmail =
+        account?.email || t("settings.taskSync.unknownAccount");
       const providerType =
         (account?.provider as "OUTLOOK" | "GOOGLE" | undefined) || "OUTLOOK";
 
@@ -409,18 +425,18 @@ export function TaskSyncSettings() {
       setSelectedAccount("");
 
       // Show success toast
-      toast.success("Task provider created successfully");
+      toast.success(t("toasts.settings.taskSync.providerCreated"));
 
       // Close the dialog
       setIsDialogOpen(false);
     } catch (error) {
-      setError("Failed to create task provider");
+      setError(t("settings.taskSync.errors.createProvider"));
       logger.error(
         "Failed to create task provider",
         { error: error instanceof Error ? error.message : "Unknown error" },
         LOG_SOURCE
       );
-      toast.error("Failed to create task provider");
+      toast.error(t("toasts.settings.taskSync.createProviderFailed"));
     } finally {
       setIsCreating(false);
     }
@@ -429,7 +445,7 @@ export function TaskSyncSettings() {
   // Connect a Trello provider via API key + token
   const connectTrello = async () => {
     if (!trelloKey || !trelloToken || !trelloName) {
-      toast.error("Please fill in the Trello key, token and name");
+      toast.error(t("toasts.settings.taskSync.trelloMissingFields"));
       return;
     }
 
@@ -448,7 +464,9 @@ export function TaskSyncSettings() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        throw new Error(data?.error || "Failed to connect Trello");
+        throw new Error(
+          data?.error || t("toasts.settings.taskSync.trelloConnectFailed")
+        );
       }
 
       const { provider: newProvider } = await response.json();
@@ -464,7 +482,7 @@ export function TaskSyncSettings() {
       setTrelloName("Trello");
       setTrelloOrganisation("");
       setIsTrelloDialogOpen(false);
-      toast.success("Trello connected — pick the boards to sync");
+      toast.success(t("toasts.settings.taskSync.trelloConnected"));
     } catch (error) {
       logger.error(
         "Failed to connect Trello provider",
@@ -472,7 +490,9 @@ export function TaskSyncSettings() {
         LOG_SOURCE
       );
       toast.error(
-        error instanceof Error ? error.message : "Failed to connect Trello"
+        error instanceof Error
+          ? error.message
+          : t("toasts.settings.taskSync.trelloConnectFailed")
       );
     } finally {
       setIsCreating(false);
@@ -482,7 +502,7 @@ export function TaskSyncSettings() {
   // Connect a GitHub provider via PAT
   const connectGitHub = async () => {
     if (!githubToken || !githubLogin || !githubName) {
-      toast.error("Please fill in all GitHub fields");
+      toast.error(t("toasts.settings.taskSync.githubMissingFields"));
       return;
     }
 
@@ -502,7 +522,9 @@ export function TaskSyncSettings() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        throw new Error(data?.error || "Failed to connect GitHub");
+        throw new Error(
+          data?.error || t("toasts.settings.taskSync.githubConnectFailed")
+        );
       }
 
       const { provider: newProvider } = await response.json();
@@ -518,10 +540,12 @@ export function TaskSyncSettings() {
       setGithubName("GitHub Projects");
       setGithubOrganisation("");
       setIsGitHubDialogOpen(false);
-      toast.success("GitHub provider connected successfully");
+      toast.success(t("toasts.settings.taskSync.githubConnected"));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to connect GitHub"
+        error instanceof Error
+          ? error.message
+          : t("toasts.settings.taskSync.githubConnectFailed")
       );
     } finally {
       setIsCreating(false);
@@ -541,7 +565,9 @@ export function TaskSyncSettings() {
       });
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        throw new Error(data?.error || "Failed to update the connection");
+        throw new Error(
+          data?.error || t("toasts.settings.taskSync.updateConnectionFailed")
+        );
       }
       const { provider: updated } = await response.json();
       const merge = (p: TaskProvider): TaskProvider =>
@@ -556,14 +582,16 @@ export function TaskSyncSettings() {
       setSelectedProvider((p) => (p ? merge(p) : p));
       toast.success(
         updated.organisation
-          ? `Linked to ${updated.organisation.name}`
-          : "Unlinked from its organisation"
+          ? t("toasts.settings.taskSync.linkedTo", {
+              name: updated.organisation.name,
+            })
+          : t("toasts.settings.taskSync.unlinked")
       );
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to update the connection"
+          : t("toasts.settings.taskSync.updateConnectionFailed")
       );
     }
   };
@@ -576,30 +604,37 @@ export function TaskSyncSettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ settings: { onlyMine } }),
       });
-      if (!response.ok) throw new Error("Failed to update the connection");
+      if (!response.ok)
+        throw new Error(t("toasts.settings.taskSync.updateConnectionFailed"));
       const merge = (p: TaskProvider): TaskProvider =>
         p.id === providerId
-          ? { ...p, settings: { ...((p.settings as Record<string, unknown>) ?? {}), onlyMine } }
+          ? {
+              ...p,
+              settings: {
+                ...((p.settings as Record<string, unknown>) ?? {}),
+                onlyMine,
+              },
+            }
           : p;
       setProviders((all) => all.map(merge));
       setSelectedProvider((p) => (p ? merge(p) : p));
       toast.success(
         onlyMine
-          ? "Seulement tes cartes: les autres partent à la prochaine synchro"
-          : "Toutes les cartes des tableaux seront synchronisées"
+          ? t("toasts.settings.taskSync.onlyMineOn")
+          : t("toasts.settings.taskSync.onlyMineOff")
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update the connection");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("toasts.settings.taskSync.updateConnectionFailed")
+      );
     }
   };
 
   // Delete a provider
   const deleteProvider = async (providerId: string) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this provider? All task list mappings associated with this provider will also be deleted."
-      )
-    ) {
+    if (!window.confirm(t("settings.taskSync.confirmDeleteProvider"))) {
       return;
     }
 
@@ -613,13 +648,13 @@ export function TaskSyncSettings() {
         throw new Error("Failed to delete task provider");
       }
 
-      toast.success("Task provider deleted successfully");
+      toast.success(t("toasts.settings.taskSync.providerDeleted"));
 
       // Refresh providers
       await fetchProviders();
       setSelectedProvider(null);
     } catch (error) {
-      toast.error("Failed to delete task provider");
+      toast.error(t("toasts.settings.taskSync.deleteProviderFailed"));
       logger.error(
         "Failed to delete task provider",
         {
@@ -656,7 +691,9 @@ export function TaskSyncSettings() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        throw new Error(data?.error || "Failed to create task list mapping");
+        throw new Error(
+          data?.error || t("toasts.settings.taskSync.createMappingFailed")
+        );
       }
       const { mapping } = await response.json();
 
@@ -675,8 +712,14 @@ export function TaskSyncSettings() {
       });
       toast.success(
         sync.ok
-          ? `« ${list?.name ?? "Board"} » is syncing to ${mapping.projectName}`
-          : `« ${list?.name ?? "Board"} » mapped to ${mapping.projectName} — press Sync to import`
+          ? t("toasts.settings.taskSync.mappingSyncing", {
+              list: list?.name ?? t("settings.taskSync.board"),
+              project: mapping.projectName,
+            })
+          : t("toasts.settings.taskSync.mappingMapped", {
+              list: list?.name ?? t("settings.taskSync.board"),
+              project: mapping.projectName,
+            })
       );
 
       // Refresh lists and mappings
@@ -686,7 +729,7 @@ export function TaskSyncSettings() {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to create task list mapping"
+          : t("toasts.settings.taskSync.createMappingFailed")
       );
       logger.error(
         "Failed to create task list mapping",
@@ -700,7 +743,7 @@ export function TaskSyncSettings() {
 
   // Delete a mapping
   const deleteMapping = async (mappingId: string) => {
-    if (!window.confirm("Are you sure you want to remove this mapping?")) {
+    if (!window.confirm(t("settings.taskSync.confirmDeleteMapping"))) {
       return;
     }
 
@@ -716,13 +759,13 @@ export function TaskSyncSettings() {
         throw new Error("Failed to delete task list mapping");
       }
 
-      toast.success("Task list mapping removed successfully");
+      toast.success(t("toasts.settings.taskSync.mappingRemoved"));
 
       // Refresh lists and mappings
       await fetchTaskLists(selectedProvider.id);
       await fetchMappings(selectedProvider.id);
     } catch (error) {
-      toast.error("Failed to remove task list mapping");
+      toast.error(t("toasts.settings.taskSync.removeMappingFailed"));
       logger.error(
         "Failed to remove task list mapping",
         {
@@ -758,16 +801,16 @@ export function TaskSyncSettings() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Failed to trigger provider sync:", errorData);
-        toast.error("Failed to trigger sync");
+        toast.error(t("toasts.settings.taskSync.syncFailed"));
         return;
       }
 
       const data = await response.json();
-      toast.success("Sync job scheduled");
+      toast.success(t("toasts.settings.taskSync.syncScheduled"));
       console.log("Sync job:", data);
     } catch (error) {
       console.error("Error triggering sync:", error);
-      toast.error("Failed to trigger sync");
+      toast.error(t("toasts.settings.taskSync.syncFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -802,16 +845,16 @@ export function TaskSyncSettings() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Failed to trigger mapping sync:", errorData);
-        toast.error("Failed to trigger sync");
+        toast.error(t("toasts.settings.taskSync.syncFailed"));
         return;
       }
 
       const data = await response.json();
-      toast.success("Sync job scheduled");
+      toast.success(t("toasts.settings.taskSync.syncScheduled"));
       console.log("Sync job:", data);
     } catch (error) {
       console.error("Error triggering sync:", error);
-      toast.error("Failed to trigger sync");
+      toast.error(t("toasts.settings.taskSync.syncFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -821,15 +864,15 @@ export function TaskSyncSettings() {
   const renderProviderSelection = () => {
     return (
       <SettingRow
-        label="Task Provider"
-        description="Select or create a task provider"
+        label={t("settings.taskSync.provider.label")}
+        description={t("settings.taskSync.provider.description")}
       >
         <div className="space-y-4">
           {isLoadingProviders ? (
             <div className="flex items-center">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               <span className="text-sm text-muted-foreground">
-                Loading providers...
+                {t("settings.taskSync.provider.loading")}
               </span>
             </div>
           ) : (
@@ -843,7 +886,9 @@ export function TaskSyncSettings() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a provider" />
+                    <SelectValue
+                      placeholder={t("settings.taskSync.provider.placeholder")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {providers.map((provider) => (
@@ -864,10 +909,11 @@ export function TaskSyncSettings() {
                 </Select>
               ) : (
                 <Alert>
-                  <AlertTitle>No Task Providers</AlertTitle>
+                  <AlertTitle>
+                    {t("settings.taskSync.provider.empty.title")}
+                  </AlertTitle>
                   <AlertDescription>
-                    You need to create a task provider to sync tasks from
-                    external services.
+                    {t("settings.taskSync.provider.empty.description")}
                   </AlertDescription>
                 </Alert>
               )}
@@ -877,31 +923,44 @@ export function TaskSyncSettings() {
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm">
-                        <Plus className="mr-2 h-4 w-4" /> Add Outlook/Google
+                        <Plus className="mr-2 h-4 w-4" />{" "}
+                        {t("settings.taskSync.add.outlookGoogle")}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Add Task Provider</DialogTitle>
+                        <DialogTitle>
+                          {t("settings.taskSync.add.title")}
+                        </DialogTitle>
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="name">Provider Name</Label>
+                          <Label htmlFor="name">
+                            {t("settings.taskSync.fields.providerName")}
+                          </Label>
                           <Input
                             id="name"
                             value={newProviderName}
                             onChange={(e) => setNewProviderName(e.target.value)}
-                            placeholder="e.g., Work Outlook Tasks"
+                            placeholder={t(
+                              "settings.taskSync.add.namePlaceholder"
+                            )}
                           />
                         </div>
                         <div className="grid gap-2">
-                          <Label htmlFor="account">Account</Label>
+                          <Label htmlFor="account">
+                            {t("settings.taskSync.fields.account")}
+                          </Label>
                           <Select
                             value={selectedAccount}
                             onValueChange={setSelectedAccount}
                           >
                             <SelectTrigger id="account">
-                              <SelectValue placeholder="Select an account" />
+                              <SelectValue
+                                placeholder={t(
+                                  "settings.taskSync.fields.accountPlaceholder"
+                                )}
+                              />
                             </SelectTrigger>
                             <SelectContent>
                               {unusedAccounts.map((account) => (
@@ -918,7 +977,7 @@ export function TaskSyncSettings() {
                           variant="outline"
                           onClick={() => setIsDialogOpen(false)}
                         >
-                          Cancel
+                          {t("common.cancel")}
                         </Button>
                         <Button
                           onClick={createProvider}
@@ -929,7 +988,7 @@ export function TaskSyncSettings() {
                           {isCreating && (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           )}
-                          Add Provider
+                          {t("settings.taskSync.add.submit")}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -943,25 +1002,34 @@ export function TaskSyncSettings() {
                 >
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
-                      <Plus className="mr-2 h-4 w-4" /> Add GitHub
+                      <Plus className="mr-2 h-4 w-4" />{" "}
+                      {t("settings.taskSync.github.add")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Connect GitHub Projects</DialogTitle>
+                      <DialogTitle>
+                        {t("settings.taskSync.github.title")}
+                      </DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="gh-name">Provider Name</Label>
+                        <Label htmlFor="gh-name">
+                          {t("settings.taskSync.fields.providerName")}
+                        </Label>
                         <Input
                           id="gh-name"
                           value={githubName}
                           onChange={(e) => setGithubName(e.target.value)}
-                          placeholder="e.g., GitHub Projects"
+                          placeholder={t(
+                            "settings.taskSync.github.namePlaceholder"
+                          )}
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="gh-token">Personal Access Token</Label>
+                        <Label htmlFor="gh-token">
+                          {t("settings.taskSync.github.token")}
+                        </Label>
                         <Input
                           id="gh-token"
                           type="password"
@@ -970,12 +1038,15 @@ export function TaskSyncSettings() {
                           placeholder="ghp_..."
                         />
                         <p className="text-xs text-muted-foreground">
-                          Needs <code>read:project</code> and <code>repo</code>{" "}
-                          scopes.
+                          {t("settings.taskSync.github.scopes", {
+                            scopes: "read:project + repo",
+                          })}
                         </p>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="gh-owner-type">Owner Type</Label>
+                        <Label htmlFor="gh-owner-type">
+                          {t("settings.taskSync.github.ownerType")}
+                        </Label>
                         <Select
                           value={githubOwnerType}
                           onValueChange={(v) =>
@@ -986,9 +1057,11 @@ export function TaskSyncSettings() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="user">
+                              {t("settings.taskSync.github.ownerUser")}
+                            </SelectItem>
                             <SelectItem value="organization">
-                              Organization
+                              {t("settings.taskSync.github.ownerOrganization")}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -996,8 +1069,8 @@ export function TaskSyncSettings() {
                       <div className="grid gap-2">
                         <Label htmlFor="gh-login">
                           {githubOwnerType === "organization"
-                            ? "Organization"
-                            : "Username"}
+                            ? t("settings.taskSync.github.ownerOrganization")
+                            : t("settings.taskSync.github.username")}
                         </Label>
                         <Input
                           id="gh-login"
@@ -1005,14 +1078,16 @@ export function TaskSyncSettings() {
                           onChange={(e) => setGithubLogin(e.target.value)}
                           placeholder={
                             githubOwnerType === "organization"
-                              ? "my-org"
-                              : "my-username"
+                              ? t("settings.taskSync.github.orgPlaceholder")
+                              : t(
+                                  "settings.taskSync.github.usernamePlaceholder"
+                                )
                           }
                         />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="gh-organisation">
-                          Organisation (optional)
+                          {t("settings.taskSync.fields.organisationOptional")}
                         </Label>
                         <OrganisationSelect
                           id="gh-organisation"
@@ -1021,8 +1096,7 @@ export function TaskSyncSettings() {
                           organisations={organisations}
                         />
                         <p className="text-xs text-muted-foreground">
-                          The organisation this GitHub account works for. Its
-                          projects are filed there unless you say otherwise.
+                          {t("settings.taskSync.github.organisationHint")}
                         </p>
                       </div>
                     </div>
@@ -1031,7 +1105,7 @@ export function TaskSyncSettings() {
                         variant="outline"
                         onClick={() => setIsGitHubDialogOpen(false)}
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </Button>
                       <Button
                         onClick={connectGitHub}
@@ -1045,7 +1119,7 @@ export function TaskSyncSettings() {
                         {isCreating && (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         )}
-                        Connect
+                        {t("settings.taskSync.connect")}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -1058,34 +1132,45 @@ export function TaskSyncSettings() {
                 >
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
-                      <Plus className="mr-2 h-4 w-4" /> Add Trello
+                      <Plus className="mr-2 h-4 w-4" />{" "}
+                      {t("settings.taskSync.trello.add")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Connect Trello</DialogTitle>
+                      <DialogTitle>
+                        {t("settings.taskSync.trello.title")}
+                      </DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="trello-name">Provider Name</Label>
+                        <Label htmlFor="trello-name">
+                          {t("settings.taskSync.fields.providerName")}
+                        </Label>
                         <Input
                           id="trello-name"
                           value={trelloName}
                           onChange={(e) => setTrelloName(e.target.value)}
-                          placeholder="e.g., Trello"
+                          placeholder={t(
+                            "settings.taskSync.trello.namePlaceholder"
+                          )}
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="trello-key">API key</Label>
+                        <Label htmlFor="trello-key">
+                          {t("settings.taskSync.trello.apiKey")}
+                        </Label>
                         <Input
                           id="trello-key"
                           value={trelloKey}
                           onChange={(e) => setTrelloKey(e.target.value.trim())}
-                          placeholder="32-character key"
+                          placeholder={t(
+                            "settings.taskSync.trello.apiKeyPlaceholder"
+                          )}
                           autoComplete="off"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Create a Power-Up on{" "}
+                          {t("settings.taskSync.trello.apiKeyHintBefore")}{" "}
                           <a
                             href="https://trello.com/power-ups/admin"
                             target="_blank"
@@ -1094,11 +1179,13 @@ export function TaskSyncSettings() {
                           >
                             trello.com/power-ups/admin
                           </a>{" "}
-                          and copy its API key.
+                          {t("settings.taskSync.trello.apiKeyHintAfter")}
                         </p>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="trello-token">Token</Label>
+                        <Label htmlFor="trello-token">
+                          {t("settings.taskSync.trello.token")}
+                        </Label>
                         <Input
                           id="trello-token"
                           type="password"
@@ -1106,7 +1193,9 @@ export function TaskSyncSettings() {
                           onChange={(e) =>
                             setTrelloToken(e.target.value.trim())
                           }
-                          placeholder="Token with read,write scope"
+                          placeholder={t(
+                            "settings.taskSync.trello.tokenPlaceholder"
+                          )}
                           autoComplete="off"
                         />
                         <p className="text-xs text-muted-foreground">
@@ -1117,16 +1206,16 @@ export function TaskSyncSettings() {
                               rel="noopener noreferrer"
                               className="underline underline-offset-2"
                             >
-                              Generate a token for this key
+                              {t("settings.taskSync.trello.generateToken")}
                             </a>
                           ) : (
-                            "Paste the key first, then a link to generate the token appears here."
+                            t("settings.taskSync.trello.tokenHint")
                           )}
                         </p>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="trello-organisation">
-                          Organisation (optional)
+                          {t("settings.taskSync.fields.organisationOptional")}
                         </Label>
                         <OrganisationSelect
                           id="trello-organisation"
@@ -1135,15 +1224,11 @@ export function TaskSyncSettings() {
                           organisations={organisations}
                         />
                         <p className="text-xs text-muted-foreground">
-                          The organisation this Trello works for. Connect one
-                          Trello per organisation if you have several.
+                          {t("settings.taskSync.trello.organisationHint")}
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Each board becomes a task list. Cards sync as tasks; the
-                        column they sit in (To do / Doing / Done) sets their
-                        status, and closing a task here moves the card to the
-                        board&apos;s Done column when it has one.
+                        {t("settings.taskSync.trello.explainer")}
                       </p>
                     </div>
                     <DialogFooter>
@@ -1151,7 +1236,7 @@ export function TaskSyncSettings() {
                         variant="outline"
                         onClick={() => setIsTrelloDialogOpen(false)}
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </Button>
                       <Button
                         onClick={connectTrello}
@@ -1165,7 +1250,7 @@ export function TaskSyncSettings() {
                         {isCreating && (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         )}
-                        Connect
+                        {t("settings.taskSync.connect")}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -1182,41 +1267,47 @@ export function TaskSyncSettings() {
   const renderProviderDetails = () => {
     if (!selectedProvider) return null;
     const trelloOnlyMine =
-      (selectedProvider.settings as { onlyMine?: boolean } | null)?.onlyMine !== false;
+      (selectedProvider.settings as { onlyMine?: boolean } | null)?.onlyMine !==
+      false;
 
     return (
       <SettingRow
-        label="Provider Details"
-        description="View and manage provider settings"
+        label={t("settings.taskSync.details.label")}
+        description={t("settings.taskSync.details.description")}
       >
         <Card>
           <CardContent className="space-y-3 pt-6">
             {selectedProvider.type === "TRELLO" && (
               <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl bg-secondary px-4 py-3">
                 <span>
-                  <span className="block text-sm font-medium">Seulement les cartes assignées à moi</span>
+                  <span className="block text-sm font-medium">
+                    {t("settings.taskSync.details.onlyMine.title")}
+                  </span>
                   <span className="block text-xs text-muted-foreground">
-                    Les cartes où tu n&apos;es pas membre ne viennent pas dans tes tâches (celles déjà importées
-                    partent à la prochaine synchro). Les tâches créées ici te sont assignées dans Trello.
+                    {t("settings.taskSync.details.onlyMine.description")}
                   </span>
                 </span>
                 <Switch
                   checked={trelloOnlyMine}
-                  onCheckedChange={(v) => setTrelloOnlyMine(selectedProvider.id, v)}
+                  onCheckedChange={(v) =>
+                    setTrelloOnlyMine(selectedProvider.id, v)
+                  }
                 />
               </label>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="text-sm text-muted-foreground">
-                  Provider Type
+                  {t("settings.taskSync.details.type")}
                 </div>
                 <div className="font-medium capitalize">
                   {selectedProvider.type}
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Account</div>
+                <div className="text-sm text-muted-foreground">
+                  {t("settings.taskSync.fields.account")}
+                </div>
                 <div className="font-medium">
                   {selectedProvider.type === "GITHUB"
                     ? `${(selectedProvider.settings as { login?: string })?.login ?? "GitHub"}`
@@ -1226,7 +1317,9 @@ export function TaskSyncSettings() {
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Last Synced</div>
+                <div className="text-sm text-muted-foreground">
+                  {t("settings.taskSync.details.lastSynced")}
+                </div>
                 <div className="font-medium">
                   {selectedProvider.lastSyncedAt
                     ? format(
@@ -1235,12 +1328,12 @@ export function TaskSyncSettings() {
                           : selectedProvider.lastSyncedAt,
                         "PPp"
                       )
-                    : "Never"}
+                    : t("settings.taskSync.details.never")}
                 </div>
               </div>
               <div className="col-span-2">
                 <div className="text-sm text-muted-foreground">
-                  Organisation
+                  {t("settings.taskSync.details.organisation")}
                 </div>
                 <OrganisationSelect
                   value={selectedProvider.organisationId ?? ""}
@@ -1254,19 +1347,21 @@ export function TaskSyncSettings() {
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">
-                  Automatic sync
+                  {t("settings.taskSync.details.autoSync")}
                 </div>
                 <div className="font-medium">
                   {selectedProvider.syncEnabled
-                    ? "Every 15 minutes, both ways"
-                    : "Off — manual only"}
+                    ? t("settings.taskSync.details.autoSyncOn")
+                    : t("settings.taskSync.details.autoSyncOff")}
                 </div>
               </div>
             </div>
 
             {selectedProvider.error && (
               <Alert variant="destructive">
-                <AlertTitle>Sync Error</AlertTitle>
+                <AlertTitle>
+                  {t("settings.taskSync.details.syncError")}
+                </AlertTitle>
                 <AlertDescription>{selectedProvider.error}</AlertDescription>
               </Alert>
             )}
@@ -1279,7 +1374,7 @@ export function TaskSyncSettings() {
               disabled={isLoading}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete Provider
+              {t("settings.taskSync.details.deleteProvider")}
             </Button>
 
             <Button
@@ -1289,7 +1384,7 @@ export function TaskSyncSettings() {
               disabled={isLoading}
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              Sync Now
+              {t("settings.taskSync.details.syncNow")}
             </Button>
           </CardFooter>
         </Card>
@@ -1303,8 +1398,8 @@ export function TaskSyncSettings() {
 
     return (
       <SettingRow
-        label="Task Lists"
-        description="Pick the boards and lists to sync as tasks"
+        label={t("settings.taskSync.lists.label")}
+        description={t("settings.taskSync.lists.description")}
       >
         <div className="space-y-4">
           {error && (
@@ -1317,12 +1412,12 @@ export function TaskSyncSettings() {
             <div className="flex items-center">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               <span className="text-sm text-muted-foreground">
-                Loading task lists...
+                {t("settings.taskSync.lists.loading")}
               </span>
             </div>
           ) : taskLists.length === 0 ? (
             <div className="text-sm text-muted-foreground">
-              No task lists found for this provider.
+              {t("settings.taskSync.lists.empty")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -1334,20 +1429,24 @@ export function TaskSyncSettings() {
                         {list.name}
                         {list.isDefaultFolder && (
                           <span className="ml-2 text-xs text-muted-foreground">
-                            (Default)
+                            {t("settings.taskSync.lists.default")}
                           </span>
                         )}
                       </div>
                       {list.isMapped ? (
                         <div className="mt-1 text-sm">
                           <span className="text-muted-foreground">
-                            Mapped to project:
+                            {t("settings.taskSync.lists.mappedTo")}
                           </span>{" "}
                           <span>{list.projectName}</span>
                           {list.lastSyncedAt && (
                             <div className="text-xs text-muted-foreground">
-                              Last synced:{" "}
-                              {format(new Date(list.lastSyncedAt), "PPp")}
+                              {t("settings.taskSync.lists.lastSynced", {
+                                date: format(
+                                  new Date(list.lastSyncedAt),
+                                  "PPp"
+                                ),
+                              })}
                             </div>
                           )}
                           <div className="mt-2 flex items-center space-x-2">
@@ -1361,7 +1460,7 @@ export function TaskSyncSettings() {
                               disabled={isLoading || !list.mappingId}
                             >
                               <RefreshCw className="mr-1 h-4 w-4" />
-                              Sync
+                              {t("settings.taskSync.lists.sync")}
                             </Button>
                           </div>
                           <div className="mt-2">
@@ -1373,15 +1472,14 @@ export function TaskSyncSettings() {
                               }
                               disabled={isLoading}
                             >
-                              Remove Mapping
+                              {t("settings.taskSync.lists.removeMapping")}
                             </Button>
                           </div>
                         </div>
                       ) : (
                         <div className="mt-1">
                           <div className="mb-3 text-sm text-muted-foreground">
-                            Not synced yet. File it under an organisation and a
-                            project if you want; both are optional.
+                            {t("settings.taskSync.lists.notSynced")}
                           </div>
                           {(() => {
                             const chosen = destinationOf(list.id);
@@ -1415,21 +1513,29 @@ export function TaskSyncSettings() {
                                 >
                                   <SelectTrigger
                                     className="sm:w-[220px]"
-                                    aria-label="Project"
+                                    aria-label={t(
+                                      "settings.taskSync.lists.projectAria"
+                                    )}
                                   >
                                     <SelectValue
                                       placeholder={
                                         chosen.organisationId
-                                          ? "No project"
-                                          : "Pick an organisation first"
+                                          ? t(
+                                              "settings.taskSync.lists.noProject"
+                                            )
+                                          : t(
+                                              "settings.taskSync.lists.pickOrganisationFirst"
+                                            )
                                       }
                                     />
                                   </SelectTrigger>
                                   <SelectContent className="max-h-72">
                                     <SelectItem value={NONE}>
                                       {chosen.organisationId
-                                        ? "No project"
-                                        : "Pick an organisation first"}
+                                        ? t("settings.taskSync.lists.noProject")
+                                        : t(
+                                            "settings.taskSync.lists.pickOrganisationFirst"
+                                          )}
                                     </SelectItem>
                                     {options.map((p) => (
                                       <SelectItem key={p.id} value={p.id}>
@@ -1458,15 +1564,20 @@ export function TaskSyncSettings() {
                                   disabled={isLoading}
                                 >
                                   <RefreshCw className="mr-1 h-4 w-4" />
-                                  Sync to tasks
+                                  {t("settings.taskSync.lists.syncToTasks")}
                                 </Button>
                               </div>
                             );
                           })()}
                           <p className="mt-2 text-xs text-muted-foreground">
                             {destinationOf(list.id).agentProjectId
-                              ? "Tasks go to this project's task list."
-                              : `Tasks go to a new list named « ${list.name} ».`}
+                              ? t("settings.taskSync.lists.destinationProject")
+                              : t(
+                                  "settings.taskSync.lists.destinationNewList",
+                                  {
+                                    name: list.name,
+                                  }
+                                )}
                           </p>
                         </div>
                       )}
@@ -1475,7 +1586,9 @@ export function TaskSyncSettings() {
                       variant={list.isMapped ? "default" : "outline"}
                       className="ml-3 shrink-0"
                     >
-                      {list.isMapped ? "Mapped" : "Not Mapped"}
+                      {list.isMapped
+                        ? t("settings.taskSync.lists.mapped")
+                        : t("settings.taskSync.lists.notMapped")}
                     </Badge>
                   </CardContent>
                 </Card>
@@ -1493,11 +1606,11 @@ export function TaskSyncSettings() {
 
     return (
       <SettingRow
-        label="Sync History"
-        description="View recent sync activities and results"
+        label={t("settings.taskSync.history.label")}
+        description={t("settings.taskSync.history.description")}
       >
         <div className="p-4 text-center text-muted-foreground">
-          <p>Sync history will be available in a future update.</p>
+          <p>{t("settings.taskSync.history.comingSoon")}</p>
         </div>
       </SettingRow>
     );
@@ -1505,8 +1618,8 @@ export function TaskSyncSettings() {
 
   return (
     <SettingsSection
-      title="Task Synchronization"
-      description="Manage task synchronization with external services such as Outlook or Google Tasks."
+      title={t("settings.taskSync.title")}
+      description={t("settings.taskSync.description")}
     >
       {renderProviderSelection()}
 
@@ -1522,11 +1635,11 @@ export function TaskSyncSettings() {
             <TabsList className="mb-4 w-full">
               <TabsTrigger value="task-lists" className="flex-1">
                 <Calendar className="mr-2 h-4 w-4" />
-                Task Lists
+                {t("settings.taskSync.lists.label")}
               </TabsTrigger>
               <TabsTrigger value="sync-history" className="flex-1">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Sync History
+                {t("settings.taskSync.history.label")}
               </TabsTrigger>
             </TabsList>
             <TabsContent value="task-lists" className="mt-0">

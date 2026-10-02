@@ -9,6 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { useT } from "@/i18n";
+
 import { Log } from "@/types/logging";
 
 import { LogMetadataView } from "./LogMetadata";
@@ -33,6 +35,7 @@ export function LogTable({
   pagination,
   onPageChange,
 }: LogTableProps) {
+  const t = useT();
   const getLevelColor = (level: string) => {
     switch (level.toLowerCase()) {
       case "error":
@@ -66,11 +69,11 @@ export function LogTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Timestamp</TableHead>
-              <TableHead>Level</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Message</TableHead>
-              <TableHead>Metadata</TableHead>
+              <TableHead>{t("settings.logs.table.timestamp")}</TableHead>
+              <TableHead>{t("settings.logs.table.level")}</TableHead>
+              <TableHead>{t("settings.logs.source")}</TableHead>
+              <TableHead>{t("settings.logs.table.message")}</TableHead>
+              <TableHead>{t("settings.logs.table.metadata")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -98,15 +101,11 @@ export function LogTable({
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Showing{" "}
-          <span className="font-medium">
-            {(pagination.current - 1) * pagination.limit + 1}
-          </span>{" "}
-          to{" "}
-          <span className="font-medium">
-            {Math.min(pagination.current * pagination.limit, pagination.total)}
-          </span>{" "}
-          of <span className="font-medium">{pagination.total}</span> results
+          {t("settings.logs.table.showing", {
+            from: (pagination.current - 1) * pagination.limit + 1,
+            to: Math.min(pagination.current * pagination.limit, pagination.total),
+            total: pagination.total,
+          })}
         </div>
         <div className="flex gap-1">
           <Button
@@ -115,7 +114,7 @@ export function LogTable({
             onClick={() => onPageChange(pagination.current - 1)}
             disabled={pagination.current === 1}
           >
-            Previous
+            {t("settings.logs.table.previous")}
           </Button>
           {Array.from({ length: pagination.pages }, (_, i) => i + 1)
             .filter(
@@ -154,7 +153,7 @@ export function LogTable({
             onClick={() => onPageChange(pagination.current + 1)}
             disabled={pagination.current === pagination.pages}
           >
-            Next
+            {t("settings.logs.table.next")}
           </Button>
         </div>
       </div>

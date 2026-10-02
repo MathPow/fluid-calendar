@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n";
+
 import { useLogViewStore } from "@/store/logview";
 
 import { LogLevel } from "@/types/logging";
@@ -28,6 +30,7 @@ interface LogFiltersProps {
 }
 
 export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
+  const t = useT();
   const { sources } = useLogViewStore();
 
   const handleChange = (field: keyof typeof filters, value: string) => {
@@ -47,37 +50,47 @@ export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
       <CardContent className="space-y-4 p-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2">
-            <Label htmlFor="level">Log Level</Label>
+            <Label htmlFor="level">{t("settings.logs.level")}</Label>
             <Select
               value={filters.level || "all"}
               onValueChange={(value) => handleChange("level", value)}
               disabled={disabled}
             >
               <SelectTrigger id="level">
-                <SelectValue placeholder="All Levels" />
+                <SelectValue placeholder={t("settings.logs.levels.all")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="error">Error</SelectItem>
-                <SelectItem value="warn">Warning</SelectItem>
-                <SelectItem value="info">Info</SelectItem>
-                <SelectItem value="debug">Debug</SelectItem>
+                <SelectItem value="all">{t("settings.logs.levels.all")}</SelectItem>
+                <SelectItem value="error">
+                  {t("settings.logs.levels.error")}
+                </SelectItem>
+                <SelectItem value="warn">
+                  {t("settings.logs.levels.warn")}
+                </SelectItem>
+                <SelectItem value="info">
+                  {t("settings.logs.levels.info")}
+                </SelectItem>
+                <SelectItem value="debug">
+                  {t("settings.logs.levels.debug")}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="source">Source</Label>
+            <Label htmlFor="source">{t("settings.logs.source")}</Label>
             <Select
               value={filters.source || "all"}
               onValueChange={(value) => handleChange("source", value)}
               disabled={disabled}
             >
               <SelectTrigger id="source">
-                <SelectValue placeholder="All Sources" />
+                <SelectValue placeholder={t("settings.logs.filters.allSources")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="all">
+                  {t("settings.logs.filters.allSources")}
+                </SelectItem>
                 {sources.sort().map((source) => (
                   <SelectItem key={source} value={source}>
                     {source}
@@ -88,7 +101,7 @@ export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="from">From Date</Label>
+            <Label htmlFor="from">{t("settings.logs.filters.from")}</Label>
             <Input
               type="datetime-local"
               id="from"
@@ -99,7 +112,7 @@ export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="to">To Date</Label>
+            <Label htmlFor="to">{t("settings.logs.filters.to")}</Label>
             <Input
               type="datetime-local"
               id="to"
@@ -111,14 +124,14 @@ export function LogFilters({ filters, onChange, disabled }: LogFiltersProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="search">Search</Label>
+          <Label htmlFor="search">{t("settings.logs.filters.search")}</Label>
           <div className="relative">
             <Input
               id="search"
               value={filters.search}
               onChange={(e) => handleChange("search", e.target.value)}
               disabled={disabled}
-              placeholder="Search in messages and sources..."
+              placeholder={t("settings.logs.filters.searchPlaceholder")}
               className="pl-3 pr-10"
             />
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">

@@ -229,7 +229,7 @@ export function DesktopCommandsDialog({
     if (!machine) return;
     const label = window.prompt(
       t("machines.command.saveShortcutPrompt"),
-      describeCommand(c.action, c.args).slice(0, 40)
+      describeCommand(c.action, c.args, t).slice(0, 40)
     );
     if (!label?.trim()) return;
     const r = await fetch("/api/launchers", {
@@ -464,7 +464,7 @@ export function DesktopCommandsDialog({
                 <li key={c.id} className="rounded-xl bg-secondary/50 px-3 py-2">
                   <div className="flex items-center gap-2 text-[13px]">
                     <span className="min-w-0 flex-1 truncate font-mono">
-                      {describeCommand(c.action, c.args)}
+                      {describeCommand(c.action, c.args, t)}
                     </span>
                     {(c.status === "queued" || c.status === "running") && (
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />

@@ -30,15 +30,17 @@ import { Input } from "@/components/ui/input";
 import {
   type Budgets,
   PERSONAL_EXPENSE_CATEGORIES,
-  categoryLabel,
+  PERSONAL_EXPENSE_CATEGORY_KEYS,
   centsToInput,
   formatDay,
   formatMoney,
   monthSummary,
   parseMoney,
   personalCategory,
+  tCategoryLabel,
 } from "@/lib/fiscalite/meta";
 import type { InvoiceView } from "@/lib/fiscalite/queries";
+import { useLocale, useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 import { ExcelActions } from "./ExcelActions";
@@ -63,9 +65,9 @@ function shiftMonth(month: string, n: number) {
   return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7);
 }
 
-function monthLabel(month: string, opts?: { long?: boolean }) {
+function monthLabel(month: string, opts?: { long?: boolean; locale?: string }) {
   const [y, m] = month.split("-").map(Number);
-  const s = new Intl.DateTimeFormat("fr-CA", {
+  const s = new Intl.DateTimeFormat(opts?.locale ?? "fr-CA", {
     month: opts?.long ? "long" : "short",
     year: "numeric",
     timeZone: "UTC",
@@ -73,9 +75,9 @@ function monthLabel(month: string, opts?: { long?: boolean }) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const monthShort = (month: string) => {
+const monthShort = (month: string, locale = "fr-CA") => {
   const [y, m] = month.split("-").map(Number);
-  return new Intl.DateTimeFormat("fr-CA", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     timeZone: "UTC",
   }).format(new Date(Date.UTC(y, m - 1, 1)));
@@ -115,6 +117,8 @@ export function PersonalBudget({
   onEditProfile,
   onBudgetsSaved,
 }: PersonalBudgetProps) {
+  const t = useT();
+  const locale = useLocale();
   const [scope, setScope] = useState<Scope>("month");
   const [month, setMonth] = useState(thisMonth);
   const [year, setYear] = useState<number>(thisYear());
@@ -138,7 +142,7 @@ export function PersonalBudget({
       return {
         months: [month],
         prevMonths: [shiftMonth(month, -1)],
-        headerLabel: monthLabel(month, { long: true }),
+        headerLabel: monthLabel(month, { long: true, locale }),
       };
     }
     if (scope === "year") {
@@ -155,9 +159,9 @@ export function PersonalBudget({
     return {
       months: activeMonths,
       prevMonths: [],
-      headerLabel: "Tout l'historique",
+      headerLabel: t("fiscalite.budget.allHistory"),
     };
-  }, [scope, month, year, activeMonths]);
+  }, [scope, month, year, activeMonths, t, locale]);
 
   const monthS = useMemo(
     () => monthSummary(invoices, budgets, month),
@@ -177,8 +181,8 @@ export function PersonalBudget({
   const bars = useMemo(
     () =>
       months.map((m) => {
-        const t = periodTotals(invoices, [m]);
-        return { month: m, income: t.income, expense: t.expense };
+        const p = periodTotals(invoices, [m]);
+        return { month: m, income: p.income, expense: p.expense };
       }),
     [invoices, months]
   );
@@ -202,14 +206,14 @@ export function PersonalBudget({
       const cat = personalCategory(id);
       return {
         id,
-        label: cat?.label ?? categoryLabel("depense", id),
+        label: tCategoryLabel(t, "depense", id),
         color: cat?.color ?? "#cfcac2",
         spentCents: cents,
         monthlyBudgetCents: budgets[id] ?? 0,
       };
     });
     return rows.sort((a, b) => b.spentCents - a.spentCents);
-  }, [totals, budgets]);
+  }, [totals, budgets, t]);
 
   const nMonths = months.length || 1;
   const budgetForPeriod =
@@ -262,7 +266,7 @@ export function PersonalBudget({
               data-active={scope === "month"}
               onClick={() => setScope("month")}
             >
-              Mois
+              {t("fiscalite.budget.scope.month")}
             </button>
             <button
               type="button"
@@ -270,7 +274,7 @@ export function PersonalBudget({
               data-active={scope === "year"}
               onClick={() => setScope("year")}
             >
-              Année
+              {t("fiscalite.budget.scope.year")}
             </button>
             <button
               type="button"
@@ -278,7 +282,7 @@ export function PersonalBudget({
               data-active={scope === "all"}
               onClick={() => setScope("all")}
             >
-              Tout
+              {t("fiscalite.budget.scope.all")}
             </button>
           </div>
           {scope !== "all" && (
@@ -291,7 +295,7 @@ export function PersonalBudget({
                     ? setMonth(shiftMonth(month, -1))
                     : setYear(year - 1)
                 }
-                aria-label="Précédent"
+                aria-label={t("fiscalite.budget.previous")}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -306,7 +310,7 @@ export function PersonalBudget({
                     ? setMonth(shiftMonth(month, 1))
                     : setYear(year + 1)
                 }
-                aria-label="Suivant"
+                aria-label={t("fiscalite.budget.next")}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -335,7 +339,7 @@ export function PersonalBudget({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={onAdd}>
-            <Plus /> Ajouter
+            <Plus /> {t("common.add")}
           </Button>
           <ExcelActions
             organisation={organisation}
@@ -346,10 +350,10 @@ export function PersonalBudget({
             variant="secondary"
             onClick={() => setEditing(true)}
           >
-            <Pencil /> Budget
+            <Pencil /> {t("fiscalite.budget.budgetButton")}
           </Button>
           <Button size="sm" variant="ghost" onClick={onEditProfile}>
-            <Settings2 /> Profil
+            <Settings2 /> {t("fiscalite.budget.profile")}
           </Button>
         </div>
       </div>
@@ -358,45 +362,49 @@ export function PersonalBudget({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat
           label={
-            scope === "month" ? "Revenus du mois" : `Revenus (${headerLabel})`
+            scope === "month"
+              ? t("fiscalite.budget.stat.incomeMonth")
+              : t("fiscalite.budget.stat.incomePeriod", { period: headerLabel })
           }
-          value={formatMoney(totals.income)}
+          value={formatMoney(totals.income, { locale })}
           delta={prevTotals ? totals.income - prevTotals.income : null}
         />
         <Stat
           label={
-            scope === "month" ? "Dépenses du mois" : `Dépenses (${headerLabel})`
+            scope === "month"
+              ? t("fiscalite.budget.stat.expenseMonth")
+              : t("fiscalite.budget.stat.expensePeriod", { period: headerLabel })
           }
-          value={formatMoney(totals.expense)}
+          value={formatMoney(totals.expense, { locale })}
           delta={prevTotals ? totals.expense - prevTotals.expense : null}
           /* A smaller number is the good one for expenses. */
           deltaFlip
         />
         <Stat
-          label={scope === "month" ? "Reste" : "Épargne"}
-          value={formatMoney(net)}
+          label={scope === "month" ? t("fiscalite.budget.stat.left") : t("fiscalite.budget.stat.savings")}
+          value={formatMoney(net, { locale })}
           tone={net < 0 ? "neg" : "pos"}
           delta={prevNet !== null ? net - prevNet : null}
         />
         {scope === "month" ? (
           <Stat
-            label="Budget restant"
-            value={monthS.budgetCents ? formatMoney(monthBudgetLeft) : "—"}
+            label={t("fiscalite.budget.stat.budgetLeft")}
+            value={monthS.budgetCents ? formatMoney(monthBudgetLeft, { locale }) : "—"}
             hint={
               monthS.budgetCents
-                ? `sur ${formatMoney(monthS.budgetCents)}`
-                : "Fixe un budget par catégorie"
+                ? t("fiscalite.budget.stat.budgetOf", { amount: formatMoney(monthS.budgetCents, { locale }) })
+                : t("fiscalite.budget.stat.setBudget")
             }
             tone={monthS.budgetCents && monthBudgetLeft < 0 ? "neg" : undefined}
           />
         ) : (
           <Stat
-            label="Épargne / mois"
-            value={formatMoney(Math.round(net / nMonths))}
+            label={t("fiscalite.budget.stat.savingsPerMonth")}
+            value={formatMoney(Math.round(net / nMonths), { locale })}
             hint={
               budgetForPeriod
-                ? `Budget prévu ${formatMoney(budgetForPeriod)}`
-                : `${nMonths} mois`
+                ? t("fiscalite.budget.stat.plannedBudget", { amount: formatMoney(budgetForPeriod, { locale }) })
+                : t("fiscalite.budget.stat.monthsCount", { count: nMonths })
             }
             tone={net < 0 ? "neg" : "pos"}
           />
@@ -406,10 +414,10 @@ export function PersonalBudget({
       {noData ? (
         <div className="tile flex flex-col items-center gap-2 p-10 text-center">
           <p className="text-[15px] font-semibold tracking-title">
-            Rien pour {headerLabel.toLowerCase()}.
+            {t("fiscalite.budget.empty.title", { period: headerLabel.toLowerCase() })}
           </p>
           <p className="max-w-md text-[13px] text-muted-foreground">
-            Dépose un reçu, importe ton Budget.xlsx ou le CSV de ton compte Wealthsimple, ou change de période.
+            {t("fiscalite.budget.empty.hint")}
           </p>
         </div>
       ) : (
@@ -419,7 +427,7 @@ export function PersonalBudget({
             <section className="tile p-5 sm:p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="text-[20px] font-bold tracking-title">
-                  Revenus, dépenses et épargne
+                  {t("fiscalite.budget.chart.title")}
                 </h2>
                 <ChartLegend />
               </div>
@@ -428,22 +436,22 @@ export function PersonalBudget({
                 <div className="mt-4 flex flex-wrap gap-4 text-[13px]">
                   <span className="inline-flex items-center gap-1.5 text-positive-foreground">
                     <TrendingUp className="h-3.5 w-3.5" />
-                    <span className="text-muted-foreground">Meilleur mois</span>
+                    <span className="text-muted-foreground">{t("fiscalite.budget.chart.bestMonth")}</span>
                     <span className="font-semibold capitalize">
-                      {monthShort(bestWorst.best.month)}
+                      {monthShort(bestWorst.best.month, locale)}
                     </span>
                     <span className="tabular-nums">
-                      +{formatMoney(bestWorst.best.value)}
+                      +{formatMoney(bestWorst.best.value, { locale })}
                     </span>
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-negative-foreground">
                     <TrendingDown className="h-3.5 w-3.5" />
-                    <span className="text-muted-foreground">Pire mois</span>
+                    <span className="text-muted-foreground">{t("fiscalite.budget.chart.worstMonth")}</span>
                     <span className="font-semibold capitalize">
-                      {monthShort(bestWorst.worst.month)}
+                      {monthShort(bestWorst.worst.month, locale)}
                     </span>
                     <span className="tabular-nums">
-                      {formatMoney(bestWorst.worst.value)}
+                      {formatMoney(bestWorst.worst.value, { locale })}
                     </span>
                   </span>
                 </div>
@@ -454,10 +462,10 @@ export function PersonalBudget({
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
             <section className="tile p-5 sm:p-6">
               <h2 className="text-[20px] font-bold tracking-title">
-                Par catégorie
+                {t("fiscalite.budget.byCategory")}
                 {scope !== "month" && (
                   <span className="ml-2 text-[13px] font-normal text-muted-foreground">
-                    · classées par montant
+                    {t("fiscalite.budget.byCategory.ranked")}
                   </span>
                 )}
               </h2>
@@ -479,7 +487,7 @@ export function PersonalBudget({
             <section className="tile p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-[20px] font-bold tracking-title">
-                  {scope === "month" ? "Transactions" : "Répartition"}
+                  {scope === "month" ? t("fiscalite.budget.transactions") : t("fiscalite.budget.breakdown")}
                 </h2>
                 {scope === "month" && (
                   <Button
@@ -487,7 +495,7 @@ export function PersonalBudget({
                     variant="secondary"
                     className="h-8 w-8"
                     onClick={onAdd}
-                    aria-label="Ajouter une transaction"
+                    aria-label={t("fiscalite.budget.addTransaction")}
                   >
                     <Plus />
                   </Button>
@@ -497,7 +505,7 @@ export function PersonalBudget({
                 <TransactionsList
                   invoices={monthS.invoices}
                   onOpenInvoice={onOpenInvoice}
-                  monthLabel={monthLabel(month).toLowerCase()}
+                  monthLabel={monthLabel(month, { locale }).toLowerCase()}
                 />
               ) : (
                 <CategoryDonut rows={categories} totalCents={totals.expense} />
@@ -542,10 +550,12 @@ function MonthCategoryList({
   }[];
   totalCents: number;
 }) {
+  const t = useT();
+  const locale = useLocale();
   if (lines.length === 0)
     return (
       <p className="mt-4 text-[14px] text-muted-foreground">
-        Rien ce mois-ci. Dépose un reçu ou fixe ton budget pour commencer.
+        {t("fiscalite.budget.monthEmpty")}
       </p>
     );
   return (
@@ -565,7 +575,7 @@ function MonthCategoryList({
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{ backgroundColor: l.color }}
                 />
-                <span className="truncate">{l.label}</span>
+                <span className="truncate">{tCategoryLabel(t, "depense", l.id)}</span>
               </span>
               <span
                 className={cn(
@@ -573,11 +583,11 @@ function MonthCategoryList({
                   over && "font-semibold text-negative-foreground"
                 )}
               >
-                {formatMoney(l.spentCents)}
+                {formatMoney(l.spentCents, { locale })}
                 {l.budgetCents > 0 && (
                   <span className="font-normal text-muted-foreground">
                     {" / "}
-                    {formatMoney(l.budgetCents)}
+                    {formatMoney(l.budgetCents, { locale })}
                   </span>
                 )}
               </span>
@@ -620,10 +630,12 @@ function CategoryRanking({
   spark: (id: string) => number[];
   totalExpenseCents: number;
 }) {
+  const t = useT();
+  const locale = useLocale();
   if (rows.length === 0)
     return (
       <p className="mt-4 text-[14px] text-muted-foreground">
-        Aucune dépense pour cette période.
+        {t("fiscalite.budget.periodEmpty")}
       </p>
     );
   return (
@@ -658,13 +670,13 @@ function CategoryRanking({
                 <Sparkline values={values} color={r.color} />
               </div>
               <div className="mt-1 text-[11px] text-muted-foreground">
-                {formatMoney(monthly)}/mois
+                {t("fiscalite.budget.perMonth", { amount: formatMoney(monthly, { locale }) })}
                 {r.monthlyBudgetCents > 0 && (
                   <span
                     className={cn(budgetOverrun && "text-negative-foreground")}
                   >
-                    {" · budget "}
-                    {formatMoney(r.monthlyBudgetCents)}
+                    {" "}
+                    {t("fiscalite.budget.ranking.budget", { amount: formatMoney(r.monthlyBudgetCents, { locale }) })}
                   </span>
                 )}
               </div>
@@ -675,7 +687,7 @@ function CategoryRanking({
                 budgetOverrun && "text-negative-foreground"
               )}
             >
-              {formatMoney(r.spentCents)}
+              {formatMoney(r.spentCents, { locale })}
             </span>
           </li>
         );
@@ -687,6 +699,7 @@ function CategoryRanking({
 /* ------------------------------------------------------------- chart primitives */
 
 function ChartLegend() {
+  const t = useT();
   return (
     <div className="flex flex-wrap items-center gap-3 text-[12px]">
       <span className="inline-flex items-center gap-1.5">
@@ -694,21 +707,21 @@ function ChartLegend() {
           className="h-2 w-2.5 rounded-sm"
           style={{ backgroundColor: "hsl(var(--tint-400))" }}
         />
-        Revenus
+        {t("fiscalite.budget.income")}
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span
           className="h-2 w-2.5 rounded-sm"
           style={{ backgroundColor: "hsl(var(--pending-foreground))" }}
         />
-        Dépenses
+        {t("fiscalite.budget.expenses")}
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span
           className="h-[2px] w-3.5"
           style={{ backgroundColor: "hsl(var(--foreground))" }}
         />
-        Épargne cumulée
+        {t("fiscalite.budget.chart.cumulativeSavings")}
       </span>
     </div>
   );
@@ -743,6 +756,8 @@ function MonthlyChart({
   const chartW = W - padL - padR;
   const chartH = H - padT - padB;
   const [hover, setHover] = useState<number | null>(null);
+  const t = useT();
+  const locale = useLocale();
 
   const rawMax = Math.max(1, ...bars.map((b) => Math.max(b.income, b.expense)));
   const maxBar = niceMax(rawMax);
@@ -790,7 +805,7 @@ function MonthlyChart({
                 textAnchor="end"
                 className="fill-muted-foreground text-[10px] tabular-nums"
               >
-                {formatMoney(Math.round(maxBar * r))}
+                {formatMoney(Math.round(maxBar * r), { locale })}
               </text>
             </g>
           );
@@ -835,7 +850,7 @@ function MonthlyChart({
                 textAnchor="middle"
                 className="fill-muted-foreground text-[10px] capitalize"
               >
-                {monthShort(b.month).replace(/\.$/, "")}
+                {monthShort(b.month, locale).replace(/\.$/, "")}
               </text>
             </g>
           );
@@ -876,33 +891,33 @@ function MonthlyChart({
       {hover !== null && (
         <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-xl bg-secondary/60 px-3 py-2 text-[13px]">
           <span className="font-semibold capitalize">
-            {monthLabel(bars[hover].month, { long: true })}
+            {monthLabel(bars[hover].month, { long: true, locale })}
           </span>
           <span className="tabular-nums">
-            Revenus{" "}
+            {t("fiscalite.budget.income")}{" "}
             <b style={{ color: "hsl(var(--tint-400))" }}>
-              {formatMoney(bars[hover].income)}
+              {formatMoney(bars[hover].income, { locale })}
             </b>
           </span>
           <span className="tabular-nums">
-            Dépenses{" "}
+            {t("fiscalite.budget.expenses")}{" "}
             <b className="text-pending-foreground">
-              {formatMoney(bars[hover].expense)}
+              {formatMoney(bars[hover].expense, { locale })}
             </b>
           </span>
           <span className="tabular-nums">
-            Solde{" "}
+            {t("fiscalite.budget.chart.balance")}{" "}
             <b
               className={cn(
                 bars[hover].income - bars[hover].expense < 0 &&
                   "text-negative-foreground"
               )}
             >
-              {formatMoney(bars[hover].income - bars[hover].expense)}
+              {formatMoney(bars[hover].income - bars[hover].expense, { locale })}
             </b>
           </span>
           <span className="tabular-nums text-muted-foreground">
-            Cumul {formatMoney(cumulative[hover])}
+            {t("fiscalite.budget.chart.cumulative", { amount: formatMoney(cumulative[hover], { locale }) })}
           </span>
         </div>
       )}
@@ -947,9 +962,11 @@ function CategoryDonut({
   totalCents: number;
 }) {
   const [hover, setHover] = useState<string | null>(null);
+  const t = useT();
+  const locale = useLocale();
   if (!rows.length || !totalCents)
     return (
-      <p className="mt-4 text-[14px] text-muted-foreground">Rien à afficher.</p>
+      <p className="mt-4 text-[14px] text-muted-foreground">{t("fiscalite.budget.donut.empty")}</p>
     );
   const R = 68;
   const r = 46;
@@ -994,7 +1011,7 @@ function CategoryDonut({
                 {shown.label}
               </span>
               <span className="text-[15px] font-bold tabular-nums">
-                {formatMoney(shown.spentCents)}
+                {formatMoney(shown.spentCents, { locale })}
               </span>
               <span className="text-[11px] tabular-nums text-muted-foreground">
                 {Math.round((shown.spentCents / totalCents) * 100)}%
@@ -1003,10 +1020,10 @@ function CategoryDonut({
           ) : (
             <>
               <span className="text-[10px] uppercase tracking-label text-muted-foreground">
-                Total
+                {t("fiscalite.budget.donut.total")}
               </span>
               <span className="text-[15px] font-bold tabular-nums">
-                {formatMoney(totalCents)}
+                {formatMoney(totalCents, { locale })}
               </span>
             </>
           )}
@@ -1035,7 +1052,7 @@ function CategoryDonut({
         ))}
         {rows.length > 8 && (
           <li className="px-1.5 pt-1 text-[11px] text-muted-foreground">
-            + {rows.length - 8} autres catégories
+            {t("fiscalite.budget.donut.more", { count: rows.length - 8 })}
           </li>
         )}
       </ul>
@@ -1054,10 +1071,11 @@ function TransactionsList({
   onOpenInvoice: (inv: InvoiceView) => void;
   monthLabel: string;
 }) {
+  const t = useT();
   if (invoices.length === 0)
     return (
       <p className="mt-4 text-[14px] text-muted-foreground">
-        Aucune pour {monthLabel}.
+        {t("fiscalite.budget.transactionsEmpty", { month: monthLabel })}
       </p>
     );
   return (
@@ -1081,6 +1099,8 @@ function TransactionRows({
   onOpenInvoice: (inv: InvoiceView) => void;
   className?: string;
 }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <ul className={cn("divide-y divide-border", className)}>
       {invoices.map((inv) => {
@@ -1107,14 +1127,14 @@ function TransactionRows({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 truncate text-[14px] font-medium">
-                    {inv.party || inv.description || "Sans nom"}
+                    {inv.party || inv.description || t("fiscalite.budget.unnamed")}
                     {inv.hasFile && (
                       <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
                     )}
                   </span>
                   <span className="block truncate text-[12px] text-muted-foreground">
-                    {formatDay(new Date(inv.date), { short: true })} ·{" "}
-                    {categoryLabel(inv.direction, inv.category)}
+                    {formatDay(new Date(inv.date), { short: true, locale })} ·{" "}
+                    {tCategoryLabel(t, inv.direction, inv.category)}
                   </span>
                 </span>
                 <span
@@ -1124,7 +1144,7 @@ function TransactionRows({
                   )}
                 >
                   {income ? "+" : "−"}
-                  {formatMoney(inv.totalCents || inv.subtotalCents)}
+                  {formatMoney(inv.totalCents || inv.subtotalCents, { locale })}
                 </span>
               </button>
             </li>
@@ -1157,6 +1177,8 @@ function PeriodTransactions({
   );
   const [category, setCategory] = useState("");
   const [shown, setShown] = useState(PAGE);
+  const t = useT();
+  const locale = useLocale();
 
   const inPeriod = useMemo(() => {
     const set = new Set(months);
@@ -1169,10 +1191,10 @@ function PeriodTransactions({
     const seen = new Map<string, string>();
     for (const i of inPeriod) {
       const id = i.category || "";
-      if (!seen.has(id)) seen.set(id, categoryLabel(i.direction, i.category));
+      if (!seen.has(id)) seen.set(id, tCategoryLabel(t, i.direction, i.category));
     }
     return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-  }, [inPeriod]);
+  }, [inPeriod, t]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -1209,9 +1231,16 @@ function PeriodTransactions({
     <section className="tile p-5 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-[20px] font-bold tracking-title">
-          Transactions
+          {t("fiscalite.budget.transactions")}
           <span className="ml-2 text-[13px] font-normal text-muted-foreground">
-            · {rows.length} ligne{rows.length > 1 ? "s" : ""} ·{" "}
+            ·{" "}
+            {t(
+              rows.length > 1
+                ? "fiscalite.budget.lines.other"
+                : "fiscalite.budget.lines.one",
+              { count: rows.length }
+            )}{" "}
+            ·{" "}
             <span
               className={cn(
                 "tabular-nums",
@@ -1219,7 +1248,7 @@ function PeriodTransactions({
               )}
             >
               {sum < 0 ? "−" : "+"}
-              {formatMoney(Math.abs(sum))}
+              {formatMoney(Math.abs(sum), { locale })}
             </span>
           </span>
         </h2>
@@ -1228,17 +1257,17 @@ function PeriodTransactions({
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher un nom, un montant…"
+          placeholder={t("fiscalite.budget.searchPlaceholder")}
           className="h-9 min-w-0 flex-1 basis-48"
         />
         <div className="segmented h-9">
           {(
             [
-              ["all", "Tout"],
-              ["depense", "Dépenses"],
-              ["revenu", "Revenus"],
+              ["all", "fiscalite.budget.scope.all"],
+              ["depense", "fiscalite.budget.expenses"],
+              ["revenu", "fiscalite.budget.income"],
             ] as const
-          ).map(([v, label]) => (
+          ).map(([v, labelKey]) => (
             <button
               key={v}
               type="button"
@@ -1246,17 +1275,17 @@ function PeriodTransactions({
               data-active={direction === v}
               onClick={() => setDirection(v)}
             >
-              {label}
+              {t(labelKey)}
             </button>
           ))}
         </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          aria-label="Catégorie"
+          aria-label={t("fiscalite.budget.category")}
           className="h-9 rounded-xl border border-input bg-background px-2 text-[13px]"
         >
-          <option value="">Toutes les catégories</option>
+          <option value="">{t("fiscalite.budget.allCategories")}</option>
           {categories.map(([id, label]) => (
             <option key={id} value={id}>
               {label}
@@ -1267,14 +1296,14 @@ function PeriodTransactions({
 
       {rows.length === 0 ? (
         <p className="mt-4 text-[14px] text-muted-foreground">
-          Aucune transaction ne correspond.
+          {t("fiscalite.budget.noMatch")}
         </p>
       ) : (
         <div className="mt-2">
           {groups.map((g) => (
             <div key={g.month}>
               <p className="mt-4 text-[11px] font-semibold uppercase tracking-label text-muted-foreground">
-                {monthLabel(g.month, { long: true })}
+                {monthLabel(g.month, { long: true, locale })}
               </p>
               <TransactionRows invoices={g.items} onOpenInvoice={onOpenInvoice} />
             </div>
@@ -1286,7 +1315,7 @@ function PeriodTransactions({
                 variant="secondary"
                 onClick={() => setShown((n) => n + PAGE)}
               >
-                Voir plus ({rows.length - shown})
+                {t("fiscalite.budget.seeMore", { count: rows.length - shown })}
               </Button>
             </div>
           )}
@@ -1314,6 +1343,8 @@ function Stat({
   /** True when a smaller number is the good one (e.g. expenses). */
   deltaFlip?: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const good =
     delta === null || delta === undefined || delta === 0
       ? null
@@ -1347,7 +1378,7 @@ function Stat({
             good === null && "text-muted-foreground"
           )}
         >
-          {arrow} {formatMoney(Math.abs(delta as number))} vs période préc.
+          {t("fiscalite.budget.stat.vsPrev", { sign: arrow, amount: formatMoney(Math.abs(delta as number), { locale }) })}
         </p>
       ) : hint ? (
         <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
@@ -1385,6 +1416,8 @@ function BudgetDialog({
   averages: Record<string, number>;
   onSaved: (budgets: Budgets) => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -1418,12 +1451,12 @@ function BudgetDialog({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ budgets: next }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
       onSaved(next);
       onOpenChange(false);
-      toast.success("Budget enregistré.");
+      toast.success(t("toasts.fiscalite.budgetSaved"));
     } catch (e) {
-      toast.error("Enregistrement impossible", {
+      toast.error(t("toasts.common.saveFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -1435,10 +1468,9 @@ function BudgetDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Budget du mois</DialogTitle>
+          <DialogTitle>{t("fiscalite.budget.dialog.title")}</DialogTitle>
           <DialogDescription>
-            Combien tu veux mettre par mois dans chaque catégorie. À droite, ta
-            moyenne des trois derniers mois.
+            {t("fiscalite.budget.dialog.description")}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -1455,13 +1487,13 @@ function BudgetDialog({
                 style={{ backgroundColor: c.color }}
               />
               <span className="min-w-0 flex-1 truncate text-[14px]">
-                {c.label}
+                {t(PERSONAL_EXPENSE_CATEGORY_KEYS[c.id])}
               </span>
               {averages[c.id] ? (
                 <button
                   type="button"
                   className="text-[12px] tabular-nums text-muted-foreground underline-offset-2 hover:underline"
-                  title="Utiliser la moyenne"
+                  title={t("fiscalite.budget.dialog.useAverage")}
                   onClick={() =>
                     setDraft((d) => ({
                       ...d,
@@ -1471,11 +1503,11 @@ function BudgetDialog({
                     }))
                   }
                 >
-                  moy. {formatMoney(Math.round(averages[c.id]))}
+                  {t("fiscalite.budget.dialog.average", { amount: formatMoney(Math.round(averages[c.id]), { locale }) })}
                 </button>
               ) : null}
               <Input
-                aria-label={c.label}
+                aria-label={t(PERSONAL_EXPENSE_CATEGORY_KEYS[c.id])}
                 inputMode="decimal"
                 value={draft[c.id] ?? ""}
                 onChange={(e) =>
@@ -1488,11 +1520,13 @@ function BudgetDialog({
           ))}
           <div className="flex items-center justify-between border-t border-border pt-4">
             <span className="text-[14px]">
-              Total <b className="tabular-nums">{formatMoney(total)}</b> / mois
+              {t("fiscalite.budget.dialog.total")}{" "}
+              <b className="tabular-nums">{formatMoney(total, { locale })}</b>{" "}
+              {t("fiscalite.budget.dialog.perMonth")}
             </span>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="animate-spin" />}
-              Enregistrer
+              {t("common.save")}
             </Button>
           </div>
         </form>

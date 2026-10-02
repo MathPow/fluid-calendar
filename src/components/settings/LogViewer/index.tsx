@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 
 import { logger } from "@/lib/logger";
 
+import { useT } from "@/i18n";
+
 import { useLogViewStore } from "@/store/logview";
 
 import { LogFilters } from "./LogFilters";
@@ -23,6 +25,7 @@ const LOG_SOURCE = "LogViewer";
  * Only accessible by admin users
  */
 export function LogViewer() {
+  const t = useT();
   const {
     logs,
     loading,
@@ -110,12 +113,14 @@ export function LogViewer() {
   return (
     <AdminOnly
       fallback={
-        <AccessDeniedMessage message="You do not have permission to access application logs." />
+        <AccessDeniedMessage message={t("settings.logs.accessDenied")} />
       }
     >
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight">System Logs</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            {t("settings.logs.title")}
+          </h2>
           <Button
             variant="destructive"
             onClick={handleCleanup}
@@ -123,7 +128,7 @@ export function LogViewer() {
             size="sm"
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Cleanup Expired Logs
+            {t("settings.logs.cleanup")}
           </Button>
         </div>
 

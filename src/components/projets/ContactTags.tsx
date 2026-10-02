@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+import { useT } from "@/i18n";
 import { PROJECT_COLORS } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,7 @@ export function TagChip({
   active?: boolean;
   className?: string;
 }) {
+  const t = useT();
   const color = tag.color ?? FALLBACK;
   const body = (
     <>
@@ -70,7 +72,7 @@ export function TagChip({
           type="button"
           onClick={onClick}
           className="inline-flex min-w-0 items-center gap-1.5"
-          title={`Filtrer sur « ${tag.name} »`}
+          title={t("contacts.tags.filterOn", { name: tag.name })}
         >
           {body}
         </button>
@@ -82,7 +84,7 @@ export function TagChip({
           type="button"
           onClick={onRemove}
           className="rounded-full p-0.5 opacity-60 transition-opacity hover:bg-card/60 hover:opacity-100"
-          aria-label={`Retirer ${tag.name}`}
+          aria-label={t("contacts.tags.removeAria", { name: tag.name })}
         >
           <X className="h-3 w-3" />
         </button>
@@ -114,6 +116,7 @@ export function ContactTagPicker({
   value: ContactTagRow[];
   onChange: (tags: ContactTagRow[]) => void;
 }) {
+  const tr = useT();
   const [all, setAll] = useState<ContactTagRow[] | null>(null);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -175,7 +178,7 @@ export function ContactTagPicker({
         body: JSON.stringify({ name, color: nextColor((all ?? []).length) }),
       });
       const body = await r.json();
-      if (!r.ok) throw new Error(body.error || `Erreur ${r.status}`);
+      if (!r.ok) throw new Error(body.error || tr("common.error", { status: r.status }));
       setAll((prev) =>
         prev?.some((t) => t.id === body.id) ? prev : [...(prev ?? []), body]
       );
@@ -183,7 +186,7 @@ export function ContactTagPicker({
       if (!chosen.has(body.id)) pick(body);
       else setQuery("");
     } catch (e) {
-      toast.error("Tag non créé", {
+      toast.error(tr("toasts.contacts.tagCreateFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -238,7 +241,7 @@ export function ContactTagPicker({
             onChange(value.slice(0, -1));
           }
         }}
-        placeholder="Chercher ou créer un tag…"
+        placeholder={tr("contacts.tags.searchPlaceholder")}
         autoComplete="off"
         role="combobox"
         aria-expanded={open}
@@ -282,7 +285,8 @@ export function ContactTagPicker({
                   <>
                     <Plus className="h-3.5 w-3.5 shrink-0" />
                     <span className="flex-1 truncate">
-                      Créer le tag <b>« {query.trim()} »</b>
+                      {tr("contacts.tags.createPrefix")}{" "}
+                      <b>{tr("contacts.tags.quoted", { name: query.trim() })}</b>
                     </span>
                   </>
                 )}
@@ -306,6 +310,7 @@ export function ContactTagsManager({
   /** After any change, so the board reloads its contacts. */
   onChanged: () => void;
 }) {
+  const tr = useT();
   const [tags, setTags] = useState<ContactTagRow[] | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -324,7 +329,7 @@ export function ContactTagsManager({
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
-      toast.error(data.error || "Modification impossible");
+      toast.error(data.error || tr("toasts.contacts.tagUpdateFailed"));
       return false;
     }
     setTags((prev) => prev?.map((t) => (t.id === id ? { ...t, ...data } : t)) ?? null);
@@ -336,12 +341,17 @@ export function ContactTagsManager({
   const remove = async (t: ContactTagRow) => {
     if (
       !window.confirm(
-        `Supprimer le tag « ${t.name} » ? Il sera retiré de ${t.count ?? 0} contact${(t.count ?? 0) > 1 ? "s" : ""}.`
+        tr(
+          (t.count ?? 0) > 1
+            ? "contacts.tags.confirmDelete.other"
+            : "contacts.tags.confirmDelete.one",
+          { name: t.name, count: t.count ?? 0 }
+        )
       )
     )
       return;
     const r = await fetch(`/api/contact-tags/${t.id}`, { method: "DELETE" });
-    if (!r.ok) return toast.error("Suppression impossible");
+    if (!r.ok) return toast.error(tr("toasts.contacts.deleteFailed"));
     setTags((prev) => prev?.filter((x) => x.id !== t.id) ?? null);
     cache = null;
     onChanged();
@@ -356,7 +366,7 @@ export function ContactTagsManager({
       body: JSON.stringify({ name, color: nextColor((tags ?? []).length) }),
     });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) return toast.error(data.error || "Création impossible");
+    if (!r.ok) return toast.error(data.error || tr("toasts.contacts.tagCreateFailed"));
     setTags((prev) =>
       prev?.some((t) => t.id === data.id)
         ? prev
@@ -371,23 +381,22 @@ export function ContactTagsManager({
       <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Tags className="h-5 w-5" /> Tags
+            <Tags className="h-5 w-5" /> {tr("contacts.dialog.tags")}
           </DialogTitle>
           <DialogDescription>
-            Les tags officiels, réutilisés d&apos;un contact à l&apos;autre et
-            filtrables. Les mots-clés privés restent pour le reste.
+            {tr("contacts.tags.managerDescription")}
           </DialogDescription>
         </DialogHeader>
 
         {!tags ? (
           <p className="py-6 text-center text-[13px] text-muted-foreground">
-            Chargement…
+            {tr("common.loading")}
           </p>
         ) : (
           <ul className="space-y-1.5">
             {tags.length === 0 && (
               <li className="rounded-2xl bg-secondary/60 px-4 py-5 text-center text-[13px] text-muted-foreground">
-                Aucun tag.
+                {tr("contacts.tags.empty")}
               </li>
             )}
             {tags.map((t) => (
@@ -408,7 +417,7 @@ export function ContactTagsManager({
                         maxLength={40}
                         autoFocus
                         className="h-9"
-                        aria-label="Nom du tag"
+                        aria-label={tr("contacts.tags.nameAria")}
                       />
                       <Button size="sm" type="submit" disabled={!draft.trim()}>
                         <Check className="h-4 w-4" />
@@ -418,7 +427,12 @@ export function ContactTagsManager({
                     <>
                       <TagChip tag={t} />
                       <span className="flex-1 text-[12px] tabular-nums text-muted-foreground">
-                        {t.count ?? 0} contact{(t.count ?? 0) > 1 ? "s" : ""}
+                        {tr(
+                          (t.count ?? 0) > 1
+                            ? "contacts.tags.contactCount.other"
+                            : "contacts.tags.contactCount.one",
+                          { count: t.count ?? 0 }
+                        )}
                       </span>
                       <button
                         type="button"
@@ -427,7 +441,7 @@ export function ContactTagsManager({
                           setDraft(t.name);
                         }}
                         className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-card hover:text-foreground"
-                        aria-label={`Renommer ${t.name}`}
+                        aria-label={tr("contacts.tags.renameAria", { name: t.name })}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -435,7 +449,7 @@ export function ContactTagsManager({
                         type="button"
                         onClick={() => remove(t)}
                         className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-negative hover:text-negative-foreground"
-                        aria-label={`Supprimer ${t.name}`}
+                        aria-label={tr("contacts.tags.deleteAria", { name: t.name })}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -448,7 +462,7 @@ export function ContactTagsManager({
                       key={c.hex}
                       type="button"
                       onClick={() => patch(t.id, { color: c.hex })}
-                      aria-label={`${t.name} en ${c.name}`}
+                      aria-label={tr("contacts.tags.colorAria", { name: t.name, color: c.name })}
                       title={c.name}
                       className={cn(
                         "h-5 w-5 rounded-full ring-offset-2 ring-offset-secondary transition-shadow",
@@ -473,12 +487,12 @@ export function ContactTagsManager({
           <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nouveau tag"
+            placeholder={tr("contacts.tags.new")}
             maxLength={40}
-            aria-label="Nouveau tag"
+            aria-label={tr("contacts.tags.new")}
           />
           <Button type="submit" disabled={!newName.trim()}>
-            <Plus className="h-4 w-4" /> Ajouter
+            <Plus className="h-4 w-4" /> {tr("common.add")}
           </Button>
         </form>
       </DialogContent>

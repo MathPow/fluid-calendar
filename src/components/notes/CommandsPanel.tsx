@@ -14,6 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { type TranslateFn, useLocale, useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 interface VoiceCommand {
@@ -29,34 +30,36 @@ interface VoiceCommand {
   createdAt: string;
 }
 
-const actionMeta = (action: string, ok: boolean) => {
-  if (!ok) return { icon: AlertCircle, label: "failed", tint: "text-destructive" };
+const actionMeta = (action: string, ok: boolean, t: TranslateFn) => {
+  if (!ok) return { icon: AlertCircle, label: t("notes.commands.kind.failed"), tint: "text-destructive" };
   switch (action) {
     case "create_task":
-      return { icon: CheckSquare, label: "task", tint: "text-primary" };
+      return { icon: CheckSquare, label: t("notes.commands.kind.task"), tint: "text-primary" };
     case "create_event":
-      return { icon: CalendarClock, label: "event", tint: "text-primary" };
+      return { icon: CalendarClock, label: t("notes.commands.kind.event"), tint: "text-primary" };
     case "create_note":
-      return { icon: FileText, label: "note", tint: "text-primary" };
+      return { icon: FileText, label: t("notes.commands.kind.note"), tint: "text-primary" };
     default:
-      return { icon: Zap, label: "command", tint: "text-muted-foreground" };
+      return { icon: Zap, label: t("notes.commands.kind.command"), tint: "text-muted-foreground" };
   }
 };
 
-const timeAgo = (iso: string) => {
+const timeAgo = (iso: string, t: TranslateFn, locale: string) => {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.round(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return t("notes.commands.time.justNow");
+  if (m < 60) return t("notes.commands.time.minutesAgo", { count: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return new Date(iso).toLocaleDateString(undefined, {
+  if (h < 24) return t("notes.commands.time.hoursAgo", { count: h });
+  return new Date(iso).toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
   });
 };
 
 export function CommandsPanel() {
+  const t = useT();
+  const locale = useLocale();
   const [commands, setCommands] = useState<VoiceCommand[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,17 +74,17 @@ export function CommandsPanel() {
       setCommands(data.commands ?? []);
       setError(null);
     } catch {
-      setError("Couldn't load commands.");
+      setError(t("notes.commands.loadFailed"));
     } finally {
       if (!quiet) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
     // Commands run in the background (~20s), so refresh quietly while open.
-    const t = setInterval(() => load(true), 7000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => load(true), 7000);
+    return () => clearInterval(timer);
   }, [load]);
 
   const revert = async (id: string) => {
@@ -102,7 +105,7 @@ export function CommandsPanel() {
         )
       );
     } catch {
-      alert("Couldn't revert that command.");
+      alert(t("notes.commands.revertFailed"));
     } finally {
       setRevertingId(null);
     }
@@ -112,15 +115,15 @@ export function CommandsPanel() {
     <div className="mx-auto h-full max-w-3xl overflow-y-auto px-6 py-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Commands</h2>
+          <h2 className="text-lg font-semibold">{t("notes.commands.title")}</h2>
           <p className="text-xs text-muted-foreground">
-            Everything you dictated, what it did, and an undo.
+            {t("notes.commands.subtitle")}
           </p>
         </div>
         <button
           onClick={() => load()}
           className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-          title="Refresh"
+          title={t("notes.commands.refresh")}
         >
           <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
         </button>
@@ -128,22 +131,22 @@ export function CommandsPanel() {
 
       {loading ? (
         <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
         </div>
       ) : error ? (
         <p className="py-10 text-sm text-destructive">{error}</p>
       ) : commands.length === 0 ? (
         <div className="py-10 text-center text-sm text-muted-foreground">
           <Zap className="mx-auto h-8 w-8 opacity-40" />
-          <p className="mt-3">No commands yet.</p>
+          <p className="mt-3">{t("notes.commands.empty")}</p>
           <p className="mt-1 text-xs">
-            Dictate one from the Quick command box or the Shortcut.
+            {t("notes.commands.emptyHint")}
           </p>
         </div>
       ) : (
         <ul className="space-y-2">
           {commands.map((c) => {
-            const meta = actionMeta(c.action, c.ok);
+            const meta = actionMeta(c.action, c.ok, t);
             const Icon = meta.icon;
             const canRevert = c.ok && c.targetId && !c.reverted;
             return (
@@ -173,12 +176,12 @@ export function CommandsPanel() {
                     <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                       <span className="capitalize">{meta.label}</span>
                       <span>·</span>
-                      <span>{timeAgo(c.createdAt)}</span>
+                      <span>{timeAgo(c.createdAt, t, locale)}</span>
                       {c.reverted && (
                         <>
                           <span>·</span>
                           <span className="inline-flex items-center gap-1 text-foreground/70">
-                            <Undo2 className="h-3 w-3" /> reverted
+                            <Undo2 className="h-3 w-3" /> {t("notes.commands.reverted")}
                           </span>
                         </>
                       )}
@@ -189,14 +192,14 @@ export function CommandsPanel() {
                       onClick={() => revert(c.id)}
                       disabled={revertingId === c.id}
                       className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                      title="Undo this command"
+                      title={t("notes.commands.undoTitle")}
                     >
                       {revertingId === c.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
                         <RotateCcw className="h-3.5 w-3.5" />
                       )}
-                      Revert
+                      {t("notes.commands.revert")}
                     </button>
                   )}
                 </div>

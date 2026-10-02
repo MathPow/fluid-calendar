@@ -24,11 +24,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useLocale, useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 import type { InvoiceGuess } from "@/lib/fiscalite/extract";
 import {
   EXPENSE_CATEGORIES,
+  EXPENSE_CATEGORY_HINT_KEYS,
   GST_RATE,
   INCOME_CATEGORIES,
   PAID_BY_ME,
@@ -42,6 +44,7 @@ import {
   invoiceIssues,
   isPersonal,
   parseMoney,
+  tCategoryLabel,
   taxesFor,
 } from "@/lib/fiscalite/meta";
 import type { InvoiceView } from "@/lib/fiscalite/queries";
@@ -128,6 +131,8 @@ export function InvoiceDialog({
   onSaved,
   onDeleted,
 }: InvoiceDialogProps) {
+  const t = useT();
+  const moneyLocale = useLocale() === "en" ? "en-CA" : "fr-CA";
   const editing = !!invoice;
   const [form, setForm] = useState<Form>(emptyForm);
   const [reading, setReading] = useState(false);
@@ -169,7 +174,7 @@ export function InvoiceDialog({
           source?: string;
           error?: string;
         };
-        if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+        if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
         if (cancelled) return;
         const g = data.guess ?? {};
         const money = (c?: number) => (c == null ? "" : centsToInput(c));
@@ -188,14 +193,18 @@ export function InvoiceDialog({
         }));
         setReadNote(
           data.source === "none"
-            ? "Pas de texte lisible (photo ou PDF scanné): remplis à la main."
+            ? t("fiscalite.invoiceDialog.read.noText")
             : data.source === "llm"
-              ? "Champs lus par le modèle local: vérifie-les."
-              : "Champs lus automatiquement: vérifie-les."
+              ? t("fiscalite.invoiceDialog.read.llm")
+              : t("fiscalite.invoiceDialog.read.auto")
         );
       })
       .catch((e) => {
-        if (!cancelled) setReadNote(`Lecture impossible (${e instanceof Error ? e.message : "erreur"}).`);
+        if (!cancelled) setReadNote(
+            t("fiscalite.invoiceDialog.read.failed", {
+              error: e instanceof Error ? e.message : t("fiscalite.invoiceDialog.read.errorFallback"),
+            })
+          );
       })
       .finally(() => {
         if (!cancelled) setReading(false);
@@ -203,6 +212,7 @@ export function InvoiceDialog({
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, file, invoice, organisation.id]);
 
   const cents = {
@@ -270,7 +280,7 @@ export function InvoiceDialog({
 
   const submit = async () => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) {
-      toast.error("Date invalide.");
+      toast.error(t("toasts.fiscalite.invalidDate"));
       return;
     }
     const payload = {
@@ -312,12 +322,12 @@ export function InvoiceDialog({
         res = await fetch("/api/fiscalite/invoices", { method: "POST", body });
       }
       const data = (await res.json().catch(() => ({}))) as InvoiceView & { error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
-      toast.success(editing ? "Facture mise à jour." : "Facture classée.");
+      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+      toast.success(editing ? t("toasts.fiscalite.invoiceUpdated") : t("toasts.fiscalite.invoiceFiled"));
       onSaved(data);
       onOpenChange(false);
     } catch (e) {
-      toast.error("Enregistrement impossible", {
+      toast.error(t("toasts.common.saveFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -326,16 +336,16 @@ export function InvoiceDialog({
   };
 
   const remove = async () => {
-    if (!invoice || !window.confirm("Supprimer cette facture et son fichier ?")) return;
+    if (!invoice || !window.confirm(t("fiscalite.invoiceDialog.confirmDelete"))) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/fiscalite/invoices/${invoice.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
-      toast.success("Facture supprimée.");
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
+      toast.success(t("toasts.fiscalite.invoiceDeleted"));
       onDeleted(invoice.id);
       onOpenChange(false);
     } catch (e) {
-      toast.error("Suppression impossible", {
+      toast.error(t("toasts.fiscalite.deleteFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -353,13 +363,13 @@ export function InvoiceDialog({
           <DialogTitle>
             {personal
               ? editing
-                ? "Modifier la transaction"
-                : "Nouvelle transaction"
+                ? t("fiscalite.invoiceDialog.title.editTransaction")
+                : t("fiscalite.invoiceDialog.title.newTransaction")
               : editing
-                ? "Modifier la facture"
-                : "Nouvelle facture"}
+                ? t("fiscalite.invoiceDialog.title.editInvoice")
+                : t("fiscalite.invoiceDialog.title.newInvoice")}
           </DialogTitle>
-          <DialogDescription>Pour {organisation.name}.</DialogDescription>
+          <DialogDescription>{t("fiscalite.invoiceDialog.subtitle", { name: organisation.name })}</DialogDescription>
         </DialogHeader>
 
         {fileName && (
@@ -371,7 +381,7 @@ export function InvoiceDialog({
                 <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                   {reading ? (
                     <>
-                      <Loader2 className="h-3 w-3 animate-spin" /> Lecture de la facture…
+                      <Loader2 className="h-3 w-3 animate-spin" /> {t("fiscalite.invoiceDialog.reading")}
                     </>
                   ) : (
                     <>
@@ -388,7 +398,7 @@ export function InvoiceDialog({
                 rel="noreferrer"
                 className="text-[13px] font-medium underline underline-offset-4"
               >
-                Ouvrir
+                {t("fiscalite.invoiceDialog.open")}
               </a>
             )}
           </div>
@@ -406,14 +416,18 @@ export function InvoiceDialog({
               [
                 {
                   id: "depense",
-                  label: "Dépense",
-                  hint: personal ? "Un achat, une facture à payer" : "Une facture que tu as payée",
+                  label: t("fiscalite.invoiceDialog.direction.expense"),
+                  hint: personal
+                    ? t("fiscalite.invoiceDialog.direction.expense.hint.personal")
+                    : t("fiscalite.invoiceDialog.direction.expense.hint"),
                   icon: ArrowUpRight,
                 },
                 {
                   id: "revenu",
-                  label: "Revenu",
-                  hint: personal ? "Paie, remboursement, cadeau" : "Une facture que tu as émise",
+                  label: t("fiscalite.invoiceDialog.direction.income"),
+                  hint: personal
+                    ? t("fiscalite.invoiceDialog.direction.income.hint.personal")
+                    : t("fiscalite.invoiceDialog.direction.income.hint"),
                   icon: ArrowDownLeft,
                 },
               ] as const
@@ -445,47 +459,51 @@ export function InvoiceDialog({
               <Label htmlFor="inv-party">
                 {personal
                   ? form.direction === "revenu"
-                    ? "Source"
-                    : "Commerce"
+                    ? t("fiscalite.invoiceDialog.party.source")
+                    : t("fiscalite.invoiceDialog.party.store")
                   : form.direction === "revenu"
-                    ? "Client"
-                    : "Fournisseur"}
+                    ? t("fiscalite.invoiceDialog.party.client")
+                    : t("fiscalite.invoiceDialog.party.supplier")}
               </Label>
               <Input id="inv-party" value={form.party} onChange={(e) => set("party", e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="inv-date">Date</Label>
+                <Label htmlFor="inv-date">{t("fiscalite.invoiceDialog.date")}</Label>
                 <Input id="inv-date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="inv-number">{personal ? "No reçu" : "No facture"}</Label>
+                <Label htmlFor="inv-number">{personal ? t("fiscalite.invoiceDialog.number.receipt") : t("fiscalite.invoiceDialog.number.invoice")}</Label>
                 <Input id="inv-number" value={form.number} onChange={(e) => set("number", e.target.value)} />
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Catégorie</Label>
+            <Label>{t("fiscalite.invoiceDialog.category")}</Label>
             <Select value={form.category || NONE} onValueChange={(v) => set("category", v === NONE ? "" : v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Choisir…" />
+                <SelectValue placeholder={t("fiscalite.invoiceDialog.category.placeholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Sans catégorie</SelectItem>
+                <SelectItem value={NONE}>{t("fiscalite.category.none")}</SelectItem>
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.label}
-                    {c.line ? ` · ligne ${c.line}` : ""}
+                    {tCategoryLabel(t, form.direction, c.id)}
+                    {c.line ? ` ${t("fiscalite.invoiceDialog.category.line", { line: c.line })}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {category?.hint && <p className="text-[12px] text-muted-foreground">{category.hint}</p>}
+            {category?.hint && (
+              <p className="text-[12px] text-muted-foreground">
+                {EXPENSE_CATEGORY_HINT_KEYS[category.id] ? t(EXPENSE_CATEGORY_HINT_KEYS[category.id]) : category.hint}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="inv-desc">Description</Label>
+            <Label htmlFor="inv-desc">{t("fiscalite.invoiceDialog.descriptionLabel")}</Label>
             <Input
               id="inv-desc"
               value={form.description}
@@ -493,18 +511,18 @@ export function InvoiceDialog({
               placeholder={
                 personal
                   ? form.direction === "revenu"
-                    ? "Paie du 15, remboursement Interac…"
-                    : "Épicerie de la semaine, souper…"
+                    ? t("fiscalite.invoiceDialog.placeholder.personalIncome")
+                    : t("fiscalite.invoiceDialog.placeholder.personalExpense")
                   : form.direction === "revenu"
-                    ? "Site web, billetterie juillet…"
-                    : "Hébergement Vercel, micro…"
+                    ? t("fiscalite.invoiceDialog.placeholder.income")
+                    : t("fiscalite.invoiceDialog.placeholder.expense")
               }
             />
           </div>
 
           {personal ? (
             <div className="space-y-1.5">
-              <Label htmlFor="inv-total">Montant</Label>
+              <Label htmlFor="inv-total">{t("fiscalite.invoiceDialog.amount")}</Label>
               <Input
                 id="inv-total"
                 inputMode="decimal"
@@ -519,10 +537,10 @@ export function InvoiceDialog({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {(
                 [
-                  ["subtotal", "Sous-total"],
-                  ["gst", "TPS (5 %)"],
-                  ["qst", "TVQ (9,975 %)"],
-                  ["total", "Total"],
+                  ["subtotal", t("fiscalite.invoiceDialog.subtotal")],
+                  ["gst", t("fiscalite.invoiceDialog.gst")],
+                  ["qst", t("fiscalite.invoiceDialog.qst")],
+                  ["total", t("fiscalite.invoiceDialog.total")],
                 ] as const
               ).map(([k, label]) => (
                 <div key={k} className="space-y-1.5">
@@ -542,10 +560,10 @@ export function InvoiceDialog({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" size="sm" onClick={fromSubtotal} disabled={!cents.subtotal}>
-                <Calculator /> Taxes depuis le sous-total
+                <Calculator /> {t("fiscalite.invoiceDialog.taxesFromSubtotal")}
               </Button>
               <Button type="button" variant="secondary" size="sm" onClick={fromTotal} disabled={!cents.total}>
-                <Calculator /> Détaxer le total
+                <Calculator /> {t("fiscalite.invoiceDialog.taxesFromTotal")}
               </Button>
             </div>
           </div>
@@ -553,13 +571,13 @@ export function InvoiceDialog({
 
           {form.direction === "depense" && !personal && (
             <div className="space-y-2">
-              <Label>Payé par</Label>
+              <Label>{t("fiscalite.invoiceDialog.paidBy")}</Label>
               <div className="flex flex-wrap gap-2">
                 {(partners.length > 0
-                  ? [{ id: "", label: "La SENC (compte d'entreprise)" }, ...partners.map((p) => ({ id: p, label: p }))]
+                  ? [{ id: "", label: t("fiscalite.invoiceDialog.paidBy.senc") }, ...partners.map((p) => ({ id: p, label: p }))]
                   : [
-                      { id: "", label: "L'entreprise (son compte)" },
-                      { id: PAID_BY_ME, label: "Moi (de ma poche)" },
+                      { id: "", label: t("fiscalite.invoiceDialog.paidBy.business") },
+                      { id: PAID_BY_ME, label: t("fiscalite.invoiceDialog.paidBy.me") },
                     ]
                 ).map(
                   (o) => (
@@ -582,15 +600,14 @@ export function InvoiceDialog({
               </div>
               {form.paidBy && partners.length > 0 && (
                 <p className="text-[12px] text-muted-foreground">
-                  Payé de sa poche: ça reste une dépense de la SENC, et ça compte comme une avance que la
-                  SENC doit rembourser à {form.paidBy}.
+                  {t("fiscalite.invoiceDialog.paidBy.partnerNote", { name: form.paidBy })}
                 </p>
               )}
               {form.paidBy === PAID_BY_ME && partners.length === 0 && (
                 <p className="text-[12px] text-muted-foreground">
                   {profile.legalForm === "societe"
-                    ? "Payé avec ton argent personnel: ça reste une dépense de la société, et elle te doit ce montant (avance de l'administrateur). Garde la facture à ton nom avec la preuve de paiement."
-                    : "Payé avec ton compte perso: ça reste une dépense de l'entreprise pour ton T2125 / TP-80. Garde la facture, et note-le pour retrouver le paiement dans tes relevés personnels."}
+                    ? t("fiscalite.invoiceDialog.paidBy.meNote.societe")
+                    : t("fiscalite.invoiceDialog.paidBy.meNote.individuelle")}
                 </p>
               )}
             </div>
@@ -598,7 +615,7 @@ export function InvoiceDialog({
 
           {form.direction === "depense" && !personal && (
             <div className="space-y-2">
-              <Label htmlFor="inv-taxno">Nos TPS / TVQ du fournisseur</Label>
+              <Label htmlFor="inv-taxno">{t("fiscalite.invoiceDialog.supplierTaxNumbers")}</Label>
               <Input
                 id="inv-taxno"
                 value={form.partyTaxNumber}
@@ -609,14 +626,18 @@ export function InvoiceDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="inv-notes">Notes</Label>
+            <Label htmlFor="inv-notes">{t("fiscalite.invoiceDialog.notes")}</Label>
             <Textarea
               id="inv-notes"
               rows={2}
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               placeholder={
-                personal ? "Note" : category?.id === "repas" ? "Avec qui, pourquoi" : "Contexte pour ton comptable"
+                personal
+                  ? t("fiscalite.invoiceDialog.notes.placeholder.personal")
+                  : category?.id === "repas"
+                    ? t("fiscalite.invoiceDialog.notes.placeholder.meals")
+                    : t("fiscalite.invoiceDialog.notes.placeholder.default")
               }
             />
           </div>
@@ -631,7 +652,7 @@ export function InvoiceDialog({
                     i.level === "warn" ? "bg-pending text-pending-foreground" : "bg-secondary text-muted-foreground"
                   )}
                 >
-                  {i.text}
+                  {i.key ? t(i.key, i.params) : i.text}
                 </li>
               ))}
             </ul>
@@ -640,16 +661,16 @@ export function InvoiceDialog({
           <div className="flex items-center justify-between gap-3 pt-2">
             {editing ? (
               <Button type="button" variant="ghost" onClick={remove} disabled={submitting}>
-                <Trash2 /> Supprimer
+                <Trash2 /> {t("common.delete")}
               </Button>
             ) : (
               <span className="text-[13px] tabular-nums text-muted-foreground">
-                {formatMoney(cents.total || cents.subtotal + cents.gst + cents.qst)}
+                {formatMoney(cents.total || cents.subtotal + cents.gst + cents.qst, { locale: moneyLocale })}
               </span>
             )}
             <Button type="submit" size="lg" disabled={submitting || reading}>
               {submitting && <Loader2 className="animate-spin" />}
-              {editing ? "Enregistrer" : personal ? "Ajouter" : "Classer la facture"}
+              {editing ? t("common.save") : personal ? t("common.add") : t("fiscalite.invoiceDialog.submit")}
             </Button>
           </div>
         </form>

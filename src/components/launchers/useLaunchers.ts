@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { create } from "zustand";
 
+import { tNow } from "@/i18n/now";
 import { isPromptKind, type LauncherRow } from "@/lib/launchers";
 
 type State = {
@@ -30,9 +31,9 @@ export async function reloadLaunchers() {
 }
 
 const FINAL: Record<string, string> = {
-  done: "Fait",
-  failed: "Échec",
-  denied: "Refusé sur l'ordi",
+  done: "toasts.launchers.status.done",
+  failed: "toasts.launchers.status.failed",
+  denied: "toasts.launchers.status.denied",
 };
 
 /**
@@ -43,19 +44,24 @@ const FINAL: Record<string, string> = {
 export async function runLauncher(l: LauncherRow) {
   const machineName = l.machine?.label || l.machine?.name || "…";
   if (isPromptKind(l.kind)) {
-    const id = toast.loading(`${l.label} → ${machineName}…`);
+    const id = toast.loading(
+      tNow("toasts.launchers.running", { label: l.label, machine: machineName })
+    );
     try {
       const r = await fetch(`/api/launchers/${l.id}/run`, { method: "POST" });
       const body = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(body.error || `Erreur ${r.status}`);
-      toast.success(`${l.label} · lancé sur ${machineName}`, {
-        id,
-        description:
-          "Résultat visible dans « Gérer les raccourcis » quand la commande finit.",
-      });
+      if (!r.ok)
+        throw new Error(body.error || tNow("common.error", { status: r.status }));
+      toast.success(
+        tNow("toasts.launchers.launched", { label: l.label, machine: machineName }),
+        {
+          id,
+          description: tNow("toasts.launchers.launched.description"),
+        }
+      );
       setTimeout(reloadLaunchers, 5_000);
     } catch (e) {
-      toast.error(`${l.label} : impossible`, {
+      toast.error(tNow("toasts.launchers.failed", { label: l.label }), {
         id,
         description: e instanceof Error ? e.message : undefined,
       });
@@ -63,11 +69,14 @@ export async function runLauncher(l: LauncherRow) {
     return;
   }
 
-  const id = toast.loading(`${l.label} → ${machineName}…`);
+  const id = toast.loading(
+    tNow("toasts.launchers.running", { label: l.label, machine: machineName })
+  );
   try {
     const r = await fetch(`/api/launchers/${l.id}/run`, { method: "POST" });
     const body = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(body.error || `Erreur ${r.status}`);
+    if (!r.ok)
+        throw new Error(body.error || tNow("common.error", { status: r.status }));
     const deadline = Date.now() + (l.action === "shell" ? 280_000 : 60_000);
     while (Date.now() < deadline) {
       await new Promise((res) => setTimeout(res, 1200));
@@ -78,7 +87,10 @@ export async function runLauncher(l: LauncherRow) {
         .catch(() => null);
       if (!s) continue;
       if (s.status === "running" && l.action === "shell") {
-        toast.loading(`${l.label} : confirme sur ${body.machine}…`, { id });
+        toast.loading(
+          tNow("toasts.launchers.confirmOn", { label: l.label, machine: body.machine }),
+          { id }
+        );
       }
       if (FINAL[s.status]) {
         const detail =
@@ -87,24 +99,24 @@ export async function runLauncher(l: LauncherRow) {
             ? String(s.output).trim().split("\n").slice(-3).join("\n")
             : undefined);
         if (s.status === "done")
-          toast.success(`${l.label} · ${FINAL.done}`, {
+          toast.success(`${l.label} · ${tNow(FINAL.done)}`, {
             id,
             description: detail,
           });
         else
-          toast.error(`${l.label} · ${FINAL[s.status]}`, {
+          toast.error(`${l.label} · ${tNow(FINAL[s.status])}`, {
             id,
             description: detail,
           });
         return;
       }
     }
-    toast.message(`${l.label} : toujours en attente`, {
+    toast.message(tNow("toasts.launchers.stillWaiting", { label: l.label }), {
       id,
-      description: "Vois l'historique dans Machines ▸ Commandes.",
+      description: tNow("toasts.launchers.stillWaiting.description"),
     });
   } catch (e) {
-    toast.error(`${l.label} : impossible`, {
+    toast.error(tNow("toasts.launchers.failed", { label: l.label }), {
       id,
       description: e instanceof Error ? e.message : undefined,
     });

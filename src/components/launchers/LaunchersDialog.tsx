@@ -778,7 +778,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
     : t("launchers.noMachine");
   const summary =
     l.kind === "shell"
-      ? describeCommand(l.action, l.args)
+      ? describeCommand(l.action, l.args, t)
       : l.kind === "claude-prompt"
         ? `Claude · ${(l.promptText || "").slice(0, 60)}`
         : `Codex · ${(l.promptText || "").slice(0, 60)}`;

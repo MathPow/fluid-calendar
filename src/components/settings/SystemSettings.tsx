@@ -15,6 +15,8 @@ import {
 import { clearResendInstance } from "@/lib/email/resend";
 import { logger } from "@/lib/logger";
 
+import { useT } from "@/i18n";
+
 import { useSettingsStore } from "@/store/settings";
 
 import { SettingRow, SettingsSection } from "./SettingsSection";
@@ -27,6 +29,7 @@ const LOG_SOURCE = "SystemSettings";
  * Only accessible by admin users
  */
 export function SystemSettings() {
+  const t = useT();
   const { system, updateSystemSettings } = useSettingsStore();
 
   useEffect(() => {
@@ -80,25 +83,25 @@ export function SystemSettings() {
   return (
     <AdminOnly
       fallback={
-        <AccessDeniedMessage message="You do not have permission to access system settings." />
+        <AccessDeniedMessage message={t("settings.system.accessDenied")} />
       }
     >
       <SettingsSection
-        title="System Settings"
-        description="Configure system-wide settings for the application."
+        title={t("settings.system.title")}
+        description={t("settings.system.description")}
       >
         <SettingRow
-          label="Google Calendar Integration"
+          label={t("settings.system.google.label")}
           description={
             <div className="space-y-2">
               <div>
-                Configure Google OAuth credentials for calendar integration.
+                {t("settings.system.google.description")}
               </div>
               <div>
-                To get these credentials:
+                {t("settings.system.howTo")}
                 <ol className="ml-4 mt-1 list-decimal space-y-1 text-muted-foreground">
                   <li>
-                    Go to the{" "}
+                    {t("settings.system.goTo")}{" "}
                     <a
                       href="https://console.cloud.google.com"
                       target="_blank"
@@ -108,15 +111,16 @@ export function SystemSettings() {
                       Google Cloud Console
                     </a>
                   </li>
-                  <li>Create a new project or select an existing one</li>
-                  <li>Enable the Google Calendar API</li>
-                  <li>Go to Credentials</li>
-                  <li>Create OAuth 2.0 Client ID credentials</li>
+                  <li>{t("settings.system.google.steps.project")}</li>
+                  <li>{t("settings.system.google.steps.enableApi")}</li>
+                  <li>{t("settings.system.google.steps.credentials")}</li>
+                  <li>{t("settings.system.google.steps.createClient")}</li>
                   <li>
-                    Add authorized redirect URI: {window.location.origin}
-                    /api/calendar/google
+                    {t("settings.system.google.steps.redirect", {
+                      uri: `${window.location.origin}/api/calendar/google`,
+                    })}
                   </li>
-                  <li>Copy the Client ID and Client Secret</li>
+                  <li>{t("settings.system.google.steps.copy")}</li>
                 </ol>
               </div>
             </div>
@@ -124,7 +128,7 @@ export function SystemSettings() {
         >
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Google Client ID</Label>
+              <Label>{t("settings.system.google.clientId")}</Label>
               <Input
                 type="text"
                 value={system.googleClientId || ""}
@@ -136,32 +140,31 @@ export function SystemSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Google Client Secret</Label>
+              <Label>{t("settings.system.google.clientSecret")}</Label>
               <Input
                 type="password"
                 value={system.googleClientSecret || ""}
                 onChange={(e) =>
                   handleUpdate({ googleClientSecret: e.target.value })
                 }
-                placeholder="Enter your client secret"
+                placeholder={t("settings.system.clientSecretPlaceholder")}
               />
             </div>
           </div>
         </SettingRow>
 
         <SettingRow
-          label="Outlook Calendar Integration"
+          label={t("settings.system.outlook.label")}
           description={
             <div className="space-y-2">
               <div>
-                Configure Microsoft Azure AD credentials for Outlook calendar
-                integration.
+                {t("settings.system.outlook.description")}
               </div>
               <div>
-                To get these credentials:
+                {t("settings.system.howTo")}
                 <ol className="ml-4 mt-1 list-decimal space-y-1 text-muted-foreground">
                   <li>
-                    Go to the{" "}
+                    {t("settings.system.goTo")}{" "}
                     <a
                       href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
                       target="_blank"
@@ -171,17 +174,16 @@ export function SystemSettings() {
                       Azure Portal
                     </a>
                   </li>
-                  <li>Register a new application or select an existing one</li>
-                  <li>Add Microsoft Graph Calendar permissions</li>
-                  <li>Go to Authentication</li>
-                  <li>Add platform and configure OAuth settings</li>
+                  <li>{t("settings.system.outlook.steps.register")}</li>
+                  <li>{t("settings.system.outlook.steps.permissions")}</li>
+                  <li>{t("settings.system.outlook.steps.authentication")}</li>
+                  <li>{t("settings.system.outlook.steps.platform")}</li>
                   <li>
-                    Add redirect URI: {window.location.origin}
-                    /api/calendar/outlook
+                    {t("settings.system.outlook.steps.redirect", {
+                      uri: `${window.location.origin}/api/calendar/outlook`,
+                    })}
                   </li>
-                  <li>
-                    Copy the Application (client) ID and create a client secret
-                  </li>
+                  <li>{t("settings.system.outlook.steps.copy")}</li>
                 </ol>
               </div>
             </div>
@@ -189,7 +191,7 @@ export function SystemSettings() {
         >
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Outlook Client ID</Label>
+              <Label>{t("settings.system.outlook.clientId")}</Label>
               <Input
                 type="text"
                 value={system.outlookClientId || ""}
@@ -201,19 +203,19 @@ export function SystemSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Outlook Client Secret</Label>
+              <Label>{t("settings.system.outlook.clientSecret")}</Label>
               <Input
                 type="password"
                 value={system.outlookClientSecret || ""}
                 onChange={(e) =>
                   handleUpdate({ outlookClientSecret: e.target.value })
                 }
-                placeholder="Enter your client secret"
+                placeholder={t("settings.system.clientSecretPlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Tenant ID (Optional)</Label>
+              <Label>{t("settings.system.outlook.tenantId")}</Label>
               <Input
                 type="text"
                 value={system.outlookTenantId || ""}
@@ -223,15 +225,18 @@ export function SystemSettings() {
                 placeholder="common"
               />
               <p className="text-sm text-muted-foreground">
-                Leave empty to allow any Microsoft account (recommended)
+                {t("settings.system.outlook.tenantHint")}
               </p>
             </div>
           </div>
         </SettingRow>
 
-        <SettingRow label="Homepage" description="Configure homepage behavior">
+        <SettingRow
+          label={t("settings.system.homepage.label")}
+          description={t("settings.system.homepage.description")}
+        >
           <div className="space-y-2">
-            <Label>Disable Homepage</Label>
+            <Label>{t("settings.system.homepage.disable")}</Label>
             <Select
               value={system.disableHomepage ? "true" : "false"}
               onValueChange={(value) =>
@@ -242,31 +247,34 @@ export function SystemSettings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="false">Show Homepage</SelectItem>
-                <SelectItem value="true">Redirect to Login/Calendar</SelectItem>
+                <SelectItem value="false">
+                  {t("settings.system.homepage.show")}
+                </SelectItem>
+                <SelectItem value="true">
+                  {t("settings.system.homepage.redirect")}
+                </SelectItem>
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
-              When enabled, the homepage (/) will redirect to the login page for
-              unauthenticated users or to the calendar for authenticated users.
+              {t("settings.system.homepage.hint")}
             </p>
           </div>
         </SettingRow>
 
         <SettingRow
-          label="Email Service"
-          description="Configure email service settings"
+          label={t("settings.system.email.label")}
+          description={t("settings.system.email.description")}
         >
           <div className="space-y-2">
-            <Label>Resend API Key</Label>
+            <Label>{t("settings.system.email.resendKey")}</Label>
             <Input
               type="password"
               value={system.resendApiKey || ""}
               onChange={(e) => handleUpdate({ resendApiKey: e.target.value })}
-              placeholder="Enter your Resend API key"
+              placeholder={t("settings.system.email.resendKeyPlaceholder")}
             />
             <p className="text-sm text-muted-foreground">
-              API key for the Resend email service. Required for sending emails.
+              {t("settings.system.email.resendKeyHint")}
             </p>
           </div>
         </SettingRow>

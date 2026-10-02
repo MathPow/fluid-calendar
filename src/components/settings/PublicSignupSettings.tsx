@@ -17,7 +17,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
+import { useT } from "@/i18n";
+
 export default function PublicSignupSettings() {
+  const t = useT();
   const [publicSignup, setPublicSignup] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,14 +35,14 @@ export default function PublicSignupSettings() {
         }
       } catch (error) {
         console.error("Failed to fetch system settings:", error);
-        toast.error("Failed to load settings");
+        toast.error(t("toasts.settings.loadError"));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSettings();
-  }, []);
+  }, [t]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -55,13 +58,13 @@ export default function PublicSignupSettings() {
       });
 
       if (response.ok) {
-        toast.success("Settings saved successfully");
+        toast.success(t("toasts.settings.saved"));
       } else {
-        toast.error("Failed to save settings");
+        toast.error(t("toasts.settings.saveError"));
       }
     } catch (error) {
       console.error("Failed to save system settings:", error);
-      toast.error("Failed to save settings");
+      toast.error(t("toasts.settings.saveError"));
     } finally {
       setIsSaving(false);
     }
@@ -70,17 +73,16 @@ export default function PublicSignupSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Public Signup</CardTitle>
+        <CardTitle>{t("settings.publicSignup.title")}</CardTitle>
         <CardDescription>
-          Control whether new users can sign up for an account without admin
-          approval
+          {t("settings.publicSignup.description")}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex items-center space-x-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Loading settings...</span>
+            <span>{t("settings.publicSignup.loading")}</span>
           </div>
         ) : (
           <div className="flex items-center space-x-2">
@@ -91,8 +93,8 @@ export default function PublicSignupSettings() {
             />
             <Label htmlFor="public-signup">
               {publicSignup
-                ? "Public signup is enabled"
-                : "Public signup is disabled"}
+                ? t("settings.publicSignup.enabled")
+                : t("settings.publicSignup.disabled")}
             </Label>
           </div>
         )}
@@ -102,10 +104,10 @@ export default function PublicSignupSettings() {
           {isSaving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              {t("common.saving")}
             </>
           ) : (
-            "Save Changes"
+            t("settings.publicSignup.saveChanges")
           )}
         </Button>
       </CardFooter>

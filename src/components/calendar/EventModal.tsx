@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/i18n/client";
 import { formatToLocalISOString, newDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
@@ -57,13 +58,13 @@ type Frequency = (typeof FREQUENCIES)[keyof typeof FREQUENCIES];
 
 // RRule weekday codes
 const WEEKDAYS = {
-  SU: "Sunday",
-  MO: "Monday",
-  TU: "Tuesday",
-  WE: "Wednesday",
-  TH: "Thursday",
-  FR: "Friday",
-  SA: "Saturday",
+  SU: "common.weekday.sunday",
+  MO: "common.weekday.monday",
+  TU: "common.weekday.tuesday",
+  WE: "common.weekday.wednesday",
+  TH: "common.weekday.thursday",
+  FR: "common.weekday.friday",
+  SA: "common.weekday.saturday",
 } as const;
 
 // Helper function to parse recurrence rule
@@ -133,6 +134,7 @@ export function EventModal({
   defaultDate,
   defaultEndDate,
 }: EventModalProps) {
+  const t = useT();
   const { feeds, addEvent, updateEvent, removeEvent } = useCalendarStore();
   const { calendar } = useSettingsStore();
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -265,7 +267,7 @@ export function EventModal({
       if (event?.id) {
         // For existing events
         if (feed.type === "GOOGLE" && !event.externalEventId) {
-          throw new Error("Cannot edit this Google Calendar event");
+          throw new Error(t("calendar.eventModal.cannotEditGoogle"));
         }
         await updateEvent(event.id, eventData, editMode);
         const before = event.organisationLinked ? (event.organisationId ?? "") : "";
@@ -293,7 +295,7 @@ export function EventModal({
       onClose();
     } catch (error) {
       console.error("Failed to save event:", error);
-      alert(error instanceof Error ? error.message : "Failed to save event");
+      alert(error instanceof Error ? error.message : t("calendar.eventModal.saveFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -305,7 +307,7 @@ export function EventModal({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ organisationId: orgId || null }),
     });
-    if (!res.ok) throw new Error("Impossible de lier l'organisation");
+    if (!res.ok) throw new Error(t("calendar.eventModal.linkOrgFailed"));
     await useCalendarStore.getState().loadFromDatabase();
   };
 
@@ -319,7 +321,7 @@ export function EventModal({
       onClose();
     } catch (error) {
       console.error("Failed to delete event:", error);
-      alert(error instanceof Error ? error.message : "Failed to delete event");
+      alert(error instanceof Error ? error.message : t("calendar.eventModal.deleteFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -332,7 +334,7 @@ export function EventModal({
     return (
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="recurrence-freq">Repeats</Label>
+          <Label htmlFor="recurrence-freq">{t("calendar.eventModal.repeats")}</Label>
           <Select
             value={recurrenceFreq || FREQUENCIES.WEEKLY}
             onValueChange={(value) =>
@@ -340,13 +342,13 @@ export function EventModal({
             }
           >
             <SelectTrigger id="recurrence-freq" data-testid="recurrence-freq">
-              <SelectValue placeholder="Select frequency" />
+              <SelectValue placeholder={t("calendar.eventModal.selectFrequency")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={FREQUENCIES.DAILY}>Daily</SelectItem>
-              <SelectItem value={FREQUENCIES.WEEKLY}>Weekly</SelectItem>
-              <SelectItem value={FREQUENCIES.MONTHLY}>Monthly</SelectItem>
-              <SelectItem value={FREQUENCIES.YEARLY}>Yearly</SelectItem>
+              <SelectItem value={FREQUENCIES.DAILY}>{t("calendar.eventModal.freq.daily")}</SelectItem>
+              <SelectItem value={FREQUENCIES.WEEKLY}>{t("calendar.eventModal.freq.weekly")}</SelectItem>
+              <SelectItem value={FREQUENCIES.MONTHLY}>{t("calendar.eventModal.freq.monthly")}</SelectItem>
+              <SelectItem value={FREQUENCIES.YEARLY}>{t("calendar.eventModal.freq.yearly")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -354,7 +356,7 @@ export function EventModal({
         {recurrenceFreq && recurrenceFreq !== FREQUENCIES.NONE && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="recurrence-interval">Repeat every</Label>
+              <Label htmlFor="recurrence-interval">{t("calendar.eventModal.repeatEvery")}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -369,15 +371,16 @@ export function EventModal({
                   className="w-20"
                 />
                 <span className="text-sm text-muted-foreground">
-                  {recurrenceFreq.toLowerCase()}
-                  {recurrenceInterval > 1 ? "s" : ""}
+                  {t(
+                    `calendar.eventModal.unit.${recurrenceFreq.toLowerCase()}.${recurrenceInterval > 1 ? "other" : "one"}`
+                  )}
                 </span>
               </div>
             </div>
 
             {recurrenceFreq === FREQUENCIES.WEEKLY && (
               <div className="space-y-2">
-                <Label>Repeat on</Label>
+                <Label>{t("calendar.eventModal.repeatOn")}</Label>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(WEEKDAYS).map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2">
@@ -391,7 +394,7 @@ export function EventModal({
                           );
                         }}
                       />
-                      <span className="text-sm">{label}</span>
+                      <span className="text-sm">{t(label)}</span>
                     </label>
                   ))}
                 </div>
@@ -409,16 +412,16 @@ export function EventModal({
         <DialogContent className="flex flex-col overflow-y-hidden p-0 md:p-0 sm:max-w-[500px]">
           {isSubmitting && <LoadingOverlay />}
           <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6">
-            <DialogTitle>{event?.id ? "Edit Event" : "New Event"}</DialogTitle>
+            <DialogTitle>{event?.id ? t("calendar.eventModal.title.edit") : t("calendar.eventModal.title.new")}</DialogTitle>
             {!event?.id && !isAllDay && (
               <div className="segmented mt-3 self-start">
                 <button type="button" className="segmented-item" data-active="true">
-                  Événement
+                  {t("calendar.eventModal.kind.event")}
                 </button>
                 <button
                   type="button"
                   className="segmented-item"
-                  title="Une suggestion de temps (sommeil, travail, sport…) qui se répète chaque semaine derrière tes événements"
+                  title={t("calendar.eventModal.kind.ghostHint")}
                   onClick={() => {
                     // Same range, as a weekly ghost block instead.
                     const draft = {
@@ -430,7 +433,7 @@ export function EventModal({
                     useRoutineStore.getState().openNewBlock(draft);
                   }}
                 >
-                  Bloc fantôme
+                  {t("calendar.eventModal.kind.ghost")}
                 </button>
               </div>
             )}
@@ -441,7 +444,7 @@ export function EventModal({
             className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-6"
           >
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">{t("calendar.eventModal.fields.title")}</Label>
               <Input
                 type="text"
                 id="title"
@@ -455,14 +458,14 @@ export function EventModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="calendar">Calendar</Label>
+              <Label htmlFor="calendar">{t("calendar.eventModal.fields.calendar")}</Label>
               <Select
                 value={selectedFeedId}
                 onValueChange={(value) => setSelectedFeedId(value)}
                 disabled={!!event?.id}
               >
                 <SelectTrigger id="calendar" data-testid="calendar-select">
-                  <SelectValue placeholder="Select a calendar" />
+                  <SelectValue placeholder={t("calendar.eventModal.fields.selectCalendar")} />
                 </SelectTrigger>
                 <SelectContent>
                   {feeds
@@ -477,7 +480,7 @@ export function EventModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="organisation">Organisation</Label>
+              <Label htmlFor="organisation">{t("calendar.eventModal.fields.organisation")}</Label>
               <Select
                 value={organisationId || "__feed__"}
                 onValueChange={(v) => setOrganisationId(v === "__feed__" ? "" : v)}
@@ -491,7 +494,9 @@ export function EventModal({
                       const feedOrg = organisations.find(
                         (o) => o.id === feeds.find((f) => f.id === selectedFeedId)?.organisationId
                       );
-                      return feedOrg ? `Celle du calendrier (${feedOrg.name})` : "Aucune";
+                      return feedOrg
+                        ? t("calendar.eventModal.fields.orgFromFeed", { name: feedOrg.name })
+                        : t("calendar.eventModal.fields.orgNone");
                     })()}
                   </SelectItem>
                   {organisations.map((o) => (
@@ -502,13 +507,13 @@ export function EventModal({
                 </SelectContent>
               </Select>
               <p className="text-[12px] text-muted-foreground">
-                Son logo s&apos;affiche sur le bloc dans le calendrier.
+                {t("calendar.eventModal.fields.orgHint")}
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="start">Start</Label>
+                <Label htmlFor="start">{t("calendar.eventModal.fields.start")}</Label>
                 <Input
                   type={isAllDay ? "date" : "datetime-local"}
                   id="start"
@@ -535,7 +540,7 @@ export function EventModal({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="end">End</Label>
+                <Label htmlFor="end">{t("calendar.eventModal.fields.end")}</Label>
                 <Input
                   type={isAllDay ? "date" : "datetime-local"}
                   id="end"
@@ -569,7 +574,7 @@ export function EventModal({
                 onCheckedChange={(checked) => setIsAllDay(checked as boolean)}
               />
               <Label htmlFor="all-day" className="text-sm">
-                All day
+                {t("calendar.eventModal.fields.allDay")}
               </Label>
             </div>
 
@@ -585,7 +590,7 @@ export function EventModal({
                     data-testid="strong-alarm-checkbox"
                   />
                   <Label htmlFor="strong-alarm" className="text-sm">
-                    🔔 M&apos;alerter fortement (alarme sur le téléphone)
+                    {t("calendar.eventModal.fields.strongAlarm")}
                   </Label>
                 </div>
                 {strongAlarm && (
@@ -594,7 +599,7 @@ export function EventModal({
                       htmlFor="alarm-minutes"
                       className="text-sm text-muted-foreground"
                     >
-                      Alarme
+                      {t("calendar.eventModal.fields.alarm")}
                     </Label>
                     <Input
                       type="number"
@@ -613,7 +618,7 @@ export function EventModal({
                       className="w-20"
                     />
                     <span className="text-sm text-muted-foreground">
-                      min avant le début
+                      {t("calendar.eventModal.fields.alarmBefore")}
                     </span>
                   </div>
                 )}
@@ -621,7 +626,7 @@ export function EventModal({
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="location">{t("calendar.eventModal.fields.location")}</Label>
               <Input
                 type="text"
                 id="location"
@@ -632,7 +637,7 @@ export function EventModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t("calendar.eventModal.fields.description")}</Label>
               <Textarea
                 id="description"
                 data-testid="event-description-input"
@@ -664,7 +669,7 @@ export function EventModal({
                 data-testid="recurring-event-checkbox"
               />
               <Label htmlFor="recurring" className="text-sm">
-                Recurring event
+                {t("calendar.eventModal.fields.recurring")}
               </Label>
             </div>
 
@@ -678,17 +683,17 @@ export function EventModal({
                   onClick={handleDelete}
                   data-testid="delete-event-button"
                 >
-                  Delete
+                  {t("common.delete")}
                 </Button>
               ) : (
                 <div />
               )}
               <div className="flex gap-3">
                 <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" data-testid="save-event-button">
-                  {event?.id ? "Update" : "Create"}
+                  {event?.id ? t("common.update") : t("common.create")}
                 </Button>
               </div>
             </div>
@@ -708,10 +713,10 @@ export function EventModal({
           <AlertDialog.Overlay className="fixed inset-0 z-[10001] bg-background/80 backdrop-blur-sm" />
           <AlertDialog.Content className="fixed left-1/2 top-1/2 z-[10002] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[28px] bg-card p-7 shadow-float">
             <AlertDialog.Title className="mb-4 text-lg font-semibold">
-              Edit Recurring Event
+              {t("calendar.eventModal.recurrenceDialog.title")}
             </AlertDialog.Title>
             <AlertDialog.Description className="mb-6 text-sm text-muted-foreground">
-              Would you like to edit this event or the entire series?
+              {t("calendar.eventModal.recurrenceDialog.description")}
             </AlertDialog.Description>
             <div className="flex justify-end gap-3">
               <Button
@@ -722,7 +727,7 @@ export function EventModal({
                 }}
                 data-testid="edit-cancel-button"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 onClick={() => {
@@ -731,7 +736,7 @@ export function EventModal({
                 }}
                 data-testid="edit-single-event-button"
               >
-                This Event
+                {t("calendar.eventModal.recurrenceDialog.single")}
               </Button>
               <Button
                 onClick={() => {
@@ -740,7 +745,7 @@ export function EventModal({
                 }}
                 data-testid="edit-series-button"
               >
-                Entire Series
+                {t("calendar.eventModal.recurrenceDialog.series")}
               </Button>
             </div>
           </AlertDialog.Content>

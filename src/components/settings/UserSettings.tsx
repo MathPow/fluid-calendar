@@ -9,6 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n";
+
 import { useSettingsStore } from "@/store/settings";
 
 import { TimeFormat, WeekStartDay } from "@/types/settings";
@@ -16,17 +18,18 @@ import { TimeFormat, WeekStartDay } from "@/types/settings";
 import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function UserSettings() {
+  const t = useT();
   const { data: session } = useSession();
   const { user, updateUserSettings } = useSettingsStore();
 
   const timeFormats: { value: TimeFormat; label: string }[] = [
-    { value: "12h", label: "12-hour" },
-    { value: "24h", label: "24-hour" },
+    { value: "12h", label: t("settings.user.timeFormat.12h") },
+    { value: "24h", label: t("settings.user.timeFormat.24h") },
   ];
 
   const weekStarts: { value: WeekStartDay; label: string }[] = [
-    { value: "sunday", label: "Sunday" },
-    { value: "monday", label: "Monday" },
+    { value: "sunday", label: t("common.weekday.sunday") },
+    { value: "monday", label: t("common.weekday.monday") },
   ];
 
   // Comprehensive list of common timezones
@@ -112,11 +115,14 @@ export function UserSettings() {
 
   return (
     <SettingsSection
-      title="User Settings"
-      description="Manage your personal preferences for the calendar application."
+      title={t("settings.user.title")}
+      description={t("settings.user.description")}
     >
       {session?.user && (
-        <SettingRow label="Profile" description="Your account information">
+        <SettingRow
+          label={t("settings.user.profile.label")}
+          description={t("settings.user.profile.description")}
+        >
           <div className="flex items-center space-x-3">
             {session.user.image && (
               <Image
@@ -138,8 +144,8 @@ export function UserSettings() {
       )}
 
       <SettingRow
-        label="Time Format"
-        description="Choose how times are displayed"
+        label={t("settings.user.timeFormat.label")}
+        description={t("settings.user.timeFormat.description")}
       >
         <Select
           value={user.timeFormat}
@@ -161,8 +167,8 @@ export function UserSettings() {
       </SettingRow>
 
       <SettingRow
-        label="Week Starts On"
-        description="Choose which day your week starts on"
+        label={t("settings.user.weekStart.label")}
+        description={t("settings.user.weekStart.description")}
       >
         <Select
           value={user.weekStartDay}
@@ -184,8 +190,8 @@ export function UserSettings() {
       </SettingRow>
 
       <SettingRow
-        label="Time Zone"
-        description="Your current time zone setting"
+        label={t("settings.user.timeZone.label")}
+        description={t("settings.user.timeZone.description")}
       >
         <Select
           value={user.timeZone}

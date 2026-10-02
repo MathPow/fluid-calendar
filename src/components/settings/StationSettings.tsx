@@ -7,6 +7,8 @@ import { AudioLines, Calendar, Loader2, Mail } from "lucide-react";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n";
+
 type Station = "personal" | "work" | "";
 
 interface MailAccount {
@@ -21,10 +23,10 @@ interface Feed {
   station: string | null;
 }
 
-const STATION_OPTIONS: { value: Station; label: string }[] = [
-  { value: "personal", label: "Personal" },
-  { value: "work", label: "Work" },
-  { value: "", label: "Unassigned" },
+const STATION_OPTIONS: { value: Station; labelKey: string }[] = [
+  { value: "personal", labelKey: "account.station.personal.label" },
+  { value: "work", labelKey: "account.station.work.label" },
+  { value: "", labelKey: "settings.station.unassigned" },
 ];
 
 /** Segmented Personal/Work/Unassigned picker for one item. */
@@ -37,6 +39,7 @@ function StationPicker({
   saving: boolean;
   onChange: (v: Station) => void;
 }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-0.5">
       {saving && <Loader2 className="ml-1 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
@@ -52,7 +55,7 @@ function StationPicker({
               : "text-muted-foreground hover:text-foreground"
           )}
         >
-          {o.label}
+          {t(o.labelKey)}
         </button>
       ))}
     </div>
@@ -60,6 +63,7 @@ function StationPicker({
 }
 
 export function StationSettings() {
+  const t = useT();
   const [accounts, setAccounts] = useState<MailAccount[]>([]);
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,23 +121,26 @@ export function StationSettings() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
       </div>
     );
   }
 
   return (
     <SettingsSection
-      title="Stations"
-      description="Tag each email account and calendar as Personal or Work. The Personal / Work / Both switcher in the top bar then filters what you see — without toggling things on and off."
+      title={t("settings.tabs.stations")}
+      description={t("settings.station.description")}
     >
       {/* Email accounts */}
       <div>
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <Mail className="h-4 w-4 text-muted-foreground" /> Email accounts
+          <Mail className="h-4 w-4 text-muted-foreground" />{" "}
+          {t("settings.station.emailAccounts")}
         </h3>
         {accounts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No mail accounts connected.</p>
+          <p className="text-sm text-muted-foreground">
+            {t("settings.station.noEmailAccounts")}
+          </p>
         ) : (
           <ul className="space-y-2">
             {accounts.map((a) => (
@@ -163,10 +170,13 @@ export function StationSettings() {
       {/* Calendars */}
       <div>
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <Calendar className="h-4 w-4 text-muted-foreground" /> Calendars
+          <Calendar className="h-4 w-4 text-muted-foreground" />{" "}
+          {t("settings.station.calendars")}
         </h3>
         {feeds.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No calendars yet.</p>
+          <p className="text-sm text-muted-foreground">
+            {t("settings.station.noCalendars")}
+          </p>
         ) : (
           <ul className="space-y-2">
             {feeds.map((f) => (
@@ -188,7 +198,7 @@ export function StationSettings() {
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <AudioLines className="h-3.5 w-3.5" />
-        Untagged items always show under every station.
+        {t("settings.station.untaggedHint")}
       </p>
     </SettingsSection>
   );

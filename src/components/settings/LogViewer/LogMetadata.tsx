@@ -7,11 +7,14 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { LogMetadata } from "@/lib/logger/types";
 
+import { useT } from "@/i18n";
+
 interface LogMetadataViewProps {
   metadata: LogMetadata | null;
 }
 
 export function LogMetadataView({ metadata }: LogMetadataViewProps) {
+  const t = useT();
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!metadata || Object.keys(metadata).length === 0) {
@@ -47,7 +50,7 @@ export function LogMetadataView({ metadata }: LogMetadataViewProps) {
                 className="h-7 px-2"
               >
                 <Copy className="h-3 w-3" />
-                <span className="sr-only">Copy to clipboard</span>
+                <span className="sr-only">{t("settings.logs.metadata.copy")}</span>
               </Button>
               <Button
                 variant="ghost"
@@ -56,7 +59,7 @@ export function LogMetadataView({ metadata }: LogMetadataViewProps) {
                 className="h-7 px-2"
               >
                 <ChevronUp className="h-3 w-3" />
-                <span className="sr-only">Collapse</span>
+                <span className="sr-only">{t("settings.logs.metadata.collapse")}</span>
               </Button>
             </div>
             <pre className="whitespace-pre-wrap text-sm">

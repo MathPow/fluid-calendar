@@ -23,9 +23,12 @@ import {
 import { logger } from "@/lib/logger";
 import { LogSettings as LogSettingsType } from "@/lib/logger/types";
 
+import { useT } from "@/i18n";
+
 const LOG_SOURCE = "LogSettings";
 
 export function LogSettings() {
+  const t = useT();
   const [settings, setSettings] = useState<LogSettingsType>({
     logLevel: "none",
     logDestination: "db",
@@ -130,9 +133,9 @@ export function LogSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Log Settings</CardTitle>
+        <CardTitle>{t("settings.logs.settings.title")}</CardTitle>
         <CardDescription>
-          Configure how logs are stored and managed in the system.
+          {t("settings.logs.settings.description")}
         </CardDescription>
       </CardHeader>
 
@@ -145,13 +148,15 @@ export function LogSettings() {
 
         {saved && (
           <Alert>
-            <AlertDescription>Settings saved successfully!</AlertDescription>
+            <AlertDescription>
+              {t("settings.logs.settings.saved")}
+            </AlertDescription>
           </Alert>
         )}
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="logLevel">Log Level</Label>
+            <Label htmlFor="logLevel">{t("settings.logs.level")}</Label>
             <Select
               value={settings.logLevel}
               onValueChange={(value) =>
@@ -165,17 +170,27 @@ export function LogSettings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="error">Error</SelectItem>
-                <SelectItem value="warn">Warning</SelectItem>
-                <SelectItem value="info">Info</SelectItem>
-                <SelectItem value="debug">Debug</SelectItem>
+                <SelectItem value="none">{t("common.none")}</SelectItem>
+                <SelectItem value="error">
+                  {t("settings.logs.levels.error")}
+                </SelectItem>
+                <SelectItem value="warn">
+                  {t("settings.logs.levels.warn")}
+                </SelectItem>
+                <SelectItem value="info">
+                  {t("settings.logs.levels.info")}
+                </SelectItem>
+                <SelectItem value="debug">
+                  {t("settings.logs.levels.debug")}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="logDestination">Log Destination</Label>
+            <Label htmlFor="logDestination">
+              {t("settings.logs.settings.destination")}
+            </Label>
             <Select
               value={settings.logDestination}
               onValueChange={(value) =>
@@ -189,21 +204,29 @@ export function LogSettings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="db">Database Only</SelectItem>
-                <SelectItem value="file">File Only</SelectItem>
-                <SelectItem value="both">Both Database and File</SelectItem>
+                <SelectItem value="db">
+                  {t("settings.logs.settings.destinations.db")}
+                </SelectItem>
+                <SelectItem value="file">
+                  {t("settings.logs.settings.destinations.file")}
+                </SelectItem>
+                <SelectItem value="both">
+                  {t("settings.logs.settings.destinations.both")}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <div className="space-y-4">
-          <Label className="text-base">Retention Periods (Days)</Label>
+          <Label className="text-base">
+            {t("settings.logs.settings.retention")}
+          </Label>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {Object.entries(settings.logRetention).map(([level, days]) => (
               <div key={level} className="space-y-2">
                 <Label htmlFor={`retention-${level}`} className="capitalize">
-                  {level}
+                  {t(`settings.logs.levels.${level}`)}
                 </Label>
                 <Input
                   type="number"
@@ -227,7 +250,7 @@ export function LogSettings() {
 
         <div className="flex justify-end pt-4">
           <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Saving..." : "Save Settings"}
+            {loading ? t("common.saving") : t("settings.logs.settings.save")}
           </Button>
         </div>
       </CardContent>

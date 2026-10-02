@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/i18n";
+
 import AccessDeniedMessage from "@/components/auth/AccessDeniedMessage";
 import AdminOnly from "@/components/auth/AdminOnly";
 import {
@@ -18,29 +20,30 @@ import { SettingsSection } from "./SettingsSection";
  * Allows admins to manage user accounts and public signup settings
  */
 export function UserManagement() {
+  const t = useT();
   return (
     <AdminOnly
       fallback={
-        <AccessDeniedMessage message="You do not have permission to access the user management settings." />
+        <AccessDeniedMessage message={t("settings.users.accessDenied")} />
       }
     >
       <SettingsSection
-        title="User Management"
-        description="Manage user settings and access control"
+        title={t("settings.users.title")}
+        description={t("settings.users.description")}
       >
         <div className="space-y-6">
           <PublicSignupSettings />
 
           <Card>
             <CardHeader>
-              <CardTitle>User Accounts</CardTitle>
+              <CardTitle>{t("settings.users.accounts.title")}</CardTitle>
               <CardDescription>
-                Manage existing user accounts and permissions
+                {t("settings.users.accounts.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                User account management will be available in a future update.
+                {t("settings.users.accounts.comingSoon")}
               </p>
             </CardContent>
           </Card>

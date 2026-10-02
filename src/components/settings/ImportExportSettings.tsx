@@ -17,7 +17,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
+import { useT } from "@/i18n";
+
 export function ImportExportSettings() {
+  const t = useT();
   const [includeCompleted, setIncludeCompleted] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -55,10 +58,10 @@ export function ImportExportSettings() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success("Tasks exported successfully");
+      toast.success(t("toasts.settings.importExport.exportSuccess"));
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Failed to export tasks");
+      toast.error(t("toasts.settings.importExport.exportError"));
     } finally {
       setIsExporting(false);
     }
@@ -100,13 +103,20 @@ export function ImportExportSettings() {
           }
 
           const result = await response.json();
-          toast.success(`Import successful: ${result.imported} tasks imported`);
+          toast.success(
+            t("toasts.settings.importExport.importSuccess", {
+              count: result.imported,
+            })
+          );
         } catch (error) {
           console.error("Import processing error:", error);
           toast.error(
-            `Import failed: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`
+            t("toasts.settings.importExport.importError", {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : t("toasts.settings.importExport.unknownError"),
+            })
           );
         } finally {
           setIsImporting(false);
@@ -118,14 +128,14 @@ export function ImportExportSettings() {
       };
 
       reader.onerror = () => {
-        toast.error("Failed to read the file");
+        toast.error(t("toasts.settings.importExport.readError"));
         setIsImporting(false);
       };
 
       reader.readAsText(file);
     } catch (error) {
       console.error("Import error:", error);
-      toast.error("Failed to import tasks");
+      toast.error(t("toasts.settings.importExport.importFailed"));
       setIsImporting(false);
     }
   };
@@ -134,9 +144,9 @@ export function ImportExportSettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Import/Export Tasks</CardTitle>
+          <CardTitle>{t("settings.importExport.title")}</CardTitle>
           <CardDescription>
-            Export your tasks to a file or import tasks from a file
+            {t("settings.importExport.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -149,7 +159,9 @@ export function ImportExportSettings() {
                   setIncludeCompleted(checked as boolean)
                 }
               />
-              <Label htmlFor="includeCompleted">Include completed tasks</Label>
+              <Label htmlFor="includeCompleted">
+                {t("settings.importExport.includeCompleted")}
+              </Label>
             </div>
 
             <div className="flex flex-col gap-4 sm:flex-row">
@@ -163,7 +175,7 @@ export function ImportExportSettings() {
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                Export Tasks
+                {t("settings.importExport.export")}
               </Button>
 
               <Button
@@ -177,7 +189,7 @@ export function ImportExportSettings() {
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
-                Import Tasks
+                {t("settings.importExport.import")}
               </Button>
 
               <input
@@ -192,16 +204,15 @@ export function ImportExportSettings() {
 
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              <strong>Export:</strong> Creates a JSON file containing all your
-              tasks, projects, and tags.
+              <strong>{t("settings.importExport.help.exportLabel")}</strong>{" "}
+              {t("settings.importExport.help.export")}
             </p>
             <p>
-              <strong>Import:</strong> Imports tasks, projects, and tags from a
-              JSON file. Tasks will be associated with your account.
+              <strong>{t("settings.importExport.help.importLabel")}</strong>{" "}
+              {t("settings.importExport.help.import")}
             </p>
             <p className="text-pending-foreground">
-              Note: Importing will not delete or modify your existing tasks, but
-              may create duplicates if tasks with similar titles exist.
+              {t("settings.importExport.help.note")}
             </p>
           </div>
         </CardContent>

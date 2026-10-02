@@ -1,5 +1,6 @@
 import { useSession } from "next-auth/react";
 
+import { useT } from "@/i18n";
 import { Chrome } from "lucide-react";
 
 import { useSettingsStore } from "@/store/settings";
@@ -7,17 +8,18 @@ import { useSettingsStore } from "@/store/settings";
 import { SettingRow, SettingsSection } from "./SettingsSection";
 
 export function IntegrationSettings() {
+  const t = useT();
   const { data: session } = useSession();
   const { integrations, updateIntegrationSettings } = useSettingsStore();
 
   return (
     <SettingsSection
-      title="Integration Settings"
-      description="Manage your calendar integrations and synchronization settings."
+      title={t("settings.integrations.title")}
+      description={t("settings.integrations.description")}
     >
       <SettingRow
         label="Google Calendar"
-        description="Configure your Google Calendar integration"
+        description={t("settings.integrations.google.description")}
       >
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -26,7 +28,8 @@ export function IntegrationSettings() {
               <div>
                 <div className="font-medium">Google Calendar</div>
                 <div className="text-sm text-muted-foreground">
-                  {session?.user?.email || "Not connected"}
+                  {session?.user?.email ||
+                    t("settings.integrations.notConnected")}
                 </div>
               </div>
             </div>
@@ -64,12 +67,14 @@ export function IntegrationSettings() {
                   }
                   className="h-4 w-4 rounded border-border text-foreground focus:ring-ring"
                 />
-                <span className="ml-2 text-sm">Enable auto-sync</span>
+                <span className="ml-2 text-sm">
+                  {t("settings.integrations.autoSync")}
+                </span>
               </label>
 
               <div>
                 <label className="block text-sm font-medium text-foreground/80">
-                  Sync Interval (minutes)
+                  {t("settings.integrations.syncInterval")}
                 </label>
                 <input
                   type="number"

@@ -12,6 +12,7 @@ import FullCalendar from "@fullcalendar/react";
 
 import { TaskModal } from "@/components/tasks/TaskModal";
 
+import { useT } from "@/i18n/client";
 import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { newDate } from "@/lib/date-utils";
 
@@ -33,6 +34,7 @@ interface MonthViewProps {
 }
 
 export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
+  const t = useT();
   const { feeds, getAllCalendarItems, isLoading, removeEvent } =
     useCalendarStore();
   const { user: userSettings } = useSettingsStore();
@@ -215,12 +217,12 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
     if (!quickViewItem) return;
 
     if (isTask) {
-      if (confirm("Are you sure you want to delete this task?")) {
+      if (confirm(t("calendar.confirm.deleteTask"))) {
         await useTaskStore.getState().deleteTask(quickViewItem.id);
         handleQuickViewClose();
       }
     } else {
-      if (confirm("Are you sure you want to delete this event?")) {
+      if (confirm(t("calendar.confirm.deleteEvent"))) {
         await removeEvent(
           quickViewItem.id,
           quickViewItem.isRecurring ? "series" : "single"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { DESKTOP_ACTIONS, type DesktopAction } from "@/lib/desktop-actions";
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   if ("response" in auth) return auth.response;
   const stepUp = requireStepUp(request, auth.userId);
   if (stepUp) return stepUp;
+  const t = await getT();
   const { id } = await params;
   const launcher = await prisma.launchShortcut.findFirst({
     where: { id, userId: auth.userId },
@@ -45,12 +47,12 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     },
   });
   if (!launcher)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.launchers.notFound") }, { status: 404 });
 
   if (isPromptKind(launcher.kind)) {
     if (!launcher.machine)
       return NextResponse.json(
-        { error: "Ce raccourci n'a plus de machine." },
+        { error: t("api.launchers.noMachine") },
         { status: 409 }
       );
     const result = await runMachineAction({
@@ -75,13 +77,15 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   // Shell kind — legacy DesktopCommand path, needs an online agent.
   if (!launcher.machine)
     return NextResponse.json(
-      { error: "Machine manquante." },
+      { error: t("api.launchers.machineMissing") },
       { status: 409 }
     );
   if (!launcher.machine.agentTokenHash) {
     return NextResponse.json(
       {
-        error: `Aucun agent sur ${launcher.machine.label || launcher.machine.name}.`,
+        error: t("api.launchers.noAgent", {
+          name: launcher.machine.label || launcher.machine.name,
+        }),
       },
       { status: 409 }
     );
@@ -90,7 +94,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   const args = def?.schema.safeParse(launcher.args);
   if (!def || !args?.success) {
     return NextResponse.json(
-      { error: "Raccourci invalide, modifie-le." },
+      { error: t("api.launchers.invalid") },
       { status: 400 }
     );
   }

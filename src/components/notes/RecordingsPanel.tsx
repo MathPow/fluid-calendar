@@ -17,6 +17,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { DropZones } from "@/components/notes/DropZones";
+import { useLocale, useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 interface RecordingListItem {
@@ -86,10 +87,10 @@ const formatSize = (bytes: number) => {
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 };
 
-const formatDate = (iso: string) => {
+const formatDate = (iso: string, locale?: string) => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(locale, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -98,6 +99,8 @@ const formatDate = (iso: string) => {
 };
 
 export function RecordingsPanel() {
+  const t = useT();
+  const locale = useLocale();
   const [items, setItems] = useState<RecordingListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,11 +119,11 @@ export function RecordingsPanel() {
       const data = await res.json();
       setItems(data.recordings ?? []);
     } catch {
-      setError("Couldn't load recordings.");
+      setError(t("notes.recordings.loadFailed"));
     } finally {
       if (!opts?.quiet) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadList();
@@ -133,7 +136,7 @@ export function RecordingsPanel() {
   const anyProcessing = items.some((r) => isProcessing(r.status));
   useEffect(() => {
     if (!anyProcessing) return;
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       loadList({ quiet: true });
       const open = selectedIdRef.current;
       if (open) {
@@ -143,7 +146,7 @@ export function RecordingsPanel() {
           .catch(() => {});
       }
     }, 5000);
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [anyProcessing, loadList]);
 
   const select = async (id: string) => {
@@ -175,12 +178,12 @@ export function RecordingsPanel() {
       );
       setDetail((d) => (d && d.id === id ? { ...d, status: "processing" } : d));
     } catch {
-      alert("Couldn't start processing.");
+      alert(t("notes.recordings.processFailed"));
     }
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this recording? This also removes the audio file.")) return;
+    if (!confirm(t("notes.recordings.confirmDelete"))) return;
     setDeletingId(id);
     try {
       const res = await fetch(`/api/recordings/${id}`, { method: "DELETE" });
@@ -191,7 +194,7 @@ export function RecordingsPanel() {
         setDetail(null);
       }
     } catch {
-      alert("Couldn't delete that recording.");
+      alert(t("notes.recordings.deleteFailed"));
     } finally {
       setDeletingId(null);
     }
@@ -203,16 +206,16 @@ export function RecordingsPanel() {
       <div className="flex w-72 flex-none flex-col border-r border-border bg-card">
         <div className="flex items-center justify-between gap-2 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold">Recordings</h2>
+            <h2 className="text-sm font-semibold">{t("notes.recordings.title")}</h2>
             <p className="text-xs text-muted-foreground">
-              {items.length} {items.length === 1 ? "recording" : "recordings"}
+              {t(items.length === 1 ? "notes.recordings.count.one" : "notes.recordings.count.other", { count: items.length })}
             </p>
           </div>
           <button
             type="button"
             onClick={() => loadList()}
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-            title="Refresh"
+            title={t("notes.recordings.refresh")}
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </button>
@@ -221,15 +224,15 @@ export function RecordingsPanel() {
         <div className="flex-1 overflow-y-auto px-2 pb-4">
           {loading ? (
             <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
             </div>
           ) : error ? (
             <p className="px-2 py-3 text-sm text-destructive">{error}</p>
           ) : items.length === 0 ? (
             <div className="px-2 py-3 text-sm text-muted-foreground">
-              <p>No recordings yet.</p>
+              <p>{t("notes.recordings.empty")}</p>
               <p className="mt-2 text-xs">
-                Sync from Meetily or your Apple Watch and they show up here.
+                {t("notes.recordings.emptyHint")}
               </p>
             </div>
           ) : (
@@ -255,22 +258,22 @@ export function RecordingsPanel() {
                           {r.title}
                         </span>
                         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span>{formatDate(r.recordedAt)}</span>
+                          <span>{formatDate(r.recordedAt, locale)}</span>
                           {dur && <span>· {dur}</span>}
                           {isProcessing(r.status) ? (
                             <span className="inline-flex items-center gap-1 text-primary">
                               <Loader2 className="h-3 w-3 animate-spin" />
-                              Processing
+                              {t("notes.recordings.processing")}
                             </span>
                           ) : r.status === "error" ? (
                             <span className="inline-flex items-center gap-1 text-destructive">
-                              <AlertCircle className="h-3 w-3" /> Failed
+                              <AlertCircle className="h-3 w-3" /> {t("notes.recordings.failed")}
                             </span>
                           ) : (
                             r.hasTranscript && (
                               <FileText
                                 className="h-3 w-3"
-                                aria-label="Has transcript"
+                                aria-label={t("notes.recordings.hasTranscript")}
                               />
                             )
                           )}
@@ -291,24 +294,24 @@ export function RecordingsPanel() {
           <div className="flex h-full flex-col items-center justify-center gap-6 p-6 text-center">
             <div className="text-muted-foreground">
               <AudioLines className="mx-auto h-10 w-10 opacity-40" />
-              <p className="mt-3 text-sm">Select a recording to play it.</p>
+              <p className="mt-3 text-sm">{t("notes.recordings.selectHint")}</p>
             </div>
             <DropZones onSaved={() => loadList()} />
           </div>
         ) : loadingDetail ? (
           <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading recording…
+            <Loader2 className="h-4 w-4 animate-spin" /> {t("notes.recordings.loadingOne")}
           </div>
         ) : !detail ? (
           <div className="flex h-full items-center justify-center text-sm text-destructive">
-            Failed to load this recording.
+            {t("notes.recordings.loadOneFailed")}
           </div>
         ) : (
           <article className="mx-auto max-w-3xl px-8 py-8">
             <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
               <span className="capitalize">{detail.source}</span>
               <span>·</span>
-              <span>{formatDate(detail.recordedAt)}</span>
+              <span>{formatDate(detail.recordedAt, locale)}</span>
               {formatSize(detail.sizeBytes) && (
                 <>
                   <span>·</span>
@@ -323,7 +326,7 @@ export function RecordingsPanel() {
                 onClick={() => remove(detail.id)}
                 disabled={deletingId === detail.id}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                title="Delete recording"
+                title={t("notes.recordings.delete")}
               >
                 {deletingId === detail.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -352,23 +355,22 @@ export function RecordingsPanel() {
                 >
                   <Sparkles className="h-4 w-4" />
                   {detail.transcript
-                    ? "Summarize on canardo"
-                    : "Transcribe & summarize on canardo"}
+                    ? t("notes.recordings.summarize")
+                    : t("notes.recordings.transcribeAndSummarize")}
                 </button>
               )}
 
             {isProcessing(detail.status) && (
               <div className="mb-6 flex items-center gap-2 rounded-xl border border-border bg-primary/5 p-4 text-sm text-primary">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Transcribing &amp; summarizing on canardo… this can take a few
-                minutes.
+                {t("notes.recordings.processingLong")}
               </div>
             )}
 
             {detail.status === "error" && (
               <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-                  <AlertCircle className="h-4 w-4" /> Processing failed
+                  <AlertCircle className="h-4 w-4" /> {t("notes.recordings.processingFailed")}
                 </div>
                 {detail.statusError && (
                   <p className="mt-1 text-xs text-destructive/80">
@@ -380,7 +382,7 @@ export function RecordingsPanel() {
                   onClick={() => reprocess(detail.id)}
                   className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> Retry
+                  <RefreshCw className="h-3.5 w-3.5" /> {t("notes.recordings.retry")}
                 </button>
               </div>
             )}
@@ -389,16 +391,16 @@ export function RecordingsPanel() {
               <section className="mb-6 rounded-xl border border-border bg-muted/40 p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground/80">
-                    <Sparkles className="h-4 w-4 text-primary" /> Summary
+                    <Sparkles className="h-4 w-4 text-primary" /> {t("notes.recordings.summary")}
                   </h2>
                   <button
                     type="button"
                     onClick={() => reprocess(detail.id, true)}
                     disabled={isProcessing(detail.status)}
                     className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-                    title="Regenerate summary"
+                    title={t("notes.recordings.regenerateTitle")}
                   >
-                    Regenerate
+                    {t("notes.recordings.regenerate")}
                   </button>
                 </div>
                 <div className="text-sm leading-7 text-foreground/90">
@@ -415,7 +417,7 @@ export function RecordingsPanel() {
             {detail.transcript ? (
               <section>
                 <h2 className="mb-2 text-sm font-semibold text-foreground/80">
-                  Transcript
+                  {t("notes.recordings.transcript")}
                   {detail.language && (
                     <span className="ml-2 text-xs font-normal uppercase text-muted-foreground">
                       {detail.language}
@@ -429,7 +431,7 @@ export function RecordingsPanel() {
             ) : (
               !isProcessing(detail.status) && (
                 <p className="text-sm text-muted-foreground">
-                  No transcript yet for this recording.
+                  {t("notes.recordings.noTranscript")}
                 </p>
               )
             )}

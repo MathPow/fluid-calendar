@@ -19,11 +19,15 @@ import { Textarea } from "@/components/ui/textarea";
 
 import {
   FILING_FREQUENCIES,
+  FILING_FREQUENCY_KEYS,
   LEGAL_FORMS,
+  LEGAL_FORM_KEYS,
   type LegalForm,
   SALES_TAX_STATUSES,
+  SALES_TAX_STATUS_KEYS,
   type TaxProfileLite,
 } from "@/lib/fiscalite/meta";
+import { useLocale, useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 import { ContactPicker, type PickerContact } from "../projets/ContactPicker";
@@ -152,6 +156,8 @@ export function TaxProfileDialog({
   onSaved,
   defaultLegalForm,
 }: TaxProfileDialogProps) {
+  const t = useT();
+  const dateLocale = useLocale() === "en" ? "en-CA" : "fr-CA";
   const [legalForm, setLegalForm] = useState<LegalForm>("individuelle");
   const [partners, setPartners] = useState<
     { name: string; share: string; contactId: string }[]
@@ -237,19 +243,17 @@ export function TaxProfileDialog({
 
   const warnings: string[] = [];
   if (company.neq && digits(company.neq).length !== 10)
-    warnings.push("Le NEQ compte 10 chiffres.");
+    warnings.push(t("fiscalite.taxProfile.warn.neq"));
   if (company.businessNumber && digits(company.businessNumber).length !== 9)
-    warnings.push("Le NE fédéral compte 9 chiffres (le début du no TPS).");
+    warnings.push(t("fiscalite.taxProfile.warn.businessNumber"));
   if (
     gstNumber &&
     company.businessNumber &&
     !digits(gstNumber).startsWith(digits(company.businessNumber))
   )
-    warnings.push("Le no TPS commence normalement par le NE fédéral.");
+    warnings.push(t("fiscalite.taxProfile.warn.gstPrefix"));
   if (legalForm === "senc" && sharesSet && Math.abs(shareTotal - 100) > 0.01)
-    warnings.push(
-      `Les parts des associés totalisent ${shareTotal} %, pas 100 %.`
-    );
+    warnings.push(t("fiscalite.taxProfile.warn.shares", { total: shareTotal }));
 
   const submit = async () => {
     setSubmitting(true);
@@ -276,12 +280,12 @@ export function TaxProfileDialog({
       const data = (await res.json().catch(() => ({}))) as ProfileView & {
         error?: string;
       };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
-      toast.success("Profil enregistré.");
+      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+      toast.success(t("toasts.fiscalite.profileSaved"));
       onSaved(data);
       onOpenChange(false);
     } catch (e) {
-      toast.error("Enregistrement impossible", {
+      toast.error(t("toasts.common.saveFailed"), {
         description: e instanceof Error ? e.message : undefined,
       });
     } finally {
@@ -296,12 +300,10 @@ export function TaxProfileDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            Profil d&apos;entreprise · {organisation.name}
+            {t("fiscalite.taxProfile.title", { name: organisation.name })}
           </DialogTitle>
           <DialogDescription>
-            Tout ce que ton comptable (et Revenu Québec) va te demander, au même
-            endroit. Seules la forme juridique et les taxes changent les
-            calculs; le reste est ta fiche.
+            {t("fiscalite.taxProfile.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -313,10 +315,10 @@ export function TaxProfileDialog({
           }}
         >
           {!personal && (
-          <Section title="Identification">
+          <Section title={t("fiscalite.taxProfile.section.identification")}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="tp-legal">Nom légal (au Registraire des entreprises)</Label>
+                <Label htmlFor="tp-legal">{t("fiscalite.taxProfile.legalName")}</Label>
                 <Input
                   id="tp-legal"
                   {...field("legalName")}
@@ -324,7 +326,7 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-neq">NEQ</Label>
+                <Label htmlFor="tp-neq">{t("fiscalite.identity.neq")}</Label>
                 <Input
                   id="tp-neq"
                   inputMode="numeric"
@@ -333,7 +335,7 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-rq">No d&apos;identification Revenu Québec</Label>
+                <Label htmlFor="tp-rq">{t("fiscalite.taxProfile.rqNumber")}</Label>
                 <Input
                   id="tp-rq"
                   {...field("rqNumber")}
@@ -341,7 +343,7 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-start">Immatriculation au REQ</Label>
+                <Label htmlFor="tp-start">{t("fiscalite.taxProfile.reqRegistration")}</Label>
                 <Input
                   id="tp-start"
                   type="date"
@@ -350,7 +352,7 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-naics">Code d&apos;activité (SCIAN)</Label>
+                <Label htmlFor="tp-naics">{t("fiscalite.taxProfile.naics")}</Label>
                 <Input
                   id="tp-naics"
                   inputMode="numeric"
@@ -359,15 +361,15 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="tp-activity">Activité</Label>
+                <Label htmlFor="tp-activity">{t("fiscalite.taxProfile.activity")}</Label>
                 <Input
                   id="tp-activity"
                   {...field("activity")}
-                  placeholder="Événements extérieurs: billetterie, boutique en ligne, commandites"
+                  placeholder={t("fiscalite.taxProfile.activity.placeholder")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-rs">Dossier employeur (RS)</Label>
+                <Label htmlFor="tp-rs">{t("fiscalite.taxProfile.payroll")}</Label>
                 <Input
                   id="tp-rs"
                   {...field("payrollNumber")}
@@ -375,7 +377,7 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-bn">NE fédéral (ARC)</Label>
+                <Label htmlFor="tp-bn">{t("fiscalite.taxProfile.businessNumber")}</Label>
                 <Input
                   id="tp-bn"
                   inputMode="numeric"
@@ -384,32 +386,32 @@ export function TaxProfileDialog({
                 />
               </div>
               <p className="text-[12px] text-muted-foreground sm:col-span-2">
-                Le NEQ et l&apos;immatriculation viennent du Registraire des entreprises; le no
-                d&apos;identification et le dossier employeur (seulement si tu as des employés), de Mon
-                dossier pour les entreprises. Le NE fédéral sert à l&apos;ARC, et ton no TPS en découle.
+                {t("fiscalite.taxProfile.identification.hint")}
               </p>
             </div>
           </Section>
           )}
 
-          <Section title="Forme juridique">
+          <Section title={t("fiscalite.taxProfile.section.legalForm")}>
             <Choice
-              options={LEGAL_FORMS}
+              options={LEGAL_FORMS.map((o) => ({
+                ...o,
+                label: t(LEGAL_FORM_KEYS[o.id].label),
+                hint: t(LEGAL_FORM_KEYS[o.id].hint),
+              }))}
               value={legalForm}
               onChange={setLegalForm}
             />
             <p className="text-[12px] text-muted-foreground">
-              Pas de « inc. » ? Seul, c&apos;est une entreprise individuelle; à
-              plusieurs sous un même nom (contrat de société, REQ), c&apos;est
-              une SENC.
+              {t("fiscalite.taxProfile.legalForm.hint")}
             </p>
 
             {legalForm === "societe" && (
               <div className="space-y-2">
-                <Label>Fin d&apos;exercice</Label>
+                <Label>{t("fiscalite.profile.yearEnd")}</Label>
                 <div className="flex gap-2">
                   <Input
-                    aria-label="Jour"
+                    aria-label={t("fiscalite.taxProfile.day")}
                     inputMode="numeric"
                     value={dd}
                     onChange={(e) =>
@@ -420,7 +422,7 @@ export function TaxProfileDialog({
                     className="w-20"
                   />
                   <select
-                    aria-label="Mois"
+                    aria-label={t("fiscalite.taxProfile.month")}
                     value={mm}
                     onChange={(e) => setYearEnd(`${e.target.value}-${dd}`)}
                     className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-[14px]"
@@ -429,7 +431,7 @@ export function TaxProfileDialog({
                       String(i + 1).padStart(2, "0")
                     ).map((m) => (
                       <option key={m} value={m}>
-                        {new Intl.DateTimeFormat("fr-CA", {
+                        {new Intl.DateTimeFormat(dateLocale, {
                           month: "long",
                           timeZone: "UTC",
                         }).format(new Date(Date.UTC(2026, Number(m) - 1, 1)))}
@@ -442,7 +444,7 @@ export function TaxProfileDialog({
 
             {legalForm === "senc" && (
               <div className="space-y-2">
-                <Label>Associés et parts</Label>
+                <Label>{t("fiscalite.taxProfile.partnersAndShares")}</Label>
                 <ul className="space-y-2">
                   {partners.map((p, i) => (
                     <li
@@ -472,8 +474,8 @@ export function TaxProfileDialog({
                         />
                       </div>
                       <Input
-                        aria-label="Nom dans les comptes"
-                        title="Nom utilisé dans les mouvements, « Payé par » et l'Excel"
+                        aria-label={t("fiscalite.taxProfile.partnerName")}
+                        title={t("fiscalite.taxProfile.partnerName.title")}
                         value={p.name}
                         onChange={(e) =>
                           setPartners((prev) =>
@@ -482,12 +484,12 @@ export function TaxProfileDialog({
                             )
                           )
                         }
-                        placeholder="Prénom"
+                        placeholder={t("fiscalite.taxProfile.partnerName.placeholder")}
                         className="w-28 flex-1 sm:flex-none"
                       />
                       <div className="flex w-24 items-center gap-1">
                         <Input
-                          aria-label="Part"
+                          aria-label={t("fiscalite.taxProfile.share")}
                           inputMode="decimal"
                           value={p.share}
                           onChange={(e) =>
@@ -508,7 +510,7 @@ export function TaxProfileDialog({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        aria-label="Retirer"
+                        aria-label={t("common.remove")}
                         onClick={() =>
                           setPartners((prev) => prev.filter((_, j) => j !== i))
                         }
@@ -529,35 +531,34 @@ export function TaxProfileDialog({
                     ])
                   }
                 >
-                  <Plus /> Associé
+                  <Plus /> {t("fiscalite.partners.dialog.partner")}
                 </Button>
                 <p className="text-[12px] text-muted-foreground">
-                  Choisis chaque associé dans tes contacts; le prénom à droite
-                  est celui des mouvements et de l&apos;Excel. Les parts
-                  répartissent le bénéfice (RL-15); vides = parts égales.
+                  {t("fiscalite.taxProfile.partners.hint")}
                 </p>
               </div>
             )}
           </Section>
 
           {!personal && (
-          <Section title="TVQ / TPS">
+          <Section title={t("fiscalite.taxProfile.section.salesTax")}>
             <Choice
-              options={SALES_TAX_STATUSES}
+              options={SALES_TAX_STATUSES.map((o) => ({
+                ...o,
+                label: t(SALES_TAX_STATUS_KEYS[o.id].label),
+                hint: t(SALES_TAX_STATUS_KEYS[o.id].hint),
+              }))}
               value={status}
               onChange={setStatus}
             />
             <p className="text-[12px] text-muted-foreground">
-              Obligatoire dès que tes ventes taxables dépassent 30 000 $ sur
-              quatre trimestres. Au Québec, Revenu Québec gère les deux taxes:
-              une seule inscription, une seule déclaration. En dessous du seuil,
-              t&apos;inscrire quand même te laisse récupérer les taxes sur tes achats.
+              {t("fiscalite.taxProfile.salesTax.hint")}
             </p>
             {status === "inscrit" && (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="tp-qst">No TVQ</Label>
+                    <Label htmlFor="tp-qst">{t("fiscalite.taxProfile.qstNumber")}</Label>
                     <Input
                       id="tp-qst"
                       value={qstNumber}
@@ -566,7 +567,7 @@ export function TaxProfileDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="tp-gst">No TPS</Label>
+                    <Label htmlFor="tp-gst">{t("fiscalite.taxProfile.gstNumber")}</Label>
                     <Input
                       id="tp-gst"
                       value={gstNumber}
@@ -576,15 +577,17 @@ export function TaxProfileDialog({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Fréquence des déclarations</Label>
+                  <Label>{t("fiscalite.taxProfile.filingFrequency")}</Label>
                   <Choice
-                    options={FILING_FREQUENCIES}
+                    options={FILING_FREQUENCIES.map((o) => ({
+                      ...o,
+                      label: t(FILING_FREQUENCY_KEYS[o.id]),
+                    }))}
                     value={frequency}
                     onChange={setFrequency}
                   />
                   <p className="text-[12px] text-muted-foreground">
-                    Sur ton avis d&apos;inscription (Mon dossier, Revenu
-                    Québec). Moins de 1,5 M$ de ventes: annuelle par défaut.
+                    {t("fiscalite.taxProfile.filingFrequency.hint")}
                   </p>
                 </div>
               </>
@@ -594,12 +597,12 @@ export function TaxProfileDialog({
 
           {!personal && (
           <Section
-            title="Coordonnées"
-            hint="L'adresse du siège, telle qu'au Registraire des entreprises."
+            title={t("fiscalite.taxProfile.section.contact")}
+            hint={t("fiscalite.taxProfile.contact.hint")}
           >
             <div className="grid gap-4 sm:grid-cols-6">
               <div className="space-y-2 sm:col-span-6">
-                <Label htmlFor="tp-address">Adresse</Label>
+                <Label htmlFor="tp-address">{t("fiscalite.profile.address")}</Label>
                 <Input
                   id="tp-address"
                   {...field("address")}
@@ -607,15 +610,15 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2 sm:col-span-3">
-                <Label htmlFor="tp-city">Ville</Label>
+                <Label htmlFor="tp-city">{t("fiscalite.taxProfile.city")}</Label>
                 <Input id="tp-city" {...field("city")} placeholder="Québec" />
               </div>
               <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="tp-prov">Prov.</Label>
+                <Label htmlFor="tp-prov">{t("fiscalite.taxProfile.province")}</Label>
                 <Input id="tp-prov" {...field("province")} />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="tp-postal">Code postal</Label>
+                <Label htmlFor="tp-postal">{t("fiscalite.taxProfile.postalCode")}</Label>
                 <Input
                   id="tp-postal"
                   {...field("postalCode")}
@@ -623,15 +626,15 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2 sm:col-span-3">
-                <Label htmlFor="tp-email">Courriel</Label>
+                <Label htmlFor="tp-email">{t("fiscalite.profile.email")}</Label>
                 <Input id="tp-email" type="email" {...field("email")} />
               </div>
               <div className="space-y-2 sm:col-span-3">
-                <Label htmlFor="tp-phone">Téléphone</Label>
+                <Label htmlFor="tp-phone">{t("fiscalite.profile.phone")}</Label>
                 <Input id="tp-phone" type="tel" {...field("phone")} />
               </div>
               <div className="space-y-2 sm:col-span-6">
-                <Label htmlFor="tp-web">Site web</Label>
+                <Label htmlFor="tp-web">{t("fiscalite.taxProfile.website")}</Label>
                 <Input
                   id="tp-web"
                   {...field("website")}
@@ -643,18 +646,18 @@ export function TaxProfileDialog({
           )}
 
           {!personal && (
-          <Section title="Comptable et banque">
+          <Section title={t("fiscalite.taxProfile.section.accountantBank")}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="tp-acc">Comptable</Label>
+                <Label htmlFor="tp-acc">{t("fiscalite.profile.accountant")}</Label>
                 <Input
                   id="tp-acc"
                   {...field("accountant")}
-                  placeholder="Nom ou cabinet"
+                  placeholder={t("fiscalite.taxProfile.accountant.placeholder")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-acc-email">Courriel du comptable</Label>
+                <Label htmlFor="tp-acc-email">{t("fiscalite.taxProfile.accountantEmail")}</Label>
                 <Input
                   id="tp-acc-email"
                   type="email"
@@ -662,7 +665,7 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tp-acc-phone">Téléphone du comptable</Label>
+                <Label htmlFor="tp-acc-phone">{t("fiscalite.taxProfile.accountantPhone")}</Label>
                 <Input
                   id="tp-acc-phone"
                   type="tel"
@@ -670,23 +673,23 @@ export function TaxProfileDialog({
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="tp-bank">Banque</Label>
+                <Label htmlFor="tp-bank">{t("fiscalite.taxProfile.bank")}</Label>
                 <Input
                   id="tp-bank"
                   {...field("bank")}
-                  placeholder="Desjardins, compte d'entreprise"
+                  placeholder={t("fiscalite.taxProfile.bank.placeholder")}
                 />
               </div>
             </div>
           </Section>
           )}
 
-          <Section title="Notes">
+          <Section title={t("fiscalite.taxProfile.section.notes")}>
             <Textarea
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Contrat de société, particularités, choses à rappeler au comptable…"
+              placeholder={t("fiscalite.taxProfile.notes.placeholder")}
             />
           </Section>
 
@@ -706,7 +709,7 @@ export function TaxProfileDialog({
           <div className="sticky bottom-0 -mx-6 -mb-6 flex justify-end border-t border-border bg-card px-6 py-4 md:-mx-8 md:-mb-8 md:px-8">
             <Button type="submit" size="lg" disabled={submitting}>
               {submitting && <Loader2 className="animate-spin" />}
-              Enregistrer
+              {t("common.save")}
             </Button>
           </div>
         </form>

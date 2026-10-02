@@ -117,24 +117,39 @@ export const agentOnline = (seenAt: Date | string | null | undefined) =>
 /** One-line summary of a command for the history list. */
 export function describeCommand(
   action: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  /** UI translator; without it the summary stays in French (server use). */
+  t?: (key: string, params?: Record<string, string | number>) => string
 ): string {
   const a = args as Record<string, string>;
+  const fr: Record<string, string> = {
+    "machines.describe.open": "Ouvrir {target}",
+    "machines.describe.openApp": "Lancer {app}",
+    "machines.describe.notify": "Notification « {title} »",
+    "machines.describe.clipboard": "Presse-papiers ({count} caractères)",
+    "machines.describe.lock": "Verrouiller l'écran",
+  };
+  const tr = (key: string, params?: Record<string, string | number>) =>
+    t
+      ? t(key, params)
+      : fr[key].replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? ""));
   switch (action) {
     case "open_url":
-      return `Ouvrir ${a.url}`;
+      return tr("machines.describe.open", { target: a.url });
     case "open_path":
-      return `Ouvrir ${a.path}`;
+      return tr("machines.describe.open", { target: a.path });
     case "open_code":
       return `VS Code · ${a.path}`;
     case "open_app":
-      return `Lancer ${a.app}`;
+      return tr("machines.describe.openApp", { app: a.app });
     case "notify":
-      return `Notification « ${a.title} »`;
+      return tr("machines.describe.notify", { title: a.title });
     case "clipboard":
-      return `Presse-papiers (${String(a.text ?? "").length} caractères)`;
+      return tr("machines.describe.clipboard", {
+        count: String(a.text ?? "").length,
+      });
     case "lock":
-      return "Verrouiller l'écran";
+      return tr("machines.describe.lock");
     case "shell":
       return `$ ${a.command}`;
     case "agent_run":
