@@ -30,7 +30,7 @@
     --secondary-foreground: 255 8% 10%;
 
     --muted: 40 20% 94%;
-    --muted-foreground: 252 2% 44%; /* encre atténuée #6e6d72 */
+    --muted-foreground: 252 2% 42%; /* texte atténué : contraste >= 4.5 sur secondary */
 
     /* Hover surface */
     --accent: 40 20% 94%;
