@@ -28,7 +28,7 @@ const ICONS: Record<string, typeof Bell> = {
 };
 
 const ACTION =
-  "flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "flex h-10 w-10 md:h-7 md:w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * Rows of notifications; a click marks one read and follows its link. Hovering

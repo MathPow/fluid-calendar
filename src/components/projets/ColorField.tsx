@@ -48,12 +48,10 @@ export function ColorField({
                 "flex h-11 w-14 items-center justify-center rounded-[14px] border-2 transition-transform hover:scale-105",
                 active ? "border-foreground" : "border-transparent"
               )}
-              style={{ backgroundColor: c.hex }}
+              style={{ backgroundColor: c.hex, color: readableTextOn(c.hex) }}
               aria-pressed={active}
             >
-              {active && (
-                <Check className="h-4 w-4 text-[#19181c]" strokeWidth={3} />
-              )}
+              {active && <Check className="h-4 w-4" strokeWidth={3} />}
             </button>
           );
         })}
