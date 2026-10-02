@@ -43,6 +43,7 @@ export function ProjectMark({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={image}
+        loading="lazy"
         alt=""
         className={cn(
           "shrink-0 rounded-2xl object-cover",
@@ -103,7 +104,7 @@ export function ProjectTile({
           <button
             type="button"
             aria-label={t("projects.tile.actionsAria", { name: project.name })}
-            className="absolute bottom-8 right-1 flex h-10 w-10 items-center justify-center rounded-full bg-card md:hidden"
+            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-sm md:hidden"
           >
             <MoreHorizontal className="h-5 w-5" />
           </button>
