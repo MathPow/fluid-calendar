@@ -27,9 +27,20 @@ export function MobileTaskRow({
   return (
     <div
       className="flex items-center gap-1 rounded-xl border border-border bg-card p-1"
+      onClickCapture={(e) => {
+        if (swiped.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          swiped.current = false;
+        }
+      }}
       onTouchStart={(e) => {
-        const touch = e.touches[0];
-        start.current = { x: touch.clientX, y: touch.clientY };
+        if (e.touches.length !== 1) {
+          start.current = null;
+          return;
+        }
+        const t = e.touches[0];
+        start.current = { x: t.clientX, y: t.clientY };
         swiped.current = false;
       }}
       onTouchCancel={() => {
