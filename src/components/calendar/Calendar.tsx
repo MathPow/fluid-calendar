@@ -312,7 +312,9 @@ export function Calendar({
         <div
           className="min-h-0 flex-1 overflow-hidden"
           onTouchStart={(e) => {
+            swipeStart.current = null;
             if (
+              e.touches.length !== 1 ||
               window.innerWidth >= 768 ||
               view !== "day" ||
               routineEditing ||
