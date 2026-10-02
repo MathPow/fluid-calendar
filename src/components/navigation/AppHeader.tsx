@@ -150,6 +150,9 @@ export function AppHeader({ className }: { className?: string }) {
                 const touch = e.touches[0];
                 touchStart.current = { x: touch.clientX, y: touch.clientY };
               }}
+              onTouchCancel={() => {
+                touchStart.current = null;
+              }}
               onTouchEnd={(e) => {
                 const touch = e.changedTouches[0];
                 const start = touchStart.current;
