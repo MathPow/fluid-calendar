@@ -898,28 +898,30 @@ model AgentProject {
 // An organisation groups projects: a company or a brand (DehorsQC, StayChum).
 // Exactly one is flagged default and collects projects without an organisation.
 model Organisation {
-  id               String              @id @default(cuid())
-  slug             String              @unique
-  name             String
-  color            String? // one of the client tints, hex
-  image            String? // data URL (resized client-side) or https URL
-  kind             String              @default("client") // "owned" (mine / I have a stake) | "client" | "perso"
-  station          String              @default("personal") // derived from kind: perso → personal, else work
-  description      String?
-  isDefault        Boolean             @default(false)
-  sortOrder        Int                 @default(0)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  projects         AgentProject[]
-  calendars        CalendarFeed[]
+  id                String              @id @default(cuid())
+  slug              String              @unique
+  name              String
+  color             String? // one of the client tints, hex
+  image             String? // data URL (resized client-side) or https URL
+  kind              String              @default("client") // "owned" (mine / I have a stake) | "client" | "perso"
+  station           String              @default("personal") // derived from kind: perso → personal, else work
+  description       String?
+  isDefault         Boolean             @default(false)
+  sortOrder         Int                 @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  projects          AgentProject[]
+  calendars         CalendarFeed[]
   // Fiscalité tab: the company's tax setup and its invoices.
-  taxProfile       TaxProfile?
-  invoices         Invoice[]
-  partnerMovements PartnerMovement[]
-  eventLinks       EventOrganisation[]
-  links            OrganisationLink[]
-  taskProviders    TaskProvider[]
-  taskLists        Project[]
+  taxProfile        TaxProfile?
+  invoices          Invoice[]
+  partnerMovements  PartnerMovement[]
+  recurringInvoices RecurringInvoice[]
+  invoicingSettings InvoicingSettings?
+  eventLinks        EventOrganisation[]
+  links             OrganisationLink[]
+  taskProviders     TaskProvider[]
+  taskLists         Project[]
 
   @@index([sortOrder])
 }
@@ -1003,24 +1005,26 @@ model OrganisationLink {
 // People: clients, collaborators, suppliers. Shown in the Contacts tab and
 // attachable to any number of projects.
 model Contact {
-  id             String           @id @default(cuid())
-  type           String           @default("person") // "person" | "company"
-  name           String
-  email          String?
-  phone          String?
-  company        String?
-  role           String? // job / category, e.g. "Entrepreneur", "Pro", "Étudiant"
-  relation       String? // category: ami | famille | collegue | ecole | client | partenaire | fournisseur | mentor | connaissance | autre
-  relationDetail String? // the precise wording, e.g. "Beau-père de Félix-Antoine"
-  image          String? // data URL (resized client-side) or https URL
-  favorite       Boolean          @default(false)
-  tags           String[]         @default([]) // private keywords for search ("tristan clientèle"…)
-  labels         ContactTag[] // official, reused tags ("Tristan leads"); see ContactTag
-  notes          String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  projects       ProjectContact[]
-  links          ContactLink[]
+  id                String             @id @default(cuid())
+  type              String             @default("person") // "person" | "company"
+  name              String
+  email             String?
+  phone             String?
+  company           String?
+  role              String? // job / category, e.g. "Entrepreneur", "Pro", "Étudiant"
+  relation          String? // category: ami | famille | collegue | ecole | client | partenaire | fournisseur | mentor | connaissance | autre
+  relationDetail    String? // the precise wording, e.g. "Beau-père de Félix-Antoine"
+  image             String? // data URL (resized client-side) or https URL
+  favorite          Boolean            @default(false)
+  tags              String[]           @default([]) // private keywords for search ("tristan clientèle"…)
+  labels            ContactTag[] // official, reused tags ("Tristan leads"); see ContactTag
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  projects          ProjectContact[]
+  links             ContactLink[]
+  invoices          Invoice[]
+  recurringInvoices RecurringInvoice[]
 
   @@index([name])
   @@index([favorite])
@@ -1234,29 +1238,97 @@ model TaxProfile {
 // paid (dépense). Amounts are in cents. The file lives in InvoiceFile so lists
 // never load the bytes.
 model Invoice {
-  id             String       @id @default(cuid())
+  id             String            @id @default(cuid())
   organisationId String
-  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  direction      String       @default("depense") // "depense" | "revenu"
+  organisation   Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  direction      String            @default("depense") // "depense" | "revenu"
   date           DateTime
   party          String? // supplier or client
   partyTaxNumber String? // supplier's TPS/TVQ number, needed to claim the ITC/ITR
   number         String? // invoice number
   description    String?
   category       String? // key of EXPENSE_CATEGORIES (T2125 lines)
-  subtotalCents  Int          @default(0)
-  gstCents       Int          @default(0)
-  qstCents       Int          @default(0)
-  totalCents     Int          @default(0)
+  subtotalCents  Int               @default(0)
+  gstCents       Int               @default(0)
+  qstCents       Int               @default(0)
+  totalCents     Int               @default(0)
   notes          String?
   // SENC: the associé who paid it out of pocket (an advance to the société).
   // Null means the company's own account paid.
   paidBy         String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  // Facturation: invoices made (or imported) as the issuer, sent to a client.
+  contactId      String?
+  contact        Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  status         String? // "draft" | "sent" | "paid"; null for plain Fiscalité records
+  dueDate        DateTime?
+  billTo         String? // client's name + address block, as printed
+  clientEmail    String?
+  lines          Json? // [{ description, quantity, unitCents }] — set when generated here
+  applyTaxes     Boolean           @default(false)
+  lang           String? // "fr" | "en", the PDF's language
+  sentAt         DateTime?
+  sentTo         String?
+  paidAt         DateTime?
+  recurringId    String?
+  recurring      RecurringInvoice? @relation("RecurringInvoices", fields: [recurringId], references: [id], onDelete: SetNull)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
   file           InvoiceFile?
 
   @@index([organisationId, date])
+  @@index([contactId])
+  @@index([recurringId])
+}
+
+// A subscription-style contract: a copy of the invoice is issued (and sent,
+// when autoSend) every period by the notifications cron.
+model RecurringInvoice {
+  id             String       @id @default(cuid())
+  userId         String // who gets the notifications
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  contactId      String?
+  contact        Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  title          String // the contract, e.g. "Hébergement mensuel"
+  party          String // client name on the invoice
+  billTo         String?
+  clientEmail    String?
+  cc             String?
+  lines          Json // [{ description, quantity, unitCents }]
+  applyTaxes     Boolean      @default(false)
+  lang           String       @default("fr")
+  notes          String?
+  frequency      String       @default("monthly") // "weekly" | "monthly" | "quarterly" | "yearly"
+  interval       Int          @default(1)
+  dueDays        Int          @default(30)
+  nextRunAt      DateTime // the next issue date (time of day = when the cron may fire)
+  endDate        DateTime?
+  autoSend       Boolean      @default(true)
+  mailAccountId  String?
+  active         Boolean      @default(true)
+  lastInvoiceId  String?
+  lastRunAt      DateTime?
+  lastError      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  invoices       Invoice[]    @relation("RecurringInvoices")
+
+  @@index([active, nextRunAt])
+  @@index([organisationId])
+}
+
+// Per-company defaults for the invoices made here (remembered between uses).
+model InvoicingSettings {
+  organisationId String       @id
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  numberPrefix   String? // e.g. "F-2026-"; null = continue the last number's shape
+  dueDays        Int          @default(30)
+  lang           String       @default("fr")
+  notes          String? // payment instructions printed at the bottom
+  mailAccountId  String? // last account used to send
+  emailSubject   String?
+  emailBody      String?
+  updatedAt      DateTime     @updatedAt
 }
 
 model InvoiceFile {

@@ -17,6 +17,7 @@ import {
   Menu as MenuIcon,
   Monitor,
   Receipt,
+  ReceiptText,
   Search,
   Settings,
   Users,
@@ -49,6 +50,7 @@ const MENU: NavLink[] = [
   { href: "/projets", labelKey: "nav.projects", icon: FolderGit2 },
   { href: "/contacts", labelKey: "nav.contacts", icon: Users, also: ["/machines"] },
   { href: "/fiscalite", labelKey: "nav.fiscalite", icon: Receipt },
+  { href: "/facturation", labelKey: "nav.facturation", icon: ReceiptText },
 ];
 
 /**

@@ -17,6 +17,7 @@ export interface OutgoingMail {
   html?: string;
   inReplyTo?: string;
   references?: string[];
+  attachments?: { filename: string; content: Buffer; contentType?: string }[];
 }
 
 /** Send a message over the account's SMTP server. */
@@ -39,5 +40,6 @@ export async function sendMail(conn: SmtpConn, mail: OutgoingMail): Promise<void
     html: mail.html || undefined,
     inReplyTo: mail.inReplyTo || undefined,
     references: mail.references?.length ? mail.references : undefined,
+    attachments: mail.attachments?.length ? mail.attachments : undefined,
   });
 }

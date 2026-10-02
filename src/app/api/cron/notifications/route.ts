@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { runDueRecurring } from "@/lib/facturation/service";
 import { logger } from "@/lib/logger";
 import { loadAccounts } from "@/lib/mail/account";
 import { listRepliesToSent } from "@/lib/mail/imap";
@@ -16,7 +17,8 @@ const PUSH_WINDOW_MS = 6 * 3_600_000;
 
 /**
  * POST /api/cron/notifications (x-cron-secret) — polls the sources that can't
- * call us: for now, replies to emails you sent, on every mail account.
+ * call us: replies to emails you sent, on every mail account. Also issues
+ * the recurring invoices that are due.
  * Called every few minutes by the host cron.
  */
 export async function POST(request: NextRequest) {
@@ -24,6 +26,16 @@ export async function POST(request: NextRequest) {
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Recurring invoices (subscriptions) ride on the same 5-minute tick.
+  const invoices = await runDueRecurring().catch((error) => {
+    logger.error(
+      "Recurring invoices run failed",
+      { error: error instanceof Error ? error.message : String(error) },
+      LOG_SOURCE
+    );
+    return null;
+  });
 
   const users = await prisma.user.findMany({
     where: { mailAccounts: { some: {} } },
@@ -66,5 +78,5 @@ export async function POST(request: NextRequest) {
       }
     }
   }
-  return NextResponse.json({ ok: true, created, failed });
+  return NextResponse.json({ ok: true, created, failed, invoices });
 }
