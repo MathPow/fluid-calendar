@@ -132,7 +132,7 @@ export function AppHeader({ className }: { className?: string }) {
             <button
               type="button"
               aria-label="Ouvrir la navigation"
-              className="hidden md:flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary md:hidden"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary md:hidden"
             >
               <MenuIcon className="h-5 w-5" />
             </button>
@@ -144,6 +144,9 @@ export function AppHeader({ className }: { className?: string }) {
               onTouchStart={(e) => {
                 const t = e.touches[0];
                 touchStart.current = { x: t.clientX, y: t.clientY };
+              }}
+              onTouchCancel={() => {
+                touchStart.current = null;
               }}
               onTouchEnd={(e) => {
                 const t = e.changedTouches[0];
