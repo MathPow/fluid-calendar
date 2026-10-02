@@ -137,7 +137,7 @@ export function AppHeader({ className }: { className?: string }) {
             <button
               type="button"
               aria-label={t("nav.drawer.open")}
-              className="hidden md:flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary md:hidden"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary md:hidden"
             >
               <MenuIcon className="h-5 w-5" />
             </button>
