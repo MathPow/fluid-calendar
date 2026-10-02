@@ -102,8 +102,8 @@ export function FacturationBoard({ organisations, contacts, invoices: initialInv
 
   useEffect(() => {
     fetch("/api/mail/accounts")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((rows: MailAccountLite[]) => setAccounts(Array.isArray(rows) ? rows : []))
+      .then((r) => (r.ok ? r.json() : { accounts: [] }))
+      .then((data: { accounts?: MailAccountLite[] }) => setAccounts(Array.isArray(data?.accounts) ? data.accounts : []))
       .catch(() => setAccounts([]));
   }, []);
 
@@ -311,9 +311,6 @@ export function FacturationBoard({ organisations, contacts, invoices: initialInv
       <div className="mt-8 flex flex-wrap gap-3">
         <Button onClick={() => setComposer({ mode: "invoice" })}>
           <Plus /> {t("facturation.actions.newInvoice")}
-        </Button>
-        <Button variant="secondary" onClick={() => setComposer({ mode: "recurring" })}>
-          <Repeat /> {t("facturation.actions.newRecurring")}
         </Button>
         <Button variant="secondary" onClick={() => fileInput.current?.click()}>
           <Upload /> {t("facturation.actions.import")}

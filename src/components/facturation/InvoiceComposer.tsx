@@ -14,15 +14,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useT } from "@/i18n/client";
+import { useLocale, useT } from "@/i18n/client";
 import {
   FREQUENCIES,
   type Frequency,
   type InvoiceLang,
   type InvoiceLine,
+  addPeriod,
   computeTotals,
   formatCents,
   formatIsoDay,
+  isoDay,
 } from "@/lib/facturation/meta";
 
 import type { FactContact, FactOrg, FactSettings, IssuedView, MailAccountLite, RecurringView } from "./types";
@@ -78,9 +80,12 @@ export function InvoiceComposer({
 }: Props) {
   const t = useT();
   const today = todayIso();
-  const recurringMode = seed.mode === "recurring";
+  const locale = useLocale();
   const editingInvoice = seed.invoice ?? null;
   const editingRecurring = seed.recurring ?? null;
+  // A new invoice can flip to recurring right here; an existing one keeps its kind.
+  const [recurringMode, setRecurringMode] = useState(seed.mode === "recurring");
+  const canToggleRecurring = !editingInvoice && !editingRecurring;
   const source = editingInvoice ?? editingRecurring ?? seed.duplicateOf ?? null;
 
   const [contactId, setContactId] = useState(source?.contactId ?? "");
@@ -233,7 +238,7 @@ export function InvoiceComposer({
             title: title.trim(),
             cc: cc.trim() || null,
             frequency,
-            interval: Math.max(1, Number(intervalText) || 1),
+            interval,
             dueDays: Math.max(0, Number(dueDays) || 0),
             nextRunDate,
             endDate: endDate || null,
@@ -260,6 +265,28 @@ export function InvoiceComposer({
       setSaving(null);
     }
   };
+
+  const interval = Math.max(1, Number(intervalText) || 1);
+  const scheduleSummary = useMemo(() => {
+    if (!nextRunDate) return null;
+    const loc = locale === "en" ? "en-CA" : "fr-CA";
+    const first = new Date(`${nextRunDate}T12:00:00Z`);
+    if (isNaN(first.getTime())) return null;
+    const every = interval === 1 ? t(`facturation.frequency.every.${frequency}`) : t(`facturation.frequency.everyN.${frequency}`, { n: interval });
+    const on =
+      frequency === "weekly"
+        ? t("facturation.composer.onWeekday", { day: first.toLocaleDateString(loc, { weekday: "long", timeZone: "UTC" }) })
+        : frequency === "monthly"
+          ? t("facturation.composer.onMonthDay", { day: first.getUTCDate() })
+          : "";
+    const dates = [0, 1, 2]
+      .map((k) => addPeriod(first, frequency, interval * k))
+      .filter((d) => !endDate || isoDay(d) <= endDate)
+      .map((d) => d.toLocaleDateString(loc, { day: "numeric", month: "short", timeZone: "UTC" }))
+      .join(", ");
+    const head = `${every}${on}`;
+    return `${head.charAt(0).toUpperCase()}${head.slice(1)} · ${t("facturation.composer.upcoming", { dates })}`;
+  }, [nextRunDate, frequency, interval, endDate, locale, t]);
 
   const contactOptions = contacts.map((c) => ({
     value: c.id,
@@ -427,28 +454,52 @@ export function InvoiceComposer({
           </section>
 
           {/* When */}
+          {canToggleRecurring && (
+            <label className="flex items-start justify-between gap-4 rounded-2xl bg-secondary px-4 py-3">
+              <span>
+                <span className="block text-[14px] font-semibold tracking-title">{t("facturation.composer.recurringToggle")}</span>
+                <span className="block text-[12px] text-muted-foreground">{t("facturation.composer.recurringToggleHint")}</span>
+              </span>
+              <Switch
+                checked={recurringMode}
+                onCheckedChange={(on) => {
+                  setRecurringMode(on);
+                  // Start the series on the date the invoice already had.
+                  if (on && date) setNextRunDate(date);
+                }}
+              />
+            </label>
+          )}
           {recurringMode ? (
             <section className="space-y-3">
               <p className="etiquette">{t("facturation.composer.schedule")}</p>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label>{t("facturation.composer.frequency")}</Label>
-                  <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FREQUENCIES.map((f) => (
-                        <SelectItem key={f} value={f}>
-                          {t(`facturation.frequency.${f}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fact-interval">{t("facturation.composer.interval")}</Label>
-                  <Input id="fact-interval" type="number" min={1} max={24} value={intervalText} onChange={(e) => setIntervalText(e.target.value)} />
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="fact-interval">{t("facturation.composer.repeat")}</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="fact-interval"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={24}
+                      value={intervalText}
+                      onChange={(e) => setIntervalText(e.target.value)}
+                      className="w-20"
+                    />
+                    <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FREQUENCIES.map((f) => (
+                          <SelectItem key={f} value={f}>
+                            {t(`facturation.unit.${f}.${interval === 1 ? "one" : "many"}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="fact-duedays">{t("facturation.composer.dueDays")}</Label>
@@ -463,6 +514,7 @@ export function InvoiceComposer({
                   <Input id="fact-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
               </div>
+              {scheduleSummary && <p className="text-[13px] font-medium">{scheduleSummary}</p>}
               <p className="text-[12px] text-muted-foreground">{t("facturation.composer.runHint")}</p>
 
               <label className="flex items-start justify-between gap-4 rounded-2xl bg-secondary px-4 py-3">
