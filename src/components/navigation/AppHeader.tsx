@@ -147,8 +147,10 @@ export function AppHeader({ className }: { className?: string }) {
             <DialogPrimitive.Content
               className="fixed inset-y-0 left-0 z-50 flex w-[min(85vw,320px)] flex-col overflow-y-auto bg-card p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-float md:hidden"
               onTouchStart={(e) => {
-                const touch = e.touches[0];
-                touchStart.current = { x: touch.clientX, y: touch.clientY };
+                touchStart.current = null;
+                if (e.touches.length !== 1) return;
+                const t = e.touches[0];
+                touchStart.current = { x: t.clientX, y: t.clientY };
               }}
               onTouchCancel={() => {
                 touchStart.current = null;
