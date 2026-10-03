@@ -111,7 +111,10 @@ export function LinksEditor({
                 value={l.kind}
                 onValueChange={(v) => update(i, { kind: v as LinkKind })}
               >
-                <SelectTrigger className="h-10 bg-card">
+                <SelectTrigger
+                  aria-label={`Type du lien ${i + 1}`}
+                  className="h-11 bg-card md:h-10"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -126,17 +129,22 @@ export function LinksEditor({
                 </SelectContent>
               </Select>
               <Input
+                aria-label={`Adresse du lien ${i + 1}`}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={l.url}
                 onChange={(e) => updateUrl(i, e.target.value)}
                 placeholder="https://…"
-                className="h-10 bg-card"
+                className="h-11 bg-card md:h-10"
                 inputMode="url"
               />
               <Input
+                aria-label={`Libellé du lien ${i + 1}`}
                 value={l.label}
                 onChange={(e) => update(i, { label: e.target.value })}
                 placeholder="Libellé"
-                className="h-10 bg-card"
+                className="h-11 bg-card md:h-10"
               />
               <button
                 type="button"
