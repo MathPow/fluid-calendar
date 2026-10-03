@@ -2462,5 +2462,10 @@
   "facturation.settings.subject": "Objet du courriel",
   "facturation.settings.body": "Message du courriel",
   "facturation.settings.placeholders": "Variables : {number}, {client}, {total}, {date}, {dueDate}, {company}",
-  "facturation.composer.partyPlaceholder": "Ex. Acme inc."
+  "facturation.composer.partyPlaceholder": "Ex. Acme inc.",
+  "fiscalite.partners.settlements": "Règlements proposés",
+  "fiscalite.partners.settlementsHint": "Qui doit transférer à qui pour remettre tout le monde à zéro. Un clic enregistre une avance du débiteur et un remboursement au créancier.",
+  "fiscalite.partners.markSettled": "Marquer réglé",
+  "fiscalite.partners.settleDone": "Réglé pour {amount}.",
+  "fiscalite.partners.settleFailed": "Règlement impossible"
 }

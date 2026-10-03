@@ -1015,6 +1015,44 @@ export interface PartnerSummary {
   sharePct: number;
 }
 
+/**
+ * One partner pays another to level everyone's balance to zero (greedy
+ * largest-creditor ↔ largest-debtor pairing). Returns the fewest transfers
+ * that clear the SENC's debts to each associé. Zero-balance partners are
+ * ignored.
+ */
+export interface Settlement {
+  from: string;
+  to: string;
+  amountCents: number;
+}
+
+export function settlements(summaries: PartnerSummary[]): Settlement[] {
+  // Positive balance = SENC owes the partner (creditor).
+  // Negative balance = partner owes the SENC (debtor).
+  const creditors = summaries
+    .filter((s) => s.balanceCents > 0)
+    .map((s) => ({ name: s.partner, cents: s.balanceCents }))
+    .sort((a, b) => b.cents - a.cents);
+  const debtors = summaries
+    .filter((s) => s.balanceCents < 0)
+    .map((s) => ({ name: s.partner, cents: -s.balanceCents }))
+    .sort((a, b) => b.cents - a.cents);
+
+  const out: Settlement[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < debtors.length && j < creditors.length) {
+    const amt = Math.min(debtors[i].cents, creditors[j].cents);
+    if (amt > 0) out.push({ from: debtors[i].name, to: creditors[j].name, amountCents: amt });
+    debtors[i].cents -= amt;
+    creditors[j].cents -= amt;
+    if (debtors[i].cents === 0) i++;
+    if (creditors[j].cents === 0) j++;
+  }
+  return out;
+}
+
 export function partnerSummaries(
   partners: string[],
   invoices: (InvoiceLite & { paidBy?: string | null })[],

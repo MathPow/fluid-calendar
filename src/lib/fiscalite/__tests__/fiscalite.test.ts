@@ -1,5 +1,6 @@
 import { guessFromText } from "../extract";
 import {
+  settlements,
   DEFAULT_PROFILE,
   deadlinesFor,
   fiscalYearOf,
@@ -134,5 +135,40 @@ TPS : 123456789 RT 0001  TVQ : 1234567890 TQ 0001`;
   it("spots an invoice we issued", () => {
     const g = guessFromText("DehorsQC\nInvoice # 7\n2026-03-04\nSubtotal 200.00\nGST 10.00\nQST 19.95\nTotal 229.95", ["DehorsQC"]);
     expect(g).toMatchObject({ direction: "revenu", date: "2026-03-04", totalCents: 22995, gstCents: 1000 });
+  });
+});
+
+describe("settlements", () => {
+  const row = (partner: string, balance: number) => ({
+    partner,
+    paidCents: 0, advancedCents: 0, reimbursedCents: 0,
+    balanceCents: balance,
+    drawsCents: 0, profitShareCents: 0, sharePct: 0,
+  });
+
+  it("pairs one debtor with one creditor", () => {
+    const s = settlements([row("Mathys", 20000), row("Félix", -20000)]);
+    expect(s).toEqual([{ from: "Félix", to: "Mathys", amountCents: 20000 }]);
+  });
+
+  it("splits a big creditor across several debtors", () => {
+    const s = settlements([
+      row("A", 15000),
+      row("B", -5000),
+      row("C", -10000),
+    ]);
+    expect(s).toEqual([
+      { from: "C", to: "A", amountCents: 10000 },
+      { from: "B", to: "A", amountCents: 5000 },
+    ]);
+  });
+
+  it("ignores partners who are already even", () => {
+    expect(settlements([row("A", 0), row("B", 0)])).toEqual([]);
+  });
+
+  it("leaves the remainder when positives and negatives don't balance", () => {
+    const s = settlements([row("A", 5000), row("B", -3000)]);
+    expect(s).toEqual([{ from: "B", to: "A", amountCents: 3000 }]);
   });
 });

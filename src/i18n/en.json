@@ -2462,5 +2462,10 @@
   "facturation.settings.subject": "Email subject",
   "facturation.settings.body": "Email message",
   "facturation.settings.placeholders": "Variables: {number}, {client}, {total}, {date}, {dueDate}, {company}",
-  "facturation.composer.partyPlaceholder": "E.g. Acme Inc."
+  "facturation.composer.partyPlaceholder": "E.g. Acme Inc.",
+  "fiscalite.partners.settlements": "Suggested settlements",
+  "fiscalite.partners.settlementsHint": "Who should pay whom to bring every balance back to zero. One click records the debtor's advance and the creditor's reimbursement.",
+  "fiscalite.partners.markSettled": "Mark settled",
+  "fiscalite.partners.settleDone": "Settled for {amount}.",
+  "fiscalite.partners.settleFailed": "Could not settle"
 }
