@@ -178,7 +178,7 @@ export function Calendar({
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <h1 className="min-w-0 flex-1 truncate text-[18px] font-bold tracking-title text-foreground md:text-[22px]">
+            <h1 className="min-w-0 flex-1 truncate text-[18px] font-bold tracking-title text-foreground md:flex-initial md:text-[22px]">
               <button
                 type="button"
                 className="min-h-10 max-w-full truncate md:hidden"

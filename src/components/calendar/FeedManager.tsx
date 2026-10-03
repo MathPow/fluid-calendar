@@ -296,6 +296,7 @@ export function FeedManager() {
                       disabled={syncingFeeds.has(feed.id)}
                       className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
                       title="Rafraîchir"
+                      aria-label={`Rafraîchir ${feed.name}`}
                     >
                       <RefreshCw
                         className={cn(

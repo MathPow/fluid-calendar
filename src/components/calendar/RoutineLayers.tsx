@@ -104,6 +104,7 @@ export function RoutineLayers() {
           onClick={() => store.openNewBlock()}
           className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           title="Nouveau bloc"
+          aria-label="Nouveau bloc"
         >
           <Plus className="h-4 w-4" />
         </button>
