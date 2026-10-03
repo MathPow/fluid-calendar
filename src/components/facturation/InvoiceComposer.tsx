@@ -217,7 +217,7 @@ export function InvoiceComposer({
         body: JSON.stringify(invoiceBody()),
       });
       if (!res.ok) throw new Error();
-      openBlob(await res.blob(), "apercu.pdf");
+      openBlob(await res.blob(), t("facturation.composer.previewFilename"));
     } catch {
       toast.error(t("facturation.toasts.previewFailed"));
     } finally {
@@ -446,7 +446,7 @@ export function InvoiceComposer({
               <div className="text-right text-[13px] tabular-nums">
                 <div className="text-muted-foreground">
                   {t("facturation.composer.subtotal")} {money(totals.subtotalCents)}
-                  {applyTaxes && ` · TPS ${money(totals.gstCents)} · TVQ ${money(totals.qstCents)}`}
+                  {applyTaxes && ` · ${t("facturation.taxes.gst")} ${money(totals.gstCents)} · ${t("facturation.taxes.qst")} ${money(totals.qstCents)}`}
                 </div>
                 <div className="text-[18px] font-bold tracking-title">{money(totals.totalCents)}</div>
               </div>
@@ -595,8 +595,8 @@ export function InvoiceComposer({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="fr">{t("common.lang.fr")}</SelectItem>
+                  <SelectItem value="en">{t("common.lang.en")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

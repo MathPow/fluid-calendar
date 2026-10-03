@@ -99,8 +99,8 @@ export function SettingsDialog({ organisation, settings, accounts, onClose, onSa
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="fr">{t("common.lang.fr")}</SelectItem>
+                  <SelectItem value="en">{t("common.lang.en")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
