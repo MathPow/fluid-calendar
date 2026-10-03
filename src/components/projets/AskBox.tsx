@@ -90,7 +90,7 @@ export function AskBox({
           size="icon"
           className="h-12 w-12 shrink-0"
           disabled={loading || !question.trim()}
-          aria-label="Demander"
+          aria-label={t("projects.askBox.sendAria")}
         >
           {loading ? (
             <LoadingSpinner size="sm" className="text-primary-foreground" />
@@ -102,7 +102,7 @@ export function AskBox({
 
       {loading ? (
         <p className="mt-4 px-1 font-serif text-[15px] italic text-muted-foreground">
-          Le modèle tourne en local — compte une à deux minutes.
+          {t("projects.askBox.loadingHint")}
         </p>
       ) : null}
 
