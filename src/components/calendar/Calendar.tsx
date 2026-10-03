@@ -158,7 +158,7 @@ export function Calendar({
         <LifetimeAccessBanner />
 
         {/* Header */}
-        <header className="flex h-16 flex-none items-center gap-2 border-b border-border px-3 md:px-5">
+        <header className="flex h-[52px] flex-none items-center gap-1 border-b border-border px-2 md:h-16 md:gap-2 md:px-5">
           <button
             onClick={() => setSidebarOpen(!isSidebarOpen)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -169,7 +169,7 @@ export function Calendar({
           </button>
 
           {/* Prev / date / next */}
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1 md:flex-none">
             <button
               onClick={handlePrev}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-foreground hover:bg-secondary"
@@ -178,12 +178,13 @@ export function Calendar({
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <h1 className="min-w-0 truncate text-[18px] font-bold tracking-title text-foreground md:text-[22px]">
+            <h1 className="min-w-0 flex-1 truncate text-[18px] font-bold tracking-title text-foreground md:text-[22px]">
               <button
                 type="button"
                 className="min-h-10 max-w-full truncate md:hidden"
                 onClick={() => setPickerOpen(!pickerOpen)}
                 aria-expanded={pickerOpen}
+                aria-controls="calendar-date-picker"
                 aria-label="Choisir la date"
               >
                 {currentDate.toLocaleDateString("fr-FR", {
@@ -274,6 +275,7 @@ export function Calendar({
           </button>
           {pickerOpen && (
             <input
+              id="calendar-date-picker"
               aria-label="Choisir un jour"
               type="date"
               className="h-11 w-full rounded-xl bg-input px-3 text-base text-foreground"
