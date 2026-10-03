@@ -309,6 +309,7 @@ export function FeedManager() {
                       disabled={syncingFeeds.has(feed.id)}
                       className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
                       title={t("calendar.feeds.actions.refresh")}
+                      aria-label={`${t("calendar.feeds.actions.refresh")} ${feed.name}`}
                     >
                       <RefreshCw
                         className={cn(

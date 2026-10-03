@@ -107,6 +107,7 @@ export function RoutineLayers() {
           onClick={() => store.openNewBlock()}
           className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           title={t("calendar.routineDialog.title.new")}
+          aria-label={t("calendar.routineDialog.title.new")}
         >
           <Plus className="h-4 w-4" />
         </button>
