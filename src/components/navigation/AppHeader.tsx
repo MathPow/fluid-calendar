@@ -54,7 +54,7 @@ const MENU: NavLink[] = [
  * notifications / account (station lives in the account menu). The nav sits
  * right of the wordmark whenever it fits there whole, labels included; when
  * it doesn't, it drops under the top row rather than squishing. On phones
- * it's a swipeable strip that keeps every label so you find items by name.
+ * a compact header opens the navigation drawer.
  */
 export function AppHeader({ className }: { className?: string }) {
   const pathname = usePathname();
@@ -277,8 +277,7 @@ export function AppHeader({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* No room beside the wordmark: under the top row. Swipeable on
-          phones (edge fade hints at it), centered on a desktop. */}
+      {/* On tablet/desktop, move the navigation below when it cannot fit inline. */}
       {!inline && (
         <nav className="relative hidden md:block" aria-label="Main">
           <div className="page flex overflow-x-auto pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
