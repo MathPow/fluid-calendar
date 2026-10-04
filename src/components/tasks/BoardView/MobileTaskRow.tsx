@@ -32,13 +32,24 @@ export function MobileTaskRow({
         }
       }}
       onTouchStart={(e) => {
-        if (e.touches.length !== 1) {
+        if (
+          e.touches.length !== 1 ||
+          (e.target as HTMLElement).closest("[data-row-action]")
+        ) {
           start.current = null;
           return;
         }
         const t = e.touches[0];
         start.current = { x: t.clientX, y: t.clientY };
         swiped.current = false;
+      }}
+      onTouchMove={(e) => {
+        const s = start.current;
+        if (
+          e.touches.length !== 1 ||
+          (s && Math.abs(e.touches[0].clientY - s.y) >= 40)
+        )
+          start.current = null;
       }}
       onTouchCancel={() => {
         start.current = null;
@@ -51,8 +62,10 @@ export function MobileTaskRow({
         const dx = t.clientX - s.x;
         if (Math.abs(dx) > 80 && Math.abs(t.clientY - s.y) < 40) {
           swiped.current = true;
-          if (dx > 0) onStatusChange(task.id, TaskStatus.COMPLETED);
-          else remove();
+          if (dx > 0) {
+            if (task.status !== TaskStatus.COMPLETED)
+              onStatusChange(task.id, TaskStatus.COMPLETED);
+          } else remove();
         }
       }}
     >
@@ -77,6 +90,7 @@ export function MobileTaskRow({
       <button
         type="button"
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary"
+        data-row-action
         aria-label={`Terminer ${task.title}`}
         onClick={() => onStatusChange(task.id, TaskStatus.COMPLETED)}
         disabled={task.status === TaskStatus.COMPLETED}
@@ -86,6 +100,7 @@ export function MobileTaskRow({
       <button
         type="button"
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-destructive"
+        data-row-action
         aria-label={`Supprimer ${task.title}`}
         onClick={remove}
       >
