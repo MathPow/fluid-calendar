@@ -11,27 +11,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { type TranslateFn, useT } from "@/i18n/client";
-import { type Issue, type Metric, machineHealth } from "@/lib/machines/health";
+import { type Issue, machineHealth } from "@/lib/machines/health";
 
-const METRIC: Record<Metric, string> = {
-  cpu: "CPU",
-  ram: "RAM",
-  disk: "disk",
-  temp: "temp",
-  gpuTemp: "GPU temp",
+const issueText = (t: TranslateFn, i: Issue) => {
+  const label = t(`machines.metric.${i.metric}`);
+  return i.metric === "temp" || i.metric === "gpuTemp"
+    ? `${label} ${i.value.toFixed(0)} °C`
+    : `${label} ${i.value.toFixed(0)} %`;
 };
-
-const issueText = (i: Issue) =>
-  i.metric === "temp" || i.metric === "gpuTemp"
-    ? `${METRIC[i.metric]} ${i.value.toFixed(0)} °C`
-    : `${METRIC[i.metric]} ${i.value.toFixed(0)} %`;
 
 export function machineNote(t: TranslateFn, machine: MachineStatusRow) {
   const { health, issues } = machineHealth(machine.stats);
   if (health === "none") return t("machines.status.notMonitored");
   if (health === "off") return t("machines.status.offline");
   if (health === "ok") return t("machines.status.allGood");
-  return issues.slice(0, 2).map(issueText).join(" · ");
+  return issues
+    .slice(0, 2)
+    .map((i) => issueText(t, i))
+    .join(" · ");
 }
 
 /**
