@@ -69,7 +69,7 @@ export function LinkPill({
       rel="noopener noreferrer"
       title={url}
       className={cn(
-        "inline-flex h-9 max-w-full items-center gap-2 rounded-full px-3.5 text-[13px] font-medium transition-colors",
+        "inline-flex h-9 max-md:min-h-10 max-w-full items-center gap-2 rounded-full px-3.5 text-[13px] font-medium transition-colors",
         onInk
           ? "bg-background/10 text-background hover:bg-background hover:text-foreground"
           : "bg-secondary text-foreground hover:bg-foreground hover:text-background"
