@@ -326,6 +326,14 @@ export function Calendar({
             const t = e.touches[0];
             swipeStart.current = { x: t.clientX, y: t.clientY };
           }}
+          onTouchMove={(e) => {
+            const start = swipeStart.current;
+            if (
+              e.touches.length !== 1 ||
+              (start && Math.abs(e.touches[0].clientY - start.y) >= 40)
+            )
+              swipeStart.current = null;
+          }}
           onTouchEnd={(e) => {
             const start = swipeStart.current;
             swipeStart.current = null;
