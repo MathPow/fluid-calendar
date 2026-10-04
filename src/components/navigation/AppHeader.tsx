@@ -147,6 +147,14 @@ export function AppHeader({ className }: { className?: string }) {
                 const t = e.touches[0];
                 touchStart.current = { x: t.clientX, y: t.clientY };
               }}
+              onTouchMove={(e) => {
+                const start = touchStart.current;
+                if (
+                  e.touches.length !== 1 ||
+                  (start && Math.abs(e.touches[0].clientY - start.y) > 50)
+                )
+                  touchStart.current = null;
+              }}
               onTouchCancel={() => {
                 touchStart.current = null;
               }}
@@ -199,10 +207,16 @@ export function AppHeader({ className }: { className?: string }) {
                     key={link.href}
                     href={link.href}
                     onClick={() => setDrawerOpen(false)}
-                    aria-current={pathname === link.href ? "page" : undefined}
+                    aria-current={
+                      pathname === link.href ||
+                      pathname?.startsWith(link.href + "/")
+                        ? "page"
+                        : undefined
+                    }
                     className={cn(
                       "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium",
-                      pathname === link.href
+                      pathname === link.href ||
+                        pathname?.startsWith(link.href + "/")
                         ? "bg-tint-soft text-foreground"
                         : "hover:bg-secondary"
                     )}
