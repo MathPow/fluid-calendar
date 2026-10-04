@@ -90,7 +90,7 @@ export function ProjectTile({
           image={capsule ? `/api/project-media/${capsule.id}` : project.image}
           className="aspect-[4/3] w-full text-2xl"
         />
-        <h2 className="line-clamp-2 pr-8 text-base font-bold leading-tight">
+        <h2 className="line-clamp-2 text-base font-bold leading-tight">
           {project.name}
         </h2>
         <p className="truncate text-xs text-muted-foreground">
