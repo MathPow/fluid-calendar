@@ -63,7 +63,7 @@ export function PartnersTile({ organisationId, partners, summaries, movements, o
       });
       const data = (await res.json().catch(() => null)) as MovementView[] | { error?: string } | null;
       if (!res.ok || !Array.isArray(data)) {
-        throw new Error((data as { error?: string } | null)?.error || `Erreur ${res.status}`);
+        throw new Error((data as { error?: string } | null)?.error || t("common.error", { status: res.status }));
       }
       for (const m of data) onAdded(m);
       toast.success(t("fiscalite.partners.settleDone", { amount: formatMoney(s.amountCents) }));

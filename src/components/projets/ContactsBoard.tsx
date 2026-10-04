@@ -183,7 +183,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ favorite: next }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
     } catch (e) {
       setContacts((prev) => prev.map((x) => (x.id === c.id ? { ...x, favorite: !next } : x)));
       toast.error(t("toasts.contacts.favoriteFailed"), {

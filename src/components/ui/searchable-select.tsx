@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/i18n";
+
 type Option = { value: string; label: string };
 
 const strip = (s: string) =>
@@ -25,8 +27,8 @@ export function SearchableSelect({
   value,
   onChange,
   options,
-  placeholder = "Choisir…",
-  emptyLabel = "Aucun résultat",
+  placeholder,
+  emptyLabel,
   allowCustom = false,
   id,
   className,
@@ -40,8 +42,11 @@ export function SearchableSelect({
   id?: string;
   className?: string;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const effectivePlaceholder = placeholder ?? t("ui.select.choose");
+  const effectiveEmpty = emptyLabel ?? t("ui.select.noResults");
 
   const selected = useMemo(
     () => options.find((o) => o.value === value),
@@ -78,7 +83,7 @@ export function SearchableSelect({
               !label && "text-muted-foreground"
             )}
           >
-            {label || placeholder}
+            {label || effectivePlaceholder}
           </span>
           <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
@@ -95,7 +100,7 @@ export function SearchableSelect({
           <Command.Input
             value={search}
             onValueChange={setSearch}
-            placeholder="Rechercher…"
+            placeholder={t("ui.select.search")}
             className="h-11 w-full border-b border-border bg-transparent px-3 text-[14px] outline-none placeholder:text-muted-foreground"
             onKeyDown={(e) => {
               if (e.key === "Enter" && showAdd) {
@@ -106,7 +111,7 @@ export function SearchableSelect({
           />
           <Command.List className="max-h-72 overflow-y-auto p-1">
             <Command.Empty className="px-3 py-6 text-center text-[13px] text-muted-foreground">
-              {emptyLabel}
+              {effectiveEmpty}
             </Command.Empty>
             {options.map((o) => (
               <Command.Item
@@ -128,7 +133,7 @@ export function SearchableSelect({
                 className="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border-t border-border px-2 py-1.5 text-[13px] text-muted-foreground aria-selected:bg-muted"
               >
                 <Plus className="h-4 w-4" />
-                <span className="truncate">Ajouter « {trimmed} »</span>
+                <span className="truncate">{t("ui.select.addValue", { value: trimmed })}</span>
               </Command.Item>
             )}
           </Command.List>

@@ -107,7 +107,7 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
     for (const p of options.projets) {
       const key = p.organisation?.id ?? "perso";
       const g = byOrg.get(key) ?? {
-        title: p.organisation?.name ?? "Perso",
+        title: p.organisation?.name ?? t("projects.picker.personal"),
         rank: p.organisation ? p.organisation.sortOrder : 1000,
         items: [],
       };
@@ -147,7 +147,7 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         ]);
         return { ...g, items: ordered };
       });
-  }, [options]);
+  }, [options, t]);
 
   const handle = async (v: string) => {
     if (v === NONE) return onChange(null);
@@ -159,7 +159,7 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ agentProjectId: v.slice(AGENT.length) }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
       const list = (await res.json()) as { id: string };
       await Promise.all([fetchProjects(), reload()]);
       onChange(list.id);
@@ -175,10 +175,10 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
   return (
     <Select value={value || NONE} onValueChange={handle} disabled={busy}>
       <SelectTrigger id={id}>
-        <SelectValue placeholder="No Project" />
+        <SelectValue placeholder={t("projects.picker.noProject")} />
       </SelectTrigger>
       <SelectContent className="max-h-80">
-        <SelectItem value={NONE}>No Project</SelectItem>
+        <SelectItem value={NONE}>{t("projects.picker.noProject")}</SelectItem>
         {groups.map((g) => (
           <SelectGroup key={g.title}>
             <SelectSeparator />
@@ -205,7 +205,7 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         {options && options.lists.some((l) => !l.organisation) && (
           <SelectGroup>
             <SelectSeparator />
-            <SelectLabel>Task lists (not in Projets)</SelectLabel>
+            <SelectLabel>{t("projects.picker.taskListsOutsideProjets")}</SelectLabel>
             {options.lists
               .filter((l) => !l.organisation)
               .map((l) => (
@@ -290,7 +290,7 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name: org?.name ?? "Organisation", organisationId: id, color: org?.color ?? undefined }),
     });
-    if (!res.ok) throw new Error(`Erreur ${res.status}`);
+    if (!res.ok) throw new Error(t("common.error", { status: res.status }));
     const list = (await res.json()) as { id: string };
     await Promise.all([fetchProjects(), reload()]);
     return list.id;
@@ -327,7 +327,7 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ agentProjectId: v.slice(AGENT.length) }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
       const list = (await res.json()) as { id: string };
       await Promise.all([fetchProjects(), reload()]);
       onChange(list.id);
@@ -338,13 +338,13 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="space-y-1.5">
-        <Label htmlFor={id}>Organisation</Label>
+        <Label htmlFor={id}>{t("projects.picker.organisation")}</Label>
         <Select value={orgId ?? NONE} onValueChange={pickOrg} disabled={busy}>
           <SelectTrigger id={id}>
-            <SelectValue placeholder="Aucune" />
+            <SelectValue placeholder={t("common.none")} />
           </SelectTrigger>
           <SelectContent className="max-h-80">
-            <SelectItem value={NONE}>Aucune</SelectItem>
+            <SelectItem value={NONE}>{t("common.none")}</SelectItem>
             {orgs.map((o) => (
               <SelectItem key={o.id} value={o.id}>
                 <span className="inline-flex items-center gap-2">
@@ -357,13 +357,13 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label>Projet</Label>
+        <Label>{t("projects.picker.project")}</Label>
         <Select value={projectValue} onValueChange={pickProject} disabled={busy || !orgId}>
           <SelectTrigger>
-            <SelectValue placeholder={orgId ? "Organisation seulement" : "Choisis d'abord l'organisation"} />
+            <SelectValue placeholder={orgId ? t("projects.picker.orgOnly") : t("projects.picker.pickOrgFirst")} />
           </SelectTrigger>
           <SelectContent className="max-h-80">
-            <SelectItem value={ORG_ONLY}>Organisation seulement</SelectItem>
+            <SelectItem value={ORG_ONLY}>{t("projects.picker.orgOnly")}</SelectItem>
             {projects.map((p) => (
               <SelectItem key={p.key} value={p.key}>
                 <span className="inline-flex items-center gap-2">

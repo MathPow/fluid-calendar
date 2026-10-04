@@ -55,7 +55,7 @@ export function AskBox({
         body: JSON.stringify({ question: q, ...(slug ? { slug } : {}) }),
       });
       const data = (await res.json()) as { answer?: string; error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
       setAnswer(data.answer ?? "");
     } catch (e) {
       setError(e instanceof Error ? e.message : t("projects.list.actions.ask.errorFallback"));

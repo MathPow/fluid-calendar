@@ -252,7 +252,7 @@ export function ProjectDialog({
           email: newContactEmail.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
       const c = (await res.json()) as ContactLite;
       setContacts((prev) =>
         [...prev, c].sort((a, b) => a.name.localeCompare(b.name))
@@ -328,7 +328,7 @@ export function ProjectDialog({
         const fieldMsg = data.details?.fieldErrors
           ? Object.values(data.details.fieldErrors).flat()[0]
           : undefined;
-        throw new Error(fieldMsg || data.error || `Erreur ${res.status}`);
+        throw new Error(fieldMsg || data.error || t("common.error", { status: res.status }));
       }
       toast.success(
         editing
@@ -359,7 +359,7 @@ export function ProjectDialog({
       const res = await fetch(`/api/projets/${project.id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
       toast.success(t("projects.dialog.actions.deleteSuccess"));
       onOpenChange(false);
       router.push("/projets");

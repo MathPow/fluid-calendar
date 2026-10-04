@@ -74,7 +74,7 @@ export function ReorderDialog({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ids: order.map((o) => o.id) }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
       toast.success(t("projects.reorder.saved"));
       onOpenChange(false);
       router.refresh();

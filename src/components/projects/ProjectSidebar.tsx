@@ -333,6 +333,7 @@ function ProjectItem({
   isSyncing,
   onSync,
 }: ProjectItemProps) {
+  const t = useT();
   const { setActiveProject } = useProjectStore();
   const { tasks } = useTaskStore();
   const { droppableProps, isOver } = useDroppableProject(project);
@@ -368,7 +369,7 @@ function ProjectItem({
           href={`/projets/${encodeURIComponent(project.agentProject.slug)}`}
           onClick={(e) => e.stopPropagation()}
           className="rounded-full p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-100"
-          title={`Ouvrir ${project.agentProject.name} dans Projets`}
+          title={t("projects.sidebar.openInProjets", { name: project.agentProject.name })}
         >
           <FolderGit2 className="h-3.5 w-3.5" />
         </Link>
@@ -423,6 +424,7 @@ function OrgHeader({
   isActive: boolean;
   onEdit: (project: Project) => void;
 }) {
+  const t = useT();
   const { setActiveProject } = useProjectStore();
   const general = group.general;
   const { droppableProps, isOver } = useDroppableProject(
@@ -449,7 +451,7 @@ function OrgHeader({
       {general && (
         <button
           type="button"
-          aria-label={`Modifier ${group.name}`}
+          aria-label={t("common.editName", { name: group.name })}
           onClick={(e) => {
             e.stopPropagation();
             onEdit(general);
