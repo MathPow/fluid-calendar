@@ -24,6 +24,8 @@ import { RoutineBlockDialog } from "@/components/calendar/RoutineBlockDialog";
 import { RoutineLayers } from "@/components/calendar/RoutineLayers";
 import { WeekView } from "@/components/calendar/WeekView";
 
+import { useDeepLink } from "@/hooks/use-deep-link";
+
 import { useLocale, useT } from "@/i18n/client";
 import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { isSaasEnabled } from "@/lib/config";
@@ -91,6 +93,14 @@ export function Calendar({
       setSidebarOpen(false);
     }
   }, [setView, setSidebarOpen]);
+
+  // /calendar?date=YYYY-MM-DD jumps to that day (links from the assistant).
+  useDeepLink("/calendar", (params) => {
+    const m = params.get("date")?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return;
+    setDate(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+    setView("day");
+  });
 
   const handlePrev = () => {
     if (view === "month" || view === "multiMonth") {

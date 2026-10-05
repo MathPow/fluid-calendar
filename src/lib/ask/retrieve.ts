@@ -11,6 +11,7 @@
  * Everything is then interleaved across sources and trimmed to a character
  * budget, because the local model's prompt-eval cost is what makes this slow.
  */
+import { links } from "@/lib/assistant/links";
 import { logger } from "@/lib/logger";
 import { isNotesConfigured, listVault, readNote } from "@/lib/notes/webdav";
 import { prisma } from "@/lib/prisma";
@@ -256,7 +257,7 @@ async function retrieveTasks(
       t.status?.replace("_", " "),
       t.dueDate ? `échéance ${fmtDay(t.dueDate)}` : undefined
     ),
-    url: "/tasks",
+    url: links.task(t.id),
     content: line(
       `TÂCHE « ${t.title} »`,
       `statut ${t.status}`,
@@ -326,7 +327,7 @@ async function retrieveEvents(
     id: e.id,
     title: e.title,
     subtitle: line(e.allDay ? fmtDay(e.start) : fmtDate(e.start), e.location),
-    url: "/calendar",
+    url: links.event(e.start),
     content: line(
       `ÉVÉNEMENT « ${e.title} »`,
       e.allDay
@@ -560,7 +561,7 @@ async function retrieveNotes(terms: string[]): Promise<Candidate[]> {
       id: file.path,
       title,
       subtitle: file.path.replace(/^\//, ""),
-      url: `/notes?path=${encodeURIComponent(file.path)}`,
+      url: links.note(file.path),
       content: line(
         `NOTE « ${title} » (${file.path})`,
         clip(body, NOTE_CHARS) || "(vide)"

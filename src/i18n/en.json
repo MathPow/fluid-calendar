@@ -2468,5 +2468,21 @@
   "fiscalite.partners.settlementsHint": "Who should pay whom to bring every balance back to zero. One click records the debtor's advance and the creditor's reimbursement.",
   "fiscalite.partners.markSettled": "Mark settled",
   "fiscalite.partners.settleDone": "Settled for {amount}.",
-  "fiscalite.partners.settleFailed": "Could not settle"
+  "fiscalite.partners.settleFailed": "Could not settle",
+  "assistant.title": "DreamDash assistant",
+  "assistant.subtitle": "I see where you are and dig through your data",
+  "assistant.open": "Talk to the assistant (drag to move)",
+  "assistant.close": "Close",
+  "assistant.newChat": "New conversation",
+  "assistant.placeholder": "Ask me anything…",
+  "assistant.send": "Send",
+  "assistant.stop": "Stop",
+  "assistant.thinking": "Thinking…",
+  "assistant.workDone": "Searches and reasoning ({count} steps)",
+  "assistant.empty": "Ask me about your email, calendar, tasks or notes — I'll link you straight to the right item.",
+  "assistant.error": "I couldn't answer. Try again.",
+  "assistant.suggestion.mail": "Which email did Amazon send me recently?",
+  "assistant.suggestion.today": "What do I have today and tomorrow?",
+  "assistant.suggestion.page": "Help me with what's on my screen",
+  "tasks.notFound": "That task no longer exists."
 }

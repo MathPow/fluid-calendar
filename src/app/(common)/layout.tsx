@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
+import { AssistantWidget } from "@/components/assistant/AssistantWidget";
 import { DndProvider } from "@/components/dnd/DndProvider";
 import { AppHeader } from "@/components/navigation/AppHeader";
 import { PrivacyProvider } from "@/components/providers/PrivacyProvider";
@@ -93,6 +94,7 @@ export default function RootLayout({
               <NotificationProvider>{children}</NotificationProvider>
             </main>
 
+            {!bare && <AssistantWidget />}
             <PwaInstallPrompt />
             <Toaster />
           </DndProvider>

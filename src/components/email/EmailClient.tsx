@@ -28,6 +28,9 @@ import {
 import { PROVIDER_PRESETS } from "@/lib/mail/providers";
 import { cn } from "@/lib/utils";
 
+import { useDeepLink } from "@/hooks/use-deep-link";
+
+import { useAssistantStore } from "@/store/assistant";
 import { accountVisibleInStation, useStationStore } from "@/store/station";
 
 interface Account {
@@ -159,6 +162,9 @@ export function EmailClient() {
   const [initializing, setInitializing] = useState(true);
   const [showConnect, setShowConnect] = useState(false);
   const [compose, setCompose] = useState<ComposeState | null>(null);
+  // Set once a deep link (?account=&mailbox=&uid=) picked the box to show, so
+  // the initial load doesn't switch back to the default view underneath it.
+  const linkedRef = useRef(false);
 
   const loadAccounts = useCallback(async () => {
     const res = await fetch("/api/mail/accounts");
@@ -228,6 +234,10 @@ export function EmailClient() {
   useEffect(() => {
     (async () => {
       const accts = await loadAccounts();
+      if (linkedRef.current) {
+        setInitializing(false);
+        return;
+      }
       const station = useStationStore.getState().currentStation;
       const visible = accts.filter((a) =>
         accountVisibleInStation(a.station, station)
@@ -307,6 +317,48 @@ export function EmailClient() {
       setLoadingDetail(false);
     }
   };
+
+  // /email?account=<id>&mailbox=<box>&uid=<n> opens that message directly
+  // (links from the assistant and the search results).
+  useDeepLink("/email", (params) => {
+    const linkedAccount = params.get("account");
+    const uid = Number(params.get("uid"));
+    if (!linkedAccount || !Number.isFinite(uid) || uid <= 0) return;
+    const box = params.get("mailbox") || "INBOX";
+    linkedRef.current = true;
+    setAccountId(linkedAccount);
+    setMailbox(box);
+    setSearch("");
+    void loadMessages(linkedAccount, box, "", true);
+    void selectMessage({
+      uid,
+      accountId: linkedAccount,
+      mailbox: box,
+      subject: "",
+      from: [],
+      to: [],
+      date: null,
+      seen: true,
+      flagged: false,
+      hasAttachments: false,
+    });
+  });
+
+  // Tell the assistant which message is on screen.
+  useEffect(() => {
+    const setFocus = useAssistantStore.getState().setFocus;
+    if (!selected || !detail) {
+      setFocus(null);
+      return;
+    }
+    const from = detail.from[0];
+    setFocus(
+      `Courriel ouvert : « ${detail.subject} » de ${from?.name || from?.address || "?"}` +
+        (detail.date ? `, reçu le ${detail.date}` : "") +
+        ` (account=${selected.accountId}, mailbox=${selected.mailbox}, uid=${selected.uid})`
+    );
+    return () => setFocus(null);
+  }, [selected, detail]);
 
   const closeMessage = () => {
     setSelected(null);

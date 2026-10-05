@@ -15,8 +15,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
+import { useDeepLink } from "@/hooks/use-deep-link";
+
 import { useT } from "@/i18n/client";
 
+import { useAssistantStore } from "@/store/assistant";
 import { useProjectStore } from "@/store/project";
 import { useTaskStore } from "@/store/task";
 import { useTaskModalStore } from "@/store/taskModal";
@@ -120,6 +123,33 @@ export default function TasksPage() {
       });
     }
   };
+
+  // /tasks?task=<id> opens that task's editor (links from the assistant).
+  useDeepLink("/tasks", (params) => {
+    const id = params.get("task");
+    if (!id) return;
+    void (async () => {
+      const res = await fetch(`/api/tasks/${encodeURIComponent(id)}`);
+      if (!res.ok) {
+        toast.error(t("tasks.notFound"));
+        return;
+      }
+      setSelectedTask((await res.json()) as Task);
+      setInitialProjectId(undefined);
+      setOpen(true);
+    })();
+  });
+
+  // Tell the assistant which task is open in the editor.
+  useEffect(() => {
+    const setFocus = useAssistantStore.getState().setFocus;
+    setFocus(
+      isOpen && selectedTask
+        ? `Tâche ouverte : « ${selectedTask.title} » (id=${selectedTask.id}, statut ${selectedTask.status})`
+        : null
+    );
+    return () => setFocus(null);
+  }, [isOpen, selectedTask]);
 
   const handleCreateTaskClick = () => {
     setSelectedTask(undefined);

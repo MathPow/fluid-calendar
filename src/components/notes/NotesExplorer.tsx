@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ChevronRight,
@@ -17,6 +17,10 @@ import remarkGfm from "remark-gfm";
 
 import { DropZones } from "@/components/notes/DropZones";
 import { cn } from "@/lib/utils";
+
+import { useDeepLink } from "@/hooks/use-deep-link";
+
+import { useAssistantStore } from "@/store/assistant";
 
 interface NoteEntry {
   path: string;
@@ -363,6 +367,34 @@ export function NotesExplorer() {
     // selectNote is stable enough for this one-shot deep-link open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, openedDeepLink]);
+
+  // A later in-app link (from the assistant) while the explorer is already
+  // open: the mount-time effects above have run, so open it here.
+  const deepLinkReady = useRef(false);
+  useDeepLink("/notes", (params) => {
+    const target = params.get("path");
+    if (!deepLinkReady.current) {
+      deepLinkReady.current = true;
+      return; // first call is the mount; the URL effects handle it
+    }
+    if (!target) return;
+    const parts = target.split("/").filter(Boolean);
+    const dirs: string[] = [];
+    let acc = "";
+    for (let i = 0; i < parts.length - 1; i++) {
+      acc += `/${parts[i]}`;
+      dirs.push(acc);
+    }
+    setExpanded((prev) => new Set([...prev, ...dirs]));
+    selectNote(target);
+  });
+
+  // Tell the assistant which note is on screen.
+  useEffect(() => {
+    const setFocus = useAssistantStore.getState().setFocus;
+    setFocus(selectedPath ? `Note ouverte : ${selectedPath}` : null);
+    return () => setFocus(null);
+  }, [selectedPath]);
 
   const toggle = (path: string) =>
     setExpanded((prev) => {

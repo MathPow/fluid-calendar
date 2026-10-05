@@ -51,6 +51,10 @@ async function withClient<T>(
   fn: (client: ImapFlow) => Promise<T>
 ): Promise<T> {
   const client = makeClient(acct);
+  // ImapFlow emits 'error' on a dropped/refused connection; with no listener
+  // Node treats it as uncaught and kills the process. The awaited call below
+  // already rejects, so just swallow the event.
+  client.on("error", () => undefined);
   await client.connect();
   try {
     return await fn(client);
@@ -166,11 +170,15 @@ function toSummary(msg: {
   };
 }
 
-/** Fetch one full message (parsed) and mark it \Seen. */
+/**
+ * Fetch one full message (parsed) and mark it \Seen — unless `markSeen` is
+ * false (the assistant reading on the user's behalf shouldn't flip it).
+ */
 export async function getMessage(
   acct: MailAccountConn,
   mailbox: string,
-  uid: number
+  uid: number,
+  markSeen = true
 ): Promise<MessageDetail | null> {
   return withClient(acct, async (client) => {
     const lock = await client.getMailboxLock(mailbox);
@@ -184,10 +192,12 @@ export async function getMessage(
 
       const parsed = await simpleParser(msg.source as Buffer);
       // Mark as read (best effort).
-      try {
-        await client.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true });
-      } catch {
-        // ignore
+      if (markSeen) {
+        try {
+          await client.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true });
+        } catch {
+          // ignore
+        }
       }
 
       const refs = parsed.references

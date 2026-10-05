@@ -2468,5 +2468,21 @@
   "fiscalite.partners.settlementsHint": "Qui doit transférer à qui pour remettre tout le monde à zéro. Un clic enregistre une avance du débiteur et un remboursement au créancier.",
   "fiscalite.partners.markSettled": "Marquer réglé",
   "fiscalite.partners.settleDone": "Réglé pour {amount}.",
-  "fiscalite.partners.settleFailed": "Règlement impossible"
+  "fiscalite.partners.settleFailed": "Règlement impossible",
+  "assistant.title": "Assistant DreamDash",
+  "assistant.subtitle": "Je vois où tu es et je fouille tes données",
+  "assistant.open": "Parler à l'assistant (glisser pour déplacer)",
+  "assistant.close": "Fermer",
+  "assistant.newChat": "Nouvelle conversation",
+  "assistant.placeholder": "Demande-moi n'importe quoi…",
+  "assistant.send": "Envoyer",
+  "assistant.stop": "Arrêter",
+  "assistant.thinking": "Je réfléchis…",
+  "assistant.workDone": "Recherches et réflexion ({count} étapes)",
+  "assistant.empty": "Pose-moi une question sur tes courriels, ton calendrier, tes tâches ou tes notes — je te renvoie directement au bon élément.",
+  "assistant.error": "Je n'ai pas pu répondre. Réessaie.",
+  "assistant.suggestion.mail": "Quel courriel Amazon m'a envoyé récemment?",
+  "assistant.suggestion.today": "Qu'est-ce que j'ai aujourd'hui et demain?",
+  "assistant.suggestion.page": "Aide-moi avec ce que j'ai à l'écran",
+  "tasks.notFound": "Cette tâche n'existe plus."
 }

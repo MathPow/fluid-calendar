@@ -31,6 +31,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@auth/core": "^0.34.2",
     "@auth/prisma-adapter": "^2.7.4",
     "@azure/msal-node": "^3.2.2",
