@@ -218,11 +218,11 @@ export function ImportInvoicesDialog({ files, organisation, contacts, onClose, o
                     <Input inputMode="decimal" value={r.subtotal} onChange={(e) => set(i, { subtotal: e.target.value })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[12px]">TPS</Label>
+                    <Label className="text-[12px]">{t("facturation.tax.gst")}</Label>
                     <Input inputMode="decimal" value={r.gst} onChange={(e) => set(i, { gst: e.target.value })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[12px]">TVQ</Label>
+                    <Label className="text-[12px]">{t("facturation.tax.qst")}</Label>
                     <Input inputMode="decimal" value={r.qst} onChange={(e) => set(i, { qst: e.target.value })} />
                   </div>
                   <div className="space-y-1">

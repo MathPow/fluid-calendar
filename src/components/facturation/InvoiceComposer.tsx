@@ -339,7 +339,7 @@ export function InvoiceComposer({
                   inputMode="email"
                   value={clientEmail}
                   onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="compta@client.com"
+                  placeholder={t("facturation.composer.emailPlaceholder")}
                 />
               </div>
               <div className="space-y-2">
@@ -446,7 +446,7 @@ export function InvoiceComposer({
               <div className="text-right text-[13px] tabular-nums">
                 <div className="text-muted-foreground">
                   {t("facturation.composer.subtotal")} {money(totals.subtotalCents)}
-                  {applyTaxes && ` · TPS ${money(totals.gstCents)} · TVQ ${money(totals.qstCents)}`}
+                  {applyTaxes && ` · ${t("facturation.tax.gst")} ${money(totals.gstCents)} · ${t("facturation.tax.qst")} ${money(totals.qstCents)}`}
                 </div>
                 <div className="text-[18px] font-bold tracking-title">{money(totals.totalCents)}</div>
               </div>
@@ -595,8 +595,8 @@ export function InvoiceComposer({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="fr">{t("settings.appearance.language.fr")}</SelectItem>
+                  <SelectItem value="en">{t("settings.appearance.language.en")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

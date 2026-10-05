@@ -86,7 +86,7 @@ export function SettingsDialog({ organisation, settings, accounts, onClose, onSa
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="fs-prefix">{t("facturation.settings.prefix")}</Label>
-              <Input id="fs-prefix" value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder="F-2026-" />
+              <Input id="fs-prefix" value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder={t("facturation.settings.prefixPlaceholder")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="fs-due">{t("facturation.composer.dueDays")}</Label>
@@ -99,8 +99,8 @@ export function SettingsDialog({ organisation, settings, accounts, onClose, onSa
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="fr">{t("settings.appearance.language.fr")}</SelectItem>
+                  <SelectItem value="en">{t("settings.appearance.language.en")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
