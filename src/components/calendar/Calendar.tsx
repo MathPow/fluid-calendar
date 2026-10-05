@@ -164,6 +164,7 @@ export function Calendar({
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             title="Toggle Sidebar (b)"
             aria-label="Afficher les calendriers"
+            aria-expanded={isSidebarOpen}
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -174,7 +175,7 @@ export function Calendar({
               onClick={handlePrev}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-foreground hover:bg-secondary"
               title="Previous (←)"
-              aria-label="Jour précédent"
+              aria-label="Période précédente"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -201,7 +202,7 @@ export function Calendar({
               onClick={handleNext}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-foreground hover:bg-secondary"
               title="Next (→)"
-              aria-label="Jour suivant"
+              aria-label="Période suivante"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -273,6 +274,13 @@ export function Calendar({
           >
             Today
           </button>
+          <button
+            type="button"
+            onClick={handleAutoSchedule}
+            className="min-h-10 rounded-xl bg-secondary px-3 text-xs font-medium"
+          >
+            Auto Schedule
+          </button>
           {pickerOpen && (
             <input
               id="calendar-date-picker"
@@ -320,7 +328,9 @@ export function Calendar({
               window.innerWidth >= 768 ||
               view !== "day" ||
               routineEditing ||
-              (e.target as HTMLElement).closest(".fc-event")
+              (e.target as HTMLElement).closest(
+                ".fc-event, button, input, select, textarea, [role=dialog]"
+              )
             )
               return;
             const t = e.touches[0];
