@@ -66,7 +66,7 @@ type AssistantEvent =
 
 const SIZE = 56; // mascot button, px
 const MARGIN = 12;
-const POS_KEY = "dreamdash.assistant.pos";
+const POS_KEY = "dreamdash.assistant.pos.v2";
 const CHAT_KEY = "dreamdash.assistant.chat";
 
 /** Offsets from the bottom-right corner, so it stays put across resizes. */
@@ -74,7 +74,7 @@ interface Pos {
   right: number;
   bottom: number;
 }
-const DEFAULT_POS: Pos = { right: 20, bottom: 84 };
+const DEFAULT_POS: Pos = { right: 16, bottom: 16 };
 
 function clampPos(p: Pos): Pos {
   if (typeof window === "undefined") return p;
