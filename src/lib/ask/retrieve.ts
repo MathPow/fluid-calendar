@@ -13,6 +13,8 @@
  */
 import { links } from "@/lib/assistant/links";
 import { logger } from "@/lib/logger";
+import { machineHealth } from "@/lib/machines/health";
+import { machineStats } from "@/lib/machines/netdata";
 import { isNotesConfigured, listVault, readNote } from "@/lib/notes/webdav";
 import { prisma } from "@/lib/prisma";
 
@@ -26,7 +28,8 @@ export type AskSourceType =
   | "note"
   | "recording"
   | "project"
-  | "activity";
+  | "activity"
+  | "machine";
 
 export interface AskSource {
   /** 1-based citation marker handed to the model as `[n]`. */
@@ -105,6 +108,7 @@ export async function retrieveSources(
     retrieveNotes(terms),
     retrieveProjects(userId, terms),
     retrieveActivity(terms),
+    retrieveMachines(question),
   ]);
 
   const candidates: Candidate[] = [];
@@ -502,6 +506,57 @@ async function retrieveActivity(terms: string[]): Promise<Candidate[]> {
     ...matched.map((a) => toCandidate(a, 2)),
     ...recent.map((a) => toCandidate(a, 1)),
   ];
+}
+
+/** Questions that are about the boxes themselves (health, load, disks…). */
+const MACHINE_QUESTION =
+  /\b(machines?|serveurs?|servers?|vps|box|sant[ée]|health(y)?|cpu|ram|m[ée]moire|memory|disques?|disks?|temp[ée]rature|gpu|en ligne|online|offline|uptime)\b/i;
+
+const LEVEL_FR = { ok: "OK", warn: "attention", bad: "critique", off: "hors ligne", none: "non surveillée" };
+
+/**
+ * Live Netdata readings of every machine — only when the question is about
+ * machines (or names one), since each reading is a network round-trip.
+ */
+async function retrieveMachines(question: string): Promise<Candidate[]> {
+  const machines = await prisma.machine.findMany({
+    select: { id: true, name: true, label: true, kind: true, statsUrl: true, agentSeenAt: true },
+    orderBy: { name: "asc" },
+  });
+  const lower = question.toLowerCase();
+  const named = machines.some(
+    (m) => lower.includes(m.name.toLowerCase()) || (m.label && lower.includes(m.label.toLowerCase()))
+  );
+  if (!named && !MACHINE_QUESTION.test(question)) return [];
+
+  return Promise.all(
+    machines.map(async (m) => {
+      const stats = m.statsUrl ? await machineStats(m.statsUrl) : null;
+      const { health, issues } = machineHealth(stats);
+      const name = m.label || m.name;
+      const pct = (v: number | null | undefined) => (typeof v === "number" ? `${Math.round(v)} %` : undefined);
+      return {
+        rank: 2 as const,
+        type: "machine" as const,
+        id: m.id,
+        title: name,
+        subtitle: `${LEVEL_FR[health]}${issues.length ? ` · ${issues.map((i) => i.metric).join(", ")}` : ""}`,
+        url: "/machines",
+        content: line(
+          `MACHINE « ${name} » (${m.kind})`,
+          `état ${LEVEL_FR[health]}`,
+          stats?.online ? `CPU ${pct(stats.cpu) ?? "?"}` : undefined,
+          stats?.ram ? `RAM ${pct(stats.ram.pct)}` : undefined,
+          stats?.disk ? `disque ${pct(stats.disk.pct)}` : undefined,
+          typeof stats?.temp === "number" ? `${Math.round(stats.temp)} °C` : undefined,
+          issues.length
+            ? `problèmes : ${issues.map((i) => `${i.metric} ${Math.round(i.value)} (${LEVEL_FR[i.level]})`).join(", ")}`
+            : undefined,
+          m.agentSeenAt ? `agent vu ${fmtDate(m.agentSeenAt)}` : undefined
+        ),
+      };
+    })
+  );
 }
 
 /**

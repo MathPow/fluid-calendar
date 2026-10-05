@@ -11,6 +11,8 @@ import { z } from "zod";
 
 import { retrieveSources } from "@/lib/ask/retrieve";
 import { loadAccounts } from "@/lib/mail/account";
+import { machineHealth } from "@/lib/machines/health";
+import { machineStats } from "@/lib/machines/netdata";
 import { getMessage, listMailboxes, listMessages } from "@/lib/mail/imap";
 import { isNotesConfigured, readNote } from "@/lib/notes/webdav";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +28,7 @@ export type LinkType =
   | "project"
   | "activity"
   | "contact"
+  | "machine"
   | "web";
 
 export interface LinkItem {
@@ -88,6 +91,7 @@ const inputs = {
   }),
   read_note: z.object({ path: z.string().min(1).max(500) }),
   search_contacts: z.object({ query: z.string().min(1).max(200) }),
+  machines_status: z.object({}),
 };
 
 type ToolName = keyof typeof inputs;
@@ -192,6 +196,12 @@ export const TOOL_DEFS: Anthropic.Beta.BetaToolUnion[] = [
       required: ["query"],
     },
   },
+  {
+    name: "machines_status",
+    description:
+      "Live health of the user's computers and servers (Netdata): online/offline, CPU, RAM, disk, temperatures, GPU, uptime, plus an overall level (ok / warn / bad) and what is over threshold.",
+    input_schema: { type: "object", properties: {} },
+  },
 ];
 
 /** Short French label shown in the chat while a tool runs. */
@@ -216,6 +226,8 @@ export function describeToolCall(name: string, input: unknown): string {
       return `Lecture de la note ${i.path}`;
     case "search_contacts":
       return `Contacts : « ${i.query} »`;
+    case "machines_status":
+      return "État des machines";
     case "web_search":
       return `Recherche web : « ${i.query} »`;
     default:
@@ -439,6 +451,38 @@ export async function runTool(
         content: clip(content, 12000),
         url: add({ type: "note", title, subtitle: i.path, url: links.note(i.path) }),
       });
+    }
+
+    case "machines_status": {
+      const machines = await prisma.machine.findMany({
+        select: { name: true, label: true, kind: true, host: true, notes: true, statsUrl: true, agentSeenAt: true },
+        orderBy: { name: "asc" },
+      });
+      return JSON.stringify(
+        await Promise.all(
+          machines.map(async (m) => {
+            const stats = m.statsUrl ? await machineStats(m.statsUrl) : null;
+            const { health, issues } = machineHealth(stats);
+            const name = m.label || m.name;
+            return {
+              name,
+              kind: m.kind,
+              host: m.host || undefined,
+              health,
+              issues,
+              stats,
+              agent_last_seen: fmt(m.agentSeenAt),
+              notes: clip(m.notes, 200) || undefined,
+              url: add({
+                type: "machine",
+                title: name,
+                subtitle: issues.length ? `${health} · ${issues.map((i) => i.metric).join(", ")}` : health,
+                url: "/machines",
+              }),
+            };
+          })
+        )
+      );
     }
 
     case "search_contacts": {

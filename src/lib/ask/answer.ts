@@ -25,6 +25,7 @@ const TYPE_LABEL: Record<AskSourceType, string> = {
   recording: "Enregistrement",
   project: "Projet",
   activity: "Activité projet",
+  machine: "Machine",
 };
 
 function buildPrompt(question: string, sources: AskSource[]): string {
@@ -48,12 +49,12 @@ function buildPrompt(question: string, sources: AskSource[]): string {
     "demande en te basant UNIQUEMENT sur ces extraits.",
     "",
     "Règles :",
-    // A concrete example sentence here gets copied verbatim by small models —
-    // keep the illustration schematic so there is no content to plagiarize.
-    "- OBLIGATOIRE : après chaque information, écris le numéro de l'extrait",
-    "  d'où elle vient, entre crochets, selon le gabarit :",
-    "  « <fait tiré de l'extrait> [<numéro de cet extrait>] »",
-    "  N'utilise que des numéros présents dans la liste des extraits.",
+    // No template or example sentence here at all: small models copy either
+    // one verbatim (a schematic « <fait tiré de l'extrait> [<n>] » came back
+    // as the whole answer). Describe the rule in words only.
+    "- Après chaque information, ajoute le numéro de l'extrait qui la",
+    "  contient, entre crochets droits, par exemple [2]. N'utilise que des",
+    "  numéros présents dans la liste des extraits.",
     "- Si les extraits ne contiennent pas la réponse, dis-le franchement.",
     "  N'invente jamais une tâche, un événement ou une note.",
     "- Sois bref et concret : dates, titres, noms. Pas de préambule.",
@@ -108,5 +109,29 @@ export async function answerFromSources(
   const data = (await res.json()) as { response?: string };
   const answer = (data.response ?? "").trim();
   if (!answer) throw new Error("Ollama returned an empty answer");
+  if (isTemplateEcho(answer)) return listSources(sources);
   return answer;
+}
+
+/**
+ * True when the model parroted instructions instead of answering: angle-
+ * bracket placeholders (« <fait…> », « [<1>] »), or nothing left once the
+ * citations are removed.
+ */
+function isTemplateEcho(answer: string): boolean {
+  if (/<[^<>\n]{2,60}>/.test(answer)) return true;
+  const bare = answer.replace(/\[\s*<?\d+>?\s*\]/g, "").replace(/[\s.,;:«»"'-]/g, "");
+  return bare.length < 12;
+}
+
+/** Last resort when the model's answer is unusable: list what was found. */
+function listSources(sources: AskSource[]): string {
+  const top = sources.slice(0, 6).map((s) => {
+    const detail = s.subtitle ? ` — ${s.subtitle}` : "";
+    return `- ${TYPE_LABEL[s.type]} : ${s.title}${detail} [${s.n}]`;
+  });
+  return [
+    "Je n'ai pas réussi à formuler une réponse fiable. Voici ce que j'ai trouvé de plus pertinent :",
+    ...top,
+  ].join("\n");
 }

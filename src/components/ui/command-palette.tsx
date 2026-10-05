@@ -103,6 +103,7 @@ const SOURCE_ICONS: Record<string, typeof CheckSquare> = {
   recording: AudioLines,
   project: FolderKanban,
   activity: GitCommitHorizontal,
+  machine: Server,
 };
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {

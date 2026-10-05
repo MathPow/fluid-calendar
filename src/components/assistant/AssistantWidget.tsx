@@ -18,6 +18,7 @@ import {
   Mail,
   Mic,
   RotateCcw,
+  Server,
   Square,
   User,
   X,
@@ -112,6 +113,7 @@ const LINK_ICON: Record<string, typeof Mail> = {
   project: FolderKanban,
   activity: FolderKanban,
   contact: User,
+  machine: Server,
   web: Globe,
 };
 
