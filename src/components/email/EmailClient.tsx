@@ -20,6 +20,11 @@ import {
 } from "lucide-react";
 
 import { useT, type TranslateFn } from "@/i18n/client";
+import {
+  MAIL_ACCOUNT_COLORS,
+  type MailAccountColor,
+  isMailAccountColor,
+} from "@/lib/mail/colors";
 import { PROVIDER_PRESETS } from "@/lib/mail/providers";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +36,7 @@ interface Account {
   displayName: string | null;
   email: string;
   station?: string | null;
+  color?: string | null;
 }
 
 interface Address {
@@ -75,7 +81,7 @@ const fmtDate = (iso: string | null) => {
 /** Pseudo account id for the unified « Toutes les boîtes » view. */
 const ALL = "all";
 
-/** Stable per-account colour dots (by connection order). */
+/** Fallback colour dots (by connection order) for boxes with no colour set. */
 const ACCOUNT_DOTS = [
   "bg-sky-500",
   "bg-amber-500",
@@ -337,13 +343,13 @@ export function EmailClient() {
     });
   };
 
-  const dotFor = (id: string) =>
-    ACCOUNT_DOTS[
-      Math.max(
-        0,
-        accounts.findIndex((a) => a.id === id)
-      ) % ACCOUNT_DOTS.length
-    ];
+  const dotFor = (id: string) => {
+    const idx = accounts.findIndex((a) => a.id === id);
+    const color = accounts[idx]?.color;
+    return isMailAccountColor(color)
+      ? MAIL_ACCOUNT_COLORS[color]
+      : ACCOUNT_DOTS[Math.max(0, idx) % ACCOUNT_DOTS.length];
+  };
 
   if (initializing) {
     return (
@@ -1028,6 +1034,7 @@ function ConnectModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [color, setColor] = useState<MailAccountColor>("sky");
   const [imapHost, setImapHost] = useState("");
   const [smtpHost, setSmtpHost] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1047,6 +1054,7 @@ function ConnectModal({
           email,
           password,
           displayName: displayName || undefined,
+          color,
           ...(provider === "imap" ? { imapHost, smtpHost } : {}),
         }),
       });
@@ -1153,6 +1161,32 @@ function ConnectModal({
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </Labeled>
+
+          <div>
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              {t("mail.connect.color")}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(MAIL_ACCOUNT_COLORS) as MailAccountColor[]).map(
+                (c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    aria-label={c}
+                    aria-pressed={color === c}
+                    className={cn(
+                      "h-6 w-6 rounded-full ring-offset-2 ring-offset-card",
+                      MAIL_ACCOUNT_COLORS[c],
+                      color === c
+                        ? "ring-2 ring-foreground"
+                        : "hover:ring-2 hover:ring-border"
+                    )}
+                  />
+                )
+              )}
+            </div>
+          </div>
 
           {error && <p className="text-xs text-destructive">{error}</p>}
 

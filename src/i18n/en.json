@@ -1177,6 +1177,7 @@
   "mail.connect.appPassword": "App-specific password",
   "mail.connect.displayName": "Display name (optional)",
   "mail.connect.displayNamePlaceholder": "Your name",
+  "mail.connect.color": "Colour",
   "mail.connect.email": "Email address",
   "mail.connect.emailPlaceholder": "you@icloud.com",
   "mail.connect.imapHost": "IMAP host",

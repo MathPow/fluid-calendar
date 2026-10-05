@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
+import { isMailAccountColor } from "@/lib/mail/colors";
 import { encryptSecret } from "@/lib/mail/crypto";
 import { testConnection } from "@/lib/mail/imap";
 import { presetFor } from "@/lib/mail/providers";
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
       imapHost: true,
       smtpHost: true,
       station: true,
+      color: true,
       createdAt: true,
     },
   });
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/mail/accounts — connect a new account. Body:
  *   provider ("icloud" | "zoho" | "imap"), email, password,
- *   displayName?, and for "imap": imapHost/imapPort/smtpHost/smtpPort.
+ *   displayName?, color? (a MAIL_ACCOUNT_COLORS key), and for "imap": imapHost/imapPort/smtpHost/smtpPort.
  * The connection is tested before saving; the password is stored encrypted.
  */
 export async function POST(request: NextRequest) {
@@ -56,6 +58,7 @@ export async function POST(request: NextRequest) {
   const displayName = body.displayName
     ? String(body.displayName).trim()
     : null;
+  const color = isMailAccountColor(body.color) ? body.color : null;
 
   if (!email || !password) {
     return NextResponse.json(
@@ -110,6 +113,7 @@ export async function POST(request: NextRequest) {
         userId: auth.userId,
         provider,
         displayName,
+        color,
         email,
         imapHost,
         imapPort,
@@ -121,6 +125,7 @@ export async function POST(request: NextRequest) {
       update: {
         provider,
         displayName,
+        ...(color ? { color } : {}),
         imapHost,
         imapPort,
         smtpHost,
@@ -128,7 +133,13 @@ export async function POST(request: NextRequest) {
         username,
         passwordEnc: encryptSecret(password),
       },
-      select: { id: true, email: true, provider: true, displayName: true },
+      select: {
+        id: true,
+        email: true,
+        provider: true,
+        displayName: true,
+        color: true,
+      },
     });
     return NextResponse.json({ account: created }, { status: 201 });
   } catch (error) {

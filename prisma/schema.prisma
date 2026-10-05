@@ -812,6 +812,7 @@ model MailAccount {
   username    String // usually == email
   passwordEnc String // AES-256-GCM encrypted app-specific password
   station     String? // "personal" | "work" | null — for the station filter
+  color       String? // dot colour key (see MAIL_ACCOUNT_COLORS); null = by connection order
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)

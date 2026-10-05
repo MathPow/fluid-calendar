@@ -1177,6 +1177,7 @@
   "mail.connect.appPassword": "Mot de passe d'application",
   "mail.connect.displayName": "Nom affiché (optionnel)",
   "mail.connect.displayNamePlaceholder": "Ton nom",
+  "mail.connect.color": "Couleur",
   "mail.connect.email": "Adresse courriel",
   "mail.connect.emailPlaceholder": "toi@icloud.com",
   "mail.connect.imapHost": "Hôte IMAP",

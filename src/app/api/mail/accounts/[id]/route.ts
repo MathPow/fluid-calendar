@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { isMailAccountColor } from "@/lib/mail/colors";
 import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "mail-account-id-route";
 
 const STATIONS = new Set(["personal", "work"]);
 
-/** PATCH /api/mail/accounts/[id] — update station (personal/work) or label. */
+/** PATCH /api/mail/accounts/[id] — update station (personal/work), label or colour. */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -31,7 +32,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const data: { station?: string | null; displayName?: string } = {};
+  const data: {
+    station?: string | null;
+    displayName?: string;
+    color?: string | null;
+  } = {};
   if ("station" in body) {
     const s = body.station;
     data.station = typeof s === "string" && STATIONS.has(s) ? s : null;
@@ -39,11 +44,14 @@ export async function PATCH(
   if (typeof body.displayName === "string") {
     data.displayName = body.displayName.trim();
   }
+  if ("color" in body) {
+    data.color = isMailAccountColor(body.color) ? body.color : null;
+  }
 
   const updated = await prisma.mailAccount.update({
     where: { id: acct.id },
     data,
-    select: { id: true, station: true, displayName: true },
+    select: { id: true, station: true, displayName: true, color: true },
   });
   return NextResponse.json({ account: updated });
 }
