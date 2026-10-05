@@ -496,6 +496,18 @@
     min-width: 40px;
     touch-action: manipulation;
   }
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid hsl(var(--foreground));
+    outline-offset: 2px;
+  }
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    min-width: 0;
+    max-width: 100%;
+  }
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
   select {
