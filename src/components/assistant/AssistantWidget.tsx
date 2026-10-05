@@ -180,15 +180,6 @@ export function AssistantWidget() {
     if (open && !isMobile) inputRef.current?.focus();
   }, [open, isMobile]);
 
-  // Escape closes the panel.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
 
   /* -------------------------------------------------------------- drag */
 
@@ -354,6 +345,12 @@ export function AssistantWidget() {
           role="dialog"
           aria-label={t("assistant.title")}
           style={panelStyle}
+          // Keystrokes typed in the chat must not reach the app's global
+          // shortcuts (letter sequences, « ? », ⌘K) listening on document.
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Escape") setOpen(false);
+          }}
           className={cn(
             "fixed z-[60] flex flex-col overflow-hidden border border-border bg-card text-card-foreground shadow-float",
             "duration-200 animate-in fade-in zoom-in-95",
