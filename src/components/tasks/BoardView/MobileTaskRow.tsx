@@ -71,7 +71,7 @@ export function MobileTaskRow({
     >
       <button
         type="button"
-        className="min-h-12 min-w-0 flex-1 px-2 text-left"
+        className="min-h-12 min-w-0 flex-1 rounded-lg px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => {
           if (swiped.current) {
             swiped.current = false;
@@ -80,7 +80,11 @@ export function MobileTaskRow({
           onEdit(task);
         }}
       >
-        <span className="block truncate text-sm font-medium">{task.title}</span>
+        <span
+          className={`block truncate text-sm font-medium ${task.status === TaskStatus.COMPLETED ? "text-muted-foreground line-through" : ""}`}
+        >
+          {task.title}
+        </span>
         {task.project && (
           <span className="block truncate text-xs text-muted-foreground">
             {task.project.name}
@@ -89,7 +93,7 @@ export function MobileTaskRow({
       </button>
       <button
         type="button"
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         data-row-action
         aria-label={`Terminer ${task.title}`}
         onClick={() => onStatusChange(task.id, TaskStatus.COMPLETED)}
@@ -99,7 +103,7 @@ export function MobileTaskRow({
       </button>
       <button
         type="button"
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-destructive"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         data-row-action
         aria-label={`Supprimer ${task.title}`}
         onClick={remove}

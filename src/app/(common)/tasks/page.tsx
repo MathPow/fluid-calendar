@@ -161,6 +161,7 @@ export default function TasksPage() {
               onClick={() => setViewMode("list")}
               className="segmented-item"
               data-active={mobile || viewMode === "list"}
+              aria-pressed={mobile || viewMode === "list"}
             >
               <ListTodo className="h-4 w-4" />
               List
@@ -169,9 +170,17 @@ export default function TasksPage() {
               onClick={() => setViewMode("board")}
               className="segmented-item hidden md:inline-flex"
               data-active={viewMode === "board"}
+              aria-pressed={viewMode === "board"}
             >
               <Kanban className="h-4 w-4" />
               Board
+            </button>
+            <button
+              type="button"
+              onClick={() => scheduleAllTasks()}
+              className="segmented-item md:hidden"
+            >
+              Auto Schedule
             </button>
             <Link href="/focus" className="segmented-item">
               <Target className="h-4 w-4" />
