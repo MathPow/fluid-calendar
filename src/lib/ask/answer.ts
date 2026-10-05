@@ -18,6 +18,9 @@ const OLLAMA_TIMEOUT_MS = Number(process.env.ASK_TIMEOUT_MS || 240_000);
 // add minutes on top of prompt eval.
 const MAX_ANSWER_TOKENS = Number(process.env.ASK_MAX_ANSWER_TOKENS || 320);
 
+/** Extracts kept for the stricter retry — less to read, less to parrot. */
+const STRICT_SOURCES = 6;
+
 const TYPE_LABEL: Record<AskSourceType, string> = {
   task: "Tâche",
   event: "Calendrier",
@@ -49,6 +52,11 @@ function buildPrompt(question: string, sources: AskSource[]): string {
     "demande en te basant UNIQUEMENT sur ces extraits.",
     "",
     "Règles :",
+    "- Commence par répondre directement à la question, en phrases",
+    "  complètes, avec les faits concrets tirés des extraits (noms, états,",
+    "  dates, chiffres). Ne te contente pas de renvoyer aux extraits.",
+    "- Désigne chaque élément par son nom (titre, nom de machine), jamais",
+    "  par son numéro d'extrait. Recopie les états et chiffres tels quels.",
     // No template or example sentence here at all: small models copy either
     // one verbatim (a schematic « <fait tiré de l'extrait> [<n>] » came back
     // as the whole answer). Describe the rule in words only.
@@ -71,17 +79,32 @@ function buildPrompt(question: string, sources: AskSource[]): string {
 }
 
 /**
- * Ask the local model. Throws on transport/HTTP errors so the route can
- * surface a clean failure to the UI.
+ * Retry prompt for when the first answer was unusable: fewer extracts, a
+ * shorter brief, still no template to copy.
  */
-export async function answerFromSources(
-  question: string,
-  sources: AskSource[]
-): Promise<string> {
-  if (sources.length === 0) {
-    return "Je n'ai rien trouvé dans ton calendrier, tes tâches, tes notes ni tes enregistrements pour cette demande.";
-  }
+function buildStrictPrompt(question: string, sources: AskSource[]): string {
+  const context = sources
+    .slice(0, STRICT_SOURCES)
+    .map((s) => `[${s.n}] (${TYPE_LABEL[s.type]}) ${s.content}`)
+    .join("\n");
 
+  return [
+    "Extraits des données de l'utilisateur :",
+    context,
+    "",
+    `Question : ${question}`,
+    "",
+    "Réponds à la question en une à trois phrases complètes, avec les faits",
+    "des extraits (noms, états, dates, chiffres), en nommant chaque élément",
+    "par son nom et en recopiant ses états tels quels. Après chaque fait, mets le",
+    "numéro de son extrait entre crochets droits. Aucun chevron, aucune",
+    "consigne recopiée. Réponds dans la langue de la question.",
+    "",
+    "Réponse :",
+  ].join("\n");
+}
+
+async function generate(prompt: string, temperature: number): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
   let res: Response;
@@ -91,9 +114,9 @@ export async function answerFromSources(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         model: OLLAMA_MODEL,
-        prompt: buildPrompt(question, sources),
+        prompt,
         stream: false,
-        options: { temperature: 0.2, num_predict: MAX_ANSWER_TOKENS },
+        options: { temperature, num_predict: MAX_ANSWER_TOKENS },
       }),
       signal: controller.signal,
     });
@@ -107,10 +130,30 @@ export async function answerFromSources(
   }
 
   const data = (await res.json()) as { response?: string };
-  const answer = (data.response ?? "").trim();
-  if (!answer) throw new Error("Ollama returned an empty answer");
-  if (isTemplateEcho(answer)) return listSources(sources);
-  return answer;
+  return (data.response ?? "").trim();
+}
+
+/**
+ * Ask the local model. Throws on transport/HTTP errors so the route can
+ * surface a clean failure to the UI. An unusable answer (empty, or the
+ * instructions parroted back) gets one stricter retry, then an answer
+ * written straight from the top sources — never just a list of links.
+ */
+export async function answerFromSources(
+  question: string,
+  sources: AskSource[]
+): Promise<string> {
+  if (sources.length === 0) {
+    return "Je n'ai rien trouvé dans ton calendrier, tes tâches, tes notes ni tes enregistrements pour cette demande.";
+  }
+
+  const answer = await generate(buildPrompt(question, sources), 0.2);
+  if (answer && !isTemplateEcho(answer)) return answer;
+
+  const retry = await generate(buildStrictPrompt(question, sources), 0);
+  if (retry && !isTemplateEcho(retry)) return retry;
+
+  return answerFromFacts(sources);
 }
 
 /**
@@ -124,14 +167,13 @@ function isTemplateEcho(answer: string): boolean {
   return bare.length < 12;
 }
 
-/** Last resort when the model's answer is unusable: list what was found. */
-function listSources(sources: AskSource[]): string {
-  const top = sources.slice(0, 6).map((s) => {
-    const detail = s.subtitle ? ` — ${s.subtitle}` : "";
-    return `- ${TYPE_LABEL[s.type]} : ${s.title}${detail} [${s.n}]`;
-  });
-  return [
-    "Je n'ai pas réussi à formuler une réponse fiable. Voici ce que j'ai trouvé de plus pertinent :",
-    ...top,
-  ].join("\n");
+/** Last resort when the model can't phrase it: state the top facts as sentences. */
+function answerFromFacts(sources: AskSource[]): string {
+  return sources
+    .slice(0, STRICT_SOURCES)
+    .map((s) => {
+      const detail = s.subtitle ? ` : ${s.subtitle}` : "";
+      return `${TYPE_LABEL[s.type]} « ${s.title} »${detail} [${s.n}].`;
+    })
+    .join("\n");
 }
