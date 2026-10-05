@@ -83,7 +83,10 @@ export function ProjectTile({
 
   return (
     <li className="tile relative flex flex-col p-3 md:p-6">
-      <Link href={href} className="flex min-w-0 flex-col gap-2 md:hidden">
+      <Link
+        href={href}
+        className="flex min-w-0 flex-col gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden"
+      >
         <ProjectMark
           name={project.name}
           color={project.color}
@@ -102,7 +105,7 @@ export function ProjectTile({
           <button
             type="button"
             aria-label={`Actions pour ${project.name}`}
-            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-sm md:hidden"
+            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
           >
             <MoreHorizontal className="h-5 w-5" />
           </button>
