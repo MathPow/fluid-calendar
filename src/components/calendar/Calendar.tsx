@@ -181,6 +181,7 @@ export function Calendar({
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             title="Toggle Sidebar (b)"
             aria-label={t("calendar.header.showCalendars")}
+            aria-expanded={isSidebarOpen}
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -292,6 +293,13 @@ export function Calendar({
             {t("calendar.header.today")}
           </button>
           <CalendarStatsButton className="h-10 w-10" />
+          <button
+            type="button"
+            onClick={handleAutoSchedule}
+            className="min-h-10 rounded-xl bg-secondary px-3 text-xs font-medium"
+          >
+            Auto Schedule
+          </button>
           {pickerOpen && (
             <input
               id="calendar-date-picker"
@@ -341,7 +349,9 @@ export function Calendar({
               window.innerWidth >= 768 ||
               view !== "day" ||
               routineEditing ||
-              (e.target as HTMLElement).closest(".fc-event")
+              (e.target as HTMLElement).closest(
+                ".fc-event, button, input, select, textarea, [role=dialog]"
+              )
             )
               return;
             const touch = e.touches[0];
