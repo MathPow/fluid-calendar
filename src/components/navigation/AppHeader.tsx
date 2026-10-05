@@ -132,7 +132,7 @@ export function AppHeader({ className }: { className?: string }) {
             <button
               type="button"
               aria-label="Ouvrir la navigation"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary md:hidden"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
             >
               <MenuIcon className="h-5 w-5" />
             </button>
@@ -214,7 +214,7 @@ export function AppHeader({ className }: { className?: string }) {
                         : undefined
                     }
                     className={cn(
-                      "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium",
+                      "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       pathname === link.href ||
                         pathname?.startsWith(link.href + "/")
                         ? "bg-tint-soft text-foreground"
