@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { type TranslateFn, useT } from "@/i18n/client";
 import {
   AlertCircle,
   ChevronLeft,
   Inbox,
-  Mails,
   Loader2,
   Mail,
+  Mails,
   Paperclip,
   PenSquare,
   Plus,
@@ -16,10 +17,27 @@ import {
   Reply,
   Search,
   Send,
-  X,
 } from "lucide-react";
 
-import { useT, type TranslateFn } from "@/i18n/client";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
 import {
   MAIL_ACCOUNT_COLORS,
   type MailAccountColor,
@@ -68,8 +86,10 @@ interface MessageDetail extends MessageSummary {
 }
 
 const fmtAddr = (a: Address[], unknownLabel: string) =>
-  a.map((x) => x.name || x.address || "").filter(Boolean).join(", ") ||
-  unknownLabel;
+  a
+    .map((x) => x.name || x.address || "")
+    .filter(Boolean)
+    .join(", ") || unknownLabel;
 
 const fmtDate = (iso: string | null) => {
   if (!iso) return "";
@@ -271,7 +291,11 @@ export function EmailClient() {
   // unified view covers), jump to the station's default view.
   useEffect(() => {
     if (initializing || accounts.length === 0) return;
-    if (!unified && accountId && visibleAccounts.some((a) => a.id === accountId))
+    if (
+      !unified &&
+      accountId &&
+      visibleAccounts.some((a) => a.id === accountId)
+    )
       return;
     const next = defaultTarget(visibleAccounts);
     if (next) {
@@ -375,7 +399,8 @@ export function EmailClient() {
   const startCompose = () => {
     const from =
       (!unified && accountId) || visibleAccounts[0]?.id || accounts[0]?.id;
-    if (from) setCompose({ accountId: from, to: "", cc: "", subject: "", body: "" });
+    if (from)
+      setCompose({ accountId: from, to: "", cc: "", subject: "", body: "" });
   };
 
   const startReply = (m: MessageDetail, fromAccountId: string) => {
@@ -415,21 +440,16 @@ export function EmailClient() {
     return (
       <>
         <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center p-6 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-foreground">
             <Mail className="h-7 w-7" />
           </div>
-          <h1 className="mt-4 text-xl font-semibold">
-            {t("mail.empty.title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="titre-section mt-6">{t("mail.empty.title")}</h1>
+          <p className="mt-3 text-[15px] text-muted-foreground">
             {t("mail.empty.description")}
           </p>
-          <button
-            onClick={() => setShowConnect(true)}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" /> {t("mail.empty.connect")}
-          </button>
+          <Button onClick={() => setShowConnect(true)} className="mt-6">
+            <Plus /> {t("mail.empty.connect")}
+          </Button>
         </div>
         {showConnect && (
           <ConnectModal
@@ -457,30 +477,30 @@ export function EmailClient() {
   const showAllEntry = visibleAccounts.length >= 2;
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full md:gap-4 md:p-4 lg:gap-5 lg:p-5">
       {/* Rail: accounts + folders (desktop) */}
-      <div className="hidden w-56 flex-none flex-col border-r border-border bg-card md:flex">
-        <div className="p-3">
-          <button
-            onClick={startCompose}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <PenSquare className="h-4 w-4" /> {t("mail.compose")}
-          </button>
+      <div className="hidden w-60 flex-none flex-col md:flex">
+        <div className="pb-4">
+          <Button onClick={startCompose} className="w-full">
+            <PenSquare /> {t("mail.compose")}
+          </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2">
+        <div className="flex-1 overflow-y-auto">
           {unified ? (
-            <div className="space-y-2 px-2 py-1.5">
+            <div className="space-y-3 px-3 py-2">
               <p className="etiquette">{t("mail.inboxes")}</p>
-              <ul className="space-y-1">
+              <ul className="space-y-2">
                 {visibleAccounts.map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-center gap-2 text-xs text-muted-foreground"
+                    className="flex items-center gap-2.5 text-[13px] text-foreground/80"
                   >
                     <span
-                      className={cn("h-2 w-2 shrink-0 rounded-full", dotFor(a.id))}
+                      className={cn(
+                        "h-2 w-2 shrink-0 rounded-full",
+                        dotFor(a.id)
+                      )}
                     />
                     <span className="truncate">{accountLabel(a)}</span>
                   </li>
@@ -488,16 +508,16 @@ export function EmailClient() {
               </ul>
             </div>
           ) : folders.length > 0 ? (
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {folders.map((f) => (
                 <li key={f}>
                   <button
                     onClick={() => switchMailbox(f)}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm",
+                      "flex h-10 w-full items-center gap-2.5 rounded-full px-4 text-[14px] transition-colors",
                       mailbox === f
-                        ? "bg-primary/10 font-medium text-primary"
-                        : "text-foreground/80 hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-card font-semibold text-foreground shadow-tile"
+                        : "text-foreground/80 hover:bg-secondary hover:text-foreground"
                     )}
                   >
                     <Inbox className="h-4 w-4 shrink-0" />
@@ -507,7 +527,7 @@ export function EmailClient() {
               ))}
             </ul>
           ) : (
-            <div className="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 px-4 py-2 text-[13px] text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />{" "}
               {t("mail.loadingFolders")}
             </div>
@@ -515,9 +535,10 @@ export function EmailClient() {
         </div>
 
         {/* Account switcher (filtered by the active station) */}
-        <div className="border-t border-border p-2">
+        <div className="space-y-1 border-t border-border pt-4">
+          <p className="etiquette px-3 pb-1">{t("mail.accounts")}</p>
           {visibleAccounts.length === 0 && accounts.length > 0 && (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            <p className="px-3 py-1.5 text-[13px] text-muted-foreground">
               {t("mail.noAccountsInStation")}
             </p>
           )}
@@ -525,13 +546,13 @@ export function EmailClient() {
             <button
               onClick={() => switchAccount(ALL)}
               className={cn(
-                "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs",
+                "flex h-10 w-full items-center gap-2.5 rounded-full px-4 text-left text-[13px] transition-colors",
                 unified
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent"
+                  ? "bg-card font-semibold text-foreground shadow-tile"
+                  : "text-foreground/80 hover:bg-secondary hover:text-foreground"
               )}
             >
-              <Mails className="h-3.5 w-3.5 shrink-0" />
+              <Mails className="h-4 w-4 shrink-0" />
               <span className="truncate">{t("mail.allInboxes")}</span>
             </button>
           )}
@@ -540,23 +561,26 @@ export function EmailClient() {
               key={a.id}
               onClick={() => switchAccount(a.id)}
               className={cn(
-                "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs",
+                "flex h-10 w-full items-center gap-2.5 rounded-full px-4 text-left text-[13px] transition-colors",
                 a.id === accountId
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent"
+                  ? "bg-card font-semibold text-foreground shadow-tile"
+                  : "text-foreground/80 hover:bg-secondary hover:text-foreground"
               )}
+              title={a.email}
             >
-              <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-                <span className={cn("h-2 w-2 rounded-full", dotFor(a.id))} />
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                <span
+                  className={cn("h-2.5 w-2.5 rounded-full", dotFor(a.id))}
+                />
               </span>
-              <span className="truncate">{a.email}</span>
+              <span className="truncate">{accountLabel(a)}</span>
             </button>
           ))}
           <button
             onClick={() => setShowConnect(true)}
-            className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+            className="flex h-10 w-full items-center gap-2.5 rounded-full px-4 text-[13px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
-            <Plus className="h-3.5 w-3.5" /> {t("mail.addAccount")}
+            <Plus className="h-4 w-4" /> {t("mail.addAccount")}
           </button>
         </div>
       </div>
@@ -564,12 +588,12 @@ export function EmailClient() {
       {/* Message list (full width on mobile, hidden while reading) */}
       <div
         className={cn(
-          "w-full min-w-0 flex-none flex-col border-r border-border md:flex md:w-80",
+          "w-full min-w-0 flex-none flex-col overflow-hidden bg-background md:flex md:w-[360px] md:rounded-[28px] md:bg-card md:shadow-tile",
           selected ? "hidden" : "flex"
         )}
       >
         {/* Mobile switcher: boxes as a scrollable segmented control */}
-        <div className="flex items-center gap-2 border-b border-border px-3 py-2 md:hidden">
+        <div className="flex items-center gap-2 px-4 pb-1 pt-3 md:hidden">
           <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="segmented">
               {showAllEntry && (
@@ -597,57 +621,64 @@ export function EmailClient() {
           </div>
           <button
             onClick={startCompose}
-            className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+            className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
             title={t("mail.compose")}
+            aria-label={t("mail.compose")}
           >
             <PenSquare className="h-4 w-4" />
           </button>
         </div>
         {!unified && folders.length > 1 && (
-          <div className="border-b border-border px-3 py-1.5 md:hidden">
-            <select
-              value={mailbox}
-              onChange={(e) => switchMailbox(e.target.value)}
-              className="w-full bg-transparent text-sm outline-none"
-            >
-              {folders.map((f) => (
-                <option key={f} value={f}>
-                  {folderLabel(t, f)}
-                </option>
-              ))}
-            </select>
+          <div className="px-4 pt-2 md:hidden">
+            <Select value={mailbox} onValueChange={switchMailbox}>
+              <SelectTrigger className="h-10 rounded-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {folders.map((f) => (
+                  <SelectItem key={f} value={f}>
+                    {folderLabel(t, f)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
         <form
           onSubmit={runSearch}
-          className="flex items-center gap-2 border-b border-border px-3 py-2"
+          className="flex items-center gap-2 px-4 pb-3 pt-3 md:px-5 md:pt-5"
         >
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={
-              unified
-                ? t("mail.searchAll")
-                : t("mail.searchIn", { mailbox: folderLabel(t, mailbox) })
-            }
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={
+                unified
+                  ? t("mail.searchAll")
+                  : t("mail.searchIn", { mailbox: folderLabel(t, mailbox) })
+              }
+              className="rounded-full pl-10"
+            />
+          </div>
           <button
             type="button"
             onClick={() =>
               accountId && loadMessages(accountId, mailbox, search, false)
             }
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
             title={t("mail.refresh")}
+            aria-label={t("mail.refresh")}
           >
-            <RefreshCw className={cn("h-4 w-4", loadingList && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-4 w-4", loadingList && "animate-spin")}
+            />
           </button>
         </form>
 
         {failedBoxes.length > 0 && !loadingList && (
-          <p className="flex items-center gap-1.5 border-b border-border px-3 py-1.5 text-xs text-destructive">
+          <p className="mx-4 mb-2 flex items-center gap-1.5 rounded-full bg-destructive/10 px-4 py-2 text-[12px] text-destructive md:mx-5">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">
               {t("mail.unreachable", { boxes: failedBoxes.join(", ") })}
@@ -655,7 +686,7 @@ export function EmailClient() {
           </p>
         )}
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-2 pb-2 md:px-3 md:pb-3">
           {loadingList ? (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
@@ -670,7 +701,7 @@ export function EmailClient() {
               {t("mail.noMessages")}
             </p>
           ) : (
-            <ul>
+            <ul className="space-y-0.5">
               {messages.map((m) => {
                 const acct = unified
                   ? accounts.find((a) => a.id === m.accountId)
@@ -680,10 +711,10 @@ export function EmailClient() {
                     <button
                       onClick={() => selectMessage(m)}
                       className={cn(
-                        "flex w-full flex-col gap-0.5 border-b border-border px-3 py-2.5 text-left",
+                        "flex w-full flex-col gap-1 rounded-[20px] px-4 py-3 text-left transition-colors",
                         selected && keyOf(selected) === keyOf(m)
-                          ? "bg-primary/5"
-                          : "hover:bg-accent/50"
+                          ? "bg-secondary"
+                          : "hover:bg-secondary/60"
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -692,8 +723,8 @@ export function EmailClient() {
                         )}
                         <span
                           className={cn(
-                            "min-w-0 flex-1 truncate text-sm",
-                            !m.seen ? "font-semibold" : "font-medium"
+                            "min-w-0 flex-1 truncate text-[14px] tracking-title",
+                            !m.seen ? "font-bold" : "font-medium"
                           )}
                         >
                           {fmtAddr(m.from, t("mail.unknownSender"))}
@@ -701,23 +732,23 @@ export function EmailClient() {
                         {m.hasAttachments && (
                           <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
                         )}
-                        <span className="shrink-0 text-xs text-muted-foreground">
+                        <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
                           {fmtDate(m.date)}
                         </span>
                       </div>
                       <span
                         className={cn(
-                          "truncate text-sm",
+                          "truncate text-[13px]",
                           !m.seen ? "text-foreground" : "text-muted-foreground"
                         )}
                       >
                         {m.subject}
                       </span>
                       {acct && (
-                        <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted-foreground">
                           <span
                             className={cn(
-                              "h-1.5 w-1.5 shrink-0 rounded-full",
+                              "h-2 w-2 shrink-0 rounded-full",
                               dotFor(acct.id)
                             )}
                           />
@@ -736,14 +767,16 @@ export function EmailClient() {
       {/* Reading pane (replaces the list on mobile) */}
       <div
         className={cn(
-          "min-w-0 flex-1 overflow-y-auto md:block",
+          "min-w-0 flex-1 overflow-y-auto bg-background md:block md:overflow-hidden md:rounded-[28px] md:bg-card md:shadow-tile",
           selected ? "block" : "hidden"
         )}
       >
         {!selected ? (
           <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
-            <Mail className="h-10 w-10 opacity-40" />
-            <p className="mt-3 text-sm">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
+              <Mail className="h-7 w-7" />
+            </div>
+            <p className="mt-4 text-[14px]">
               {unified
                 ? t("mail.selectMessage")
                 : activeAccount
@@ -814,10 +847,10 @@ export function EmailClient() {
 function BackBar({ onBack }: { onBack: () => void }) {
   const t = useT();
   return (
-    <div className="border-b border-border px-2 py-1.5 md:hidden">
+    <div className="px-4 pt-3 md:hidden">
       <button
         onClick={onBack}
-        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="inline-flex h-10 items-center gap-1 rounded-full bg-secondary pl-3 pr-4 text-[14px] font-medium text-foreground hover:bg-border"
       >
         <ChevronLeft className="h-4 w-4" /> {t("common.back")}
       </button>
@@ -841,27 +874,33 @@ function MessageView({
   return (
     <article className="flex h-full flex-col">
       <BackBar onBack={onBack} />
-      <div className="border-b border-border p-4 md:p-5">
+      <div className="border-b border-border px-4 pb-5 pt-4 md:px-8 md:pb-6 md:pt-7">
         {account && (
-          <p className="etiquette mb-2 flex min-w-0 items-center gap-1.5 normal-case tracking-normal">
-            <span className={cn("h-2 w-2 shrink-0 rounded-full", account.dot)} />
+          <p className="mb-3 inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-[12px] font-medium text-foreground/80">
+            <span
+              className={cn("h-2 w-2 shrink-0 rounded-full", account.dot)}
+            />
             <span className="truncate">{account.label}</span>
           </p>
         )}
-        <div className="mb-3 flex items-start justify-between gap-4">
-          <h1 className="min-w-0 break-words text-lg font-semibold">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <h1 className="min-w-0 break-words text-[22px] font-bold leading-tight tracking-title md:text-[26px]">
             {detail.subject}
           </h1>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onReply}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+            className="shrink-0"
           >
-            <Reply className="h-4 w-4" /> {t("mail.reply")}
-          </button>
+            <Reply /> {t("mail.reply")}
+          </Button>
         </div>
-        <div className="space-y-0.5 text-sm">
+        <div className="space-y-1 text-[14px]">
           <p>
-            <span className="text-muted-foreground">{t("mail.fromLabel")} </span>
+            <span className="text-muted-foreground">
+              {t("mail.fromLabel")}{" "}
+            </span>
             {fmtAddr(detail.from, t("mail.unknownSender"))}
           </p>
           <p>
@@ -871,17 +910,17 @@ function MessageView({
               ` · ${t("mail.ccLabel")} ${fmtAddr(detail.cc, t("mail.unknownSender"))}`}
           </p>
           {detail.date && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[12px] text-muted-foreground">
               {new Date(detail.date).toLocaleString()}
             </p>
           )}
         </div>
         {detail.attachments.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             {detail.attachments.map((a, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground"
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-[12px] text-foreground/80"
               >
                 <Paperclip className="h-3 w-3" />
                 {a.filename}
@@ -901,7 +940,7 @@ function MessageView({
             srcDoc={detail.html}
           />
         ) : (
-          <pre className="whitespace-pre-wrap p-5 font-sans text-sm leading-7 text-foreground/90">
+          <pre className="whitespace-pre-wrap px-4 py-5 font-sans text-[15px] leading-7 text-foreground/90 md:px-8 md:py-6">
             {detail.text || t("mail.emptyMessage")}
           </pre>
         )}
@@ -972,105 +1011,105 @@ function ComposeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6">
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-t-xl border border-border bg-card shadow-xl sm:rounded-xl">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">
-            {t("mail.compose.title")}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label={t("common.close")}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="space-y-px overflow-y-auto">
-          {accounts.length > 1 ? (
-            <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
-              <span className="w-14 shrink-0 text-muted-foreground">
-                {t("mail.compose.from")}
-              </span>
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent outline-none"
-              >
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <Field
-              label={t("mail.compose.from")}
-              value={accounts.find((a) => a.id === accountId)?.email ?? ""}
-              readOnly
-            />
-          )}
-          <FieldInput
-            label={t("mail.compose.to")}
-            value={to}
-            onChange={setTo}
-            placeholder={t("mail.compose.toPlaceholder")}
-          />
-          {showCc ? (
-            <FieldInput
-              label={t("mail.compose.cc")}
-              value={cc}
-              onChange={setCc}
-              placeholder={t("mail.compose.ccPlaceholder")}
-            />
-          ) : (
-            <button
-              onClick={() => setShowCc(true)}
-              className="px-4 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              + {t("mail.compose.addCc")}
-            </button>
-          )}
-          <FieldInput
-            label={t("mail.compose.subject")}
-            value={subject}
-            onChange={setSubject}
-            placeholder={t("mail.compose.subjectPlaceholder")}
-          />
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={t("mail.compose.bodyPlaceholder")}
-            rows={12}
-            className="w-full resize-none bg-transparent px-4 py-3 text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-        {error && (
-          <p className="px-4 pb-1 text-xs text-destructive">{error}</p>
-        )}
-        <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
-          <button
-            onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-          >
-            {t("mail.compose.discard")}
-          </button>
-          <button
-            onClick={send}
-            disabled={sending || !to.trim()}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t("mail.compose.title")}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>{t("mail.compose.from")}</Label>
+            {accounts.length > 1 ? (
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.displayName
+                        ? `${a.displayName} · ${a.email}`
+                        : a.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             ) : (
-              <Send className="h-4 w-4" />
+              <Input
+                value={accounts.find((a) => a.id === accountId)?.email ?? ""}
+                readOnly
+              />
             )}
-            {t("mail.compose.send")}
-          </button>
+          </div>
+          <div className={cn("grid gap-3", showCc && "sm:grid-cols-2")}>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="compose-to">{t("mail.compose.to")}</Label>
+                {!showCc && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCc(true)}
+                    className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    + {t("mail.compose.addCc")}
+                  </button>
+                )}
+              </div>
+              <Input
+                id="compose-to"
+                type="email"
+                inputMode="email"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                placeholder={t("mail.compose.toPlaceholder")}
+              />
+            </div>
+            {showCc && (
+              <div className="space-y-2">
+                <Label htmlFor="compose-cc">{t("mail.compose.cc")}</Label>
+                <Input
+                  id="compose-cc"
+                  value={cc}
+                  onChange={(e) => setCc(e.target.value)}
+                  placeholder={t("mail.compose.ccPlaceholder")}
+                />
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="compose-subject">{t("mail.compose.subject")}</Label>
+            <Input
+              id="compose-subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder={t("mail.compose.subjectPlaceholder")}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="compose-body">{t("mail.compose.body")}</Label>
+            <Textarea
+              id="compose-body"
+              rows={10}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder={t("mail.compose.bodyPlaceholder")}
+            />
+          </div>
+          {error && <p className="text-[13px] text-destructive">{error}</p>}
         </div>
-      </div>
-    </div>
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} disabled={sending}>
+            {t("mail.compose.discard")}
+          </Button>
+          <Button onClick={send} disabled={sending || !to.trim()}>
+            {sending ? <Loader2 className="animate-spin" /> : <Send />}
+            {t("mail.compose.send")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1125,195 +1164,151 @@ function ConnectModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold">
-            {t("mail.connect.title")}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label={t("common.close")}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t("mail.connect.title")}</DialogTitle>
+          {preset?.hint && (
+            <DialogDescription>
+              {translateProviderHint(t, preset.id, preset.hint)}
+            </DialogDescription>
+          )}
+        </DialogHeader>
 
-        <div className="space-y-3">
-          <div className="flex gap-2">
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!busy && email && password) submit();
+          }}
+        >
+          <div className="segmented flex w-full">
             {Object.values(PROVIDER_PRESETS).map((p) => (
               <button
                 key={p.id}
+                type="button"
                 onClick={() => setProvider(p.id)}
-                className={cn(
-                  "flex-1 rounded-lg border px-3 py-2 text-sm font-medium",
-                  provider === p.id
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-accent"
-                )}
+                data-active={provider === p.id}
+                className="segmented-item h-9 flex-1"
               >
                 {translateProviderLabel(t, p.id, p.label)}
               </button>
             ))}
           </div>
 
-          {preset?.hint && (
-            <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              {translateProviderHint(t, preset.id, preset.hint)}
-            </p>
-          )}
-
-          <Labeled label={t("mail.connect.email")}>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="connect-email">{t("mail.connect.email")}</Label>
+            <Input
+              id="connect-email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
+              inputMode="email"
+              autoComplete="username"
               placeholder={t("mail.connect.emailPlaceholder")}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
-          </Labeled>
+          </div>
 
-          <Labeled label={t("mail.connect.appPassword")}>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="connect-password">
+              {t("mail.connect.appPassword")}
+            </Label>
+            <Input
+              id="connect-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
+              autoComplete="current-password"
               placeholder="xxxx-xxxx-xxxx-xxxx"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
-          </Labeled>
+          </div>
 
           {provider === "imap" && (
-            <div className="grid grid-cols-2 gap-2">
-              <Labeled label={t("mail.connect.imapHost")}>
-                <input
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="connect-imap">
+                  {t("mail.connect.imapHost")}
+                </Label>
+                <Input
+                  id="connect-imap"
                   value={imapHost}
                   onChange={(e) => setImapHost(e.target.value)}
                   placeholder="imap.example.com"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                 />
-              </Labeled>
-              <Labeled label={t("mail.connect.smtpHost")}>
-                <input
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="connect-smtp">
+                  {t("mail.connect.smtpHost")}
+                </Label>
+                <Input
+                  id="connect-smtp"
                   value={smtpHost}
                   onChange={(e) => setSmtpHost(e.target.value)}
                   placeholder="smtp.example.com"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                 />
-              </Labeled>
+              </div>
             </div>
           )}
 
-          <Labeled label={t("mail.connect.displayName")}>
-            <input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder={t("mail.connect.displayNamePlaceholder")}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-            />
-          </Labeled>
-
-          <div>
-            <span className="mb-1 block text-xs font-medium text-muted-foreground">
-              {t("mail.connect.color")}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {(Object.keys(MAIL_ACCOUNT_COLORS) as MailAccountColor[]).map(
-                (c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    aria-label={c}
-                    aria-pressed={color === c}
-                    className={cn(
-                      "h-6 w-6 rounded-full ring-offset-2 ring-offset-card",
-                      MAIL_ACCOUNT_COLORS[c],
-                      color === c
-                        ? "ring-2 ring-foreground"
-                        : "hover:ring-2 hover:ring-border"
-                    )}
-                  />
-                )
-              )}
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+            <div className="space-y-2">
+              <Label htmlFor="connect-name">
+                {t("mail.connect.displayName")}
+              </Label>
+              <Input
+                id="connect-name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={t("mail.connect.displayNamePlaceholder")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("mail.connect.color")}</Label>
+              <div className="flex h-11 items-center gap-1.5">
+                {(Object.keys(MAIL_ACCOUNT_COLORS) as MailAccountColor[]).map(
+                  (c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setColor(c)}
+                      aria-label={c}
+                      aria-pressed={color === c}
+                      className={cn(
+                        "h-6 w-6 rounded-full ring-offset-2 ring-offset-card transition-shadow",
+                        MAIL_ACCOUNT_COLORS[c],
+                        color === c
+                          ? "ring-2 ring-foreground"
+                          : "hover:ring-2 hover:ring-border"
+                      )}
+                    />
+                  )
+                )}
+              </div>
             </div>
           </div>
 
-          {error && <p className="text-xs text-destructive">{error}</p>}
+          {error && (
+            <p className="rounded-[14px] bg-destructive/10 px-4 py-3 text-[13px] text-destructive">
+              {error}
+            </p>
+          )}
 
-          <button
-            onClick={submit}
-            disabled={busy || !email || !password}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {busy ? t("mail.connect.verifying") : t("mail.connect.submit")}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Labeled({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted-foreground">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function Field({
-  label,
-  value,
-  readOnly,
-}: {
-  label: string;
-  value: string;
-  readOnly?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
-      <span className="w-14 shrink-0 text-muted-foreground">{label}</span>
-      <input
-        value={value}
-        readOnly={readOnly}
-        className="flex-1 bg-transparent outline-none"
-      />
-    </div>
-  );
-}
-
-function FieldInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
-      <span className="w-14 shrink-0 text-muted-foreground">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-      />
-    </div>
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={busy}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={busy || !email || !password}>
+              {busy && <Loader2 className="animate-spin" />}
+              {busy ? t("mail.connect.verifying") : t("mail.connect.submit")}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
