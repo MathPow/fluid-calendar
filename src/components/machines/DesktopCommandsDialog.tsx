@@ -348,7 +348,7 @@ export function DesktopCommandsDialog({
                 ))}
               </div>
               <form
-                className="flex gap-2"
+                className="flex flex-col gap-2 sm:flex-row"
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!value.trim()) return;
@@ -362,6 +362,10 @@ export function DesktopCommandsDialog({
                   placeholder={
                     quick.placeholderKey ? t(quick.placeholderKey) : undefined
                   }
+                  aria-label={t(quick.labelKey)}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="font-mono text-[13px]"
                 />
                 <Button type="submit" disabled={sending || !value.trim()}>
@@ -383,11 +387,12 @@ export function DesktopCommandsDialog({
                 <Terminal className="h-3.5 w-3.5" />{" "}
                 {t("machines.command.shellLabel")}
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={shell}
                   onChange={(e) => setShell(e.target.value)}
                   placeholder={t("machines.command.shellPlaceholder")}
+                  aria-label={t("machines.command.shellLabel")}
                   className="font-mono text-[13px]"
                   spellCheck={false}
                   autoCapitalize="off"
