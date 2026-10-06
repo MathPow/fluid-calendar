@@ -195,7 +195,7 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                       key={m.id}
                       className="tile flex min-w-0 flex-col p-5 md:p-6"
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="min-w-0">
                           <h3 className="flex items-center gap-2.5 text-[19px] font-bold leading-tight tracking-title">
                             {!waiting && <StatusDot health={health} />}
@@ -208,7 +208,7 @@ export function MachinesBoard({ machines }: { machines: MachineRow[] }) {
                             {m.provider && ` · ${m.provider}`}
                           </p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
+                        <div className="flex shrink-0 flex-wrap items-center gap-1">
                           {m.ttydUrl && (
                             <Button variant="outline" size="sm" asChild>
                               <a

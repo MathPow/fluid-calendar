@@ -328,7 +328,7 @@ export function DesktopCommandsDialog({
                 ))}
               </div>
               <form
-                className="flex gap-2"
+                className="flex flex-col gap-2 sm:flex-row"
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!value.trim()) return;
@@ -340,6 +340,10 @@ export function DesktopCommandsDialog({
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
                   placeholder={quick.placeholder}
+                  aria-label={quick.label}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="font-mono text-[13px]"
                 />
                 <Button type="submit" disabled={sending || !value.trim()}>
@@ -360,11 +364,12 @@ export function DesktopCommandsDialog({
               <p className="etiquette flex items-center gap-1.5">
                 <Terminal className="h-3.5 w-3.5" /> Commande shell
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={shell}
                   onChange={(e) => setShell(e.target.value)}
                   placeholder="git -C ~/repos/elixyr-calculator pull"
+                  aria-label="Commande shell"
                   className="font-mono text-[13px]"
                   spellCheck={false}
                   autoCapitalize="off"
