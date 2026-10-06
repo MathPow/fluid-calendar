@@ -298,6 +298,7 @@ export function RoutineBlockDialog() {
                 </span>
               </span>
               <Switch
+                aria-label="Planifier des tâches ici"
                 checked={form.schedulable}
                 onCheckedChange={(v) => set("schedulable", v)}
               />

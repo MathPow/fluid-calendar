@@ -59,7 +59,7 @@ export function ColorField({
         <label
           title="Couleur personnalisée"
           className={cn(
-            "relative flex h-11 w-14 cursor-pointer items-center justify-center rounded-[14px] border-2 transition-transform hover:scale-105",
+            "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-foreground relative flex h-11 w-14 cursor-pointer items-center justify-center rounded-[14px] border-2 transition-transform hover:scale-105",
             !inPalette ? "border-foreground" : "border-dashed border-border"
           )}
           style={
