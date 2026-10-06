@@ -100,9 +100,7 @@ export function RoutineBlockDialog() {
       // follows the new kind.
       title:
         !f.title ||
-        ROUTINE_KINDS.some(
-          (k) => k.label === f.title || t(k.labelKey) === f.title
-        )
+        ROUTINE_KINDS.some((k) => t(k.labelKey) === f.title)
           ? t(preset.labelKey)
           : f.title,
       schedulable: block ? f.schedulable : preset.schedulable,

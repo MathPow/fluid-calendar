@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 
+import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +22,7 @@ type Pending = (ok: boolean) => void;
  * the PIN, then replays the same request, so no caller has to know about it.
  */
 export function StepUpProvider() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +80,7 @@ export function StepUpProvider() {
       });
       if (res.ok) return settle(true);
       const body = await res.json().catch(() => null);
-      setError(body?.error ?? "Code PIN refusé");
+      setError(body?.error ?? t("auth.stepUp.refused"));
       setPin("");
     } finally {
       setBusy(false);
@@ -90,9 +92,9 @@ export function StepUpProvider() {
       <DialogContent className="sm:max-w-xs">
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>Code PIN</DialogTitle>
+            <DialogTitle>{t("auth.stepUp.title")}</DialogTitle>
             <DialogDescription>
-              Cette action roule du code sur une machine. Valable 15 minutes.
+              {t("auth.stepUp.description")}
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -106,7 +108,7 @@ export function StepUpProvider() {
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={busy || !pin}>
-              Valider
+              {t("common.submit")}
             </Button>
           </DialogFooter>
         </form>

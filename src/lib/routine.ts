@@ -12,17 +12,16 @@ export type RoutineKind = "work" | "sleep" | "sport" | "detente" | "perso" | "ot
 
 export const ROUTINE_KINDS: {
   value: RoutineKind;
-  label: string;
   labelKey: string;
   color: string;
   schedulable: boolean;
 }[] = [
-  { value: "work", label: "Travail", labelKey: "calendar.routineKinds.work", color: "#a8ccff", schedulable: true },
-  { value: "sleep", label: "Sommeil", labelKey: "calendar.routineKinds.sleep", color: "#c9b8f0", schedulable: false },
-  { value: "sport", label: "Sport", labelKey: "calendar.routineKinds.sport", color: "#9fe0bd", schedulable: false },
-  { value: "detente", label: "Détente", labelKey: "calendar.routineKinds.detente", color: "#ffc2b8", schedulable: false },
-  { value: "perso", label: "Perso", labelKey: "calendar.routineKinds.perso", color: "#ffd88a", schedulable: false },
-  { value: "other", label: "Autre", labelKey: "calendar.routineKinds.other", color: "#d9d4cc", schedulable: false },
+  { value: "work", labelKey: "calendar.routineKinds.work", color: "#a8ccff", schedulable: true },
+  { value: "sleep", labelKey: "calendar.routineKinds.sleep", color: "#c9b8f0", schedulable: false },
+  { value: "sport", labelKey: "calendar.routineKinds.sport", color: "#9fe0bd", schedulable: false },
+  { value: "detente", labelKey: "calendar.routineKinds.detente", color: "#ffc2b8", schedulable: false },
+  { value: "perso", labelKey: "calendar.routineKinds.perso", color: "#ffd88a", schedulable: false },
+  { value: "other", labelKey: "calendar.routineKinds.other", color: "#d9d4cc", schedulable: false },
 ];
 
 export const WEEKDAYS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];

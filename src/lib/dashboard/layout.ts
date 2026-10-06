@@ -23,31 +23,29 @@ export const GRID_COLS = 4;
 /**
  * A designed format: a size plus the layout the section uses at that size.
  * Sections only come in these, so each one always looks composed.
+ * The user-visible label is resolved from i18n via the `presetLabel` helper.
  */
 export interface Preset {
   id: string;
-  label: string;
   w: number;
   h: number;
 }
 
 export type OptionDef =
-  | { key: string; label: string; kind: "bool"; default: boolean }
+  | { key: string; kind: "bool"; default: boolean }
   | {
       key: string;
-      label: string;
       kind: "choice";
-      choices: { value: string; label: string }[];
+      choices: { value: string }[];
       default: string;
     }
   | {
       key: string;
-      label: string;
       kind: "multi";
-      choices: { value: string; label: string }[];
+      choices: { value: string }[];
       default: string[];
     }
-  | { key: string; label: string; kind: "links"; default: CustomLink[] };
+  | { key: string; kind: "links"; default: CustomLink[] };
 
 /**
  * A link the user added to « Accès rapide »: any address, or a project /
@@ -90,8 +88,6 @@ export const CustomLinkInput = z.object({
 });
 
 export interface WidgetMeta {
-  title: string;
-  description: string;
   /** First one is the default. */
   presets: Preset[];
   options: OptionDef[];
@@ -110,287 +106,187 @@ export const QUICK_LINK_IDS = [
   "settings",
 ] as const;
 
-const QUICK_LINK_LABELS: Record<(typeof QUICK_LINK_IDS)[number], string> = {
-  calendar: "Calendrier",
-  tasks: "Tâches",
-  focus: "Focus",
-  email: "Courriel",
-  notes: "Notes",
-  projets: "Projets",
-  contacts: "Contacts",
-  machines: "Machines",
-  fiscalite: "Fiscalité",
-  settings: "Réglages",
-};
+const count = (values: number[]) => values.map((v) => ({ value: String(v) }));
 
-const count = (values: number[]) =>
-  values.map((v) => ({ value: String(v), label: String(v) }));
-
+/**
+ * Widget metadata lives here as pure data; user-visible labels are resolved
+ * through the `widgetTitle`, `presetLabel`, `optionLabel`, `choiceLabel`
+ * helpers in BentoGrid (keys `dashboard.widgets.<type>.*`).
+ */
 export const WIDGETS: Record<WidgetType, WidgetMeta> = {
   "next-up": {
-    title: "Prochain événement",
-    description: "Le prochain rendez-vous au calendrier.",
     presets: [
-      { id: "hero", label: "Bannière", w: 3, h: 2 },
-      { id: "strip", label: "Bandeau", w: 4, h: 1 },
-      { id: "square", label: "Carré", w: 2, h: 2 },
-      { id: "compact", label: "Compact", w: 1, h: 2 },
+      { id: "hero", w: 3, h: 2 },
+      { id: "strip", w: 4, h: 1 },
+      { id: "square", w: 2, h: 2 },
+      { id: "compact", w: 1, h: 2 },
     ],
     options: [
-      {
-        key: "location",
-        label: "Lieu et calendrier",
-        kind: "bool",
-        default: true,
-      },
-      {
-        key: "after",
-        label: "Événements suivants",
-        kind: "choice",
-        choices: count([0, 2, 3]),
-        default: "0",
-      },
+      { key: "location", kind: "bool", default: true },
+      { key: "after", kind: "choice", choices: count([0, 2, 3]), default: "0" },
     ],
   },
   today: {
-    title: "Aujourd'hui",
-    description: "La date, la semaine et les tâches du jour.",
     presets: [
-      { id: "tile", label: "Tuile", w: 1, h: 2 },
-      { id: "mini", label: "Mini", w: 1, h: 1 },
-      { id: "wide", label: "Large", w: 2, h: 2 },
+      { id: "tile", w: 1, h: 2 },
+      { id: "mini", w: 1, h: 1 },
+      { id: "wide", w: 2, h: 2 },
     ],
     options: [
-      { key: "week", label: "Numéro de semaine", kind: "bool", default: true },
-      { key: "due", label: "Tâches dues", kind: "bool", default: true },
+      { key: "week", kind: "bool", default: true },
+      { key: "due", kind: "bool", default: true },
     ],
   },
   month: {
-    title: "Mois",
-    description: "Le mois en grille, un point sur chaque jour chargé.",
     presets: [
-      { id: "compact", label: "Compact", w: 1, h: 3 },
-      { id: "split", label: "Côte à côte", w: 2, h: 3 },
-      { id: "large", label: "Grand", w: 4, h: 3 },
+      { id: "compact", w: 1, h: 3 },
+      { id: "split", w: 2, h: 3 },
+      { id: "large", w: 4, h: 3 },
     ],
     options: [
-      { key: "tasks", label: "Tâches dues", kind: "bool", default: true },
+      { key: "tasks", kind: "bool", default: true },
       {
         key: "weekStart",
-        label: "La semaine commence",
         kind: "choice",
-        choices: [
-          { value: "auto", label: "Réglages" },
-          { value: "monday", label: "Lundi" },
-          { value: "sunday", label: "Dimanche" },
-        ],
+        choices: [{ value: "auto" }, { value: "monday" }, { value: "sunday" }],
         default: "auto",
       },
     ],
   },
   shortcuts: {
-    title: "Raccourcis",
-    description: "Tes boutons de lancement, en un tap sur la machine.",
     presets: [
-      { id: "row", label: "Rangée", w: 4, h: 1 },
-      { id: "half", label: "Demi", w: 2, h: 1 },
-      { id: "pad", label: "Pavé", w: 2, h: 2 },
-      { id: "column", label: "Colonne", w: 1, h: 3 },
+      { id: "row", w: 4, h: 1 },
+      { id: "half", w: 2, h: 1 },
+      { id: "pad", w: 2, h: 2 },
+      { id: "column", w: 1, h: 3 },
     ],
     options: [
-      {
-        key: "machine",
-        label: "Nom de la machine",
-        kind: "bool",
-        default: true,
-      },
-      { key: "add", label: "Bouton « + »", kind: "bool", default: true },
+      { key: "machine", kind: "bool", default: true },
+      { key: "add", kind: "bool", default: true },
     ],
   },
   news: {
-    title: "Nouvelles",
-    description: "Les dernières notifications, non lues d'abord.",
     presets: [
-      { id: "wide", label: "Large", w: 4, h: 3 },
-      { id: "strip", label: "Bande", w: 4, h: 2 },
-      { id: "half", label: "Demi", w: 2, h: 3 },
-      { id: "column", label: "Colonne", w: 1, h: 3 },
+      { id: "wide", w: 4, h: 3 },
+      { id: "strip", w: 4, h: 2 },
+      { id: "half", w: 2, h: 3 },
+      { id: "column", w: 1, h: 3 },
     ],
-    options: [
-      {
-        key: "unreadOnly",
-        label: "Non lues seulement",
-        kind: "bool",
-        default: false,
-      },
-    ],
+    options: [{ key: "unreadOnly", kind: "bool", default: false }],
   },
   tasks: {
-    title: "Tâches ouvertes",
-    description: "Les tâches à faire, la plus urgente d'abord.",
     presets: [
-      { id: "column", label: "Colonne", w: 1, h: 4 },
-      { id: "list", label: "Liste", w: 2, h: 3 },
-      { id: "wide", label: "Deux colonnes", w: 4, h: 2 },
-      { id: "compact", label: "Compact", w: 1, h: 2 },
+      { id: "column", w: 1, h: 4 },
+      { id: "list", w: 2, h: 3 },
+      { id: "wide", w: 4, h: 2 },
+      { id: "compact", w: 1, h: 2 },
     ],
     options: [
       {
         key: "filter",
-        label: "Afficher",
         kind: "choice",
-        choices: [
-          { value: "all", label: "Toutes" },
-          { value: "soon", label: "Dues ≤ 7 j" },
-          { value: "active", label: "En cours" },
-        ],
+        choices: [{ value: "all" }, { value: "soon" }, { value: "active" }],
         default: "all",
       },
       {
         key: "limit",
-        label: "Nombre",
         kind: "choice",
-        choices: [...count([5, 10, 20]), { value: "all", label: "Tout" }],
+        choices: [...count([5, 10, 20]), { value: "all" }],
         default: "10",
       },
-      { key: "due", label: "Échéances", kind: "bool", default: true },
+      { key: "due", kind: "bool", default: true },
     ],
   },
   dossier: {
-    title: "Dossier",
-    description: "Horaire, projets et récents dans un seul bloc à onglets.",
     presets: [
-      { id: "standard", label: "Standard", w: 3, h: 4 },
-      { id: "wide", label: "Large", w: 4, h: 3 },
-      { id: "half", label: "Demi", w: 2, h: 4 },
+      { id: "standard", w: 3, h: 4 },
+      { id: "wide", w: 4, h: 3 },
+      { id: "half", w: 2, h: 4 },
     ],
     options: [
       {
         key: "tab",
-        label: "Onglet de départ",
         kind: "choice",
         choices: [
-          { value: "schedule", label: "Horaire" },
-          { value: "projects", label: "Projets" },
-          { value: "recent", label: "Récents" },
+          { value: "schedule" },
+          { value: "projects" },
+          { value: "recent" },
         ],
         default: "schedule",
       },
     ],
   },
   schedule: {
-    title: "Horaire",
-    description: "Les événements à venir, dans l'ordre.",
     presets: [
-      { id: "list", label: "Liste", w: 2, h: 3 },
-      { id: "column", label: "Colonne", w: 1, h: 3 },
-      { id: "wide", label: "Large", w: 4, h: 2 },
+      { id: "list", w: 2, h: 3 },
+      { id: "column", w: 1, h: 3 },
+      { id: "wide", w: 4, h: 2 },
     ],
     options: [
       {
         key: "range",
-        label: "Période",
         kind: "choice",
-        choices: [
-          { value: "today", label: "Aujourd'hui" },
-          { value: "3d", label: "3 jours" },
-          { value: "week", label: "7 jours" },
-        ],
+        choices: [{ value: "today" }, { value: "3d" }, { value: "week" }],
         default: "today",
       },
-      {
-        key: "calendar",
-        label: "Nom du calendrier",
-        kind: "bool",
-        default: true,
-      },
+      { key: "calendar", kind: "bool", default: true },
     ],
   },
   projects: {
-    title: "Projets",
-    description: "Tes projets par organisation, avec leur terminal.",
     presets: [
-      { id: "list", label: "Liste", w: 2, h: 3 },
-      { id: "wide", label: "Colonnes", w: 4, h: 3 },
-      { id: "column", label: "Colonne", w: 1, h: 3 },
+      { id: "list", w: 2, h: 3 },
+      { id: "wide", w: 4, h: 3 },
+      { id: "column", w: 1, h: 3 },
     ],
     options: [
       {
         key: "top",
-        label: "Projets par organisation",
         kind: "choice",
         choices: count([2, 4, 6]),
         default: "4",
       },
-      {
-        key: "description",
-        label: "Descriptions",
-        kind: "bool",
-        default: true,
-      },
+      { key: "description", kind: "bool", default: true },
     ],
   },
   recent: {
-    title: "Récents",
-    description: "Notes modifiées et enregistrements synchronisés.",
     presets: [
-      { id: "list", label: "Liste", w: 2, h: 3 },
-      { id: "column", label: "Colonne", w: 1, h: 3 },
-      { id: "wide", label: "Deux colonnes", w: 4, h: 2 },
+      { id: "list", w: 2, h: 3 },
+      { id: "column", w: 1, h: 3 },
+      { id: "wide", w: 4, h: 2 },
     ],
     options: [
       {
         key: "kind",
-        label: "Afficher",
         kind: "choice",
-        choices: [
-          { value: "all", label: "Tout" },
-          { value: "note", label: "Notes" },
-          { value: "recording", label: "Enregistr." },
-        ],
+        choices: [{ value: "all" }, { value: "note" }, { value: "recording" }],
         default: "all",
       },
     ],
   },
   machines: {
-    title: "Machines",
-    description: "Un point par machine : vert, jaune ou rouge.",
     presets: [
-      { id: "strip", label: "Bandeau", w: 4, h: 1 },
-      { id: "half", label: "Demi", w: 2, h: 1 },
-      { id: "list", label: "Liste", w: 1, h: 2 },
-      { id: "grid", label: "Grille", w: 2, h: 2 },
+      { id: "strip", w: 4, h: 1 },
+      { id: "half", w: 2, h: 1 },
+      { id: "list", w: 1, h: 2 },
+      { id: "grid", w: 2, h: 2 },
     ],
-    options: [
-      {
-        key: "unmonitored",
-        label: "Machines non surveillées",
-        kind: "bool",
-        default: true,
-      },
-    ],
+    options: [{ key: "unmonitored", kind: "bool", default: true }],
   },
   "quick-links": {
-    title: "Accès rapide",
-    description: "Des boutons vers les autres onglets de DreamDash.",
     presets: [
-      { id: "row", label: "Rangée", w: 4, h: 1 },
-      { id: "icons", label: "Icônes", w: 2, h: 1 },
-      { id: "grid", label: "Grille", w: 2, h: 2 },
-      { id: "column", label: "Colonne", w: 1, h: 3 },
+      { id: "row", w: 4, h: 1 },
+      { id: "icons", w: 2, h: 1 },
+      { id: "grid", w: 2, h: 2 },
+      { id: "column", w: 1, h: 3 },
     ],
     options: [
       {
         key: "links",
-        label: "Onglets",
         kind: "multi",
-        choices: QUICK_LINK_IDS.map((id) => ({
-          value: id,
-          label: QUICK_LINK_LABELS[id],
-        })),
+        choices: QUICK_LINK_IDS.map((id) => ({ value: id })),
         default: [...QUICK_LINK_IDS],
       },
-      { key: "custom", label: "Mes liens", kind: "links", default: [] },
+      { key: "custom", kind: "links", default: [] },
     ],
   },
 };

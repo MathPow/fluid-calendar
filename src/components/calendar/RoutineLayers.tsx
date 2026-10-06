@@ -34,33 +34,42 @@ import { useRoutineStore } from "@/store/routine";
 import { useSettingsStore } from "@/store/settings";
 
 /** A first week to edit rather than an empty screen: the usual three blocks. */
-const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
+const STARTER: {
+  titleKey: string;
+  block: Omit<RoutineBlockLite, "id" | "layerId" | "title">;
+}[] = [
   {
-    title: "Travail",
-    kind: "work",
-    color: null,
-    days: [1, 2, 3, 4, 5],
-    startTime: "09:00",
-    endTime: "17:00",
-    schedulable: true,
+    titleKey: "calendar.routineLayers.starter.work",
+    block: {
+      kind: "work",
+      color: null,
+      days: [1, 2, 3, 4, 5],
+      startTime: "09:00",
+      endTime: "17:00",
+      schedulable: true,
+    },
   },
   {
-    title: "Sommeil",
-    kind: "sleep",
-    color: null,
-    days: [0, 1, 2, 3, 4, 5, 6],
-    startTime: "23:00",
-    endTime: "07:00",
-    schedulable: false,
+    titleKey: "calendar.routineLayers.starter.sleep",
+    block: {
+      kind: "sleep",
+      color: null,
+      days: [0, 1, 2, 3, 4, 5, 6],
+      startTime: "23:00",
+      endTime: "07:00",
+      schedulable: false,
+    },
   },
   {
-    title: "Entraînement",
-    kind: "sport",
-    color: null,
-    days: [1, 3, 5],
-    startTime: "07:15",
-    endTime: "08:15",
-    schedulable: false,
+    titleKey: "calendar.routineLayers.starter.sport",
+    block: {
+      kind: "sport",
+      color: null,
+      days: [1, 3, 5],
+      startTime: "07:15",
+      endTime: "08:15",
+      schedulable: false,
+    },
   },
 ];
 
@@ -89,7 +98,8 @@ export function RoutineLayers() {
 
   const seed = async () => {
     setSeeding(true);
-    for (const block of STARTER) await store.createBlock(block);
+    for (const item of STARTER)
+      await store.createBlock({ ...item.block, title: t(item.titleKey) });
     setSeeding(false);
   };
 

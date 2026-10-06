@@ -12,7 +12,6 @@ const absPath = z
 
 export const DESKTOP_ACTIONS = {
   open_url: {
-    label: "Ouvrir une adresse",
     schema: z.object({
       url: z
         .string()
@@ -22,15 +21,12 @@ export const DESKTOP_ACTIONS = {
     }),
   },
   open_path: {
-    label: "Ouvrir un dossier ou un fichier",
     schema: z.object({ path: absPath }),
   },
   open_code: {
-    label: "Ouvrir dans VS Code",
     schema: z.object({ path: absPath }),
   },
   open_app: {
-    label: "Lancer une application",
     // A .desktop id: firefox, org.gnome.Nautilus, code…
     schema: z.object({
       app: z
@@ -40,22 +36,18 @@ export const DESKTOP_ACTIONS = {
     }),
   },
   notify: {
-    label: "Afficher une notification",
     schema: z.object({
       title: z.string().trim().min(1).max(120),
       body: z.string().trim().max(500).optional(),
     }),
   },
   clipboard: {
-    label: "Copier dans le presse-papiers",
     schema: z.object({ text: z.string().min(1).max(10_000) }),
   },
   lock: {
-    label: "Verrouiller l'écran",
     schema: z.object({}),
   },
   shell: {
-    label: "Commande shell (confirmée sur l'ordi)",
     schema: z.object({
       command: z.string().trim().min(1).max(2000),
       cwd: absPath.optional(),
@@ -65,7 +57,6 @@ export const DESKTOP_ACTIONS = {
     // Runs on the desktop agent without zenity — reserved for prompt shortcuts
     // that were explicitly approved at creation time. Never shown in the UI
     // action picker; the launcher-run route sets it directly.
-    label: "Prompt agent (sans confirmation)",
     schema: z.object({
       command: z.string().trim().min(1).max(4000),
       input: z.string().max(200_000).optional(),
