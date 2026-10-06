@@ -24,8 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { useT } from "@/i18n/client";
-import { terminalUrl, timeAgoFr } from "@/lib/projets/meta";
+import { useLocale, useT } from "@/i18n/client";
+import { terminalUrl, timeAgo } from "@/lib/projets/meta";
 
 import { MachineDialog, type MachineLite } from "./MachineDialog";
 
@@ -58,6 +58,7 @@ export function ProjectLocationsTile({
 }: ProjectLocationsTileProps) {
   const router = useRouter();
   const t = useT();
+  const locale = useLocale();
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [machineId, setMachineId] = useState<string>("");
@@ -188,7 +189,7 @@ export function ProjectLocationsTile({
                 <div className="flex w-full items-center gap-3 pl-12 sm:w-auto sm:pl-0">
                   <span className="mr-auto text-[12px] text-muted-foreground sm:mr-0">
                     {t("projects.locationsTile.seen", {
-                      ago: timeAgoFr(l.lastSeenAt),
+                      ago: timeAgo(l.lastSeenAt, locale),
                     })}
                   </span>
                   {/* Opens the folder in VS Code on that desktop (its agent). */}

@@ -251,9 +251,25 @@ export function normalizeUrl(input: string): string {
   return /^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? v : `https://${v}`;
 }
 
-export function timeAgoFr(date: Date | string | null | undefined): string {
+export function timeAgo(
+  date: Date | string | null | undefined,
+  locale: "fr" | "en" = "fr"
+): string {
   if (!date) return "—";
   const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (locale === "en") {
+    if (s < 60) return "just now";
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m} min ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h} h ago`;
+    const d = Math.floor(h / 24);
+    if (d < 30) return `${d} d ago`;
+    const mo = Math.floor(d / 30);
+    if (mo < 12) return `${mo} mo ago`;
+    const y = Math.floor(mo / 12);
+    return `${y} year${y > 1 ? "s" : ""} ago`;
+  }
   if (s < 60) return "à l'instant";
   const m = Math.floor(s / 60);
   if (m < 60) return `il y a ${m} min`;
@@ -264,6 +280,10 @@ export function timeAgoFr(date: Date | string | null | undefined): string {
   const mo = Math.floor(d / 30);
   if (mo < 12) return `il y a ${mo} mois`;
   return `il y a ${Math.floor(mo / 12)} an${mo >= 24 ? "s" : ""}`;
+}
+
+export function timeAgoFr(date: Date | string | null | undefined): string {
+  return timeAgo(date, "fr");
 }
 
 export const initials = (name: string) =>

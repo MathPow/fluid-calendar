@@ -12,13 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { useT } from "@/i18n/client";
+import { useLocale, useT } from "@/i18n/client";
 import {
   DEFAULT_PROJECT_COLOR,
   initials,
   readableTextOn,
   terminalUrl,
-  timeAgoFr,
+  timeAgo,
 } from "@/lib/projets/meta";
 import type { ProjectFull } from "@/lib/projets/queries";
 import { cn } from "@/lib/utils";
@@ -76,6 +76,7 @@ export function ProjectTile({
   onEdit: (project: ProjectFull) => void;
 }) {
   const t = useT();
+  const locale = useLocale();
   const href = `/projets/${encodeURIComponent(project.slug)}`;
   const latest = project.activities[0];
   const capsule = project.media[0];
@@ -148,7 +149,8 @@ export function ProjectTile({
             {(project.lastActivityAt || activities > 0) && (
               <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
                 {[
-                  project.lastActivityAt && timeAgoFr(project.lastActivityAt),
+                  project.lastActivityAt &&
+                    timeAgo(project.lastActivityAt, locale),
                   activities > 0 &&
                     t(
                       activities > 1
@@ -204,7 +206,7 @@ export function ProjectTile({
                 </span>
                 {c.lastActivityAt && (
                   <span className="text-[12px] text-muted-foreground">
-                    {timeAgoFr(c.lastActivityAt)}
+                    {timeAgo(c.lastActivityAt, locale)}
                   </span>
                 )}
               </Link>

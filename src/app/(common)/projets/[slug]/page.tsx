@@ -26,7 +26,7 @@ import {
   DEFAULT_PROJECT_COLOR,
   initials,
   pad2,
-  timeAgoFr,
+  timeAgo,
 } from "@/lib/projets/meta";
 import {
   machineSelect,
@@ -194,7 +194,7 @@ export default async function ProjetDetailPage({
       },
     project.lastActivityAt && {
       label: t("projects.detail.facts.lastActivity"),
-      value: timeAgoFr(project.lastActivityAt),
+      value: timeAgo(project.lastActivityAt, locale),
     },
     website && {
       label: t("projects.detail.facts.site"),
@@ -344,7 +344,8 @@ export default async function ProjetDetailPage({
                           {c.name}
                         </span>
                         <span className="text-[12px] text-muted-foreground">
-                          {c.lastActivityAt && timeAgoFr(c.lastActivityAt)}
+                          {c.lastActivityAt &&
+                            timeAgo(c.lastActivityAt, locale)}
                         </span>
                       </Link>
                     </li>
@@ -583,7 +584,7 @@ export default async function ProjetDetailPage({
             {project.lastActivityAt && (
               <Badge className="px-4 py-2 text-[13px]">
                 {t("projects.detail.badges.lastActivity", {
-                  ago: timeAgoFr(project.lastActivityAt),
+                  ago: timeAgo(project.lastActivityAt, locale),
                 })}
               </Badge>
             )}

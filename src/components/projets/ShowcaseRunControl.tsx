@@ -9,8 +9,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-import { useT } from "@/i18n/client";
-import { timeAgoFr } from "@/lib/projets/meta";
+import { useLocale, useT } from "@/i18n/client";
+import { timeAgo } from "@/lib/projets/meta";
 import type { ShowcaseRunView } from "@/lib/projets/showcase-runs";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +19,12 @@ const POLL_MS = 10_000;
 const isActive = (run: ShowcaseRunView | null) =>
   run?.status === "queued" || run?.status === "running";
 
-/** "depuis 3 min" without the "il y a". */
-const sinceFr = (date: string) => {
-  const ago = timeAgoFr(date);
+/** "depuis 3 min" / "for 3 min" without the leading "il y a" / "ago". */
+const since = (date: string, locale: "fr" | "en") => {
+  const ago = timeAgo(date, locale);
+  if (locale === "en") {
+    return ago.endsWith(" ago") ? `for ${ago.slice(0, -4)}` : "just now";
+  }
   return ago.startsWith("il y a ") ? `depuis ${ago.slice(7)}` : "à l'instant";
 };
 
@@ -162,6 +165,7 @@ export function ShowcaseRunControl({
 
 function RunStatus({ run }: { run: ShowcaseRunView }) {
   const t = useT();
+  const locale = useLocale();
   const [text, Icon, tone] = (() => {
     switch (run.status) {
       case "queued":
@@ -173,7 +177,7 @@ function RunStatus({ run }: { run: ShowcaseRunView }) {
       case "running":
         return [
           t("projects.showcase.status.running", {
-            since: sinceFr(run.startedAt ?? run.createdAt),
+            since: since(run.startedAt ?? run.createdAt, locale),
           }),
           Loader2,
           "text-foreground",
@@ -181,7 +185,7 @@ function RunStatus({ run }: { run: ShowcaseRunView }) {
       case "done":
         return [
           t("projects.showcase.status.done", {
-            ago: timeAgoFr(run.finishedAt ?? run.createdAt),
+            ago: timeAgo(run.finishedAt ?? run.createdAt, locale),
           }),
           Check,
           "text-muted-foreground",
@@ -207,7 +211,7 @@ function RunStatus({ run }: { run: ShowcaseRunView }) {
         {text}
         {run.status === "failed" && run.finishedAt && (
           <span className="font-normal text-muted-foreground">
-            · {timeAgoFr(run.finishedAt)}
+            · {timeAgo(run.finishedAt, locale)}
           </span>
         )}
       </p>
