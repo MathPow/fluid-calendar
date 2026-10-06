@@ -104,8 +104,8 @@ export function BoardView({
   };
 
   return (
-    <div className="flex h-full flex-col bg-background p-4">
-      <div className="space-y-4 overflow-y-auto md:hidden">
+    <div className="flex h-full min-h-0 flex-col bg-background p-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain md:hidden">
         <p className="text-xs text-muted-foreground">
           Glisse à droite pour terminer, à gauche pour supprimer.
         </p>
