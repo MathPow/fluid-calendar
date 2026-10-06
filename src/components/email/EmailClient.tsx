@@ -17,7 +17,9 @@ import {
   Reply,
   Search,
   Send,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -389,6 +391,65 @@ export function EmailClient() {
     setDetail(null);
   };
 
+  // Delete a message: optimistic drop + server call. If it was open, close it;
+  // if deletion fails, put it back where it was.
+  const deleteMessage = useCallback(
+    async (m: ListedMessage) => {
+      const prev = messages;
+      const index = prev.findIndex((x) => keyOf(x) === keyOf(m));
+      setMessages((xs) => xs.filter((x) => keyOf(x) !== keyOf(m)));
+      if (selected && keyOf(selected) === keyOf(m)) {
+        setSelected(null);
+        setDetail(null);
+      }
+      try {
+        const qs = new URLSearchParams({
+          accountId: m.accountId,
+          mailbox: m.mailbox,
+        });
+        const res = await fetch(`/api/mail/messages/${m.uid}?${qs}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(body?.error || `${res.status}`);
+        }
+        toast.success(t("mail.deleted"));
+      } catch (err) {
+        setMessages((xs) => {
+          const back = [...xs];
+          back.splice(Math.max(0, index), 0, m);
+          return back;
+        });
+        toast.error(t("mail.deleteFailed"), {
+          description: err instanceof Error ? err.message : undefined,
+        });
+      }
+    },
+    [messages, selected, t]
+  );
+
+  // Del / Backspace deletes the open message when the reading pane has focus.
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const target = e.target as HTMLElement | null;
+      // Don't eat the key inside an input, textarea or contenteditable.
+      const inEditable =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+      if (inEditable) return;
+      e.preventDefault();
+      void deleteMessage(selected);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selected, deleteMessage]);
+
   const runSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (accountId) loadMessages(accountId, mailbox, search, false);
@@ -707,11 +768,11 @@ export function EmailClient() {
                   ? accounts.find((a) => a.id === m.accountId)
                   : undefined;
                 return (
-                  <li key={keyOf(m)}>
+                  <li key={keyOf(m)} className="group relative">
                     <button
                       onClick={() => selectMessage(m)}
                       className={cn(
-                        "flex w-full flex-col gap-1 rounded-[20px] px-4 py-3 text-left transition-colors",
+                        "flex w-full flex-col gap-1 rounded-[20px] px-4 py-3 pr-10 text-left transition-colors",
                         selected && keyOf(selected) === keyOf(m)
                           ? "bg-secondary"
                           : "hover:bg-secondary/60"
@@ -755,6 +816,18 @@ export function EmailClient() {
                           <span className="truncate">{accountLabel(acct)}</span>
                         </span>
                       )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void deleteMessage(m);
+                      }}
+                      aria-label={t("mail.delete")}
+                      title={t("mail.delete")}
+                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-opacity hover:bg-negative hover:text-negative-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </li>
                 );
@@ -804,6 +877,7 @@ export function EmailClient() {
             detail={detail}
             onBack={closeMessage}
             onReply={() => startReply(detail, selected.accountId)}
+            onDelete={() => void deleteMessage(selected)}
             account={
               selectedAccount && (unified || accounts.length > 1)
                 ? {
@@ -862,11 +936,13 @@ function MessageView({
   detail,
   onBack,
   onReply,
+  onDelete,
   account,
 }: {
   detail: MessageDetail;
   onBack: () => void;
   onReply: () => void;
+  onDelete: () => void;
   /** Which box it came from — shown when several boxes are in play. */
   account?: { label: string; dot: string };
 }) {
@@ -887,14 +963,20 @@ function MessageView({
           <h1 className="min-w-0 break-words text-[22px] font-bold leading-tight tracking-title md:text-[26px]">
             {detail.subject}
           </h1>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onReply}
-            className="shrink-0"
-          >
-            <Reply /> {t("mail.reply")}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              title={t("mail.delete")}
+              aria-label={t("mail.delete")}
+            >
+              <Trash2 /> <span className="sr-only">{t("mail.delete")}</span>
+            </Button>
+            <Button variant="secondary" size="sm" onClick={onReply}>
+              <Reply /> {t("mail.reply")}
+            </Button>
+          </div>
         </div>
         <div className="space-y-1 text-[14px]">
           <p>

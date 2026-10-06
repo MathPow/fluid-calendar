@@ -80,6 +80,49 @@ export async function listMailboxes(acct: MailAccountConn): Promise<string[]> {
   });
 }
 
+/**
+ * The server's Trash folder. Prefers the IMAP SPECIAL-USE \Trash flag; falls
+ * back to a name match for servers (like older ones) that don't advertise it.
+ */
+async function findTrash(client: ImapFlow): Promise<string | null> {
+  const boxes = await client.list();
+  const special = boxes.find((b) => b.specialUse === "\\Trash");
+  if (special) return special.path;
+  const want = /^(trash|corbeille|deleted items?|bin|papelera|papierkorb)$/i;
+  const byName = boxes.find((b) => want.test(b.name));
+  return byName?.path ?? null;
+}
+
+/**
+ * Delete a message: move it to the server's Trash if there is one, otherwise
+ * flag it \\Deleted and expunge in place. Deleting from Trash expunges.
+ */
+export async function deleteMessage(
+  acct: MailAccountConn,
+  mailbox: string,
+  uid: number
+): Promise<{ movedTo: string | null }> {
+  return withClient(acct, async (client) => {
+    const trash = await findTrash(client);
+    const inTrash =
+      trash !== null && trash.toLowerCase() === mailbox.toLowerCase();
+
+    const lock = await client.getMailboxLock(mailbox);
+    try {
+      if (trash && !inTrash) {
+        await client.messageMove(String(uid), trash, { uid: true });
+        return { movedTo: trash };
+      }
+      // No Trash folder, or already in it: hard delete.
+      await client.messageFlagsAdd(String(uid), ["\\Deleted"], { uid: true });
+      await client.messageDelete(String(uid), { uid: true });
+      return { movedTo: null };
+    } finally {
+      lock.release();
+    }
+  });
+}
+
 const addrList = (a: unknown): Address[] => {
   const arr = (a as { name?: string; address?: string }[] | undefined) ?? [];
   return arr.map((x) => ({ name: x.name, address: x.address }));
