@@ -85,7 +85,7 @@ export function AccountMenu() {
   // session, so there is no sign-in button here; /auth/signin handles it.
   if (status !== "authenticated" || !session) return null;
 
-  const name = session.user?.name?.trim() || "You";
+  const name = session.user?.name?.trim() || t("account.fallbackName");
   const initials = name
     .split(/\s+/)
     .map((n) => n[0])
