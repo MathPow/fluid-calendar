@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { runAssistant } from "@/lib/assistant/agent";
+import { ASSISTANT_MODEL_IDS } from "@/lib/assistant/models";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 
@@ -28,6 +29,8 @@ const BodySchema = z.object({
     title: z.string().max(300).optional(),
     focus: z.string().max(1000).nullable().optional(),
   }),
+  /** The chat panel's model picker; absent = the server default. */
+  model: z.enum(ASSISTANT_MODEL_IDS).optional(),
 });
 
 /**
@@ -35,6 +38,13 @@ const BodySchema = z.object({
  * events (status / thinking / text / links / error / done); see
  * src/lib/assistant/agent.ts.
  */
+/** GET /api/assistant/chat — what the model picker can offer. */
+export async function GET(request: NextRequest) {
+  const auth = await authenticateRequest(request, LOG_SOURCE);
+  if ("response" in auth) return auth.response;
+  return NextResponse.json({ claude: !!process.env.ANTHROPIC_API_KEY });
+}
+
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
@@ -52,7 +62,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { messages, context } = parsed.data;
+  const { messages, context, model } = parsed.data;
   if (messages[messages.length - 1].role !== "user") {
     return NextResponse.json({ error: "Last message must be from the user" }, { status: 400 });
   }
@@ -63,7 +73,7 @@ export async function POST(request: NextRequest) {
       const send = (event: unknown) =>
         controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       try {
-        for await (const event of runAssistant(auth.userId, messages, context)) {
+        for await (const event of runAssistant(auth.userId, messages, context, model)) {
           if (request.signal.aborted) break;
           send(event);
         }

@@ -34,6 +34,7 @@ import { openDeepLink } from "@/hooks/use-deep-link";
 import { useAssistantStore } from "@/store/assistant";
 
 import { Mascot } from "./Mascot";
+import { ModelPicker, useEffectiveModel } from "./ModelPicker";
 
 /* ------------------------------------------------------------------ types */
 
@@ -130,6 +131,7 @@ export function AssistantWidget() {
   const router = useRouter();
   const pathname = usePathname();
   const focus = useAssistantStore((s) => s.focus);
+  const { model } = useEffectiveModel();
 
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<Pos>(DEFAULT_POS);
@@ -257,6 +259,7 @@ export function AssistantWidget() {
             title: document.title,
             focus,
           },
+          model,
         }),
       });
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -372,6 +375,7 @@ export function AssistantWidget() {
                 {focus || t("assistant.subtitle")}
               </div>
             </div>
+            <ModelPicker disabled={busy} />
             {messages.length > 0 && (
               <button
                 onClick={reset}

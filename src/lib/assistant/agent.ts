@@ -13,6 +13,7 @@ import { retrieveSources } from "@/lib/ask/retrieve";
 import { logger } from "@/lib/logger";
 
 import { USER_TZ } from "./links";
+import { type AssistantModelId, DEFAULT_ASSISTANT_MODEL } from "./models";
 import {
   type LinkItem,
   type LinkRegistry,
@@ -23,7 +24,8 @@ import {
 
 const LOG_SOURCE = "assistant-agent";
 
-const MODEL = process.env.ASSISTANT_MODEL || "claude-opus-5-5";
+/** Server default; the chat panel can pick another one per request. */
+const MODEL = process.env.ASSISTANT_MODEL || DEFAULT_ASSISTANT_MODEL;
 const EFFORT = (process.env.ASSISTANT_EFFORT || "medium") as
   | "low"
   | "medium"
@@ -90,12 +92,18 @@ function pickLinks(answer: string, registry: LinkRegistry): LinkItem[] {
 export async function* runAssistant(
   userId: string,
   history: ChatTurn[],
-  ctx: PageContext
+  ctx: PageContext,
+  /** From the chat panel's picker; the server default otherwise. */
+  requested?: AssistantModelId
 ): AsyncGenerator<AssistantEvent> {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (requested === "local" || !process.env.ANTHROPIC_API_KEY) {
     yield* runLocalFallback(userId, history, ctx);
     return;
   }
+  const model = requested ?? MODEL;
+  // Haiku 4.5 predates adaptive thinking and effort (both 400 there), the
+  // server-side refusal fallback and the dynamic-filtering web search.
+  const legacy = model.startsWith("claude-haiku-4");
 
   const client = new Anthropic();
   const registry: LinkRegistry = new Map();
@@ -111,19 +119,25 @@ export async function* runAssistant(
 
   const tools: Anthropic.Beta.BetaToolUnion[] = [
     ...TOOL_DEFS,
-    { type: "web_search_20260209", name: "web_search", max_uses: 4 },
+    legacy
+      ? { type: "web_search_20250305", name: "web_search", max_uses: 4 }
+      : { type: "web_search_20260209", name: "web_search", max_uses: 4 },
   ];
 
   let answer = "";
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     const stream = client.beta.messages.stream({
-      model: MODEL,
+      model,
       max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      thinking: { type: "adaptive", display: "summarized" },
-      output_config: { effort: EFFORT },
+      ...(legacy
+        ? {}
+        : {
+            betas: ["server-side-fallback-2026-07-01"],
+            fallbacks: "default" as const,
+            thinking: { type: "adaptive" as const, display: "summarized" as const },
+            output_config: { effort: EFFORT },
+          }),
       cache_control: { type: "ephemeral" },
       system: SYSTEM,
       tools,
