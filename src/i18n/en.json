@@ -2492,5 +2492,14 @@
   "tasks.notFound": "That task no longer exists.",
   "mail.folder.sent messages": "Sent",
   "mail.folder.deleted messages": "Trash",
-  "mail.folder.notes": "Notes"
+  "mail.folder.notes": "Notes",
+  "calendar.clipboard.copy": "Copy",
+  "calendar.clipboard.copied": "“{title}” copied",
+  "calendar.clipboard.pasted": "“{title}” pasted",
+  "calendar.clipboard.undo": "Undo",
+  "calendar.clipboard.failed": "Couldn't paste the block.",
+  "calendar.clipboard.noCalendar": "Pick a default calendar to paste this block.",
+  "calendar.clipboard.bar.title": "“{title}” copied.",
+  "calendar.clipboard.bar.hint": "Tap a slot or a day to paste it (or Ctrl+V under the mouse). Drag to create an event as usual.",
+  "calendar.clipboard.bar.done": "Done"
 }

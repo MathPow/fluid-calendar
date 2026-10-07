@@ -30,6 +30,7 @@ import { Task, TaskStatus } from "@/types/task";
 
 import { CalendarEventContent } from "./CalendarEventContent";
 import { EventModal } from "./EventModal";
+import { copyEvent, useCalendarClipboardKeys } from "./clipboard";
 import { EventQuickView } from "./EventQuickView";
 import {
   draftFromSelection,
@@ -69,6 +70,8 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
     }>
   >([]);
   const calendarRef = useRef<FullCalendar>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const clipboard = useCalendarClipboardKeys(containerRef);
   const tasks = useTaskStore((state) => state.tasks);
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [isTask, setIsTask] = useState(false);
@@ -236,6 +239,7 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
+    if (clipboard.pasteOnSelect(selectInfo)) return;
     if (useRoutineStore.getState().editing) {
       if (!selectInfo.allDay) {
         useRoutineStore
@@ -391,7 +395,9 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   );
 
   return (
-    <div className="h-full [&_.fc-daygrid-day-events]:!min-h-0 [&_.fc-daygrid-day-frame]:!min-h-0 [&_.fc-timegrid-axis-cushion]:!py-1 [&_.fc-timegrid-slot-label]:!py-1 [&_.fc-timegrid-slot]:!h-[35px]">
+    <div
+      ref={containerRef}
+      className="h-full [&_.fc-daygrid-day-events]:!min-h-0 [&_.fc-daygrid-day-frame]:!min-h-0 [&_.fc-timegrid-axis-cushion]:!py-1 [&_.fc-timegrid-slot-label]:!py-1 [&_.fc-timegrid-slot]:!h-[35px]">
       <FullCalendar
         ref={calendarRef}
         plugins={[timeGridPlugin, interactionPlugin]}
@@ -452,6 +458,8 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         eventResize={handleEventResize}
         datesSet={handleDatesSet}
         eventContent={renderEventContent}
+        eventMouseEnter={clipboard.onEventMouseEnter}
+        eventMouseLeave={clipboard.onEventMouseLeave}
       />
       {quickViewItem && (
         <EventQuickView
@@ -461,6 +469,14 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
           onEdit={handleQuickViewEdit}
           onDelete={handleQuickViewDelete}
           onStatusChange={handleQuickViewStatusChange}
+          onCopy={
+            isTask
+              ? undefined
+              : () => {
+                  copyEvent(quickViewItem as CalendarEvent);
+                  handleQuickViewClose();
+                }
+          }
           referenceElement={clickedElement}
           isTask={isTask}
         />

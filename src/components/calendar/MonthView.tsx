@@ -26,6 +26,7 @@ import { Task, TaskStatus } from "@/types/task";
 
 import { CalendarEventContent } from "./CalendarEventContent";
 import { EventModal } from "./EventModal";
+import { copyEvent, useCalendarClipboardKeys } from "./clipboard";
 import { EventQuickView } from "./EventQuickView";
 
 interface MonthViewProps {
@@ -60,6 +61,8 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
     }>
   >([]);
   const calendarRef = useRef<FullCalendar>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const clipboard = useCalendarClipboardKeys(containerRef);
   const tasks = useTaskStore((state) => state.tasks);
   const [quickViewItem, setQuickViewItem] = useState<CalendarEvent | Task>();
   const [isTask, setIsTask] = useState(false);
@@ -169,6 +172,7 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
   };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
+    if (clipboard.pasteOnSelect(selectInfo)) return;
     const start = selectInfo.start;
     const end = selectInfo.allDay ? start : selectInfo.end;
 
@@ -257,7 +261,7 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
   );
 
   return (
-    <div className="h-full">
+    <div ref={containerRef} className="h-full">
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
@@ -279,6 +283,8 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
         selectMirror={true}
         datesSet={handleDatesSet}
         eventContent={renderEventContent}
+        eventMouseEnter={clipboard.onEventMouseEnter}
+        eventMouseLeave={clipboard.onEventMouseLeave}
       />
 
       <EventModal
@@ -313,6 +319,14 @@ export function MonthView({ currentDate, onDateClick }: MonthViewProps) {
           onEdit={handleQuickViewEdit}
           onDelete={handleQuickViewDelete}
           onStatusChange={handleQuickViewStatusChange}
+          onCopy={
+            isTask
+              ? undefined
+              : () => {
+                  copyEvent(quickViewItem as CalendarEvent);
+                  handleQuickViewClose();
+                }
+          }
           referenceElement={clickedElement}
           isTask={isTask}
         />

@@ -6,6 +6,7 @@ import {
   Folder,
   Lock,
   MapPin,
+  Copy,
   Pencil,
   Repeat,
   Trash2,
@@ -43,6 +44,8 @@ interface EventQuickViewProps {
     | (Task & { project?: { name: string; color?: string | null } | null });
   onEdit: () => void;
   onDelete: () => void;
+  /** Put this event on the calendar clipboard (events only). */
+  onCopy?: () => void;
   isTask: boolean;
   onStatusChange?: (taskId: string, status: TaskStatus) => void;
   referenceElement: HTMLElement | null;
@@ -62,6 +65,7 @@ export function EventQuickView({
   item,
   onEdit,
   onDelete,
+  onCopy,
   isTask,
   onStatusChange,
   referenceElement,
@@ -162,6 +166,16 @@ export function EventQuickView({
                   }
                 >
                   <Check className="h-4 w-4" />
+                </button>
+              )}
+              {onCopy && (
+                <button
+                  onClick={onCopy}
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
+                  title={t("calendar.clipboard.copy")}
+                  aria-label={t("calendar.clipboard.copy")}
+                >
+                  <Copy className="h-4 w-4" />
                 </button>
               )}
               <button

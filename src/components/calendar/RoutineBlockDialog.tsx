@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Check, Trash2 } from "lucide-react";
+import { Check, Copy, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,8 @@ import {
   routineColor,
   weekdayShort,
 } from "@/lib/routine";
+
+import { copyRoutineBlock } from "./clipboard";
 import { cn } from "@/lib/utils";
 
 import { useRoutineStore } from "@/store/routine";
@@ -358,6 +360,19 @@ export function RoutineBlockDialog() {
                 disabled={saving}
               >
                 <Trash2 /> {t("common.delete")}
+              </Button>
+            )}
+            {block && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  copyRoutineBlock(block);
+                  closeDialog();
+                }}
+                disabled={saving}
+              >
+                <Copy /> {t("calendar.clipboard.copy")}
               </Button>
             )}
             <Button

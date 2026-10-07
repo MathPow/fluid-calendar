@@ -16,6 +16,7 @@ import {
   PenLine,
 } from "lucide-react";
 
+import { ClipboardBar } from "@/components/calendar/ClipboardBar";
 import { DayView } from "@/components/calendar/DayView";
 import { FeedManager } from "@/components/calendar/FeedManager";
 import { MonthView } from "@/components/calendar/MonthView";
@@ -320,6 +321,8 @@ export function Calendar({
             </button>
           </div>
         )}
+
+        <ClipboardBar />
 
         {/* Calendar Grid — extra bottom padding on mobile for the bottom nav */}
         <div

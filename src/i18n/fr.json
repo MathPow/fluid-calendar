@@ -2492,5 +2492,14 @@
   "tasks.notFound": "Cette tâche n'existe plus.",
   "mail.folder.sent messages": "Envoyés",
   "mail.folder.deleted messages": "Corbeille",
-  "mail.folder.notes": "Notes"
+  "mail.folder.notes": "Notes",
+  "calendar.clipboard.copy": "Copier",
+  "calendar.clipboard.copied": "« {title} » copié",
+  "calendar.clipboard.pasted": "« {title} » collé",
+  "calendar.clipboard.undo": "Annuler",
+  "calendar.clipboard.failed": "Impossible de coller le bloc.",
+  "calendar.clipboard.noCalendar": "Choisis un calendrier par défaut pour coller ce bloc.",
+  "calendar.clipboard.bar.title": "« {title} » copié.",
+  "calendar.clipboard.bar.hint": "Touche un créneau ou un jour pour le coller (ou Ctrl+V sous la souris). Glisse pour créer un événement comme d'habitude.",
+  "calendar.clipboard.bar.done": "Terminé"
 }
