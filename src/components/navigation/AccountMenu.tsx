@@ -11,18 +11,14 @@ import {
   HelpCircle,
   Layers,
   LogOut,
-  Monitor,
-  Moon,
   Rocket,
   Settings,
-  Sun,
   User,
 } from "lucide-react";
 
 import { LauncherIcon } from "@/components/launchers/LauncherIcon";
 import { LaunchersDialog } from "@/components/launchers/LaunchersDialog";
 import { runLauncher, useLaunchers } from "@/components/launchers/useLaunchers";
-import { useTheme } from "@/components/providers/ThemeProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -32,7 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { cn } from "@/lib/utils";
 
 import { useT } from "@/i18n/client";
 
@@ -75,7 +70,6 @@ export function AccountMenu() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { setOpen: setShortcutsOpen } = useShortcutsStore();
   const { items: launchers, set: setLaunchers } = useLaunchers();
-  const { theme, setTheme } = useTheme();
   const { currentStation, setStation } = useStationStore();
   const station = STATIONS.find((s) => s.id === currentStation);
   // Perso or Travail filters the whole app: keep a hint on the pill.
@@ -182,41 +176,6 @@ export function AccountMenu() {
                 className="segmented-item h-11 md:h-8 flex-1 text-[12px]"
                 aria-pressed={currentStation === id}
                 title={t(hintKey)}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span>{t(labelKey)}</span>
-              </button>
-            ))}
-          </div>
-
-          <p className="etiquette px-2 pb-2">{t("common.appearance")}</p>
-          <div className="segmented mb-3 w-full p-1">
-            {(
-              [
-                {
-                  id: "light",
-                  labelKey: "settings.appearance.theme.light",
-                  icon: Sun,
-                },
-                {
-                  id: "dark",
-                  labelKey: "settings.appearance.theme.dark",
-                  icon: Moon,
-                },
-                {
-                  id: "system",
-                  labelKey: "settings.appearance.theme.system",
-                  icon: Monitor,
-                },
-              ] as const
-            ).map(({ id, labelKey, icon: Icon }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setTheme(id)}
-                data-active={theme === id}
-                className={cn("segmented-item h-11 md:h-8 flex-1 text-[12px]")}
-                aria-pressed={theme === id}
               >
                 <Icon className="h-3.5 w-3.5" />
                 <span>{t(labelKey)}</span>
