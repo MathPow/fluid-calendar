@@ -138,48 +138,114 @@ export async function listMessages(
   limit: number,
   search?: string
 ): Promise<MessageSummary[]> {
-  return withClient(acct, async (client) => {
-    const lock = await client.getMailboxLock(mailbox);
-    try {
-      let uids: number[];
-      if (search && search.trim()) {
-        const q = search.trim();
-        const found = await client.search(
-          { or: [{ subject: q }, { from: q }, { body: q }] },
-          { uid: true }
-        );
-        uids = (found || []).slice(-limit);
-      } else {
-        const status = client.mailbox;
-        const total = typeof status === "object" ? status.exists : 0;
-        if (!total) return [];
-        // Sequence range for the newest `limit` messages.
-        const start = Math.max(1, total - limit + 1);
-        const summaries: MessageSummary[] = [];
-        for await (const msg of client.fetch(
-          `${start}:*`,
-          { uid: true, envelope: true, flags: true, bodyStructure: true },
-          { uid: false }
-        )) {
-          summaries.push(toSummary(msg));
-        }
-        return summaries.sort((a, b) => b.uid - a.uid);
-      }
+  return withClient(acct, (client) => listIn(client, mailbox, limit, search));
+}
 
-      if (uids.length === 0) return [];
+/** Folder kinds the unified « Toutes les boîtes » view can merge. */
+export const MAIL_ROLES = [
+  "inbox",
+  "sent",
+  "drafts",
+  "archive",
+  "junk",
+  "trash",
+] as const;
+export type MailRole = (typeof MAIL_ROLES)[number];
+
+const ROLE_SPECIAL_USE: Record<MailRole, string> = {
+  inbox: "\\Inbox",
+  sent: "\\Sent",
+  drafts: "\\Drafts",
+  archive: "\\Archive",
+  junk: "\\Junk",
+  trash: "\\Trash",
+};
+
+// Fallback names for servers that don't advertise SPECIAL-USE.
+const ROLE_NAMES: Record<MailRole, RegExp> = {
+  inbox: /^inbox$/i,
+  sent: /^(sent|sent (messages|items|mail)|envoy[ée]s|[ée]l[ée]ments envoy[ée]s)$/i,
+  drafts: /^(drafts?|brouillons?)$/i,
+  archive: /^(archives?|all mail)$/i,
+  junk: /^(junk|spam|junk e-?mail|bulk mail|ind[ée]sirables?|pourriels?)$/i,
+  trash: /^(trash|corbeille|deleted (items?|messages)|bin)$/i,
+};
+
+/** This account's folder for a role, or null when it has none. */
+async function findRole(
+  client: ImapFlow,
+  role: MailRole
+): Promise<string | null> {
+  if (role === "inbox") return "INBOX";
+  const boxes = await client.list();
+  const special = boxes.find((b) => b.specialUse === ROLE_SPECIAL_USE[role]);
+  if (special) return special.path;
+  return boxes.find((b) => ROLE_NAMES[role].test(b.name))?.path ?? null;
+}
+
+/**
+ * List a role's folder (Sent, Trash…) whatever this server calls it — iCloud
+ * says "Sent Messages", Gmail "[Gmail]/Sent Mail". Empty when it has none.
+ */
+export async function listRoleMessages(
+  acct: MailAccountConn,
+  role: MailRole,
+  limit: number,
+  search?: string
+): Promise<{ mailbox: string | null; messages: MessageSummary[] }> {
+  return withClient(acct, async (client) => {
+    const mailbox = await findRole(client, role);
+    if (!mailbox) return { mailbox: null, messages: [] };
+    return { mailbox, messages: await listIn(client, mailbox, limit, search) };
+  });
+}
+
+async function listIn(
+  client: ImapFlow,
+  mailbox: string,
+  limit: number,
+  search?: string
+): Promise<MessageSummary[]> {
+  const lock = await client.getMailboxLock(mailbox);
+  try {
+    let uids: number[];
+    if (search && search.trim()) {
+      const q = search.trim();
+      const found = await client.search(
+        { or: [{ subject: q }, { from: q }, { body: q }] },
+        { uid: true }
+      );
+      uids = (found || []).slice(-limit);
+    } else {
+      const status = client.mailbox;
+      const total = typeof status === "object" ? status.exists : 0;
+      if (!total) return [];
+      // Sequence range for the newest `limit` messages.
+      const start = Math.max(1, total - limit + 1);
       const summaries: MessageSummary[] = [];
       for await (const msg of client.fetch(
-        uids,
+        `${start}:*`,
         { uid: true, envelope: true, flags: true, bodyStructure: true },
-        { uid: true }
+        { uid: false }
       )) {
         summaries.push(toSummary(msg));
       }
       return summaries.sort((a, b) => b.uid - a.uid);
-    } finally {
-      lock.release();
     }
-  });
+
+    if (uids.length === 0) return [];
+    const summaries: MessageSummary[] = [];
+    for await (const msg of client.fetch(
+      uids,
+      { uid: true, envelope: true, flags: true, bodyStructure: true },
+      { uid: true }
+    )) {
+      summaries.push(toSummary(msg));
+    }
+    return summaries.sort((a, b) => b.uid - a.uid);
+  } finally {
+    lock.release();
+  }
 }
 
 function flagHasAttachment(bodyStructure: unknown): boolean {

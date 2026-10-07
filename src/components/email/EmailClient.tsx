@@ -157,6 +157,12 @@ const translateProviderHint = (
 /** Short chip label for the mobile switcher: display name or local part. */
 const shortLabel = (a: Account) => a.displayName || a.email.split("@")[0];
 
+/**
+ * Folders of the unified view: the inbox, then roles the server resolves to
+ * each account's own folder (iCloud "Sent Messages", Gmail "[Gmail]/Sent"…).
+ */
+const UNIFIED_FOLDERS = ["INBOX", "sent", "drafts", "archive", "junk", "trash"];
+
 /** The unified view only makes sense with two or more boxes. */
 const defaultTarget = (visible: Account[]) =>
   visible.length >= 2 ? ALL : (visible[0]?.id ?? null);
@@ -288,6 +294,7 @@ export function EmailClient() {
     accountVisibleInStation(a.station, currentStation)
   );
   const unified = accountId === ALL;
+  const railFolders = unified ? UNIFIED_FOLDERS : folders;
 
   // If switching station hides the open account (or changes which boxes the
   // unified view covers), jump to the station's default view.
@@ -312,7 +319,7 @@ export function EmailClient() {
   }, [currentStation]);
 
   const switchMailbox = async (box: string) => {
-    if (!accountId || unified) return;
+    if (!accountId) return;
     setMailbox(box);
     setSelected(null);
     setDetail(null);
@@ -548,29 +555,9 @@ export function EmailClient() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {unified ? (
-            <div className="space-y-3 px-3 py-2">
-              <p className="etiquette">{t("mail.inboxes")}</p>
-              <ul className="space-y-2">
-                {visibleAccounts.map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex items-center gap-2.5 text-[13px] text-foreground/80"
-                  >
-                    <span
-                      className={cn(
-                        "h-2 w-2 shrink-0 rounded-full",
-                        dotFor(a.id)
-                      )}
-                    />
-                    <span className="truncate">{accountLabel(a)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : folders.length > 0 ? (
+          {railFolders.length > 0 ? (
             <ul className="space-y-1">
-              {folders.map((f) => (
+              {railFolders.map((f) => (
                 <li key={f}>
                   <button
                     onClick={() => switchMailbox(f)}
@@ -591,6 +578,27 @@ export function EmailClient() {
             <div className="flex items-center gap-2 px-4 py-2 text-[13px] text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />{" "}
               {t("mail.loadingFolders")}
+            </div>
+          )}
+          {unified && (
+            <div className="mt-4 space-y-3 px-3 py-2">
+              <p className="etiquette">{t("mail.inboxes")}</p>
+              <ul className="space-y-2">
+                {visibleAccounts.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-2.5 text-[13px] text-foreground/80"
+                  >
+                    <span
+                      className={cn(
+                        "h-2 w-2 shrink-0 rounded-full",
+                        dotFor(a.id)
+                      )}
+                    />
+                    <span className="truncate">{accountLabel(a)}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
@@ -689,14 +697,14 @@ export function EmailClient() {
             <PenSquare className="h-4 w-4" />
           </button>
         </div>
-        {!unified && folders.length > 1 && (
+        {railFolders.length > 1 && (
           <div className="px-4 pt-2 md:hidden">
             <Select value={mailbox} onValueChange={switchMailbox}>
               <SelectTrigger className="h-10 rounded-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {folders.map((f) => (
+                {railFolders.map((f) => (
                   <SelectItem key={f} value={f}>
                     {folderLabel(t, f)}
                   </SelectItem>

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
-import { loadAccount, loadAccounts } from "@/lib/mail/account";
-import { listMailboxes, listMessages } from "@/lib/mail/imap";
 import { logger } from "@/lib/logger";
+import { loadAccount, loadAccounts } from "@/lib/mail/account";
+import {
+  MAIL_ROLES,
+  type MailRole,
+  listMailboxes,
+  listMessages,
+  listRoleMessages,
+} from "@/lib/mail/imap";
 
 const LOG_SOURCE = "mail-messages-route";
 
@@ -22,6 +28,8 @@ const ALL_ACCOUNTS = "all";
  * station) merges the newest `limit` messages of every account's mailbox,
  * newest first; each message carries its accountId + mailbox. Accounts that
  * fail to answer are listed in `failed` instead of failing the whole view.
+ * There `mailbox` may also be a folder role (sent, drafts, archive, junk,
+ * trash): each account's own folder for it is merged.
  */
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
@@ -82,8 +90,18 @@ async function listAllAccounts(
   q: string | undefined
 ) {
   const accounts = await loadAccounts(userId, accountIds);
+  const role = (MAIL_ROLES as readonly string[]).includes(mailbox)
+    ? (mailbox as MailRole)
+    : null;
   const results = await Promise.allSettled(
-    accounts.map((a) => listMessages(a.imap, mailbox, limit, q))
+    accounts.map((a) =>
+      role
+        ? listRoleMessages(a.imap, role, limit, q)
+        : listMessages(a.imap, mailbox, limit, q).then((messages) => ({
+            mailbox,
+            messages,
+          }))
+    )
   );
 
   const failed: { accountId: string; email: string }[] = [];
@@ -103,7 +121,12 @@ async function listAllAccounts(
       failed.push({ accountId: account.id, email: account.email });
       return [];
     }
-    return r.value.map((m) => ({ ...m, accountId: account.id, mailbox }));
+    const box = r.value.mailbox;
+    return r.value.messages.map((m) => ({
+      ...m,
+      accountId: account.id,
+      mailbox: box,
+    }));
   });
 
   if (accounts.length > 0 && failed.length === accounts.length) {

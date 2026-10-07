@@ -2489,5 +2489,8 @@
   "assistant.suggestion.mail": "Quel courriel Amazon m'a envoyé récemment?",
   "assistant.suggestion.today": "Qu'est-ce que j'ai aujourd'hui et demain?",
   "assistant.suggestion.page": "Aide-moi avec ce que j'ai à l'écran",
-  "tasks.notFound": "Cette tâche n'existe plus."
+  "tasks.notFound": "Cette tâche n'existe plus.",
+  "mail.folder.sent messages": "Envoyés",
+  "mail.folder.deleted messages": "Corbeille",
+  "mail.folder.notes": "Notes"
 }
