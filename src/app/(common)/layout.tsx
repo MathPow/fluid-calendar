@@ -40,6 +40,16 @@ const NotificationProvider = dynamic<{ children: React.ReactNode }>(
   }
 );
 
+// "?" (Shift+6 on a Canadian-French layout) is a character people type in
+// the chat bot, notes, search… — only treat it as a shortcut outside fields.
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    !!target.closest("input, textarea, select, [contenteditable='true']")
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -61,7 +71,11 @@ export default function RootLayout({
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setCommandPaletteOpen((open) => !open);
-      } else if (e.key === "?" && !(e.metaKey || e.ctrlKey)) {
+      } else if (
+        e.key === "?" &&
+        !(e.metaKey || e.ctrlKey) &&
+        !isTypingTarget(e.target)
+      ) {
         e.preventDefault();
         setShortcutsOpen(true);
       }
