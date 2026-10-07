@@ -242,7 +242,7 @@ export function AppHeader({ className }: { className?: string }) {
         </DialogPrimitive.Root>
         <Link
           href="/dashboard"
-          className="shrink-0 text-[19px] md:text-[22px] font-extrabold leading-none tracking-display text-foreground"
+          className="flex min-h-10 shrink-0 items-center text-[19px] md:text-[22px] font-extrabold leading-none tracking-display text-foreground"
           aria-label="DreamDash home"
         >
           DreamDash

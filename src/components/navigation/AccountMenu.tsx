@@ -86,7 +86,7 @@ export function AccountMenu() {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-card p-1 text-[14px] font-medium text-foreground shadow-tile transition-shadow hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:pr-3"
+            className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full md:h-11 md:w-auto bg-card p-1 text-[14px] font-medium text-foreground shadow-tile transition-shadow hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:pr-3"
             aria-label="Account menu"
           >
             <span className="relative">
