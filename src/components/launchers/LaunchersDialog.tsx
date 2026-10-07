@@ -31,18 +31,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 import {
   DESKTOP_ACTIONS,
-  USER_DESKTOP_ACTION_IDS,
   type DesktopAction,
+  USER_DESKTOP_ACTION_IDS,
   agentOnline,
   describeCommand,
 } from "@/lib/desktop-actions";
@@ -183,7 +178,8 @@ function blank(kind: LauncherKind, machineId = ""): Form {
   const now = splitDate(null);
   return {
     label: "",
-    icon: kind === "shell" ? "code" : kind === "claude-prompt" ? "zap" : "terminal",
+    icon:
+      kind === "shell" ? "code" : kind === "claude-prompt" ? "zap" : "terminal",
     kind,
     machineId,
     action: "open_code",
@@ -352,8 +348,7 @@ export function LaunchersDialog() {
       scheduleOn: !!l.scheduledFor,
       date: dt.date,
       time: dt.time,
-      recurrence:
-        (l.recurrence as LauncherRecurrence | null) ?? "none",
+      recurrence: (l.recurrence as LauncherRecurrence | null) ?? "none",
     });
   };
 
@@ -525,20 +520,19 @@ export function LaunchersDialog() {
                   <SelectValue placeholder="Machine" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(form.kind === "shell"
-                    ? shellMachines
-                    : promptMachines
-                  ).map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.label || m.name}
-                      {!agentOnline(m.agentSeenAt) && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          · {m.host && m.sshUser ? "via ssh" : "hors ligne"}
-                        </span>
-                      )}
-                    </SelectItem>
-                  ))}
+                  {(form.kind === "shell" ? shellMachines : promptMachines).map(
+                    (m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.label || m.name}
+                        {!agentOnline(m.agentSeenAt) && (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {m.host && m.sshUser ? "via ssh" : "hors ligne"}
+                          </span>
+                        )}
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -594,9 +588,8 @@ export function LaunchersDialog() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="launcher-prompt">
-                    Prompt (
-                    {form.kind === "claude-prompt" ? "Claude" : "Codex"} sans
-                    permission)
+                    Prompt ({form.kind === "claude-prompt" ? "Claude" : "Codex"}{" "}
+                    sans permission)
                   </Label>
                   <Textarea
                     id="launcher-prompt"
@@ -741,7 +734,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
         ? `Claude · ${(l.promptText || "").slice(0, 60)}`
         : `Codex · ${(l.promptText || "").slice(0, 60)}`;
   return (
-    <li className="flex items-center gap-2.5 rounded-2xl bg-secondary/60 py-2 pl-3 pr-1.5">
+    <li className="flex flex-wrap items-center gap-2.5 rounded-2xl md:flex-nowrap bg-secondary/60 py-2 pl-3 pr-1.5">
       <LauncherIcon icon={l.icon} className="h-4 w-4 shrink-0" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14px] font-semibold">
@@ -760,47 +753,49 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
           <span
             className={cn(
               "block truncate text-[11.5px]",
-              l.lastError ? "text-negative" : "text-muted-foreground"
+              l.lastError ? "text-negative-foreground" : "text-muted-foreground"
             )}
           >
             {status}
           </span>
         )}
       </span>
-      <button
-        type="button"
-        onClick={() => move(i, -1)}
-        disabled={i === 0}
-        className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
-        aria-label={`Monter ${l.label}`}
-      >
-        <ArrowUp className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={() => move(i, 1)}
-        disabled={i === total - 1}
-        className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
-        aria-label={`Descendre ${l.label}`}
-      >
-        <ArrowDown className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={() => edit(l)}
-        className="rounded-full p-1.5 text-muted-foreground hover:bg-card"
-        aria-label={`Modifier ${l.label}`}
-      >
-        <Pencil className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={() => remove(l)}
-        className="rounded-full p-1.5 text-muted-foreground hover:bg-negative hover:text-negative-foreground"
-        aria-label={`Supprimer ${l.label}`}
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      <div className="flex w-full shrink-0 items-center justify-end gap-1 md:w-auto md:gap-0">
+        <button
+          type="button"
+          onClick={() => move(i, -1)}
+          disabled={i === 0}
+          className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
+          aria-label={`Monter ${l.label}`}
+        >
+          <ArrowUp className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => move(i, 1)}
+          disabled={i === total - 1}
+          className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
+          aria-label={`Descendre ${l.label}`}
+        >
+          <ArrowDown className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => edit(l)}
+          className="rounded-full p-1.5 text-muted-foreground hover:bg-card"
+          aria-label={`Modifier ${l.label}`}
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => remove(l)}
+          className="rounded-full p-1.5 text-muted-foreground hover:bg-negative hover:text-negative-foreground"
+          aria-label={`Supprimer ${l.label}`}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
     </li>
   );
 }
