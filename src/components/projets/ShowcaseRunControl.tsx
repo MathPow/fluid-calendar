@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-import { useT } from "@/i18n/client";
+import { type TranslateFn, useT } from "@/i18n/client";
 import { timeAgoFr } from "@/lib/projets/meta";
 import type { ShowcaseRunView } from "@/lib/projets/showcase-runs";
 import { cn } from "@/lib/utils";
@@ -19,10 +19,11 @@ const POLL_MS = 10_000;
 const isActive = (run: ShowcaseRunView | null) =>
   run?.status === "queued" || run?.status === "running";
 
-/** "depuis 3 min" without the "il y a". */
-const sinceFr = (date: string) => {
+/** "depuis 3 min" / "for 3 min" — the duration without the "il y a". */
+const sinceLabel = (date: string, t: TranslateFn) => {
   const ago = timeAgoFr(date);
-  return ago.startsWith("il y a ") ? `depuis ${ago.slice(7)}` : "à l'instant";
+  if (!ago.startsWith("il y a ")) return t("projects.showcase.sinceNow");
+  return t("projects.showcase.sinceDuration", { duration: ago.slice(7) });
 };
 
 /**
@@ -173,7 +174,7 @@ function RunStatus({ run }: { run: ShowcaseRunView }) {
       case "running":
         return [
           t("projects.showcase.status.running", {
-            since: sinceFr(run.startedAt ?? run.createdAt),
+            since: sinceLabel(run.startedAt ?? run.createdAt, t),
           }),
           Loader2,
           "text-foreground",

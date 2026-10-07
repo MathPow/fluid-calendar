@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Loader2, Search } from "lucide-react";
 
+import { useT } from "@/i18n";
+
 interface Hit {
   timestamp: string;
   text: string;
@@ -16,6 +18,7 @@ interface Hit {
  * the way you'd search for it) without leaving the page.
  */
 export function TranscriptSearch({ sessionId }: { sessionId: string }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -33,7 +36,7 @@ export function TranscriptSearch({ sessionId }: { sessionId: string }) {
       const data = await res.json();
       setHits(data.hits ?? []);
     } catch {
-      setError("La recherche a échoué.");
+      setError(t("sessions.transcriptSearch.failed"));
       setHits(null);
     } finally {
       setLoading(false);
@@ -43,11 +46,10 @@ export function TranscriptSearch({ sessionId }: { sessionId: string }) {
   return (
     <section className="rounded-xl border border-border bg-card p-4">
       <h3 className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-        <Search className="h-4 w-4 text-primary" /> Fouiller le verbatim
+        <Search className="h-4 w-4 text-primary" /> {t("sessions.transcriptSearch.title")}
       </h3>
       <p className="mb-3 text-xs text-muted-foreground">
-        Recherche plein texte française. Les guillemets font une expression exacte,
-        le tiret exclut : <code>&quot;trois paliers&quot; -logo</code>
+        {t("sessions.transcriptSearch.hint")} <code>&quot;trois paliers&quot; -logo</code>
       </p>
 
       <div className="flex gap-2">
@@ -57,7 +59,7 @@ export function TranscriptSearch({ sessionId }: { sessionId: string }) {
           onKeyDown={(e) => {
             if (e.key === "Enter") run();
           }}
-          placeholder="pricing, plan d'affaires, nom d'entreprise…"
+          placeholder={t("sessions.transcriptSearch.placeholder")}
           className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
         />
         <button
@@ -66,7 +68,7 @@ export function TranscriptSearch({ sessionId }: { sessionId: string }) {
           disabled={loading || !query.trim()}
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Chercher"}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("sessions.transcriptSearch.submit")}
         </button>
       </div>
 
@@ -75,7 +77,7 @@ export function TranscriptSearch({ sessionId }: { sessionId: string }) {
       {hits && (
         <div className="mt-3">
           {hits.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun résultat.</p>
+            <p className="text-sm text-muted-foreground">{t("sessions.transcriptSearch.empty")}</p>
           ) : (
             <ul className="space-y-2">
               {hits.map((h, i) => (

@@ -606,12 +606,12 @@ export function TaxProfileDialog({
                 <Input
                   id="tp-address"
                   {...field("address")}
-                  placeholder="123, rue Saint-Joseph Est"
+                  placeholder={t("fiscalite.taxProfile.address.placeholder")}
                 />
               </div>
               <div className="space-y-2 sm:col-span-3">
                 <Label htmlFor="tp-city">{t("fiscalite.taxProfile.city")}</Label>
-                <Input id="tp-city" {...field("city")} placeholder="Québec" />
+                <Input id="tp-city" {...field("city")} placeholder={t("fiscalite.taxProfile.city.placeholder")} />
               </div>
               <div className="space-y-2 sm:col-span-1">
                 <Label htmlFor="tp-prov">{t("fiscalite.taxProfile.province")}</Label>

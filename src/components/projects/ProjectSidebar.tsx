@@ -257,14 +257,19 @@ export function ProjectSidebar() {
                   className="w-full rounded-md px-3 py-1.5 text-left text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   {showEmpty
-                    ? "Masquer les listes vides"
-                    : `${hiddenCount} liste${hiddenCount > 1 ? "s" : ""} vide${hiddenCount > 1 ? "s" : ""} masquée${hiddenCount > 1 ? "s" : ""}`}
+                    ? t("tasks.projectSidebar.hideEmpty")
+                    : t(
+                        hiddenCount > 1
+                          ? "tasks.projectSidebar.hiddenEmptyMany"
+                          : "tasks.projectSidebar.hiddenEmptyOne",
+                        { count: hiddenCount }
+                      )}
                 </button>
               ) : null}
 
               {archivedProjects.length > 0 && showEmpty && (
                 <div className="space-y-1">
-                  <div className="etiquette py-2">Archived</div>
+                  <div className="etiquette py-2">{t("tasks.projectSidebar.archived")}</div>
                   {archivedProjects.map((project) => (
                     <ProjectItem
                       key={project.id}

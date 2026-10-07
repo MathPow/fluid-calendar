@@ -338,13 +338,13 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="space-y-1.5">
-        <Label htmlFor={id}>Organisation</Label>
+        <Label htmlFor={id}>{t("tasks.projectPicker.organisation")}</Label>
         <Select value={orgId ?? NONE} onValueChange={pickOrg} disabled={busy}>
           <SelectTrigger id={id}>
-            <SelectValue placeholder="Aucune" />
+            <SelectValue placeholder={t("tasks.projectPicker.none")} />
           </SelectTrigger>
           <SelectContent className="max-h-80">
-            <SelectItem value={NONE}>Aucune</SelectItem>
+            <SelectItem value={NONE}>{t("tasks.projectPicker.none")}</SelectItem>
             {orgs.map((o) => (
               <SelectItem key={o.id} value={o.id}>
                 <span className="inline-flex items-center gap-2">
@@ -357,13 +357,13 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label>Projet</Label>
+        <Label>{t("tasks.projectPicker.project")}</Label>
         <Select value={projectValue} onValueChange={pickProject} disabled={busy || !orgId}>
           <SelectTrigger>
-            <SelectValue placeholder={orgId ? "Organisation seulement" : "Choisis d'abord l'organisation"} />
+            <SelectValue placeholder={orgId ? t("tasks.projectPicker.orgOnly") : t("tasks.projectPicker.chooseOrgFirst")} />
           </SelectTrigger>
           <SelectContent className="max-h-80">
-            <SelectItem value={ORG_ONLY}>Organisation seulement</SelectItem>
+            <SelectItem value={ORG_ONLY}>{t("tasks.projectPicker.orgOnly")}</SelectItem>
             {projects.map((p) => (
               <SelectItem key={p.key} value={p.key}>
                 <span className="inline-flex items-center gap-2">
