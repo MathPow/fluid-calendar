@@ -145,7 +145,7 @@ export function RoutineLayers() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="rounded-full p-1 text-muted-foreground opacity-60 hover:bg-muted/50 hover:text-foreground group-hover:opacity-100"
+                  className="rounded-full p-1 text-muted-foreground md:opacity-60 hover:bg-muted/50 hover:text-foreground group-hover:opacity-100"
                   aria-label={`Options de ${layer.name}`}
                 >
                   <MoreHorizontal className="h-4 w-4" />
@@ -231,6 +231,7 @@ export function RoutineLayers() {
         <button
           type="button"
           onClick={toggleEditing}
+          aria-pressed={editing}
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-semibold transition-colors",
             editing
