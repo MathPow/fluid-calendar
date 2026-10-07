@@ -765,7 +765,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
           type="button"
           onClick={() => move(i, -1)}
           disabled={i === 0}
-          className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
+          className="flex h-10 w-10 items-center justify-center rounded-full p-1.5 md:h-7 md:w-7 text-muted-foreground hover:bg-card disabled:opacity-30"
           aria-label={`Monter ${l.label}`}
         >
           <ArrowUp className="h-4 w-4" />
@@ -774,7 +774,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
           type="button"
           onClick={() => move(i, 1)}
           disabled={i === total - 1}
-          className="rounded-full p-1.5 text-muted-foreground hover:bg-card disabled:opacity-30"
+          className="flex h-10 w-10 items-center justify-center rounded-full p-1.5 md:h-7 md:w-7 text-muted-foreground hover:bg-card disabled:opacity-30"
           aria-label={`Descendre ${l.label}`}
         >
           <ArrowDown className="h-4 w-4" />
@@ -782,7 +782,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
         <button
           type="button"
           onClick={() => edit(l)}
-          className="rounded-full p-1.5 text-muted-foreground hover:bg-card"
+          className="flex h-10 w-10 items-center justify-center rounded-full p-1.5 md:h-7 md:w-7 text-muted-foreground hover:bg-card"
           aria-label={`Modifier ${l.label}`}
         >
           <Pencil className="h-4 w-4" />
@@ -790,7 +790,7 @@ function LauncherLI({ l, i, total, move, edit, remove }: LILProps) {
         <button
           type="button"
           onClick={() => remove(l)}
-          className="rounded-full p-1.5 text-muted-foreground hover:bg-negative hover:text-negative-foreground"
+          className="flex h-10 w-10 items-center justify-center rounded-full p-1.5 md:h-7 md:w-7 text-muted-foreground hover:bg-negative hover:text-negative-foreground"
           aria-label={`Supprimer ${l.label}`}
         >
           <Trash2 className="h-4 w-4" />
