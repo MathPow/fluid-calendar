@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create event in database
+    const recurring = Boolean(isRecurring && recurrenceRule);
     const event = await prisma.calendarEvent.create({
       data: {
         feedId,
@@ -120,8 +121,11 @@ export async function POST(request: NextRequest) {
         start: newDate(start),
         end: newDate(end),
         location,
-        isRecurring: isRecurring || false,
-        recurrenceRule,
+        isRecurring: recurring,
+        recurrenceRule: recurring ? recurrenceRule : null,
+        // Local recurring events are their own master; the store's expansion
+        // only kicks in when `isMaster && recurrenceRule`.
+        isMaster: recurring,
         allDay: allDay || false,
         strongAlarm: strongAlarm || false,
         alarmMinutes:
@@ -207,6 +211,13 @@ export async function PATCH(request: NextRequest) {
     const resetArmed =
       startChanged || alarmMinutesChanged || strongAlarmChanged;
 
+    // Keep `isMaster` in sync when the recurrence toggles.
+    const nextIsRecurring =
+      isRecurring === undefined ? existingEvent.isRecurring : Boolean(isRecurring);
+    const nextRule =
+      recurrenceRule === undefined ? existingEvent.recurrenceRule : recurrenceRule;
+    const nextIsMaster = Boolean(nextIsRecurring && nextRule);
+
     const event = await prisma.calendarEvent.update({
       where: { id },
       data: {
@@ -215,8 +226,14 @@ export async function PATCH(request: NextRequest) {
         start: newStart,
         end: end ? newDate(end) : undefined,
         location,
-        isRecurring,
-        recurrenceRule,
+        isRecurring: isRecurring === undefined ? undefined : nextIsRecurring,
+        recurrenceRule:
+          recurrenceRule === undefined
+            ? undefined
+            : nextIsRecurring
+              ? nextRule
+              : null,
+        isMaster: nextIsMaster,
         allDay,
         strongAlarm: strongAlarm === undefined ? undefined : Boolean(strongAlarm),
         alarmMinutes:

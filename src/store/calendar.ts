@@ -181,14 +181,43 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
       // For master events, expand the recurrence
       if (expandInstances && event.isMaster && event.recurrenceRule) {
         try {
-          // Parse the recurrence rule
-          const rule = RRule.fromString(event.recurrenceRule);
+          // Anchor the rule on the event's own start: a stored rule has no
+          // DTSTART, and rrule would otherwise count from "now" (wrong time
+          // of day, wrong INTERVAL phase). rrule works in UTC, so run it on
+          // "floating" dates whose UTC fields hold local wall-clock time —
+          // BYDAY then means the local weekday, even for late-evening events.
+          const toFloating = (d: Date) =>
+            new Date(
+              Date.UTC(
+                d.getFullYear(),
+                d.getMonth(),
+                d.getDate(),
+                d.getHours(),
+                d.getMinutes(),
+                d.getSeconds()
+              )
+            );
+          const fromFloating = (d: Date) =>
+            new Date(
+              d.getUTCFullYear(),
+              d.getUTCMonth(),
+              d.getUTCDate(),
+              d.getUTCHours(),
+              d.getUTCMinutes(),
+              d.getUTCSeconds()
+            );
+          const rule = new RRule({
+            ...RRule.parseString(event.recurrenceRule),
+            dtstart: toFloating(eventStart),
+          });
 
           // Calculate event duration in milliseconds
           const duration = eventEnd.getTime() - eventStart.getTime();
 
           // Get all occurrences between start and end dates
-          const occurrences = rule.between(start, end, true); // true = inclusive
+          const occurrences = rule
+            .between(toFloating(start), toFloating(end), true) // inclusive
+            .map(fromFloating);
 
           // Create an event instance for each occurrence
           occurrences.forEach((date) => {
