@@ -53,6 +53,20 @@ const MENU: NavLink[] = [
   { href: "/facturation", labelKey: "nav.facturation", icon: ReceiptText },
 ];
 
+// Keep the phone's most-used destinations first without dropping any section.
+const MOBILE_MENU: NavLink[] = [
+  { href: "/calendar", labelKey: "nav.calendar", icon: Calendar },
+  { href: "/tasks", labelKey: "nav.tasks", icon: ListTodo, also: ["/focus"] },
+  { href: "/projets", labelKey: "nav.projects", icon: FolderGit2 },
+  { href: "/contacts", labelKey: "nav.contacts", icon: Users },
+  { href: "/machines", labelKey: "nav.machines", icon: Monitor },
+  { href: "/notifications", labelKey: "nav.notifications", icon: Bell },
+  { href: "/settings", labelKey: "nav.settings", icon: Settings },
+  ...MENU.filter((link) =>
+    ["/dashboard", "/email", "/notes", "/fiscalite"].includes(link.href)
+  ),
+];
+
 /**
  * Portal header. Top row is the wordmark, the nav, then search /
  * notifications / account (station lives in the account menu). The nav sits
@@ -190,30 +204,15 @@ export function AppHeader({ className }: { className?: string }) {
                 {t("nav.drawer.description")}
               </DialogPrimitive.Description>
               <nav aria-label={t("nav.drawer.aria")} className="space-y-1">
-                {[
-                  ...MENU,
-                  { href: "/machines", labelKey: "nav.machines", icon: Monitor },
-                  {
-                    href: "/notifications",
-                    labelKey: "nav.notifications",
-                    icon: Bell,
-                  },
-                  { href: "/settings", labelKey: "nav.settings", icon: Settings },
-                ].map((link) => (
+                {MOBILE_MENU.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={() => setDrawerOpen(false)}
-                    aria-current={
-                      pathname === link.href ||
-                      pathname?.startsWith(link.href + "/")
-                        ? "page"
-                        : undefined
-                    }
+                    aria-current={isActive(link) ? "page" : undefined}
                     className={cn(
                       "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      pathname === link.href ||
-                        pathname?.startsWith(link.href + "/")
+                      isActive(link)
                         ? "bg-tint-soft text-foreground"
                         : "hover:bg-secondary"
                     )}
