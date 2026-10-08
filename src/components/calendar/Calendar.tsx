@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import dynamic from "next/dynamic";
 
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   CalendarDays,
   Calendar as CalendarIcon,
@@ -14,6 +15,7 @@ import {
   Columns3,
   Menu,
   PenLine,
+  X,
 } from "lucide-react";
 
 import { DayView } from "@/components/calendar/DayView";
@@ -62,6 +64,16 @@ export function Calendar({
   const { setFeeds, setEvents } = useCalendarStore();
   const eventModal = useEventModalStore();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const sidebarButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const routineEditing = useRoutineStore((s) => s.editing);
 
@@ -125,33 +137,62 @@ export function Calendar({
 
   return (
     <div className="flex h-full w-full overflow-hidden">
-      {/* Mobile backdrop */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "h-full w-80 flex-none border-r border-border bg-card",
-          "transform transition-transform duration-300 ease-in-out",
-          "fixed inset-y-0 left-0 z-40",
-          "md:relative md:z-auto",
-          !isHydrated && "opacity-0 duration-0",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-        style={{ marginLeft: isSidebarOpen ? 0 : "-20rem" }}
-      >
-        <div className="flex h-full flex-col">
-          <div className="flex-1 overflow-y-auto">
-            <FeedManager />
-            <RoutineLayers />
+      {isMobile ? (
+        <DialogPrimitive.Root
+          open={isSidebarOpen}
+          onOpenChange={setSidebarOpen}
+        >
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/40" />
+            <DialogPrimitive.Content
+              id="calendar-sidebar"
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(100vw,320px)] flex-col bg-card pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-float"
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                sidebarButton.current?.focus();
+              }}
+            >
+              <div className="flex min-h-[52px] items-center justify-between gap-2 border-b border-border px-4">
+                <DialogPrimitive.Title className="font-semibold">
+                  Calendriers et calques
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Close
+                  aria-label="Fermer les calendriers"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary"
+                >
+                  <X className="h-5 w-5" />
+                </DialogPrimitive.Close>
+              </div>
+              <DialogPrimitive.Description className="sr-only">
+                Choisir les calendriers et gérer la semaine type.
+              </DialogPrimitive.Description>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <FeedManager />
+                <RoutineLayers />
+              </div>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
+      ) : (
+        <aside
+          id="calendar-sidebar"
+          aria-label="Calendriers et calques"
+          inert={!isSidebarOpen}
+          className={cn(
+            "relative hidden h-full w-80 flex-none border-r border-border bg-card transition-[margin,transform] duration-300 md:block",
+            !isHydrated && "opacity-0 duration-0",
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+          style={{ marginLeft: isSidebarOpen ? 0 : "-20rem" }}
+        >
+          <div className="flex h-full flex-col">
+            <div className="flex-1 overflow-y-auto">
+              <FeedManager />
+              <RoutineLayers />
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       {/* Main Content */}
       <main className="flex min-w-0 flex-1 flex-col bg-background">
@@ -160,11 +201,13 @@ export function Calendar({
         {/* Header */}
         <header className="flex h-[52px] flex-none items-center gap-1 border-b border-border px-2 md:h-16 md:gap-2 md:px-5">
           <button
+            ref={sidebarButton}
             onClick={() => setSidebarOpen(!isSidebarOpen)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             title="Toggle Sidebar (b)"
             aria-label="Afficher les calendriers"
             aria-expanded={isSidebarOpen}
+            aria-controls="calendar-sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
