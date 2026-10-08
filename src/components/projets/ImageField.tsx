@@ -100,6 +100,7 @@ export function ImageField({
               ? t("projects.imageField.titleChange")
               : t("projects.imageField.titleAdd")
           }
+          aria-label={`${value ? t("projects.imageField.titleChange") : t("projects.imageField.titleAdd")} : ${label}`}
           disabled={busy}
         >
           {value ? (
@@ -122,7 +123,7 @@ export function ImageField({
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-muted-foreground shadow-float hover:text-foreground"
+            className="absolute -right-1 -top-1 flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-float hover:text-foreground md:h-6 md:w-6"
             aria-label={t("projects.imageField.removeAria")}
           >
             <X className="h-3.5 w-3.5" />

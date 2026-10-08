@@ -194,7 +194,7 @@ export function Calendar({
           aria-label="Calendriers et calques"
           inert={!isSidebarOpen}
           className={cn(
-            "relative hidden h-full w-80 flex-none border-r border-border transition-[margin,transform] duration-300 md:mr-4 md:block md:overflow-hidden md:rounded-[28px] md:border-r-0 md:bg-card md:shadow-tile",
+            "relative hidden h-full w-80 flex-none border-r border-border bg-card transition-[margin,transform] duration-300 motion-reduce:transition-none md:mr-4 md:block md:overflow-hidden md:rounded-[28px] md:border-r-0 md:shadow-tile",
             !isHydrated && "opacity-0 duration-0",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
