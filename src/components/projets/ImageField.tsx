@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils";
  */
 export async function fileToSquareDataUrl(
   file: File,
-  size = 320
+  size = 320,
+  canvasUnavailableMessage = "Canvas unavailable"
 ): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const side = Math.min(bitmap.width, bitmap.height);
@@ -25,7 +26,7 @@ export async function fileToSquareDataUrl(
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas indisponible");
+  if (!ctx) throw new Error(canvasUnavailableMessage);
   ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, size, size);
   bitmap.close();
   return canvas.toDataURL("image/jpeg", 0.85);
@@ -66,7 +67,13 @@ export function ImageField({
     }
     setBusy(true);
     try {
-      onChange(await fileToSquareDataUrl(file));
+      onChange(
+        await fileToSquareDataUrl(
+          file,
+          320,
+          t("projects.imageField.canvasUnavailable")
+        )
+      );
     } catch (e) {
       toast.error(t("projects.imageField.readError"), {
         description: e instanceof Error ? e.message : undefined,
