@@ -257,6 +257,28 @@ export function NotesExplorer() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [content, setContent] = useState<string>("");
+  // Organisations, to show the one a note names in its front matter
+  // (« organisation: <slug> », set by the dashboard's Pense-bête).
+  const [orgs, setOrgs] = useState<
+    { slug: string; name: string; color: string | null }[]
+  >([]);
+  useEffect(() => {
+    fetch("/api/organisations")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setOrgs)
+      .catch(() => undefined);
+  }, []);
+  const frontMatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  const noteBody = frontMatter ? content.slice(frontMatter[0].length) : content;
+  const orgSlug = frontMatter?.[1]
+    .match(/^organisation:\s*["']?([^"'\r\n]+?)["']?\s*$/m)?.[1];
+  const noteOrg = orgSlug
+    ? (orgs.find((o) => o.slug === orgSlug) ?? {
+        slug: orgSlug,
+        name: orgSlug,
+        color: null,
+      })
+    : null;
   const [loadingNote, setLoadingNote] = useState(false);
   const [filter, setFilter] = useState("");
   const [vault, setVault] = useState<string | null>(null);
@@ -352,17 +374,20 @@ export function NotesExplorer() {
     if (typeof window === "undefined") return;
     const target = new URLSearchParams(window.location.search).get("path");
     if (!target) return;
-    if (!entries.some((e) => e.type === "file" && e.path === target)) return;
+    const entry = entries.find((e) => e.path === target);
+    if (!entry) return;
+    // A folder (e.g. the dashboard's Pense-bête) just opens in the tree.
+    const isDir = entry.type === "directory";
 
     const parts = target.split("/").filter(Boolean);
     const dirs: string[] = [];
     let acc = "";
-    for (let i = 0; i < parts.length - 1; i++) {
+    for (let i = 0; i < parts.length - (isDir ? 0 : 1); i++) {
       acc += `/${parts[i]}`;
       dirs.push(acc);
     }
     setExpanded((prev) => new Set([...prev, ...dirs]));
-    selectNote(target);
+    if (!isDir) selectNote(target);
     setOpenedDeepLink(true);
     // selectNote is stable enough for this one-shot deep-link open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -535,9 +560,27 @@ export function NotesExplorer() {
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading note…
               </div>
             ) : (
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {content}
-              </ReactMarkdown>
+              <>
+                {noteOrg && (
+                  <span
+                    className="-mt-3 mb-5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{
+                      backgroundColor: noteOrg.color
+                        ? `${noteOrg.color}26`
+                        : undefined,
+                    }}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: noteOrg.color ?? "#a3a3a3" }}
+                    />
+                    {noteOrg.name}
+                  </span>
+                )}
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {noteBody}
+                </ReactMarkdown>
+              </>
             )}
           </article>
         )}

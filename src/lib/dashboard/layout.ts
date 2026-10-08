@@ -14,6 +14,7 @@ export const WIDGET_TYPES = [
   "recent",
   "machines",
   "quick-links",
+  "sticky",
 ] as const;
 export type WidgetType = (typeof WIDGET_TYPES)[number];
 
@@ -392,6 +393,17 @@ export const WIDGETS: Record<WidgetType, WidgetMeta> = {
       },
       { key: "custom", label: "Mes liens", kind: "links", default: [] },
     ],
+  },
+  sticky: {
+    title: "Pense-bête",
+    description:
+      "Des petites notes rapides, gardées dans Notes ▸ Pense-bête, colorées par organisation.",
+    presets: [
+      { id: "board", label: "Tableau", w: 2, h: 3 },
+      { id: "column", label: "Colonne", w: 1, h: 3 },
+      { id: "wide", label: "Large", w: 4, h: 2 },
+    ],
+    options: [],
   },
 };
 

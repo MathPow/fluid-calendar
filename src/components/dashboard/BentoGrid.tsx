@@ -43,6 +43,7 @@ import {
   Plus,
   RotateCcw,
   SlidersHorizontal,
+  StickyNote,
   X,
   Zap,
 } from "lucide-react";
@@ -107,6 +108,7 @@ const ICONS: Record<WidgetType, typeof Bell> = {
   recent: History,
   machines: Monitor,
   "quick-links": Link2,
+  sticky: StickyNote,
 };
 
 // Literal class names so Tailwind keeps them. Two columns on a tablet, the

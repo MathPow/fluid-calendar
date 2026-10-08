@@ -159,3 +159,54 @@ export async function saveNote(name: string, content: string): Promise<string> {
   await client.putFileContents(path, content, { overwrite: true });
   return path;
 }
+
+/** Text notes directly inside one vault folder (not its subfolders). */
+export async function listNotesIn(dir: string): Promise<NoteEntry[]> {
+  assertSafePath(dir);
+  const client = getClient();
+  if (!(await client.exists(dir))) return [];
+  const items = (await client.getDirectoryContents(dir)) as FileStat[];
+  return items
+    .filter((item) => item.type === "file" && isTextNote(item.basename))
+    .map((item) => ({
+      path: item.filename.startsWith("/") ? item.filename : `/${item.filename}`,
+      name: item.basename,
+      type: "file" as const,
+      size: item.size ?? 0,
+      lastModified: item.lastmod ?? null,
+    }));
+}
+
+/** Create or overwrite a note at an exact vault path (folder made if needed). */
+export async function writeNoteAt(path: string, content: string): Promise<void> {
+  assertSafePath(path);
+  const client = getClient();
+  const dir = path.slice(0, path.lastIndexOf("/")) || "/";
+  if (!(await client.exists(dir))) {
+    await client.createDirectory(dir, { recursive: true });
+  }
+  await client.putFileContents(path, content, { overwrite: true });
+}
+
+/** Whether a vault path exists. */
+export async function noteExists(path: string): Promise<boolean> {
+  assertSafePath(path);
+  return getClient().exists(path);
+}
+
+/** Move a note into another folder (made if needed); returns its new path. */
+export async function moveNoteTo(path: string, dir: string): Promise<string> {
+  assertSafePath(path);
+  assertSafePath(dir);
+  const client = getClient();
+  if (!(await client.exists(dir))) {
+    await client.createDirectory(dir, { recursive: true });
+  }
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  let target = `${dir}/${name}`;
+  for (let i = 2; await client.exists(target); i++) {
+    target = `${dir}/${name.replace(/(\.[^.]+)?$/, ` (${i})$1`)}`;
+  }
+  await client.moveFile(path, target);
+  return target;
+}

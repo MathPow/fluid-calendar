@@ -30,6 +30,7 @@ import {
 } from "@/components/dashboard/MachinesStatus";
 import { MonthWidget } from "@/components/dashboard/MonthWidget";
 import { ProjectLauncher } from "@/components/dashboard/ProjectLauncher";
+import { StickyNotesWidget } from "@/components/dashboard/StickyNotesWidget";
 import {
   CustomLinkMark,
   QuickLinksEditor,
@@ -403,6 +404,8 @@ export function RenderWidget({
       return <MachinesWidget {...props} />;
     case "quick-links":
       return <QuickLinksWidget {...props} />;
+    case "sticky":
+      return <StickyNotesWidget preset={props.preset} />;
   }
 }
 
