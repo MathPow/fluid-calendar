@@ -71,7 +71,10 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     return NextResponse.json({ error: "Introuvable" }, { status: 404 });
   if (!machine.agentTokenHash) {
     return NextResponse.json(
-      { error: "Aucun agent connecté à cette machine." },
+      {
+        error: "Aucun agent connecté à cette machine.",
+        errorKey: "api.machines.noAgent",
+      },
       { status: 409 }
     );
   }

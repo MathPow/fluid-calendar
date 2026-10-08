@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Loader2, Search } from "lucide-react";
 
+import { useT } from "@/i18n/client";
+
 interface Hit {
   timestamp: string;
   text: string;
@@ -16,6 +18,7 @@ interface Hit {
  * the way you'd search for it) without leaving the page.
  */
 export function TranscriptSearch({ sessionId }: { sessionId: string }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,7 +78,7 @@ export function TranscriptSearch({ sessionId }: { sessionId: string }) {
       {hits && (
         <div className="mt-3">
           {hits.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun résultat.</p>
+            <p className="text-sm text-muted-foreground">{t("sessions.transcriptSearch.noResults")}</p>
           ) : (
             <ul className="space-y-2">
               {hits.map((h, i) => (

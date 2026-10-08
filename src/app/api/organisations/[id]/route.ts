@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: "Mise à jour impossible", errorKey: "api.organisations.updateFailed" },
       { status: 500 }
     );
   }
@@ -89,7 +89,10 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   if (!org) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
   if (org.isDefault) {
     return NextResponse.json(
-      { error: "L'organisation par défaut ne peut pas être supprimée." },
+      {
+        error: "L'organisation par défaut ne peut pas être supprimée.",
+        errorKey: "api.organisations.deleteDefault",
+      },
       { status: 400 }
     );
   }

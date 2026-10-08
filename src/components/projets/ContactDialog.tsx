@@ -218,7 +218,7 @@ export function ContactDialog({
               data-active={type === ct.id}
               onClick={() => setType(ct.id)}
             >
-              {ct.label}
+              {t(ct.labelKey)}
             </button>
           ))}
         </div>
@@ -328,7 +328,7 @@ export function ContactDialog({
                 onChange={(v) => setRelation(v || NO_RELATION)}
                 options={[
                   { value: "", label: t("contacts.dialog.relation.unspecified") },
-                  ...RELATION_KINDS.map((k) => ({ value: k.id, label: k.label })),
+                  ...RELATION_KINDS.map((k) => ({ value: k.id, label: t(k.labelKey) })),
                 ]}
                 placeholder={t("contacts.dialog.relationPlaceholder")}
               />

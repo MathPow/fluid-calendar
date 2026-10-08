@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 import {
@@ -36,6 +37,7 @@ import {
   detectPlatform,
   socialLabel,
   socialPlatform,
+  socialPlatformLabel,
   socialUrl,
 } from "@/lib/projets/meta";
 
@@ -73,6 +75,7 @@ export function SocialLinksField({
   links: SocialLinkDraft[];
   onChange: (links: SocialLinkDraft[]) => void;
 }) {
+  const t = useT();
   const update = (i: number, patch: Partial<SocialLinkDraft>) =>
     onChange(links.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   // Suggest the first platform not used yet.
@@ -93,7 +96,7 @@ export function SocialLinksField({
             <SelectContent>
               {SOCIAL_PLATFORMS.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.label}
+                  {t(p.labelKey)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -148,7 +151,7 @@ export function SocialLinkButtons({
           href={socialUrl(l.platform, l.value)}
           target="_blank"
           rel="noopener noreferrer"
-          title={`${socialPlatform(l.platform).label} · ${socialLabel(l.value)}`}
+          title={`${socialPlatformLabel(l.platform)} · ${socialLabel(l.value)}`}
           onClick={(e) => e.stopPropagation()}
           className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-foreground hover:text-background"
         >

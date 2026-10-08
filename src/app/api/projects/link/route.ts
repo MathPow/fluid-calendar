@@ -118,7 +118,10 @@ export async function POST(request: NextRequest) {
     if (existing) {
       if (projectId && projectId !== existing.id) {
         return NextResponse.json(
-          { error: "Ce projet a déjà une liste de tâches." },
+          {
+            error: "Ce projet a déjà une liste de tâches.",
+            errorKey: "api.projects.alreadyHasTaskList",
+          },
           { status: 409 }
         );
       }
@@ -191,7 +194,7 @@ export async function DELETE(request: NextRequest) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Détachement impossible" },
+      { error: "Détachement impossible", errorKey: "api.projects.unlinkFailed" },
       { status: 500 }
     );
   }

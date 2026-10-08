@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { tNow } from "@/i18n/now";
+
 /**
  * What DreamDash can ask a machine's desktop agent to do. Everything but
  * `shell` runs at once; `shell` waits for a Yes in a dialog on the desktop.
@@ -10,9 +12,15 @@ const absPath = z
   .trim()
   .regex(/^\/[^\0]{0,500}$/, "Chemin absolu attendu");
 
+/**
+ * Translation helpers. The schemas live at module scope so Zod sees their
+ * default French message; the i18n `labelKey` / `errorKey` fields let the UI
+ * (and `tNow`) swap to the current locale at render time.
+ */
 export const DESKTOP_ACTIONS = {
   open_url: {
     label: "Ouvrir une adresse",
+    labelKey: "machines.action.open_url.label",
     schema: z.object({
       url: z
         .string()
@@ -23,14 +31,17 @@ export const DESKTOP_ACTIONS = {
   },
   open_path: {
     label: "Ouvrir un dossier ou un fichier",
+    labelKey: "machines.action.open_path.label",
     schema: z.object({ path: absPath }),
   },
   open_code: {
     label: "Ouvrir dans VS Code",
+    labelKey: "machines.action.open_code.label",
     schema: z.object({ path: absPath }),
   },
   open_app: {
     label: "Lancer une application",
+    labelKey: "machines.action.open_app.label",
     // A .desktop id: firefox, org.gnome.Nautilus, code…
     schema: z.object({
       app: z
@@ -41,6 +52,7 @@ export const DESKTOP_ACTIONS = {
   },
   notify: {
     label: "Afficher une notification",
+    labelKey: "machines.action.notify.label",
     schema: z.object({
       title: z.string().trim().min(1).max(120),
       body: z.string().trim().max(500).optional(),
@@ -48,14 +60,17 @@ export const DESKTOP_ACTIONS = {
   },
   clipboard: {
     label: "Copier dans le presse-papiers",
+    labelKey: "machines.action.clipboard.label",
     schema: z.object({ text: z.string().min(1).max(10_000) }),
   },
   lock: {
     label: "Verrouiller l'écran",
+    labelKey: "machines.action.lock.label",
     schema: z.object({}),
   },
   shell: {
     label: "Commande shell (confirmée sur l'ordi)",
+    labelKey: "machines.action.shell.label",
     schema: z.object({
       command: z.string().trim().min(1).max(2000),
       cwd: absPath.optional(),
@@ -66,6 +81,7 @@ export const DESKTOP_ACTIONS = {
     // that were explicitly approved at creation time. Never shown in the UI
     // action picker; the launcher-run route sets it directly.
     label: "Prompt agent (sans confirmation)",
+    labelKey: "machines.action.agent_run.label",
     schema: z.object({
       command: z.string().trim().min(1).max(4000),
       input: z.string().max(200_000).optional(),
@@ -118,21 +134,12 @@ export const agentOnline = (seenAt: Date | string | null | undefined) =>
 export function describeCommand(
   action: string,
   args: Record<string, unknown>,
-  /** UI translator; without it the summary stays in French (server use). */
+  /** UI translator; without it the summary uses the current locale via tNow. */
   t?: (key: string, params?: Record<string, string | number>) => string
 ): string {
   const a = args as Record<string, string>;
-  const fr: Record<string, string> = {
-    "machines.describe.open": "Ouvrir {target}",
-    "machines.describe.openApp": "Lancer {app}",
-    "machines.describe.notify": "Notification « {title} »",
-    "machines.describe.clipboard": "Presse-papiers ({count} caractères)",
-    "machines.describe.lock": "Verrouiller l'écran",
-  };
   const tr = (key: string, params?: Record<string, string | number>) =>
-    t
-      ? t(key, params)
-      : fr[key].replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? ""));
+    t ? t(key, params) : tNow(key, params);
   switch (action) {
     case "open_url":
       return tr("machines.describe.open", { target: a.url });

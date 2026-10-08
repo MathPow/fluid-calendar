@@ -48,7 +48,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   if (existing.lines == null) {
     // Imported invoices keep their original file: edit them in Fiscalité.
-    return NextResponse.json({ error: "Facture importée : modifie-la dans Fiscalité" }, { status: 409 });
+    return NextResponse.json(
+      {
+        error: "Facture importée : modifie-la dans Fiscalité",
+        errorKey: "api.facturation.importedInvoice",
+      },
+      { status: 409 }
+    );
   }
   try {
     return NextResponse.json(await saveIssuedInvoice(parsed.data, id));

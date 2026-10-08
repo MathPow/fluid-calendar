@@ -16,6 +16,8 @@ export interface AssistantModelInfo {
   label: string;
   /** One line under the label in the picker. */
   hint: string;
+  /** i18n key for `hint`; the picker uses it when present. */
+  hintKey?: string;
   /** Needs ANTHROPIC_API_KEY on the server. */
   claude: boolean;
 }
@@ -25,24 +27,28 @@ export const ASSISTANT_MODELS: AssistantModelInfo[] = [
     id: "claude-opus-5-5",
     label: "Claude Opus 5.5",
     hint: "Le plus fort pour fouiller · le plus cher",
+    hintKey: "assistant.model.claude-opus-5-5.hint",
     claude: true,
   },
   {
     id: "claude-sonnet-5-5",
     label: "Claude Sonnet 5.5",
     hint: "Rapide et solide · moitié prix",
+    hintKey: "assistant.model.claude-sonnet-5-5.hint",
     claude: true,
   },
   {
     id: "claude-haiku-4-5",
     label: "Claude Haiku 4.5",
     hint: "Le plus rapide · questions simples",
+    hintKey: "assistant.model.claude-haiku-4-5.hint",
     claude: true,
   },
   {
     id: "local",
     label: "Local (Ollama)",
     hint: "Gratuit, sur ton serveur · lent, sans outils",
+    hintKey: "assistant.model.local.hint",
     claude: false,
   },
 ];

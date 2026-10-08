@@ -96,7 +96,10 @@ export async function POST(request: NextRequest) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Impossible d'obtenir une réponse. Réessaie." },
+      {
+        error: "Impossible d'obtenir une réponse. Réessaie.",
+        errorKey: "api.projets.askFailed",
+      },
       { status: 500 }
     );
   }

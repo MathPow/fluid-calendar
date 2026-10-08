@@ -60,7 +60,11 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   });
   if (active) {
     return NextResponse.json(
-      { error: "Une génération est déjà en cours.", run: active },
+      {
+        error: "Une génération est déjà en cours.",
+        errorKey: "api.projets.showcaseRunning",
+        run: active,
+      },
       { status: 409 }
     );
   }

@@ -595,8 +595,8 @@ export function InvoiceComposer({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="fr">{t("facturation.composer.langOption.fr")}</SelectItem>
+                  <SelectItem value="en">{t("facturation.composer.langOption.en")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

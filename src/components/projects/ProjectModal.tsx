@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/i18n/client";
 import { useProjectStore } from "@/store/project";
 import { useOrganisationsStore } from "@/store/organisations";
 
@@ -38,6 +39,7 @@ interface ProjectModalProps {
 }
 
 export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
+  const t = useT();
   const { createProject, updateProject } = useProjectStore();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -151,10 +153,10 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
             </div>
 
             <div>
-              <Label>Projet lié (onglet Projets)</Label>
+              <Label>{t("projects.modal.linkedProject")}</Label>
               <Select value={agentProjectId} onValueChange={setAgentProjectId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Aucun" />
+                  <SelectValue placeholder={t("projects.modal.linkedProjectNone")} />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
                   <SelectItem value={NO_LINK}>Aucun</SelectItem>

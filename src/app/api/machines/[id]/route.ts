@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: "Mise à jour impossible", errorKey: "api.machines.updateFailed" },
       { status: 500 }
     );
   }

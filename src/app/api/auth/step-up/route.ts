@@ -28,7 +28,10 @@ export async function POST(request: NextRequest) {
   const entry = failures.get(auth.userId) ?? { count: 0, lockedUntil: 0 };
   if (entry.lockedUntil > Date.now()) {
     return NextResponse.json(
-      { error: "Trop d'essais. Réessaie dans 15 minutes." },
+      {
+        error: "Trop d'essais. Réessaie dans 15 minutes.",
+        errorKey: "api.auth.tooManyAttempts",
+      },
       { status: 429 }
     );
   }

@@ -17,26 +17,34 @@ export type LegalForm = "individuelle" | "senc" | "societe" | "personnel";
 export type SalesTaxStatus = "petit" | "inscrit";
 export type FilingFrequency = "annuelle" | "trimestrielle" | "mensuelle";
 
-export const LEGAL_FORMS: { id: LegalForm; label: string; hint: string }[] = [
+export const LEGAL_FORMS: { id: LegalForm; label: string; labelKey: string; hint: string; hintKey: string }[] = [
   {
     id: "individuelle",
     label: "Entreprise individuelle",
+    labelKey: "fiscalite.legalForm.individuelle.label",
     hint: "Travailleur autonome · TP-80 (et T2125) dans ta déclaration perso",
+    hintKey: "fiscalite.legalForm.individuelle.hint",
   },
   {
     id: "senc",
     label: "SENC",
+    labelKey: "fiscalite.legalForm.senc.label",
     hint: "Société en nom collectif · TP-600, chaque associé déclare sa part",
+    hintKey: "fiscalite.legalForm.senc.hint",
   },
   {
     id: "societe",
     label: "Société (inc.)",
+    labelKey: "fiscalite.legalForm.societe.label",
     hint: "Personne morale · CO-17 (et T2), exercice à part",
+    hintKey: "fiscalite.legalForm.societe.hint",
   },
   {
     id: "personnel",
     label: "Budget perso",
+    labelKey: "fiscalite.legalForm.personnel.label",
     hint: "Pas une entreprise: tes revenus, tes dépenses, ton budget du mois",
+    hintKey: "fiscalite.legalForm.personnel.hint",
   },
 ];
 
@@ -61,9 +69,21 @@ export const paidByLabel = (paidBy: string | null | undefined) =>
 /** i18n key for the "moi" paidBy value. */
 export const PAID_BY_ME_KEY = "fiscalite.paidBy.me";
 
-export const SALES_TAX_STATUSES: { id: SalesTaxStatus; label: string; hint: string }[] = [
-  { id: "petit", label: "Petit fournisseur", hint: "Pas inscrit, tu ne factures pas de taxes" },
-  { id: "inscrit", label: "Inscrit TPS/TVQ", hint: "Tu factures et tu récupères les taxes" },
+export const SALES_TAX_STATUSES: { id: SalesTaxStatus; label: string; labelKey: string; hint: string; hintKey: string }[] = [
+  {
+    id: "petit",
+    label: "Petit fournisseur",
+    labelKey: "fiscalite.salesTax.petit.label",
+    hint: "Pas inscrit, tu ne factures pas de taxes",
+    hintKey: "fiscalite.salesTax.petit.hint",
+  },
+  {
+    id: "inscrit",
+    label: "Inscrit TPS/TVQ",
+    labelKey: "fiscalite.salesTax.inscrit.label",
+    hint: "Tu factures et tu récupères les taxes",
+    hintKey: "fiscalite.salesTax.inscrit.hint",
+  },
 ];
 
 export const SALES_TAX_STATUS_KEYS: Record<SalesTaxStatus, { label: string; hint: string }> = {
@@ -71,10 +91,10 @@ export const SALES_TAX_STATUS_KEYS: Record<SalesTaxStatus, { label: string; hint
   inscrit: { label: "fiscalite.salesTax.inscrit.label", hint: "fiscalite.salesTax.inscrit.hint" },
 };
 
-export const FILING_FREQUENCIES: { id: FilingFrequency; label: string }[] = [
-  { id: "annuelle", label: "Annuelle" },
-  { id: "trimestrielle", label: "Trimestrielle" },
-  { id: "mensuelle", label: "Mensuelle" },
+export const FILING_FREQUENCIES: { id: FilingFrequency; label: string; labelKey: string }[] = [
+  { id: "annuelle", label: "Annuelle", labelKey: "fiscalite.filingFrequency.annuelle" },
+  { id: "trimestrielle", label: "Trimestrielle", labelKey: "fiscalite.filingFrequency.trimestrielle" },
+  { id: "mensuelle", label: "Mensuelle", labelKey: "fiscalite.filingFrequency.mensuelle" },
 ];
 
 export const FILING_FREQUENCY_KEYS: Record<FilingFrequency, string> = {
@@ -86,11 +106,13 @@ export const FILING_FREQUENCY_KEYS: Record<FilingFrequency, string> = {
 export interface ExpenseCategory {
   id: string;
   label: string;
+  labelKey?: string;
   /** T2125 line (the TP-80 uses the same headings). */
   line?: string;
   /** Share of the amount that is deductible (and of the taxes you can claim back). */
   deductible: number;
   hint?: string;
+  hintKey?: string;
   /** Equipment: not an expense, depreciated through the DPA instead. */
   capital?: boolean;
 }
@@ -101,97 +123,255 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   {
     id: "achats",
     label: "Achats de marchandises (revente)",
+    labelKey: "fiscalite.category.expense.achats.label",
     line: "8320",
     deductible: 1,
     hint: "Ce que tu achètes pour revendre: stock de la boutique, produits. Coût des marchandises vendues.",
+    hintKey: "fiscalite.category.expense.achats.hint",
   },
   {
     id: "sous-traitance",
     label: "Sous-traitance",
+    labelKey: "fiscalite.category.expense.sous-traitance.label",
     line: "8360",
     deductible: 1,
     hint: "Pigistes et sous-traitants qui produisent ce que tu vends",
+    hintKey: "fiscalite.category.expense.sous-traitance.hint",
   },
   {
     id: "main-oeuvre",
     label: "Main-d'œuvre directe",
+    labelKey: "fiscalite.category.expense.main-oeuvre.label",
     line: "8340",
     deductible: 1,
     hint: "Salaires des gens qui fabriquent ou livrent le produit (sinon: Salaires)",
+    hintKey: "fiscalite.category.expense.main-oeuvre.hint",
   },
-  { id: "publicite", label: "Publicité et marketing", line: "8521", deductible: 1, hint: "Pubs, Meta/Google Ads, imprimés, commandites données, promo" },
+  {
+    id: "publicite",
+    label: "Publicité et marketing",
+    labelKey: "fiscalite.category.expense.publicite.label",
+    line: "8521",
+    deductible: 1,
+    hint: "Pubs, Meta/Google Ads, imprimés, commandites données, promo",
+    hintKey: "fiscalite.category.expense.publicite.hint",
+  },
   {
     id: "repas",
     label: "Repas et représentation",
+    labelKey: "fiscalite.category.expense.repas.label",
     line: "8523",
     deductible: 0.5,
     hint: "Déductible à 50 %, taxes récupérables à 50 %. Note avec qui et pourquoi.",
+    hintKey: "fiscalite.category.expense.repas.hint",
   },
   {
     id: "creances",
     label: "Créances irrécouvrables",
+    labelKey: "fiscalite.category.expense.creances.label",
     line: "8590",
     deductible: 1,
     hint: "Une facture émise (déjà comptée en revenu) qu'un client ne paiera jamais",
+    hintKey: "fiscalite.category.expense.creances.hint",
   },
-  { id: "assurances", label: "Assurances", line: "8690", deductible: 1, hint: "Responsabilité civile, assurance événement, équipement" },
+  {
+    id: "assurances",
+    label: "Assurances",
+    labelKey: "fiscalite.category.expense.assurances.label",
+    line: "8690",
+    deductible: 1,
+    hint: "Responsabilité civile, assurance événement, équipement",
+    hintKey: "fiscalite.category.expense.assurances.hint",
+  },
   {
     id: "interets",
     label: "Intérêts et frais bancaires",
+    labelKey: "fiscalite.category.expense.interets.label",
     line: "8710",
     deductible: 1,
     hint: "Frais de compte, intérêts de prêt ou de carte, frais Stripe / Square / PayPal",
+    hintKey: "fiscalite.category.expense.interets.hint",
   },
   {
     id: "permis",
     label: "Taxes d'affaires, permis et cotisations",
+    labelKey: "fiscalite.category.expense.permis.label",
     line: "8760",
     deductible: 1,
     hint: "Immatriculation et droits annuels au REQ, permis, cotisations d'ordres ou d'associations. Frais gouvernementaux: pas de TPS/TVQ.",
+    hintKey: "fiscalite.category.expense.permis.hint",
   },
-  { id: "bureau", label: "Frais de bureau", line: "8810", deductible: 1, hint: "Petits articles, timbres, poste" },
+  {
+    id: "bureau",
+    label: "Frais de bureau",
+    labelKey: "fiscalite.category.expense.bureau.label",
+    line: "8810",
+    deductible: 1,
+    hint: "Petits articles, timbres, poste",
+    hintKey: "fiscalite.category.expense.bureau.hint",
+  },
   {
     id: "logiciels",
     label: "Logiciels et abonnements",
+    labelKey: "fiscalite.category.expense.logiciels.label",
     line: "8810",
     deductible: 1,
     hint: "SaaS, hébergement, domaines, courriel pro, plateformes (Shopify, billetterie)",
+    hintKey: "fiscalite.category.expense.logiciels.hint",
   },
-  { id: "fournitures", label: "Fournitures", line: "8811", deductible: 1, hint: "Papeterie, emballage, matériel consommé pour produire" },
-  { id: "honoraires", label: "Honoraires professionnels", line: "8860", deductible: 1, hint: "Comptable, avocat, notaire, consultants" },
-  { id: "gestion", label: "Frais de gestion et d'administration", line: "8871", deductible: 1, hint: "Services de gestion, de tenue de livres, d'administration" },
-  { id: "loyer", label: "Loyer", line: "8910", deductible: 1, hint: "Local, entrepôt, salle ou site loué pour un événement (ton appart: Bureau à domicile)" },
-  { id: "entretien", label: "Entretien et réparations", line: "8960", deductible: 1 },
-  { id: "salaires", label: "Salaires et avantages", line: "9060", deductible: 1, hint: "Avec les charges de l'employeur. Pense aux retenues à la source et aux T4/RL-1." },
-  { id: "impots-fonciers", label: "Impôts fonciers", line: "9180", deductible: 1, hint: "Taxes municipales et scolaires d'un local que tu possèdes" },
-  { id: "deplacements", label: "Déplacements", line: "9200", deductible: 1, hint: "Transport, avion, train, hôtel (les repas vont dans Repas)" },
-  { id: "telecom", label: "Téléphone et services publics", line: "9220", deductible: 1, hint: "Cell, internet, électricité: seulement la part d'affaires" },
-  { id: "carburant", label: "Carburant (autre que véhicule)", line: "9224", deductible: 1, hint: "Génératrice, chauffage d'un site, propane (l'essence de l'auto: Frais de véhicule)" },
-  { id: "livraison", label: "Livraison, transport et messagerie", line: "9275", deductible: 1, hint: "Postes Canada, Purolator, expédition des commandes" },
-  { id: "vehicule", label: "Frais de véhicule", line: "9281", deductible: 1, hint: "Essence, entretien, assurance auto, immatriculation, au prorata. Tiens un registre de kilométrage." },
-  { id: "formation", label: "Formation et perfectionnement", line: "9270", deductible: 1, hint: "Cours, conférences, livres liés à ton activité" },
-  { id: "autres", label: "Autres dépenses", line: "9270", deductible: 1 },
-  { id: "domicile", label: "Bureau à domicile", line: "9945", deductible: 1, hint: "Au prorata de la superficie, sans créer de perte" },
+  {
+    id: "fournitures",
+    label: "Fournitures",
+    labelKey: "fiscalite.category.expense.fournitures.label",
+    line: "8811",
+    deductible: 1,
+    hint: "Papeterie, emballage, matériel consommé pour produire",
+    hintKey: "fiscalite.category.expense.fournitures.hint",
+  },
+  {
+    id: "honoraires",
+    label: "Honoraires professionnels",
+    labelKey: "fiscalite.category.expense.honoraires.label",
+    line: "8860",
+    deductible: 1,
+    hint: "Comptable, avocat, notaire, consultants",
+    hintKey: "fiscalite.category.expense.honoraires.hint",
+  },
+  {
+    id: "gestion",
+    label: "Frais de gestion et d'administration",
+    labelKey: "fiscalite.category.expense.gestion.label",
+    line: "8871",
+    deductible: 1,
+    hint: "Services de gestion, de tenue de livres, d'administration",
+    hintKey: "fiscalite.category.expense.gestion.hint",
+  },
+  {
+    id: "loyer",
+    label: "Loyer",
+    labelKey: "fiscalite.category.expense.loyer.label",
+    line: "8910",
+    deductible: 1,
+    hint: "Local, entrepôt, salle ou site loué pour un événement (ton appart: Bureau à domicile)",
+    hintKey: "fiscalite.category.expense.loyer.hint",
+  },
+  {
+    id: "entretien",
+    label: "Entretien et réparations",
+    labelKey: "fiscalite.category.expense.entretien.label",
+    line: "8960",
+    deductible: 1,
+  },
+  {
+    id: "salaires",
+    label: "Salaires et avantages",
+    labelKey: "fiscalite.category.expense.salaires.label",
+    line: "9060",
+    deductible: 1,
+    hint: "Avec les charges de l'employeur. Pense aux retenues à la source et aux T4/RL-1.",
+    hintKey: "fiscalite.category.expense.salaires.hint",
+  },
+  {
+    id: "impots-fonciers",
+    label: "Impôts fonciers",
+    labelKey: "fiscalite.category.expense.impots-fonciers.label",
+    line: "9180",
+    deductible: 1,
+    hint: "Taxes municipales et scolaires d'un local que tu possèdes",
+    hintKey: "fiscalite.category.expense.impots-fonciers.hint",
+  },
+  {
+    id: "deplacements",
+    label: "Déplacements",
+    labelKey: "fiscalite.category.expense.deplacements.label",
+    line: "9200",
+    deductible: 1,
+    hint: "Transport, avion, train, hôtel (les repas vont dans Repas)",
+    hintKey: "fiscalite.category.expense.deplacements.hint",
+  },
+  {
+    id: "telecom",
+    label: "Téléphone et services publics",
+    labelKey: "fiscalite.category.expense.telecom.label",
+    line: "9220",
+    deductible: 1,
+    hint: "Cell, internet, électricité: seulement la part d'affaires",
+    hintKey: "fiscalite.category.expense.telecom.hint",
+  },
+  {
+    id: "carburant",
+    label: "Carburant (autre que véhicule)",
+    labelKey: "fiscalite.category.expense.carburant.label",
+    line: "9224",
+    deductible: 1,
+    hint: "Génératrice, chauffage d'un site, propane (l'essence de l'auto: Frais de véhicule)",
+    hintKey: "fiscalite.category.expense.carburant.hint",
+  },
+  {
+    id: "livraison",
+    label: "Livraison, transport et messagerie",
+    labelKey: "fiscalite.category.expense.livraison.label",
+    line: "9275",
+    deductible: 1,
+    hint: "Postes Canada, Purolator, expédition des commandes",
+    hintKey: "fiscalite.category.expense.livraison.hint",
+  },
+  {
+    id: "vehicule",
+    label: "Frais de véhicule",
+    labelKey: "fiscalite.category.expense.vehicule.label",
+    line: "9281",
+    deductible: 1,
+    hint: "Essence, entretien, assurance auto, immatriculation, au prorata. Tiens un registre de kilométrage.",
+    hintKey: "fiscalite.category.expense.vehicule.hint",
+  },
+  {
+    id: "formation",
+    label: "Formation et perfectionnement",
+    labelKey: "fiscalite.category.expense.formation.label",
+    line: "9270",
+    deductible: 1,
+    hint: "Cours, conférences, livres liés à ton activité",
+    hintKey: "fiscalite.category.expense.formation.hint",
+  },
+  {
+    id: "autres",
+    label: "Autres dépenses",
+    labelKey: "fiscalite.category.expense.autres.label",
+    line: "9270",
+    deductible: 1,
+  },
+  {
+    id: "domicile",
+    label: "Bureau à domicile",
+    labelKey: "fiscalite.category.expense.domicile.label",
+    line: "9945",
+    deductible: 1,
+    hint: "Au prorata de la superficie, sans créer de perte",
+    hintKey: "fiscalite.category.expense.domicile.hint",
+  },
   {
     id: "immobilisation",
     label: "Équipement (DPA)",
+    labelKey: "fiscalite.category.expense.immobilisation.label",
     line: "9936",
     deductible: 0,
     capital: true,
     hint: "Ordi, caméra, meubles, outils de plus de ~500 $: amorti par la DPA, pas déduit d'un coup. Les taxes restent récupérables.",
+    hintKey: "fiscalite.category.expense.immobilisation.hint",
   },
 ];
 
-export const INCOME_CATEGORIES = [
-  { id: "services", label: "Services" },
-  { id: "ventes", label: "Ventes de produits" },
-  { id: "billetterie", label: "Billetterie / événements" },
-  { id: "commandites", label: "Commandites et partenariats" },
-  { id: "affiliations", label: "Affiliations" },
-  { id: "contenu", label: "Contenu payé et abonnements" },
-  { id: "subventions", label: "Subventions" },
-  { id: "interets-revenus", label: "Intérêts" },
-  { id: "autres-revenus", label: "Autres revenus" },
+export const INCOME_CATEGORIES: { id: string; label: string; labelKey: string }[] = [
+  { id: "services", label: "Services", labelKey: "fiscalite.category.income.services.label" },
+  { id: "ventes", label: "Ventes de produits", labelKey: "fiscalite.category.income.ventes.label" },
+  { id: "billetterie", label: "Billetterie / événements", labelKey: "fiscalite.category.income.billetterie.label" },
+  { id: "commandites", label: "Commandites et partenariats", labelKey: "fiscalite.category.income.commandites.label" },
+  { id: "affiliations", label: "Affiliations", labelKey: "fiscalite.category.income.affiliations.label" },
+  { id: "contenu", label: "Contenu payé et abonnements", labelKey: "fiscalite.category.income.contenu.label" },
+  { id: "subventions", label: "Subventions", labelKey: "fiscalite.category.income.subventions.label" },
+  { id: "interets-revenus", label: "Intérêts", labelKey: "fiscalite.category.income.interets-revenus.label" },
+  { id: "autres-revenus", label: "Autres revenus", labelKey: "fiscalite.category.income.autres-revenus.label" },
 ];
 
 /** i18n label keys per expense category id. */
@@ -339,42 +519,43 @@ export function categoryFromLabel(
 export interface BudgetCategory {
   id: string;
   label: string;
+  labelKey?: string;
   color: string;
 }
 
 // Personal budget: matches Mathys's own budget spreadsheet (Budget.xlsx),
 // with a couple of extras (logement, épargne) for what may come.
 export const PERSONAL_EXPENSE_CATEGORIES: BudgetCategory[] = [
-  { id: "p-logement", label: "Logement", color: "#a8ccff" },
-  { id: "p-nourriture", label: "Nourriture", color: "#9fe0bd" },
-  { id: "p-gaz", label: "Gaz (auto)", color: "#ffd88a" },
-  { id: "p-automobile", label: "Automobile", color: "#e4c59e" },
-  { id: "p-bus", label: "Bus", color: "#8fd3f4" },
-  { id: "p-cellulaire", label: "Cellulaire", color: "#c9b8f0" },
-  { id: "p-divertissement", label: "Divertissement", color: "#b3b8ff" },
-  { id: "p-sports", label: "Sports", color: "#b9d99a" },
-  { id: "p-vacances", label: "Vacances", color: "#7fc8c2" },
-  { id: "p-cadeaux", label: "Cadeaux", color: "#ffb3a7" },
-  { id: "p-vetements", label: "Vêtements", color: "#ffc2b8" },
-  { id: "p-sante", label: "Essentiel (santé)", color: "#f5a3c7" },
-  { id: "p-education", label: "Éducation", color: "#b3d4ff" },
-  { id: "p-renovations", label: "Rénovations", color: "#d9c4a9" },
-  { id: "p-projets-web", label: "Projets Web", color: "#a8ffef" },
-  { id: "p-nom-domaine", label: "Nom de domaines", color: "#c8f0d3" },
-  { id: "p-depense-business", label: "Dépense business", color: "#ffdcbf" },
-  { id: "p-copine", label: "Copine", color: "#ff9ac0" },
-  { id: "p-epargne", label: "Épargne et placements", color: "#6fcf97" },
-  { id: "p-autres", label: "Autres", color: "#cfcac2" },
+  { id: "p-logement", label: "Logement", labelKey: "fiscalite.category.personalExpense.p-logement", color: "#a8ccff" },
+  { id: "p-nourriture", label: "Nourriture", labelKey: "fiscalite.category.personalExpense.p-nourriture", color: "#9fe0bd" },
+  { id: "p-gaz", label: "Gaz (auto)", labelKey: "fiscalite.category.personalExpense.p-gaz", color: "#ffd88a" },
+  { id: "p-automobile", label: "Automobile", labelKey: "fiscalite.category.personalExpense.p-automobile", color: "#e4c59e" },
+  { id: "p-bus", label: "Bus", labelKey: "fiscalite.category.personalExpense.p-bus", color: "#8fd3f4" },
+  { id: "p-cellulaire", label: "Cellulaire", labelKey: "fiscalite.category.personalExpense.p-cellulaire", color: "#c9b8f0" },
+  { id: "p-divertissement", label: "Divertissement", labelKey: "fiscalite.category.personalExpense.p-divertissement", color: "#b3b8ff" },
+  { id: "p-sports", label: "Sports", labelKey: "fiscalite.category.personalExpense.p-sports", color: "#b9d99a" },
+  { id: "p-vacances", label: "Vacances", labelKey: "fiscalite.category.personalExpense.p-vacances", color: "#7fc8c2" },
+  { id: "p-cadeaux", label: "Cadeaux", labelKey: "fiscalite.category.personalExpense.p-cadeaux", color: "#ffb3a7" },
+  { id: "p-vetements", label: "Vêtements", labelKey: "fiscalite.category.personalExpense.p-vetements", color: "#ffc2b8" },
+  { id: "p-sante", label: "Essentiel (santé)", labelKey: "fiscalite.category.personalExpense.p-sante", color: "#f5a3c7" },
+  { id: "p-education", label: "Éducation", labelKey: "fiscalite.category.personalExpense.p-education", color: "#b3d4ff" },
+  { id: "p-renovations", label: "Rénovations", labelKey: "fiscalite.category.personalExpense.p-renovations", color: "#d9c4a9" },
+  { id: "p-projets-web", label: "Projets Web", labelKey: "fiscalite.category.personalExpense.p-projets-web", color: "#a8ffef" },
+  { id: "p-nom-domaine", label: "Nom de domaines", labelKey: "fiscalite.category.personalExpense.p-nom-domaine", color: "#c8f0d3" },
+  { id: "p-depense-business", label: "Dépense business", labelKey: "fiscalite.category.personalExpense.p-depense-business", color: "#ffdcbf" },
+  { id: "p-copine", label: "Copine", labelKey: "fiscalite.category.personalExpense.p-copine", color: "#ff9ac0" },
+  { id: "p-epargne", label: "Épargne et placements", labelKey: "fiscalite.category.personalExpense.p-epargne", color: "#6fcf97" },
+  { id: "p-autres", label: "Autres", labelKey: "fiscalite.category.personalExpense.p-autres", color: "#cfcac2" },
 ];
 
 export const PERSONAL_INCOME_CATEGORIES: BudgetCategory[] = [
-  { id: "p-salaire", label: "Salaire", color: "#6fcf97" },
-  { id: "p-projets", label: "Projets", color: "#a8ccff" },
-  { id: "p-bourses", label: "Bourses", color: "#c9b8f0" },
-  { id: "p-interets", label: "Intérêts", color: "#ffd88a" },
-  { id: "p-retraits", label: "Retraits d'entreprise", color: "#b3b8ff" },
-  { id: "p-remboursements", label: "Remboursements", color: "#ffb3a7" },
-  { id: "p-autres-revenus", label: "Autres revenus", color: "#cfcac2" },
+  { id: "p-salaire", label: "Salaire", labelKey: "fiscalite.category.personalIncome.p-salaire", color: "#6fcf97" },
+  { id: "p-projets", label: "Projets", labelKey: "fiscalite.category.personalIncome.p-projets", color: "#a8ccff" },
+  { id: "p-bourses", label: "Bourses", labelKey: "fiscalite.category.personalIncome.p-bourses", color: "#c9b8f0" },
+  { id: "p-interets", label: "Intérêts", labelKey: "fiscalite.category.personalIncome.p-interets", color: "#ffd88a" },
+  { id: "p-retraits", label: "Retraits d'entreprise", labelKey: "fiscalite.category.personalIncome.p-retraits", color: "#b3b8ff" },
+  { id: "p-remboursements", label: "Remboursements", labelKey: "fiscalite.category.personalIncome.p-remboursements", color: "#ffb3a7" },
+  { id: "p-autres-revenus", label: "Autres revenus", labelKey: "fiscalite.category.personalIncome.p-autres-revenus", color: "#cfcac2" },
 ];
 
 /** i18n label keys for personal expense categories. */
@@ -979,10 +1160,28 @@ export function invoiceIssues(inv: InvoiceLite, profile: TaxProfileLite): Invoic
 
 export type MovementKind = "avance" | "remboursement" | "retrait";
 
-export const MOVEMENT_KINDS: { id: MovementKind; label: string; hint: string }[] = [
-  { id: "avance", label: "Avance", hint: "L'associé met de l'argent dans la SENC" },
-  { id: "remboursement", label: "Remboursement", hint: "La SENC rembourse l'associé" },
-  { id: "retrait", label: "Retrait", hint: "L'associé se verse une part des profits" },
+export const MOVEMENT_KINDS: { id: MovementKind; label: string; labelKey: string; hint: string; hintKey: string }[] = [
+  {
+    id: "avance",
+    label: "Avance",
+    labelKey: "fiscalite.movementKind.avance.label",
+    hint: "L'associé met de l'argent dans la SENC",
+    hintKey: "fiscalite.movementKind.avance.hint",
+  },
+  {
+    id: "remboursement",
+    label: "Remboursement",
+    labelKey: "fiscalite.movementKind.remboursement.label",
+    hint: "La SENC rembourse l'associé",
+    hintKey: "fiscalite.movementKind.remboursement.hint",
+  },
+  {
+    id: "retrait",
+    label: "Retrait",
+    labelKey: "fiscalite.movementKind.retrait.label",
+    hint: "L'associé se verse une part des profits",
+    hintKey: "fiscalite.movementKind.retrait.hint",
+  },
 ];
 
 export const MOVEMENT_KIND_KEYS: Record<MovementKind, { label: string; hint: string }> = {

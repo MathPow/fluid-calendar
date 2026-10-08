@@ -31,7 +31,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     if (clash)
       return NextResponse.json(
-        { error: "Un tag porte déjà ce nom." },
+        {
+          error: "Un tag porte déjà ce nom.",
+          errorKey: "api.contactTags.nameTaken",
+        },
         { status: 409 }
       );
   }

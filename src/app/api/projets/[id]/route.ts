@@ -65,7 +65,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   if (fields.parentId) {
     if (await wouldCreateCycle(id, fields.parentId)) {
       return NextResponse.json(
-        { error: "Un projet ne peut pas être son propre parent." },
+        {
+          error: "Un projet ne peut pas être son propre parent.",
+          errorKey: "api.projets.cycleParent",
+        },
         { status: 400 }
       );
     }
@@ -168,7 +171,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: "Mise à jour impossible", errorKey: "api.projets.updateFailed" },
       { status: 500 }
     );
   }

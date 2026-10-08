@@ -41,7 +41,10 @@ export async function GET(
     const toSec = parseTimestamp(to ?? "");
     if (fromSec === null || toSec === null) {
       return NextResponse.json(
-        { error: "from/to doivent être des timestamps, ex. 1:40:00" },
+        {
+          error: "from/to doivent être des timestamps, ex. 1:40:00",
+          errorKey: "api.sessions.badTimestamp",
+        },
         { status: 400 }
       );
     }

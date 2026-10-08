@@ -36,7 +36,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   const merged = { ...current, ...data };
   if (merged.startTime === merged.endTime) {
     return NextResponse.json(
-      { error: "Le bloc doit durer plus de zéro minute" },
+      {
+        error: "Le bloc doit durer plus de zéro minute",
+        errorKey: "api.routine.blockZeroMinutes",
+      },
       { status: 400 }
     );
   }
