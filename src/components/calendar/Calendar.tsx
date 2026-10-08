@@ -179,7 +179,7 @@ export function Calendar({
           aria-label="Calendriers et calques"
           inert={!isSidebarOpen}
           className={cn(
-            "relative hidden h-full w-80 flex-none border-r border-border bg-card transition-[margin,transform] duration-300 md:block",
+            "relative hidden h-full w-80 flex-none border-r border-border bg-card transition-[margin,transform] duration-300 motion-reduce:transition-none md:block",
             !isHydrated && "opacity-0 duration-0",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}

@@ -93,6 +93,7 @@ export function ImageField({
             color: readableTextOn(color),
           }}
           title={value ? "Changer la photo" : "Ajouter une photo"}
+          aria-label={`${value ? "Changer la photo" : "Ajouter une photo"} : ${label}`}
           disabled={busy}
         >
           {value ? (
@@ -115,7 +116,7 @@ export function ImageField({
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-muted-foreground shadow-float hover:text-foreground"
+            className="absolute -right-1 -top-1 flex h-10 w-10 items-center md:h-6 md:w-6 justify-center rounded-full bg-card text-muted-foreground shadow-float hover:text-foreground"
             aria-label="Retirer la photo"
           >
             <X className="h-3.5 w-3.5" />
