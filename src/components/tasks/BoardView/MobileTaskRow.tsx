@@ -23,7 +23,7 @@ export function MobileTaskRow({
   const remove = () => onDelete(task.id);
   return (
     <div
-      className="flex items-center gap-1 rounded-xl border border-border bg-card p-1"
+      className="flex touch-pan-y items-center gap-1 rounded-xl border border-border bg-card p-1"
       onClickCapture={(e) => {
         if (swiped.current) {
           e.preventDefault();
@@ -53,6 +53,7 @@ export function MobileTaskRow({
       }}
       onTouchCancel={() => {
         start.current = null;
+        swiped.current = false;
       }}
       onTouchEnd={(e) => {
         const s = start.current;
@@ -71,6 +72,7 @@ export function MobileTaskRow({
     >
       <button
         type="button"
+        aria-label={`Ouvrir ${task.title}`}
         className="min-h-12 min-w-0 flex-1 rounded-lg px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => {
           if (swiped.current) {
