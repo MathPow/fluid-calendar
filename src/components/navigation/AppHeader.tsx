@@ -49,6 +49,20 @@ const MENU: NavLink[] = [
   { href: "/fiscalite", label: "Fiscalité", icon: Receipt },
 ];
 
+// Keep the phone's most-used destinations first without dropping any section.
+const MOBILE_MENU: NavLink[] = [
+  { href: "/calendar", label: "Calendrier", icon: Calendar },
+  { href: "/tasks", label: "Tâches", icon: ListTodo, also: ["/focus"] },
+  { href: "/projets", label: "Projets", icon: FolderGit2 },
+  { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/machines", label: "Machines", icon: Monitor },
+  { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/settings", label: "Paramètres", icon: Settings },
+  ...MENU.filter((link) =>
+    ["/dashboard", "/email", "/notes", "/fiscalite"].includes(link.href)
+  ),
+];
+
 /**
  * Portal header. Top row is the wordmark, the nav, then search /
  * notifications / account (station lives in the account menu). The nav sits
@@ -185,38 +199,15 @@ export function AppHeader({ className }: { className?: string }) {
                 Navigation principale
               </DialogPrimitive.Description>
               <nav aria-label="Navigation mobile" className="space-y-1">
-                {[
-                  ...MENU.map((l) => ({
-                    ...l,
-                    label:
-                      l.href === "/calendar"
-                        ? "Calendrier"
-                        : l.href === "/tasks"
-                          ? "Tâches"
-                          : l.label,
-                  })),
-                  { href: "/machines", label: "Machines", icon: Monitor },
-                  {
-                    href: "/notifications",
-                    label: "Notifications",
-                    icon: Bell,
-                  },
-                  { href: "/settings", label: "Paramètres", icon: Settings },
-                ].map((link) => (
+                {MOBILE_MENU.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={() => setDrawerOpen(false)}
-                    aria-current={
-                      pathname === link.href ||
-                      pathname?.startsWith(link.href + "/")
-                        ? "page"
-                        : undefined
-                    }
+                    aria-current={isActive(link) ? "page" : undefined}
                     className={cn(
                       "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      pathname === link.href ||
-                        pathname?.startsWith(link.href + "/")
+                      isActive(link)
                         ? "bg-tint-soft text-foreground"
                         : "hover:bg-secondary"
                     )}
