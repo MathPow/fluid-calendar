@@ -311,10 +311,11 @@ export function Calendar({
           <div className="flex flex-none items-center gap-3 border-b border-border bg-tint-soft px-4 py-2.5 md:px-5">
             <PenLine className="h-4 w-4 shrink-0" />
             <p className="min-w-0 flex-1 text-[13px] leading-snug">
-              <span className="font-semibold">Semaine type.</span>{" "}
+              <span className="font-semibold">
+                {t("calendar.editingBanner.title")}
+              </span>{" "}
               <span className="text-muted-foreground">
-                Glisse dans la grille pour créer un bloc, déplace-le ou
-                étire-le. Touche un bloc pour le modifier.
+                {t("calendar.editingBanner.help")}
               </span>
             </p>
             <button
@@ -322,7 +323,7 @@ export function Calendar({
               onClick={() => useRoutineStore.getState().setEditing(false)}
               className="shrink-0 rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-semibold text-background"
             >
-              Terminer
+              {t("calendar.routineLayers.editingCta.stop")}
             </button>
           </div>
         )}
