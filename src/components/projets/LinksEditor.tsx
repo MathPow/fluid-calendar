@@ -105,7 +105,7 @@ export function LinksEditor({
           {links.map((l, i) => (
             <div
               key={i}
-              className="grid gap-2 rounded-2xl bg-secondary/60 p-2 sm:grid-cols-[9.5rem_1fr_9rem_auto]"
+              className="grid gap-2 rounded-2xl bg-secondary/60 p-2 md:grid-cols-[9.5rem_minmax(0,1fr)_9rem_auto] [&>*]:min-w-0"
             >
               <Select
                 value={l.kind}
@@ -149,7 +149,7 @@ export function LinksEditor({
               <button
                 type="button"
                 onClick={() => onChange(links.filter((_, j) => j !== i))}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-negative hover:text-negative-foreground"
+                className="flex h-10 w-10 justify-self-end items-center justify-center rounded-full text-muted-foreground hover:bg-negative hover:text-negative-foreground"
                 aria-label="Retirer le lien"
               >
                 <X className="h-4 w-4" />
