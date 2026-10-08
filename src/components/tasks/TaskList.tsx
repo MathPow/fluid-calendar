@@ -392,7 +392,7 @@ export function TaskList({
           </p>
         )}
       </div>
-      <div className="hidden flex-1 overflow-hidden rounded-[20px] bg-card shadow-tile md:block">
+      <div className="hidden flex-1 overflow-hidden rounded-[28px] bg-card shadow-tile md:block">
         <div
           className="overflow-auto"
           style={{ maxHeight: "calc(100vh - 250px)" }}

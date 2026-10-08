@@ -163,7 +163,7 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full md:gap-4 md:p-4 lg:gap-5 lg:p-5">
       {/* Sidebar: hidden on mobile */}
       <div className="hidden md:block">
         <ProjectSidebar />

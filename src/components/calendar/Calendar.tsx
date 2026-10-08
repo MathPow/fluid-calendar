@@ -139,7 +139,7 @@ export function Calendar({
   ] as const;
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden md:p-4 lg:p-5">
       {/* Mobile backdrop */}
       {isSidebarOpen && (
         <div
@@ -152,13 +152,15 @@ export function Calendar({
       <aside
         className={cn(
           "h-full w-80 flex-none border-r border-border bg-card",
+          // Desktop: a rounded panel beside the calendar, like Email.
+          "md:mr-4 md:overflow-hidden md:rounded-[28px] md:border-r-0 md:shadow-tile",
           "transform transition-transform duration-300 ease-in-out",
           "fixed inset-y-0 left-0 z-40",
           "md:relative md:z-auto",
           !isHydrated && "opacity-0 duration-0",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
-        style={{ marginLeft: isSidebarOpen ? 0 : "-20rem" }}
+        style={{ marginLeft: isSidebarOpen ? 0 : "-21rem" }}
       >
         <div className="flex h-full flex-col">
           <div className="flex-1 overflow-y-auto">
@@ -169,7 +171,7 @@ export function Calendar({
       </aside>
 
       {/* Main Content */}
-      <main className="flex min-w-0 flex-1 flex-col bg-background">
+      <main className="flex min-w-0 flex-1 flex-col bg-background md:overflow-hidden md:rounded-[28px] md:bg-card md:shadow-tile">
         <LifetimeAccessBanner />
 
         {/* Header */}

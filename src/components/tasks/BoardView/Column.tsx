@@ -44,7 +44,7 @@ export function Column({ status, tasks, onEdit, onDelete }: ColumnProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "flex w-80 flex-shrink-0 flex-col rounded-[20px] border",
+        "flex w-80 flex-shrink-0 flex-col overflow-hidden rounded-[28px] border",
         statusColors[status],
         isOver && "ring-2 ring-ring"
       )}
