@@ -191,6 +191,8 @@ export function InvoiceDialog({
           gst: f.gst || money(g.gstCents),
           qst: f.qst || money(g.qstCents),
           total: f.total || money(g.totalCents),
+          // Keep a category the user already picked.
+          category: f.category || g.category || "",
         }));
         setReadNote(
           data.source === "none"

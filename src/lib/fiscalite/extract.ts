@@ -7,6 +7,7 @@
  */
 import { logger } from "@/lib/logger";
 
+import { categoryChoices } from "./category-guess";
 import { parseMoney } from "./meta";
 
 const LOG_SOURCE = "fiscalite-extract";
@@ -26,6 +27,9 @@ export interface InvoiceGuess {
   gstCents?: number;
   qstCents?: number;
   totalCents?: number;
+  /** Category id, filled by category-guess.ts (the LLM's raw pick before that). */
+  category?: string;
+  categorySource?: "history" | "party" | "llm" | "text";
 }
 
 export async function pdfText(bytes: Uint8Array): Promise<string> {
@@ -141,18 +145,27 @@ export function guessFromText(text: string, orgNames: string[] = []): InvoiceGue
 }
 
 /** Ask the local LLM for the fields. Best effort: returns {} when it's away. */
-async function guessWithLlm(text: string, orgNames: string[]): Promise<InvoiceGuess> {
+async function guessWithLlm(
+  text: string,
+  orgNames: string[],
+  personal: boolean,
+  ours: boolean
+): Promise<InvoiceGuess> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+  const choices = categoryChoices(personal);
   const prompt = `Tu lis une facture québécoise. Mon entreprise: ${orgNames.join(" / ") || "inconnue"}.
-Réponds UNIQUEMENT en JSON avec ces clés (null si absent):
+${ours ? "Cette facture a été émise par MON entreprise: c'est un revenu.\n" : ""}Réponds UNIQUEMENT en JSON avec ces clés (null si absent):
 {"direction": "revenu" si c'est MON entreprise qui a émis la facture sinon "depense",
  "date": "YYYY-MM-DD" (date de la facture),
  "party": nom de l'AUTRE partie (fournisseur si dépense, client si revenu),
  "partyTaxNumber": numéros TPS (…RT0001) / TVQ (…TQ0001) du fournisseur si dépense,
  "number": numéro de facture,
  "description": ce qui est facturé, 8 mots max,
- "subtotal": montant avant taxes (nombre), "gst": TPS (nombre), "qst": TVQ (nombre), "total": total (nombre)}
+ "subtotal": montant avant taxes (nombre), "gst": TPS (nombre), "qst": TVQ (nombre), "total": total (nombre),
+ "category": l'identifiant (avant la parenthèse) de la catégorie qui convient le mieux,
+   pour une dépense parmi: ${choices.expense}
+   pour un revenu parmi: ${choices.income}}
 
 FACTURE:
 ${text.slice(0, 6000)}`;
@@ -187,6 +200,7 @@ ${text.slice(0, 6000)}`;
       gstCents: money(j.gst),
       qstCents: money(j.qst),
       totalCents: money(j.total),
+      category: str(j.category),
     };
   } catch (error) {
     logger.info(
@@ -203,12 +217,16 @@ ${text.slice(0, 6000)}`;
 export async function extractInvoice(
   bytes: Uint8Array,
   mime: string,
-  orgNames: string[]
+  orgNames: string[],
+  personal = false
 ): Promise<{ text: string; guess: InvoiceGuess; source: "llm" | "regex" | "none" }> {
   const text = mime === "application/pdf" ? await pdfText(bytes) : "";
   if (!text) return { text, guess: {}, source: "none" };
   const regex = guessFromText(text, orgNames);
-  const llm = await guessWithLlm(text, orgNames);
+  // Our name in the letterhead is a sure sign: the model doesn't get to flip it.
+  const ours = regex.direction === "revenu";
+  const llm = await guessWithLlm(text, orgNames, personal, ours);
+  if (ours) llm.direction = "revenu";
   const merged: InvoiceGuess = { ...regex };
   // The model reads layouts better; the regex is exact on numbers it found.
   for (const [k, v] of Object.entries(llm) as [keyof InvoiceGuess, never][]) {
