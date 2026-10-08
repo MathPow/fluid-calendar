@@ -120,9 +120,13 @@ export function ProjectTile({
             <Pencil />
             {t("common.edit")}
           </DropdownMenuItem>
-          <div className="px-2">
-            <TerminalButton project={project} />
-          </div>
+          {projectTerminals(project).map((terminal) => (
+            <DropdownMenuItem key={terminal.id} asChild>
+              <a href={terminal.url} target="_blank" rel="noopener noreferrer">
+                <SquareTerminal /> Terminal · {terminal.machine}
+              </a>
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="hidden md:flex items-center justify-between gap-3">
@@ -254,14 +258,8 @@ export function ProjectTile({
 const iconButton =
   "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground";
 
-/**
- * Opens the project's folder in a machine's web terminal (ttyd). One machine:
- * a plain link; several: a menu to pick which one. Hidden when no machine the
- * project lives on has a terminal address.
- */
-function TerminalButton({ project }: { project: ProjectFull }) {
-  const t = useT();
-  const terminals = project.locations
+function projectTerminals(project: ProjectFull) {
+  return project.locations
     .map((l) => ({
       id: l.id,
       machine: l.machine.label || l.machine.name,
@@ -270,6 +268,16 @@ function TerminalButton({ project }: { project: ProjectFull }) {
     .filter((x): x is { id: string; machine: string; url: string } =>
       Boolean(x.url)
     );
+}
+
+/**
+ * Opens the project's folder in a machine's web terminal (ttyd). One machine:
+ * a plain link; several: a menu to pick which one. Hidden when no machine the
+ * project lives on has a terminal address.
+ */
+function TerminalButton({ project }: { project: ProjectFull }) {
+  const t = useT();
+  const terminals = projectTerminals(project);
 
   if (terminals.length === 0) return null;
   if (terminals.length === 1) {
