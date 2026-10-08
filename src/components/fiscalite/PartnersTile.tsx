@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 import {
   MOVEMENT_KINDS,
+  PAID_BY_ME,
   type MovementKind,
   type PartnerSummary,
   type Settlement,
@@ -47,6 +48,10 @@ const kindLabel = (t: TranslateFn, k: string) =>
  * SENC: what each associé paid out of pocket, advanced, got back and drew,
  * and his equal share of the estimated profit.
  */
+/** "moi" is stored as-is (it keys « Payé par » and the movements); show it as « Moi ». */
+const partnerName = (t: TranslateFn, name: string) =>
+  name === PAID_BY_ME ? t("fiscalite.partners.me") : name;
+
 export function PartnersTile({ organisationId, partners, summaries, movements, onAdded, onDeleted }: PartnersTileProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -107,7 +112,7 @@ export function PartnersTile({ organisationId, partners, summaries, movements, o
           {summaries.map((s) => (
             <li key={s.partner}>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[15px] font-semibold tracking-title">{s.partner}</span>
+                <span className="text-[15px] font-semibold tracking-title">{partnerName(t, s.partner)}</span>
                 <span
                   className={cn(
                     "text-[15px] font-semibold tabular-nums",
@@ -150,9 +155,9 @@ export function PartnersTile({ organisationId, partners, summaries, movements, o
             {transfers.map((s) => (
               <li key={`${s.from}-${s.to}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-tint-soft px-3 py-2.5">
                 <span className="flex items-baseline gap-1.5 text-[14px]">
-                  <span className="font-semibold">{s.from}</span>
+                  <span className="font-semibold">{partnerName(t, s.from)}</span>
                   <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="font-semibold">{s.to}</span>
+                  <span className="font-semibold">{partnerName(t, s.to)}</span>
                 </span>
                 <span className="ml-auto tabular-nums text-[15px] font-semibold">
                   {formatMoney(s.amountCents)}
@@ -186,7 +191,7 @@ export function PartnersTile({ organisationId, partners, summaries, movements, o
                   {formatDay(new Date(m.date), { short: true })}
                 </span>
                 <span className="min-w-0 flex-1 truncate">
-                  {kindLabel(t, m.kind)} · {m.partner}
+                  {kindLabel(t, m.kind)} · {partnerName(t, m.partner)}
                   {m.notes ? <span className="text-muted-foreground"> · {m.notes}</span> : null}
                 </span>
                 <span className="tabular-nums">{formatMoney(m.amountCents)}</span>
@@ -313,7 +318,7 @@ function MovementDialog({
             <div className="flex flex-wrap gap-2">
               {partners.map((p) => (
                 <button key={p} type="button" aria-pressed={who === p} onClick={() => setPartner(p)} className={chip(who === p)}>
-                  {p}
+                  {partnerName(t, p)}
                 </button>
               ))}
             </div>

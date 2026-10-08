@@ -34,6 +34,7 @@ import {
   GST_RATE,
   INCOME_CATEGORIES,
   PAID_BY_ME,
+  withMe,
   PERSONAL_EXPENSE_CATEGORIES,
   PERSONAL_INCOME_CATEGORIES,
   QST_RATE,
@@ -240,7 +241,8 @@ export function InvoiceDialog({
 
   // Budget perso: personal categories, one amount, no tax fields.
   const personal = isPersonal(profile);
-  const partners = profile.legalForm === "senc" ? (profile.partners ?? []) : [];
+  const partners =
+    profile.legalForm === "senc" ? withMe({ partners: profile.partners ?? [] }).partners : [];
   const standard: { id: string; label: string; line?: string }[] = personal
     ? form.direction === "revenu"
       ? PERSONAL_INCOME_CATEGORIES
@@ -574,7 +576,7 @@ export function InvoiceDialog({
               <Label>{t("fiscalite.invoiceDialog.paidBy")}</Label>
               <div className="flex flex-wrap gap-2">
                 {(partners.length > 0
-                  ? [{ id: "", label: t("fiscalite.invoiceDialog.paidBy.senc") }, ...partners.map((p) => ({ id: p, label: p }))]
+                  ? [{ id: "", label: t("fiscalite.invoiceDialog.paidBy.senc") }, ...partners.map((p) => ({ id: p, label: p === PAID_BY_ME ? t("fiscalite.invoiceDialog.paidBy.me") : p }))]
                   : [
                       { id: "", label: t("fiscalite.invoiceDialog.paidBy.business") },
                       { id: PAID_BY_ME, label: t("fiscalite.invoiceDialog.paidBy.me") },
@@ -598,14 +600,16 @@ export function InvoiceDialog({
                   )
                 )}
               </div>
-              {form.paidBy && partners.length > 0 && (
+              {form.paidBy && form.paidBy !== PAID_BY_ME && partners.length > 0 && (
                 <p className="text-[12px] text-muted-foreground">
                   {t("fiscalite.invoiceDialog.paidBy.partnerNote", { name: form.paidBy })}
                 </p>
               )}
-              {form.paidBy === PAID_BY_ME && partners.length === 0 && (
+              {form.paidBy === PAID_BY_ME && (
                 <p className="text-[12px] text-muted-foreground">
-                  {profile.legalForm === "societe"
+                  {partners.length > 0
+                    ? t("fiscalite.invoiceDialog.paidBy.meNote.senc")
+                    : profile.legalForm === "societe"
                     ? t("fiscalite.invoiceDialog.paidBy.meNote.societe")
                     : t("fiscalite.invoiceDialog.paidBy.meNote.individuelle")}
                 </p>

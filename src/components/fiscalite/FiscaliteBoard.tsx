@@ -676,8 +676,10 @@ export function FiscaliteBoard({
                     {(profile.partners ?? [])
                       .map((p, i) =>
                         profile.partnerShares?.length === profile.partners?.length
-                          ? `${p} ${profile.partnerShares[i]} %`
-                          : p
+                          ? `${p === PAID_BY_ME ? t("fiscalite.partners.me") : p} ${profile.partnerShares[i]} %`
+                          : p === PAID_BY_ME
+                            ? t("fiscalite.partners.me")
+                            : p
                       )
                       .join(", ") || "—"}
                   </Row>

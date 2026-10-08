@@ -61,6 +61,27 @@ export const paidByLabel = (paidBy: string | null | undefined) =>
 /** i18n key for the "moi" paidBy value. */
 export const PAID_BY_ME_KEY = "fiscalite.paidBy.me";
 
+/**
+ * I only keep the books of companies I'm in, so in a SENC "moi" is always an
+ * associé, first in the list. Keeps `shares` / `contactIds` aligned: a share
+ * list that matched the others gets the remainder up to 100 % for me.
+ */
+export function withMe<T extends { partners: string[]; partnerShares?: number[]; partnerContactIds?: string[] }>(
+  p: T
+): T {
+  if (p.partners.includes(PAID_BY_ME)) return p;
+  const shares = p.partnerShares ?? [];
+  const sum = shares.reduce((a, b) => a + b, 0);
+  const aligned = shares.length === p.partners.length && shares.length > 0;
+  const contacts = p.partnerContactIds ?? [];
+  return {
+    ...p,
+    partners: [PAID_BY_ME, ...p.partners],
+    partnerShares: aligned && sum < 100 ? [Math.round((100 - sum) * 100) / 100, ...shares] : [],
+    partnerContactIds: contacts.length === p.partners.length ? ["", ...contacts] : [],
+  };
+}
+
 export const SALES_TAX_STATUSES: { id: SalesTaxStatus; label: string; hint: string }[] = [
   { id: "petit", label: "Petit fournisseur", hint: "Pas inscrit, tu ne factures pas de taxes" },
   { id: "inscrit", label: "Inscrit TPS/TVQ", hint: "Tu factures et tu récupères les taxes" },

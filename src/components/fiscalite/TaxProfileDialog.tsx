@@ -26,6 +26,8 @@ import {
   SALES_TAX_STATUSES,
   SALES_TAX_STATUS_KEYS,
   type TaxProfileLite,
+  PAID_BY_ME,
+  withMe,
 } from "@/lib/fiscalite/meta";
 import { useLocale, useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -199,14 +201,17 @@ export function TaxProfileDialog({
         ? profile.legalForm
         : (defaultLegalForm ?? "individuelle")
     );
+    // I'm in every company I do the books for: "moi" leads the associés.
+    const p = withMe({
+      partners: profile?.partners ?? [],
+      partnerShares: profile?.partnerShares ?? [],
+      partnerContactIds: profile?.partnerContactIds ?? [],
+    });
     setPartners(
-      (profile?.partners ?? []).map((name, i) => ({
+      p.partners.map((name, i) => ({
         name,
-        share:
-          profile?.partnerShares?.[i] != null
-            ? String(profile.partnerShares[i])
-            : "",
-        contactId: profile?.partnerContactIds?.[i] ?? "",
+        share: p.partnerShares?.[i] != null ? String(p.partnerShares[i]) : "",
+        contactId: p.partnerContactIds?.[i] ?? "",
       }))
     );
     setStatus(profile?.salesTaxStatus === "inscrit" ? "inscrit" : "petit");
@@ -451,6 +456,12 @@ export function TaxProfileDialog({
                       key={i}
                       className="flex flex-wrap items-center gap-2 sm:flex-nowrap"
                     >
+                      {p.name === PAID_BY_ME ? (
+                        <p className="flex h-11 min-w-0 flex-1 items-center rounded-xl bg-secondary px-4 text-[14px] font-semibold">
+                          {t("fiscalite.partners.me")}
+                        </p>
+                      ) : (
+                      <>
                       <div className="min-w-0 flex-1 basis-full sm:basis-0">
                         <ContactPicker
                           contacts={contacts}
@@ -487,6 +498,8 @@ export function TaxProfileDialog({
                         placeholder={t("fiscalite.taxProfile.partnerName.placeholder")}
                         className="w-28 flex-1 sm:flex-none"
                       />
+                      </>
+                      )}
                       <div className="flex w-24 items-center gap-1">
                         <Input
                           aria-label={t("fiscalite.taxProfile.share")}
@@ -510,6 +523,8 @@ export function TaxProfileDialog({
                         type="button"
                         variant="ghost"
                         size="icon"
+                        className={cn(p.name === PAID_BY_ME && "invisible")}
+                        disabled={p.name === PAID_BY_ME}
                         aria-label={t("common.remove")}
                         onClick={() =>
                           setPartners((prev) => prev.filter((_, j) => j !== i))

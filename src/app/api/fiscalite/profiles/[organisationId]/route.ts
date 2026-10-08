@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { withMe } from "@/lib/fiscalite/meta";
 import { TaxProfileInput } from "@/lib/fiscalite/schemas";
 import { prisma } from "@/lib/prisma";
 
@@ -27,10 +28,11 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
   if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
 
+  const data = parsed.data.legalForm === "senc" ? withMe(parsed.data) : parsed.data;
   const profile = await prisma.taxProfile.upsert({
     where: { organisationId },
-    create: { organisationId, ...parsed.data, setUp: true },
-    update: { ...parsed.data, setUp: true },
+    create: { organisationId, ...data, setUp: true },
+    update: { ...data, setUp: true },
   });
   return NextResponse.json(profile);
 }
