@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { ClipboardBar } from "@/components/calendar/ClipboardBar";
+import { CalendarStatsButton } from "@/components/calendar/CalendarStats";
 import { DayView } from "@/components/calendar/DayView";
 import { FeedManager } from "@/components/calendar/FeedManager";
 import { MonthView } from "@/components/calendar/MonthView";
@@ -237,8 +238,9 @@ export function Calendar({
             </button>
           </div>
 
-          {/* Desktop-only view switcher */}
-          <div className="segmented ml-auto hidden md:inline-flex">
+          {/* Desktop-only view switcher, with the stats bubble */}
+          <CalendarStatsButton className="ml-auto hidden md:flex" />
+          <div className="segmented hidden md:inline-flex">
             {desktopViewButtons.map(({ key, label }) => (
               <button
                 key={key}
@@ -286,6 +288,7 @@ export function Calendar({
           >
             {t("calendar.header.today")}
           </button>
+          <CalendarStatsButton className="h-10 w-10" />
           {pickerOpen && (
             <input
               aria-label={t("calendar.header.pickDay")}
