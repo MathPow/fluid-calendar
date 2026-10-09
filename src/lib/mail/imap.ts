@@ -280,6 +280,39 @@ function toSummary(msg: {
 }
 
 /**
+ * One attachment's bytes, by its position in `MessageDetail.attachments`.
+ * Leaves the \Seen flag alone.
+ */
+export async function getAttachment(
+  acct: MailAccountConn,
+  mailbox: string,
+  uid: number,
+  index: number
+): Promise<{ filename: string; contentType: string; content: Buffer } | null> {
+  return withClient(acct, async (client) => {
+    const lock = await client.getMailboxLock(mailbox);
+    try {
+      const msg = await client.fetchOne(
+        String(uid),
+        { uid: true, source: true },
+        { uid: true }
+      );
+      if (!msg || !msg.source) return null;
+      const parsed = await simpleParser(msg.source as Buffer);
+      const a = parsed.attachments?.[index];
+      if (!a) return null;
+      return {
+        filename: a.filename || "attachment",
+        contentType: a.contentType || "application/octet-stream",
+        content: a.content,
+      };
+    } finally {
+      lock.release();
+    }
+  });
+}
+
+/**
  * Fetch one full message (parsed) and mark it \Seen — unless `markSeen` is
  * false (the assistant reading on the user's behalf shouldn't flip it).
  */

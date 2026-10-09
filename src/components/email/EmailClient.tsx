@@ -6,6 +6,7 @@ import { type TranslateFn, useT } from "@/i18n/client";
 import {
   AlertCircle,
   ChevronLeft,
+  Download,
   Inbox,
   Loader2,
   Mail,
@@ -883,6 +884,7 @@ export function EmailClient() {
         ) : (
           <MessageView
             detail={detail}
+            source={selected}
             onBack={closeMessage}
             onReply={() => startReply(detail, selected.accountId)}
             onDelete={() => void deleteMessage(selected)}
@@ -926,6 +928,13 @@ export function EmailClient() {
 }
 
 /** Mobile-only "back to the list" bar above the reading pane. */
+function fmtSize(t: TranslateFn, bytes: number) {
+  if (bytes < 1024) return t("mail.size.b", { n: bytes });
+  if (bytes < 1024 * 1024)
+    return t("mail.size.kb", { n: Math.round(bytes / 1024) });
+  return t("mail.size.mb", { n: (bytes / 1024 / 1024).toFixed(1) });
+}
+
 function BackBar({ onBack }: { onBack: () => void }) {
   const t = useT();
   return (
@@ -942,12 +951,15 @@ function BackBar({ onBack }: { onBack: () => void }) {
 
 function MessageView({
   detail,
+  source,
   onBack,
   onReply,
   onDelete,
   account,
 }: {
   detail: MessageDetail;
+  /** Where the message lives, for the attachment download links. */
+  source: { accountId: string; mailbox: string };
   onBack: () => void;
   onReply: () => void;
   onDelete: () => void;
@@ -1008,13 +1020,24 @@ function MessageView({
         {detail.attachments.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {detail.attachments.map((a, i) => (
-              <span
+              <a
                 key={i}
-                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-[12px] text-foreground/80"
+                href={`/api/mail/messages/${detail.uid}/attachments/${i}?${new URLSearchParams(
+                  { accountId: source.accountId, mailbox: source.mailbox }
+                )}`}
+                download={a.filename}
+                title={t("mail.downloadAttachment")}
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-[12px] text-foreground/80 transition-colors hover:bg-secondary/70 hover:text-foreground"
               >
-                <Paperclip className="h-3 w-3" />
-                {a.filename}
-              </span>
+                <Paperclip className="h-3 w-3 shrink-0" />
+                <span className="truncate">{a.filename}</span>
+                {a.size > 0 && (
+                  <span className="shrink-0 text-muted-foreground">
+                    {fmtSize(t, a.size)}
+                  </span>
+                )}
+                <Download className="h-3 w-3 shrink-0 text-muted-foreground" />
+              </a>
             ))}
           </div>
         )}
