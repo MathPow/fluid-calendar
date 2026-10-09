@@ -125,10 +125,10 @@ export function Calendar({
   };
 
   const desktopViewButtons = [
-    { key: "day", label: "Day" },
-    { key: "week", label: "Week" },
-    { key: "month", label: "Month" },
-    { key: "multiMonth", label: "Year" },
+    { key: "day", label: t("calendar.view.day") },
+    { key: "week", label: t("calendar.view.week") },
+    { key: "month", label: t("calendar.view.month") },
+    { key: "multiMonth", label: t("calendar.view.year") },
   ] as const;
 
   const mobileNavItems = [
@@ -179,7 +179,7 @@ export function Calendar({
           <button
             onClick={() => setSidebarOpen(!isSidebarOpen)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            title="Toggle Sidebar (b)"
+            title={t("calendar.header.showCalendars")}
             aria-label={t("calendar.header.showCalendars")}
           >
             <Menu className="h-5 w-5" />
@@ -190,7 +190,7 @@ export function Calendar({
             <button
               onClick={handlePrev}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-foreground hover:bg-secondary"
-              title="Previous (←)"
+              title={t("calendar.header.prevDay")}
               aria-label={t("calendar.header.prevDay")}
             >
               <ChevronLeft className="h-5 w-5" />
@@ -216,7 +216,7 @@ export function Calendar({
             <button
               onClick={handleNext}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-foreground hover:bg-secondary"
-              title="Next (→)"
+              title={t("calendar.header.nextDay")}
               aria-label={t("calendar.header.nextDay")}
             >
               <ChevronRight className="h-5 w-5" />
@@ -228,15 +228,15 @@ export function Calendar({
             <button
               onClick={() => setDate(newDate())}
               className="rounded-full px-3.5 py-1.5 text-[13px] font-medium text-foreground hover:bg-secondary"
-              title="Go to Today (t)"
+              title={t("calendar.header.today")}
             >
-              Today
+              {t("calendar.header.today")}
             </button>
             <button
               onClick={handleAutoSchedule}
               className="rounded-full border-[1.5px] border-foreground px-3.5 py-1 text-[13px] font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
             >
-              Auto Schedule
+              {t("calendar.header.autoSchedule")}
             </button>
           </div>
 
@@ -259,7 +259,7 @@ export function Calendar({
           <button
             onClick={() => eventModal.setOpen(true)}
             className="ml-auto rounded-full bg-primary p-2.5 text-primary-foreground shadow-float md:hidden"
-            title="New event"
+            title={t("calendar.header.newEvent")}
             aria-label={t("calendar.header.newEvent")}
           >
             <CalendarPlus className="h-5 w-5" />
@@ -311,10 +311,11 @@ export function Calendar({
           <div className="flex flex-none items-center gap-3 border-b border-border bg-tint-soft px-4 py-2.5 md:px-5">
             <PenLine className="h-4 w-4 shrink-0" />
             <p className="min-w-0 flex-1 text-[13px] leading-snug">
-              <span className="font-semibold">Semaine type.</span>{" "}
+              <span className="font-semibold">
+                {t("calendar.routineEditing.heading")}
+              </span>{" "}
               <span className="text-muted-foreground">
-                Glisse dans la grille pour créer un bloc, déplace-le ou
-                étire-le. Touche un bloc pour le modifier.
+                {t("calendar.routineEditing.help")}
               </span>
             </p>
             <button
@@ -322,7 +323,7 @@ export function Calendar({
               onClick={() => useRoutineStore.getState().setEditing(false)}
               className="shrink-0 rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-semibold text-background"
             >
-              Terminer
+              {t("calendar.routineLayers.editingCta.stop")}
             </button>
           </div>
         )}

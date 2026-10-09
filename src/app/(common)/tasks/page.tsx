@@ -145,11 +145,15 @@ export default function TasksPage() {
     const setFocus = useAssistantStore.getState().setFocus;
     setFocus(
       isOpen && selectedTask
-        ? `Tâche ouverte : « ${selectedTask.title} » (id=${selectedTask.id}, statut ${selectedTask.status})`
+        ? t("tasks.focus.open", {
+            title: selectedTask.title,
+            id: selectedTask.id,
+            status: selectedTask.status,
+          })
         : null
     );
     return () => setFocus(null);
-  }, [isOpen, selectedTask]);
+  }, [isOpen, selectedTask, t]);
 
   const handleCreateTaskClick = () => {
     setSelectedTask(undefined);

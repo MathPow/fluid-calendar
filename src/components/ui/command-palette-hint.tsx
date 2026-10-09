@@ -6,7 +6,10 @@ import { Search, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n";
+
 export function CommandPaletteHint() {
+  const t = useT();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -45,27 +48,28 @@ export function CommandPaletteHint() {
         <div className="mb-2 flex items-start justify-between">
           <p className="etiquette flex items-center gap-2 pt-1">
             <Search className="h-3.5 w-3.5" />
-            Quick tip
+            {t("commandPalette.hint.tip")}
           </p>
           <button
             onClick={dismissHint}
             className="-mr-1 -mt-1 rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            aria-label="Dismiss hint"
+            aria-label={t("commandPalette.hint.dismiss")}
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <p className="voice mb-4 text-[19px] text-foreground">
-          Press <kbd>⌘K</kbd> to search or run anything.
+          {t("commandPalette.hint.messagePrefix")} <kbd>⌘K</kbd>{" "}
+          {t("commandPalette.hint.messageSuffix")}
         </p>
 
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={dismissHint}>
-            Dismiss
+            {t("commandPalette.hint.dismiss")}
           </Button>
           <Button size="sm" onClick={openCommandPalette}>
-            Try it now
+            {t("commandPalette.hint.tryIt")}
           </Button>
         </div>
       </div>

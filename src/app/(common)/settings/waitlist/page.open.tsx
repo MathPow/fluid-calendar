@@ -1,13 +1,16 @@
 "use client";
 
+import { useT } from "@/i18n";
+
 /**
  * Open source version of the Waitlist Admin page
  * This shows a message that the feature is only available in the SAAS version
  */
 export default function WaitlistPage() {
+  const t = useT();
   return (
     <div className="rounded-lg bg-muted p-6">
-      <h2 className="mb-4 text-2xl font-bold">Beta Waitlist Management</h2>
+      <h2 className="mb-4 text-2xl font-bold">{t("waitlist.title")}</h2>
       <div className="mb-6 rounded-2xl bg-pending p-4">
         <div className="flex">
           <div className="flex-shrink-0">
@@ -25,25 +28,20 @@ export default function WaitlistPage() {
           </div>
           <div className="ml-3">
             <p className="text-sm text-pending-foreground">
-              <strong>SAAS Feature Only:</strong> The Beta Waitlist Management
-              feature is only available in the SAAS version of FluidCalendar.
+              <strong>{t("waitlist.saasOnly.label")}</strong>{" "}
+              {t("waitlist.saasOnly.body")}
             </p>
           </div>
         </div>
       </div>
-      <p className="mb-4 text-foreground/80">
-        The Beta Waitlist Management feature allows you to:
-      </p>
+      <p className="mb-4 text-foreground/80">{t("waitlist.featuresIntro")}</p>
       <ul className="mb-6 list-disc space-y-2 pl-5 text-foreground/80">
-        <li>Manage a waitlist for your beta program</li>
-        <li>Send invitations to users on the waitlist</li>
-        <li>Track referrals and prioritize users</li>
-        <li>Configure waitlist settings and email templates</li>
+        <li>{t("waitlist.feature.manage")}</li>
+        <li>{t("waitlist.feature.send")}</li>
+        <li>{t("waitlist.feature.referrals")}</li>
+        <li>{t("waitlist.feature.configure")}</li>
       </ul>
-      <p className="text-foreground/80">
-        To access this feature, please upgrade to the SAAS version of Fluid
-        Calendar.
-      </p>
+      <p className="text-foreground/80">{t("waitlist.upgradeHint")}</p>
     </div>
   );
 }

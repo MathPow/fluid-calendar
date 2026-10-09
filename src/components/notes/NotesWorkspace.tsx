@@ -9,6 +9,8 @@ import { NotesExplorer } from "@/components/notes/NotesExplorer";
 import { RecordingsPanel } from "@/components/notes/RecordingsPanel";
 import { SessionsWorkspace } from "@/components/sessions/SessionsWorkspace";
 
+import { useT } from "@/i18n";
+
 type Tab = "notes" | "recordings" | "sessions" | "commands";
 
 /**
@@ -16,6 +18,7 @@ type Tab = "notes" | "recordings" | "sessions" | "commands";
  * synced audio Recordings, and the voice/text Commands log.
  */
 export function NotesWorkspace() {
+  const t = useT();
   const [tab, setTab] = useState<Tab>("notes");
 
   // Honor a deep link like /notes?tab=recordings (e.g. from the dashboard's
@@ -23,8 +26,8 @@ export function NotesWorkspace() {
   // boundary that would otherwise force this route to bail out of prerender.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "recordings" || t === "sessions" || t === "commands") setTab(t);
+    const q = new URLSearchParams(window.location.search).get("tab");
+    if (q === "recordings" || q === "sessions" || q === "commands") setTab(q);
   }, []);
 
   return (
@@ -35,25 +38,25 @@ export function NotesWorkspace() {
           active={tab === "notes"}
           onClick={() => setTab("notes")}
           icon={<FileText className="h-4 w-4" />}
-          label="Notes"
+          label={t("notes.workspace.tab.notes")}
         />
         <TabButton
           active={tab === "recordings"}
           onClick={() => setTab("recordings")}
           icon={<AudioLines className="h-4 w-4" />}
-          label="Recordings"
+          label={t("notes.workspace.tab.recordings")}
         />
         <TabButton
           active={tab === "sessions"}
           onClick={() => setTab("sessions")}
           icon={<Mic className="h-4 w-4" />}
-          label="Sessions"
+          label={t("notes.workspace.tab.sessions")}
         />
         <TabButton
           active={tab === "commands"}
           onClick={() => setTab("commands")}
           icon={<Zap className="h-4 w-4" />}
-          label="Commands"
+          label={t("notes.workspace.tab.commands")}
         />
         </div>
       </div>

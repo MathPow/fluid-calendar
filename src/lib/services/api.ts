@@ -1,6 +1,8 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { toast } from "sonner";
 
+import { tNow } from "@/i18n/now";
+
 interface ApiErrorResponse {
   message?: string;
   error?: string;
@@ -31,7 +33,7 @@ api.interceptors.response.use(
       error.response?.data?.error ||
       error.response?.data?.message ||
       error.message ||
-      "An error occurred";
+      tNow("toasts.common.saveFailed");
 
     // Don't show toast for 401 errors as they're handled by auth
     if (error.response?.status !== 401) {

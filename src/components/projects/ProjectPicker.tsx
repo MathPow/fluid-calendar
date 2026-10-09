@@ -175,10 +175,10 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
   return (
     <Select value={value || NONE} onValueChange={handle} disabled={busy}>
       <SelectTrigger id={id}>
-        <SelectValue placeholder="No Project" />
+        <SelectValue placeholder={t("projectPicker.noProject")} />
       </SelectTrigger>
       <SelectContent className="max-h-80">
-        <SelectItem value={NONE}>No Project</SelectItem>
+        <SelectItem value={NONE}>{t("projectPicker.noProject")}</SelectItem>
         {groups.map((g) => (
           <SelectGroup key={g.title}>
             <SelectSeparator />
@@ -205,7 +205,7 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         {options && options.lists.some((l) => !l.organisation) && (
           <SelectGroup>
             <SelectSeparator />
-            <SelectLabel>Task lists (not in Projets)</SelectLabel>
+            <SelectLabel>{t("projectPicker.taskListsOrphan")}</SelectLabel>
             {options.lists
               .filter((l) => !l.organisation)
               .map((l) => (
@@ -338,13 +338,13 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="space-y-1.5">
-        <Label htmlFor={id}>Organisation</Label>
+        <Label htmlFor={id}>{t("projectModal.organisation")}</Label>
         <Select value={orgId ?? NONE} onValueChange={pickOrg} disabled={busy}>
           <SelectTrigger id={id}>
-            <SelectValue placeholder="Aucune" />
+            <SelectValue placeholder={t("common.none.feminine")} />
           </SelectTrigger>
           <SelectContent className="max-h-80">
-            <SelectItem value={NONE}>Aucune</SelectItem>
+            <SelectItem value={NONE}>{t("common.none.feminine")}</SelectItem>
             {orgs.map((o) => (
               <SelectItem key={o.id} value={o.id}>
                 <span className="inline-flex items-center gap-2">
@@ -357,13 +357,25 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label>Projet</Label>
-        <Select value={projectValue} onValueChange={pickProject} disabled={busy || !orgId}>
+        <Label>{t("projectPicker.project")}</Label>
+        <Select
+          value={projectValue}
+          onValueChange={pickProject}
+          disabled={busy || !orgId}
+        >
           <SelectTrigger>
-            <SelectValue placeholder={orgId ? "Organisation seulement" : "Choisis d'abord l'organisation"} />
+            <SelectValue
+              placeholder={
+                orgId
+                  ? t("projectPicker.orgOnly")
+                  : t("projectPicker.pickOrgFirst")
+              }
+            />
           </SelectTrigger>
           <SelectContent className="max-h-80">
-            <SelectItem value={ORG_ONLY}>Organisation seulement</SelectItem>
+            <SelectItem value={ORG_ONLY}>
+              {t("projectPicker.orgOnly")}
+            </SelectItem>
             {projects.map((p) => (
               <SelectItem key={p.key} value={p.key}>
                 <span className="inline-flex items-center gap-2">

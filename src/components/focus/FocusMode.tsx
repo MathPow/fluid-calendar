@@ -8,6 +8,8 @@ import { Kanban, ListTodo, Target } from "lucide-react";
 
 import { ActionOverlay } from "@/components/ui/action-overlay";
 
+import { useT } from "@/i18n";
+
 import { useFocusModeStore } from "@/store/focusMode";
 import { useTaskPageSettings } from "@/store/taskPageSettings";
 
@@ -16,6 +18,7 @@ import { QuickActions } from "./QuickActions";
 import { TaskQueue } from "./TaskQueue";
 
 export function FocusMode() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { setViewMode } = useTaskPageSettings();
@@ -45,7 +48,7 @@ export function FocusMode() {
   if (!mounted) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
-        <p className="text-lg text-muted-foreground">Loading focus mode...</p>
+        <p className="text-lg text-muted-foreground">{t("focus.loading")}</p>
       </div>
     );
   }
@@ -53,19 +56,29 @@ export function FocusMode() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-none items-center justify-between gap-4 border-b border-border px-4 pb-4 pt-5 md:px-8 md:pb-5 md:pt-7">
-        <h1 className="display text-[32px] md:text-[40px]">Focus.</h1>
+        <h1 className="display text-[32px] md:text-[40px]">
+          {t("focus.title")}
+        </h1>
         <div className="segmented">
-          <button type="button" className="segmented-item" onClick={() => goToTasks("list")}>
+          <button
+            type="button"
+            className="segmented-item"
+            onClick={() => goToTasks("list")}
+          >
             <ListTodo className="h-4 w-4" />
-            List
+            {t("focus.tab.list")}
           </button>
-          <button type="button" className="segmented-item" onClick={() => goToTasks("board")}>
+          <button
+            type="button"
+            className="segmented-item"
+            onClick={() => goToTasks("board")}
+          >
             <Kanban className="h-4 w-4" />
-            Board
+            {t("focus.tab.board")}
           </button>
           <span className="segmented-item" data-active="true">
             <Target className="h-4 w-4" />
-            Focus
+            {t("focus.tab.focus")}
           </span>
         </div>
       </div>
