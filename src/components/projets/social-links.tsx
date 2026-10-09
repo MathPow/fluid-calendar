@@ -28,8 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { cn } from "@/lib/utils";
-
+import { useT } from "@/i18n/client";
 import {
   SOCIAL_PLATFORMS,
   type SocialPlatform,
@@ -38,6 +37,7 @@ import {
   socialPlatform,
   socialUrl,
 } from "@/lib/projets/meta";
+import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, typeof Globe> = {
   instagram: Instagram,
@@ -73,6 +73,7 @@ export function SocialLinksField({
   links: SocialLinkDraft[];
   onChange: (links: SocialLinkDraft[]) => void;
 }) {
+  const t = useT();
   const update = (i: number, patch: Partial<SocialLinkDraft>) =>
     onChange(links.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   // Suggest the first platform not used yet.
@@ -112,7 +113,7 @@ export function SocialLinksField({
             type="button"
             variant="ghost"
             size="icon"
-            aria-label="Retirer"
+            aria-label={t("common.remove")}
             onClick={() => onChange(links.filter((_, j) => j !== i))}
           >
             <X />
@@ -125,7 +126,7 @@ export function SocialLinksField({
         size="sm"
         onClick={() => onChange([...links, { platform: next, value: "" }])}
       >
-        <Plus /> Réseau
+        <Plus /> {t("projects.socialLinks.add")}
       </Button>
     </div>
   );
