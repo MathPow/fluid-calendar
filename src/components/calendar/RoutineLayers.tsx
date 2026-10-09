@@ -23,6 +23,7 @@ import {
 import { useLocale, useT } from "@/i18n/client";
 import {
   type RoutineBlockLite,
+  type RoutineKind,
   crossesMidnight,
   formatDays,
   routineColor,
@@ -34,9 +35,12 @@ import { useRoutineStore } from "@/store/routine";
 import { useSettingsStore } from "@/store/settings";
 
 /** A first week to edit rather than an empty screen: the usual three blocks. */
-const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
+const STARTER: (Omit<RoutineBlockLite, "id" | "layerId" | "title"> & {
+  kind: RoutineKind;
+  titleKey: string;
+})[] = [
   {
-    title: "Travail",
+    titleKey: "calendar.routineKinds.work",
     kind: "work",
     color: null,
     days: [1, 2, 3, 4, 5],
@@ -45,7 +49,7 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
     schedulable: true,
   },
   {
-    title: "Sommeil",
+    titleKey: "calendar.routineKinds.sleep",
     kind: "sleep",
     color: null,
     days: [0, 1, 2, 3, 4, 5, 6],
@@ -54,7 +58,7 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
     schedulable: false,
   },
   {
-    title: "Entraînement",
+    titleKey: "calendar.routineKinds.sport",
     kind: "sport",
     color: null,
     days: [1, 3, 5],
@@ -89,7 +93,8 @@ export function RoutineLayers() {
 
   const seed = async () => {
     setSeeding(true);
-    for (const block of STARTER) await store.createBlock(block);
+    for (const { titleKey, ...block } of STARTER)
+      await store.createBlock({ ...block, title: t(titleKey) });
     setSeeding(false);
   };
 
