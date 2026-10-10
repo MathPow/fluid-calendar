@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { buildWorkbook } from "@/lib/fiscalite/excel";
 import { DEFAULT_PROFILE, fiscalYearRange } from "@/lib/fiscalite/meta";
@@ -15,16 +16,17 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const tr = await getT();
   const organisationId = request.nextUrl.searchParams.get("organisationId") ?? "";
   const year = Number(request.nextUrl.searchParams.get("year"));
   if (!organisationId || !Number.isInteger(year)) {
-    return NextResponse.json({ error: "organisationId et year requis" }, { status: 400 });
+    return NextResponse.json({ error: tr("api.fiscalite.export.paramsRequired") }, { status: 400 });
   }
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
     select: { name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ error: tr("api.fiscalite.export.orgNotFound") }, { status: 404 });
 
   const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[], partnerShares: [] as number[] };
   const t = org.taxProfile;
@@ -45,21 +47,21 @@ export async function GET(request: NextRequest) {
     partnerShares: profile.partnerShares ?? [],
     identity: t
       ? [
-          ["Nom légal", t.legalName],
-          ["NEQ", t.neq],
-          ["No d'identification Revenu Québec", t.rqNumber],
-          ["No TVQ", t.qstNumber],
-          ["No TPS", t.gstNumber],
-          ["NE fédéral (ARC)", t.businessNumber],
-          ["Dossier employeur (RS)", t.payrollNumber],
-          ["Immatriculation au REQ", t.startedAt?.toISOString().slice(0, 10)],
-          ["Activité", t.activity],
-          ["Code SCIAN", t.naicsCode],
-          ["Adresse", [t.address, t.city, t.province, t.postalCode].filter(Boolean).join(", ") || null],
-          ["Courriel", t.email],
-          ["Téléphone", t.phone],
-          ["Site web", t.website],
-          ["Comptable", [t.accountant, t.accountantEmail, t.accountantPhone].filter(Boolean).join(" · ") || null],
+          [tr("fiscalite.export.header.legalName"), t.legalName],
+          [tr("fiscalite.export.header.neq"), t.neq],
+          [tr("fiscalite.export.header.rqNumber"), t.rqNumber],
+          [tr("fiscalite.export.header.qstNumber"), t.qstNumber],
+          [tr("fiscalite.export.header.gstNumber"), t.gstNumber],
+          [tr("fiscalite.export.header.businessNumber"), t.businessNumber],
+          [tr("fiscalite.export.header.payrollNumber"), t.payrollNumber],
+          [tr("fiscalite.export.header.startedAt"), t.startedAt?.toISOString().slice(0, 10)],
+          [tr("fiscalite.export.header.activity"), t.activity],
+          [tr("fiscalite.export.header.naicsCode"), t.naicsCode],
+          [tr("fiscalite.export.header.address"), [t.address, t.city, t.province, t.postalCode].filter(Boolean).join(", ") || null],
+          [tr("fiscalite.export.header.email"), t.email],
+          [tr("fiscalite.export.header.phone"), t.phone],
+          [tr("fiscalite.export.header.website"), t.website],
+          [tr("fiscalite.export.header.accountant"), [t.accountant, t.accountantEmail, t.accountantPhone].filter(Boolean).join(" · ") || null],
         ]
       : [],
     invoices: invoices.map((i) => ({ ...i, date: ymd(i.date) })),

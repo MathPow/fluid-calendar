@@ -14,8 +14,8 @@ export type AssistantModelId = (typeof ASSISTANT_MODEL_IDS)[number];
 export interface AssistantModelInfo {
   id: AssistantModelId;
   label: string;
-  /** One line under the label in the picker. */
-  hint: string;
+  /** i18n key for the one-line hint under the label in the picker. */
+  hintKey: string;
   /** Needs ANTHROPIC_API_KEY on the server. */
   claude: boolean;
 }
@@ -24,25 +24,25 @@ export const ASSISTANT_MODELS: AssistantModelInfo[] = [
   {
     id: "claude-opus-5-5",
     label: "Claude Opus 5.5",
-    hint: "Le plus fort pour fouiller · le plus cher",
+    hintKey: "assistant.models.opus.hint",
     claude: true,
   },
   {
     id: "claude-sonnet-5-5",
     label: "Claude Sonnet 5.5",
-    hint: "Rapide et solide · moitié prix",
+    hintKey: "assistant.models.sonnet.hint",
     claude: true,
   },
   {
     id: "claude-haiku-4-5",
     label: "Claude Haiku 4.5",
-    hint: "Le plus rapide · questions simples",
+    hintKey: "assistant.models.haiku.hint",
     claude: true,
   },
   {
     id: "local",
     label: "Local (Ollama)",
-    hint: "Gratuit, sur ton serveur · lent, sans outils",
+    hintKey: "assistant.models.local.hint",
     claude: false,
   },
 ];
