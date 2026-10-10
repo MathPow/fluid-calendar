@@ -31,6 +31,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { PageLoader } from "@/components/ui/page-loader";
 import {
   Dialog,
   DialogContent,
@@ -725,13 +726,7 @@ export function EmailClient() {
       : ACCOUNT_DOTS[Math.max(0, idx) % ACCOUNT_DOTS.length];
   };
 
-  if (initializing) {
-    return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
-      </div>
-    );
-  }
+  if (initializing) return <PageLoader />;
 
   if (accounts.length === 0) {
     return (

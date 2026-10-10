@@ -4,12 +4,13 @@ import { useState } from "react";
 
 import { useSession } from "next-auth/react";
 
-import { LayoutGrid, Loader2 } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 
 import { BentoGrid } from "@/components/dashboard/BentoGrid";
 import { useDashboardData } from "@/components/dashboard/widgets";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageLoader } from "@/components/ui/page-loader";
 
 import { useT } from "@/i18n/client";
 
@@ -28,11 +29,7 @@ export function DashboardView() {
   const [editing, setEditing] = useState(false);
 
   if (data.loading) {
-    return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const { todayEvents, openTasks } = data;

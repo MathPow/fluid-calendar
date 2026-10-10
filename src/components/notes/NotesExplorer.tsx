@@ -460,9 +460,9 @@ export function NotesExplorer() {
   const fileCount = entries.filter((e) => e.type === "file").length;
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full md:gap-4 md:p-4 md:pt-0 lg:gap-5 lg:p-5 lg:pt-0">
       {/* Tree pane */}
-      <div className="flex w-72 flex-none flex-col border-r border-border bg-card">
+      <div className="flex w-72 flex-none flex-col overflow-hidden border-r border-border bg-card md:rounded-[28px] md:border-r-0 md:shadow-tile">
         <div className="flex items-center justify-between gap-2 px-4 py-3">
           <div>
             <h2 className="text-sm font-semibold">Notes</h2>
@@ -479,13 +479,13 @@ export function NotesExplorer() {
         </div>
 
         <div className="px-3 pb-2">
-          <div className="flex h-9 items-center gap-2 rounded-lg border border-border bg-muted/50 px-2.5">
+          <div className="flex h-9 items-center gap-2 rounded-full bg-secondary px-3.5">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Filter notes…"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="h-auto w-full border-0 bg-transparent p-0 text-sm shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0"
             />
           </div>
         </div>
@@ -515,7 +515,7 @@ export function NotesExplorer() {
       </div>
 
       {/* Viewer pane */}
-      <div className="min-w-0 flex-1 overflow-y-auto">
+      <div className="min-w-0 flex-1 overflow-y-auto md:rounded-[28px] md:bg-card md:shadow-tile">
         {!configured ? (
           <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center p-6 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">

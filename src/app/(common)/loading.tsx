@@ -1,7 +1,6 @@
 import { PageLoader } from "@/components/ui/page-loader";
 
-import "../app/globals.css";
-
+/** Route loading inside the app chrome: the header stays put. */
 export default function Loading() {
-  return <PageLoader className="min-h-dvh" />;
+  return <PageLoader />;
 }

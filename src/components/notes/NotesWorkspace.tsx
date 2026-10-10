@@ -29,7 +29,7 @@ export function NotesWorkspace() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center border-b border-border px-4 py-3 md:px-6">
+      <div className="flex items-center border-b border-border px-4 py-3 md:border-b-0 md:px-4 md:py-4 lg:px-5">
         <div className="segmented">
         <TabButton
           active={tab === "notes"}

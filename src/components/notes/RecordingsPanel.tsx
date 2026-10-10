@@ -201,9 +201,9 @@ export function RecordingsPanel() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full md:gap-4 md:p-4 md:pt-0 lg:gap-5 lg:p-5 lg:pt-0">
       {/* List pane */}
-      <div className="flex w-72 flex-none flex-col border-r border-border bg-card">
+      <div className="flex w-72 flex-none flex-col overflow-hidden border-r border-border bg-card md:rounded-[28px] md:border-r-0 md:shadow-tile">
         <div className="flex items-center justify-between gap-2 px-4 py-3">
           <div>
             <h2 className="text-sm font-semibold">{t("notes.recordings.title")}</h2>
@@ -289,7 +289,7 @@ export function RecordingsPanel() {
       </div>
 
       {/* Viewer pane */}
-      <div className="min-w-0 flex-1 overflow-y-auto">
+      <div className="min-w-0 flex-1 overflow-y-auto md:rounded-[28px] md:bg-card md:shadow-tile">
         {!selectedId ? (
           <div className="flex h-full flex-col items-center justify-center gap-6 p-6 text-center">
             <div className="text-muted-foreground">

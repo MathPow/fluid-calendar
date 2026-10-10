@@ -259,10 +259,8 @@ export default function TasksPage() {
         />
 
         {loading && (
-          <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="rounded-[24px] bg-card p-5 shadow-float">
-              <LoadingSpinner size="lg" />
-            </div>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80">
+            <LoadingSpinner className="h-7 w-7" />
           </div>
         )}
       </div>
