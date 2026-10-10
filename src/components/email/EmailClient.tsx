@@ -5,20 +5,28 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { type TranslateFn, useT } from "@/i18n/client";
 import {
   AlertCircle,
+  Archive,
   ChevronLeft,
   Download,
+  FolderInput,
+  Forward,
   Inbox,
   Loader2,
   Mail,
+  MailOpen,
   Mails,
+  MoreHorizontal,
   Paperclip,
   PenSquare,
   Plus,
   RefreshCw,
   Reply,
+  ReplyAll,
   Search,
   Send,
+  Star,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +38,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -91,6 +110,15 @@ interface MessageDetail extends MessageSummary {
 const fmtAddr = (a: Address[], unknownLabel: string) =>
   a
     .map((x) => x.name || x.address || "")
+    .filter(Boolean)
+    .join(", ") || unknownLabel;
+
+/** « Name <address> » list, for the forwarded-message header. */
+const fmtFull = (a: Address[], unknownLabel: string) =>
+  a
+    .map((x) =>
+      x.name && x.address ? `${x.name} <${x.address}>` : x.address || x.name
+    )
     .filter(Boolean)
     .join(", ") || unknownLabel;
 
@@ -183,6 +211,10 @@ export function EmailClient() {
   const [listError, setListError] = useState<string | null>(null);
   const [failedBoxes, setFailedBoxes] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  const [listLimit, setListLimit] = useState(40);
+  const [loadingMore, setLoadingMore] = useState(false);
+  // Folder paths per account, for « Déplacer vers » (fetched on demand).
+  const [folderCache, setFolderCache] = useState<Record<string, string[]>>({});
 
   const [selected, setSelected] = useState<ListedMessage | null>(null);
   const [detail, setDetail] = useState<MessageDetail | null>(null);
@@ -204,15 +236,25 @@ export function EmailClient() {
   }, []);
 
   const loadMessages = useCallback(
-    async (acctId: string, box: string, q: string, withFolders: boolean) => {
-      setLoadingList(true);
+    async (
+      acctId: string,
+      box: string,
+      q: string,
+      withFolders: boolean,
+      limit?: number
+    ) => {
+      const pageSize = limit ?? (acctId === ALL ? 25 : 40);
+      setListLimit(pageSize);
+      // « Charger plus » keeps the list on screen while the longer one loads.
+      if (limit) setLoadingMore(true);
+      else setLoadingList(true);
       setListError(null);
       setFailedBoxes([]);
       try {
         const params = new URLSearchParams({
           accountId: acctId,
           mailbox: box,
-          limit: "40",
+          limit: String(pageSize),
         });
         if (acctId === ALL) {
           // Only the boxes visible under the active station.
@@ -221,7 +263,6 @@ export function EmailClient() {
             .filter((a) => accountVisibleInStation(a.station, station))
             .map((a) => a.id);
           params.set("accounts", ids.join(","));
-          params.set("limit", "25");
         }
         if (q.trim()) params.set("q", q.trim());
         if (withFolders) params.set("folders", "1");
@@ -253,6 +294,7 @@ export function EmailClient() {
         setMessages([]);
       } finally {
         setLoadingList(false);
+        setLoadingMore(false);
       }
     },
     [t]
@@ -439,24 +481,150 @@ export function EmailClient() {
     [messages, selected, t]
   );
 
-  // Del / Backspace deletes the open message when the reading pane has focus.
+  // Flag changes and moves: optimistic, rolled back if the server says no.
+  const updateMessage = useCallback(
+    async (
+      m: ListedMessage,
+      patch: { seen?: boolean; flagged?: boolean; moveTo?: string },
+      done?: string
+    ) => {
+      const prev = messages;
+      const prevSelected = selected;
+      const prevDetail = detail;
+      const key = keyOf(m);
+      const flags = {
+        ...(patch.seen !== undefined && { seen: patch.seen }),
+        ...(patch.flagged !== undefined && { flagged: patch.flagged }),
+      };
+      if (patch.moveTo) {
+        setMessages((xs) => xs.filter((x) => keyOf(x) !== key));
+        if (selected && keyOf(selected) === key) {
+          setSelected(null);
+          setDetail(null);
+        }
+      } else {
+        setMessages((xs) =>
+          xs.map((x) => (keyOf(x) === key ? { ...x, ...flags } : x))
+        );
+        if (selected && keyOf(selected) === key) {
+          setSelected({ ...selected, ...flags });
+          setDetail((d) => (d ? { ...d, ...flags } : d));
+        }
+      }
+      try {
+        const qs = new URLSearchParams({
+          accountId: m.accountId,
+          mailbox: m.mailbox,
+        });
+        const res = await fetch(`/api/mail/messages/${m.uid}?${qs}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(body?.error || `${res.status}`);
+        }
+        if (done) toast.success(done);
+      } catch (err) {
+        setMessages(prev);
+        setSelected(prevSelected);
+        setDetail(prevDetail);
+        toast.error(t("mail.updateFailed"), {
+          description: err instanceof Error ? err.message : undefined,
+        });
+      }
+    },
+    [messages, selected, detail, t]
+  );
+
+  const archiveMessage = useCallback(
+    (m: ListedMessage) =>
+      updateMessage(m, { moveTo: "archive" }, t("mail.archived")),
+    [updateMessage, t]
+  );
+
+  const loadFolders = useCallback(
+    async (acctId: string) => {
+      if (folderCache[acctId]) return;
+      if (!unified && acctId === accountId && folders.length > 0) {
+        setFolderCache((c) => ({ ...c, [acctId]: folders }));
+        return;
+      }
+      const qs = new URLSearchParams({
+        accountId: acctId,
+        mailbox: "INBOX",
+        limit: "1",
+        folders: "1",
+      });
+      const res = await fetch(`/api/mail/messages?${qs}`).catch(() => null);
+      const data = res?.ok ? await res.json() : null;
+      if (Array.isArray(data?.folders))
+        setFolderCache((c) => ({ ...c, [acctId]: data.folders }));
+    },
+    [folderCache, unified, accountId, folders]
+  );
+
+  // Mail keys on the open message (Gmail-style), outside text fields:
+  // R reply · A reply all · F forward · E archive · S star · U unread ·
+  // Del delete · J/K next/previous · Esc close · C new message.
   useEffect(() => {
-    if (!selected) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       const target = e.target as HTMLElement | null;
       // Don't eat the key inside an input, textarea or contenteditable.
       const inEditable =
         target?.tagName === "INPUT" ||
         target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT" ||
         target?.isContentEditable;
-      if (inEditable) return;
+      if (inEditable || compose || document.querySelector('[role="dialog"]'))
+        return;
+      const key = e.key.toLowerCase();
+      if (key === "c") {
+        e.preventDefault();
+        startCompose();
+        return;
+      }
+      if (key === "j" || key === "k") {
+        if (messages.length === 0) return;
+        const at = selected
+          ? messages.findIndex((x) => keyOf(x) === keyOf(selected))
+          : -1;
+        const next = messages[key === "j" ? at + 1 : Math.max(0, at - 1)];
+        if (next && (!selected || keyOf(next) !== keyOf(selected))) {
+          e.preventDefault();
+          void selectMessage(next);
+        }
+        return;
+      }
+      if (!selected) return;
+      const act: Record<string, () => void> = {
+        delete: () => void deleteMessage(selected),
+        backspace: () => void deleteMessage(selected),
+        escape: () => closeMessage(),
+        e: () => void archiveMessage(selected),
+        s: () => void updateMessage(selected, { flagged: !selected.flagged }),
+        u: () => {
+          void updateMessage(selected, { seen: false });
+          closeMessage();
+        },
+        ...(detail && {
+          r: () => startReply(detail, selected.accountId),
+          a: () => startReply(detail, selected.accountId, true),
+          f: () => startForward(detail, selected),
+        }),
+      };
+      const run = act[key];
+      if (!run) return;
       e.preventDefault();
-      void deleteMessage(selected);
+      run();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [selected, deleteMessage]);
+  });
 
   const runSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -469,23 +637,83 @@ export function EmailClient() {
     const from =
       (!unified && accountId) || visibleAccounts[0]?.id || accounts[0]?.id;
     if (from)
-      setCompose({ accountId: from, to: "", cc: "", subject: "", body: "" });
+      setCompose({
+        accountId: from,
+        to: "",
+        cc: "",
+        bcc: "",
+        subject: "",
+        body: "",
+      });
   };
 
-  const startReply = (m: MessageDetail, fromAccountId: string) => {
+  const startReply = (m: MessageDetail, fromAccountId: string, all = false) => {
     const original = m.text || "";
     const quoted = original
       .split("\n")
       .map((l) => `> ${l}`)
       .join("\n");
+    const sender = m.from[0];
+    // Reply all: everyone on it except the sender and my own boxes.
+    const mine = new Set(accounts.map((a) => a.email.toLowerCase()));
+    const seen = new Set<string>();
+    const others = (list: Address[]) =>
+      list
+        .map((x) => x.address?.trim() ?? "")
+        .filter((addr) => {
+          const k = addr.toLowerCase();
+          if (!addr || mine.has(k) || seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+    const to = others(m.from);
+    const extraTo = all ? others(m.to) : [];
+    const cc = all ? others(m.cc) : [];
+    // Replying to my own sent message: it goes back to its recipients.
+    if (to.length === 0 && !all) to.push(...others(m.to));
+    const header = t("mail.compose.wrote", {
+      date: m.date ? new Date(m.date).toLocaleString() : "",
+      name: sender?.name || sender?.address || t("mail.unknownSender"),
+    });
     setCompose({
       accountId: fromAccountId,
-      to: m.from[0]?.address || "",
-      cc: "",
-      subject: m.subject.startsWith("Re:") ? m.subject : `Re: ${m.subject}`,
-      body: `\n\n----\n${quoted}`,
+      to: [...to, ...extraTo].join(", "),
+      cc: cc.join(", "),
+      bcc: "",
+      subject: /^re\s*:/i.test(m.subject) ? m.subject : `Re: ${m.subject}`,
+      body: `\n\n${header}\n${quoted}`,
       inReplyTo: m.messageId || undefined,
       references: [...m.references, ...(m.messageId ? [m.messageId] : [])],
+    });
+  };
+
+  const startForward = (m: MessageDetail, from: ListedMessage) => {
+    const none = t("mail.unknownSender");
+    const lines = [
+      t("mail.compose.forwardedHeader"),
+      `${t("mail.fwd.from")} ${fmtFull(m.from, none)}`,
+      ...(m.date
+        ? [`${t("mail.fwd.date")} ${new Date(m.date).toLocaleString()}`]
+        : []),
+      `${t("mail.fwd.subject")} ${m.subject}`,
+      `${t("mail.fwd.to")} ${fmtFull(m.to, none)}`,
+      ...(m.cc.length ? [`${t("mail.fwd.cc")} ${fmtFull(m.cc, none)}`] : []),
+    ];
+    setCompose({
+      accountId: from.accountId,
+      to: "",
+      cc: "",
+      bcc: "",
+      subject: /^(fwd?|tr)\s*:/i.test(m.subject)
+        ? m.subject
+        : `Fwd: ${m.subject}`,
+      body: `\n\n${lines.join("\n")}\n\n${m.text || ""}`,
+      forward: {
+        accountId: from.accountId,
+        mailbox: from.mailbox,
+        uid: from.uid,
+        attachments: m.attachments.map((a, index) => ({ ...a, index })),
+      },
     });
   };
 
@@ -781,7 +1009,7 @@ export function EmailClient() {
                     <button
                       onClick={() => selectMessage(m)}
                       className={cn(
-                        "flex w-full flex-col gap-1 rounded-[20px] px-4 py-3 pr-10 text-left transition-colors",
+                        "flex w-full flex-col gap-1 rounded-[20px] px-4 py-3 text-left transition-colors md:group-hover:pr-20",
                         selected && keyOf(selected) === keyOf(m)
                           ? "bg-secondary"
                           : "hover:bg-secondary/60"
@@ -799,6 +1027,9 @@ export function EmailClient() {
                         >
                           {fmtAddr(m.from, t("mail.unknownSender"))}
                         </span>
+                        {m.flagged && (
+                          <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
+                        )}
                         {m.hasAttachments && (
                           <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
                         )}
@@ -826,23 +1057,62 @@ export function EmailClient() {
                         </span>
                       )}
                     </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void deleteMessage(m);
-                      }}
-                      aria-label={t("mail.delete")}
-                      title={t("mail.delete")}
-                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-opacity hover:bg-negative hover:text-negative-foreground focus-visible:opacity-100 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void archiveMessage(m);
+                        }}
+                        aria-label={t("mail.archive")}
+                        title={t("mail.archive")}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-border hover:text-foreground"
+                      >
+                        <Archive className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void deleteMessage(m);
+                        }}
+                        aria-label={t("mail.delete")}
+                        title={t("mail.delete")}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-negative hover:text-negative-foreground"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </li>
                 );
               })}
             </ul>
           )}
+          {!loadingList &&
+            !listError &&
+            messages.length >= listLimit &&
+            listLimit < 200 &&
+            accountId && (
+              <div className="flex justify-center py-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={loadingMore}
+                  onClick={() =>
+                    void loadMessages(
+                      accountId,
+                      mailbox,
+                      search,
+                      false,
+                      Math.min(200, listLimit + 40)
+                    )
+                  }
+                >
+                  {loadingMore && <Loader2 className="animate-spin" />}
+                  {t("mail.loadMore")}
+                </Button>
+              </div>
+            )}
         </div>
       </div>
 
@@ -887,7 +1157,26 @@ export function EmailClient() {
             source={selected}
             onBack={closeMessage}
             onReply={() => startReply(detail, selected.accountId)}
+            onReplyAll={() => startReply(detail, selected.accountId, true)}
+            onForward={() => startForward(detail, selected)}
             onDelete={() => void deleteMessage(selected)}
+            onArchive={() => void archiveMessage(selected)}
+            onToggleFlag={() =>
+              void updateMessage(selected, { flagged: !selected.flagged })
+            }
+            onMarkUnread={() => {
+              void updateMessage(selected, { seen: false });
+              closeMessage();
+            }}
+            folders={folderCache[selected.accountId]}
+            onLoadFolders={() => void loadFolders(selected.accountId)}
+            onMove={(folder) =>
+              void updateMessage(
+                selected,
+                { moveTo: folder },
+                t("mail.movedTo", { folder: folderLabel(t, folder) })
+              )
+            }
             account={
               selectedAccount && (unified || accounts.length > 1)
                 ? {
@@ -954,7 +1243,15 @@ function MessageView({
   source,
   onBack,
   onReply,
+  onReplyAll,
+  onForward,
   onDelete,
+  onArchive,
+  onToggleFlag,
+  onMarkUnread,
+  folders,
+  onLoadFolders,
+  onMove,
   account,
 }: {
   detail: MessageDetail;
@@ -962,11 +1259,22 @@ function MessageView({
   source: { accountId: string; mailbox: string };
   onBack: () => void;
   onReply: () => void;
+  onReplyAll: () => void;
+  onForward: () => void;
   onDelete: () => void;
+  onArchive: () => void;
+  onToggleFlag: () => void;
+  onMarkUnread: () => void;
+  /** The account's folders for « Déplacer vers »; undefined until loaded. */
+  folders?: string[];
+  onLoadFolders: () => void;
+  onMove: (folder: string) => void;
   /** Which box it came from — shown when several boxes are in play. */
   account?: { label: string; dot: string };
 }) {
   const t = useT();
+  // Worth offering only when someone besides the sender is on it.
+  const replyAllUseful = detail.to.length + detail.cc.length > 1;
   return (
     <article className="flex h-full flex-col">
       <BackBar onBack={onBack} />
@@ -983,19 +1291,119 @@ function MessageView({
           <h1 className="min-w-0 break-words text-[22px] font-bold leading-tight tracking-title md:text-[26px]">
             {detail.subject}
           </h1>
-          <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleFlag}
+            title={`${t(detail.flagged ? "mail.unstar" : "mail.star")} (S)`}
+            aria-label={t(detail.flagged ? "mail.unstar" : "mail.star")}
+            aria-pressed={detail.flagged}
+            className="shrink-0"
+          >
+            <Star
+              className={cn(detail.flagged && "fill-amber-400 text-amber-400")}
+            />
+          </Button>
+        </div>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onReply}
+            title={`${t("mail.reply")} (R)`}
+            aria-label={t("mail.reply")}
+          >
+            <Reply />{" "}
+            <span className="hidden sm:inline">{t("mail.reply")}</span>
+          </Button>
+          {replyAllUseful && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onReplyAll}
+              title={`${t("mail.replyAll")} (A)`}
+              aria-label={t("mail.replyAll")}
+            >
+              <ReplyAll />{" "}
+              <span className="hidden sm:inline">{t("mail.replyAll")}</span>
+            </Button>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onForward}
+            title={`${t("mail.forward")} (F)`}
+            aria-label={t("mail.forward")}
+          >
+            <Forward />{" "}
+            <span className="hidden sm:inline">{t("mail.forward")}</span>
+          </Button>
+          <div className="ml-auto flex items-center gap-1">
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
+              onClick={onArchive}
+              title={`${t("mail.archive")} (E)`}
+              aria-label={t("mail.archive")}
+            >
+              <Archive />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onDelete}
-              title={t("mail.delete")}
+              title={`${t("mail.delete")} (Del)`}
               aria-label={t("mail.delete")}
             >
-              <Trash2 /> <span className="sr-only">{t("mail.delete")}</span>
+              <Trash2 />
             </Button>
-            <Button variant="secondary" size="sm" onClick={onReply}>
-              <Reply /> {t("mail.reply")}
-            </Button>
+            <DropdownMenu
+              onOpenChange={(open) => {
+                if (open) onLoadFolders();
+              }}
+            >
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title={t("mail.more")}
+                  aria-label={t("mail.more")}
+                >
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onSelect={onMarkUnread}>
+                  <MailOpen /> {t("mail.markUnread")}
+                  <span className="ml-auto text-xs opacity-60">U</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <FolderInput /> {t("mail.moveTo")}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-80 overflow-y-auto">
+                    {!folders ? (
+                      <DropdownMenuLabel className="flex items-center gap-2 font-normal text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {t("common.loading")}
+                      </DropdownMenuLabel>
+                    ) : (
+                      folders
+                        .filter(
+                          (f) =>
+                            f.toLowerCase() !== source.mailbox.toLowerCase()
+                        )
+                        .map((f) => (
+                          <DropdownMenuItem key={f} onSelect={() => onMove(f)}>
+                            {folderLabel(t, f)}
+                          </DropdownMenuItem>
+                        ))
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         <div className="space-y-1 text-[14px]">
@@ -1067,11 +1475,27 @@ interface ComposeState {
   accountId: string;
   to: string;
   cc: string;
+  bcc: string;
   subject: string;
   body: string;
   inReplyTo?: string;
   references?: string[];
+  /** Forwarding: where the original lives and its attachments to carry. */
+  forward?: {
+    accountId: string;
+    mailbox: string;
+    uid: number;
+    attachments: {
+      index: number;
+      filename: string;
+      size: number;
+      contentType: string;
+    }[];
+  };
 }
+
+/** Kept under what SMTP servers take once base64 inflates it (~25 MB). */
+const MAX_ATTACH_BYTES = 20 * 1024 * 1024;
 
 function ComposeModal({
   accounts,
@@ -1086,33 +1510,84 @@ function ComposeModal({
   const [accountId, setAccountId] = useState(initial.accountId);
   const [to, setTo] = useState(initial.to);
   const [cc, setCc] = useState(initial.cc);
+  const [bcc, setBcc] = useState(initial.bcc);
   const [showCc, setShowCc] = useState(Boolean(initial.cc));
+  const [showBcc, setShowBcc] = useState(Boolean(initial.bcc));
   const [subject, setSubject] = useState(initial.subject);
   const [body, setBody] = useState(initial.body);
+  const [files, setFiles] = useState<File[]>([]);
+  const [carried, setCarried] = useState(initial.forward?.attachments ?? []);
+  const [dragging, setDragging] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  // Counts dragenter/leave pairs: children fire their own.
+  const dragDepth = useRef(0);
+
+  // Replies and forwards start with the cursor above the quote.
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el || !initial.body) return;
+    if (initial.to) {
+      el.focus();
+      el.setSelectionRange(0, 0);
+      el.scrollTop = 0;
+    }
+  }, [initial.body, initial.to]);
+
+  const totalBytes =
+    files.reduce((n, f) => n + f.size, 0) +
+    carried.reduce((n, a) => n + a.size, 0);
+  const tooBig = totalBytes > MAX_ATTACH_BYTES;
+
+  const addFiles = (list: FileList | File[] | null) => {
+    if (!list || list.length === 0) return;
+    setFiles((prev) => [...prev, ...Array.from(list)]);
+  };
 
   const send = async () => {
+    if (sending || !(to.trim() || cc.trim() || bcc.trim()) || tooBig) return;
     setSending(true);
     setError(null);
     try {
-      const res = await fetch("/api/mail/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountId,
-          to,
-          cc: cc || undefined,
-          subject,
-          text: body,
-          inReplyTo: initial.inReplyTo,
-          references: initial.references,
-        }),
-      });
+      const payload = {
+        accountId,
+        to,
+        cc: cc || undefined,
+        bcc: bcc || undefined,
+        subject,
+        text: body,
+        inReplyTo: initial.inReplyTo,
+        references: initial.references,
+        forward:
+          initial.forward && carried.length > 0
+            ? {
+                accountId: initial.forward.accountId,
+                mailbox: initial.forward.mailbox,
+                uid: initial.forward.uid,
+                attachments: carried.map((a) => a.index),
+              }
+            : undefined,
+      };
+      let res: Response;
+      if (files.length > 0) {
+        const form = new FormData();
+        form.set("payload", JSON.stringify(payload));
+        for (const f of files) form.append("files", f, f.name);
+        res = await fetch("/api/mail/send", { method: "POST", body: form });
+      } else {
+        res = await fetch("/api/mail/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || t("mail.errors.sendFailed"));
       }
+      toast.success(t("mail.sent"));
       onClose();
     } catch (err) {
       setError(
@@ -1123,11 +1598,55 @@ function ComposeModal({
     }
   };
 
+  const hasFiles = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer.types).includes("Files");
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        className="max-h-[92vh] max-w-2xl overflow-y-auto"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            void send();
+          }
+        }}
+        onDragEnter={(e) => {
+          if (!hasFiles(e)) return;
+          e.preventDefault();
+          dragDepth.current += 1;
+          setDragging(true);
+        }}
+        onDragOver={(e) => {
+          if (hasFiles(e)) e.preventDefault();
+        }}
+        onDragLeave={(e) => {
+          if (!hasFiles(e)) return;
+          dragDepth.current = Math.max(0, dragDepth.current - 1);
+          if (dragDepth.current === 0) setDragging(false);
+        }}
+        onDrop={(e) => {
+          if (!hasFiles(e)) return;
+          e.preventDefault();
+          dragDepth.current = 0;
+          setDragging(false);
+          addFiles(e.dataTransfer.files);
+        }}
+      >
+        {dragging && (
+          <div className="pointer-events-none absolute inset-2 z-10 flex flex-col items-center justify-center gap-2 rounded-[24px] border-2 border-dashed border-primary bg-card/90 text-[15px] font-medium text-foreground">
+            <Paperclip className="h-6 w-6" />
+            {t("mail.compose.dropFiles")}
+          </div>
+        )}
         <DialogHeader>
-          <DialogTitle>{t("mail.compose.title")}</DialogTitle>
+          <DialogTitle>
+            {initial.forward
+              ? t("mail.compose.forwardTitle")
+              : initial.inReplyTo
+                ? t("mail.compose.replyTitle")
+                : t("mail.compose.title")}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -1155,10 +1674,10 @@ function ComposeModal({
               />
             )}
           </div>
-          <div className={cn("grid gap-3", showCc && "sm:grid-cols-2")}>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="compose-to">{t("mail.compose.to")}</Label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="compose-to">{t("mail.compose.to")}</Label>
+              <div className="flex gap-3">
                 {!showCc && (
                   <button
                     type="button"
@@ -1168,28 +1687,57 @@ function ComposeModal({
                     + {t("mail.compose.addCc")}
                   </button>
                 )}
+                {!showBcc && (
+                  <button
+                    type="button"
+                    onClick={() => setShowBcc(true)}
+                    className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    + {t("mail.compose.addBcc")}
+                  </button>
+                )}
               </div>
-              <Input
-                id="compose-to"
-                type="email"
-                inputMode="email"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                placeholder={t("mail.compose.toPlaceholder")}
-              />
             </div>
-            {showCc && (
-              <div className="space-y-2">
-                <Label htmlFor="compose-cc">{t("mail.compose.cc")}</Label>
-                <Input
-                  id="compose-cc"
-                  value={cc}
-                  onChange={(e) => setCc(e.target.value)}
-                  placeholder={t("mail.compose.ccPlaceholder")}
-                />
-              </div>
-            )}
+            <Input
+              id="compose-to"
+              inputMode="email"
+              autoFocus={!initial.to}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder={t("mail.compose.toPlaceholder")}
+            />
           </div>
+          {(showCc || showBcc) && (
+            <div
+              className={cn(
+                "grid gap-3",
+                showCc && showBcc && "sm:grid-cols-2"
+              )}
+            >
+              {showCc && (
+                <div className="space-y-2">
+                  <Label htmlFor="compose-cc">{t("mail.compose.cc")}</Label>
+                  <Input
+                    id="compose-cc"
+                    value={cc}
+                    onChange={(e) => setCc(e.target.value)}
+                    placeholder={t("mail.compose.ccPlaceholder")}
+                  />
+                </div>
+              )}
+              {showBcc && (
+                <div className="space-y-2">
+                  <Label htmlFor="compose-bcc">{t("mail.compose.bcc")}</Label>
+                  <Input
+                    id="compose-bcc"
+                    value={bcc}
+                    onChange={(e) => setBcc(e.target.value)}
+                    placeholder={t("mail.compose.ccPlaceholder")}
+                  />
+                </div>
+              )}
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="compose-subject">{t("mail.compose.subject")}</Label>
             <Input
@@ -1203,26 +1751,132 @@ function ComposeModal({
             <Label htmlFor="compose-body">{t("mail.compose.body")}</Label>
             <Textarea
               id="compose-body"
+              ref={bodyRef}
               rows={10}
               value={body}
               onChange={(e) => setBody(e.target.value)}
+              onPaste={(e) => {
+                // Pasted screenshots/files become attachments.
+                const pasted = Array.from(e.clipboardData.files);
+                if (pasted.length === 0) return;
+                e.preventDefault();
+                addFiles(pasted);
+              }}
               placeholder={t("mail.compose.bodyPlaceholder")}
             />
+          </div>
+
+          <div className="space-y-2">
+            {(files.length > 0 || carried.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {carried.map((a) => (
+                  <AttachmentChip
+                    key={`fwd-${a.index}`}
+                    name={a.filename}
+                    size={a.size}
+                    onRemove={() =>
+                      setCarried((xs) => xs.filter((x) => x.index !== a.index))
+                    }
+                  />
+                ))}
+                {files.map((f, i) => (
+                  <AttachmentChip
+                    key={`${f.name}-${i}`}
+                    name={f.name}
+                    size={f.size}
+                    onRemove={() =>
+                      setFiles((xs) => xs.filter((_, j) => j !== i))
+                    }
+                  />
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInput.current?.click()}
+              >
+                <Paperclip /> {t("mail.compose.attach")}
+              </Button>
+              <span
+                className={cn(
+                  "text-[12px]",
+                  tooBig ? "text-destructive" : "text-muted-foreground"
+                )}
+              >
+                {tooBig
+                  ? t("mail.compose.tooBig", { size: fmtSize(t, totalBytes) })
+                  : files.length + carried.length > 0
+                    ? fmtSize(t, totalBytes)
+                    : t("mail.compose.dropHint")}
+              </span>
+              <input
+                ref={fileInput}
+                type="file"
+                multiple
+                hidden
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </div>
           </div>
           {error && <p className="text-[13px] text-destructive">{error}</p>}
         </div>
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <span className="mr-auto hidden text-[12px] text-muted-foreground sm:inline">
+            {t("mail.compose.sendHint")}
+          </span>
           <Button variant="outline" onClick={onClose} disabled={sending}>
             {t("mail.compose.discard")}
           </Button>
-          <Button onClick={send} disabled={sending || !to.trim()}>
+          <Button
+            onClick={() => void send()}
+            disabled={
+              sending || !(to.trim() || cc.trim() || bcc.trim()) || tooBig
+            }
+          >
             {sending ? <Loader2 className="animate-spin" /> : <Send />}
             {t("mail.compose.send")}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AttachmentChip({
+  name,
+  size,
+  onRemove,
+}: {
+  name: string;
+  size: number;
+  onRemove: () => void;
+}) {
+  const t = useT();
+  return (
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-secondary py-1.5 pl-3 pr-1.5 text-[12px] text-foreground/80">
+      <Paperclip className="h-3 w-3 shrink-0" />
+      <span className="truncate">{name}</span>
+      {size > 0 && (
+        <span className="shrink-0 text-muted-foreground">
+          {fmtSize(t, size)}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={t("mail.compose.removeAttachment", { name })}
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full hover:bg-border"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
   );
 }
 

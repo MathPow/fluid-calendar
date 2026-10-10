@@ -279,16 +279,23 @@ function toSummary(msg: {
   };
 }
 
+export interface AttachmentFile {
+  filename: string;
+  contentType: string;
+  content: Buffer;
+}
+
 /**
- * One attachment's bytes, by its position in `MessageDetail.attachments`.
- * Leaves the \Seen flag alone.
+ * Attachments' bytes, by their position in `MessageDetail.attachments` (all
+ * of them when `indices` is omitted). Leaves the \Seen flag alone. Null when
+ * the message is gone.
  */
-export async function getAttachment(
+export async function getAttachments(
   acct: MailAccountConn,
   mailbox: string,
   uid: number,
-  index: number
-): Promise<{ filename: string; contentType: string; content: Buffer } | null> {
+  indices?: number[]
+): Promise<AttachmentFile[] | null> {
   return withClient(acct, async (client) => {
     const lock = await client.getMailboxLock(mailbox);
     try {
@@ -299,16 +306,111 @@ export async function getAttachment(
       );
       if (!msg || !msg.source) return null;
       const parsed = await simpleParser(msg.source as Buffer);
-      const a = parsed.attachments?.[index];
-      if (!a) return null;
-      return {
+      const all = parsed.attachments ?? [];
+      const picked = indices ? indices.map((i) => all[i]).filter(Boolean) : all;
+      return picked.map((a) => ({
         filename: a.filename || "attachment",
         contentType: a.contentType || "application/octet-stream",
         content: a.content,
-      };
+      }));
     } finally {
       lock.release();
     }
+  });
+}
+
+/** One attachment's bytes, or null when the message or the index is gone. */
+export async function getAttachment(
+  acct: MailAccountConn,
+  mailbox: string,
+  uid: number,
+  index: number
+): Promise<AttachmentFile | null> {
+  const files = await getAttachments(acct, mailbox, uid, [index]);
+  return files?.[0] ?? null;
+}
+
+/** Set or clear \Seen / \Flagged on one message. */
+export async function setMessageFlags(
+  acct: MailAccountConn,
+  mailbox: string,
+  uid: number,
+  flags: { seen?: boolean; flagged?: boolean }
+): Promise<void> {
+  await withClient(acct, async (client) => {
+    const lock = await client.getMailboxLock(mailbox);
+    try {
+      for (const [flag, on] of [
+        ["\\Seen", flags.seen],
+        ["\\Flagged", flags.flagged],
+      ] as const) {
+        if (on === undefined) continue;
+        if (on)
+          await client.messageFlagsAdd(String(uid), [flag], { uid: true });
+        else
+          await client.messageFlagsRemove(String(uid), [flag], { uid: true });
+      }
+    } finally {
+      lock.release();
+    }
+  });
+}
+
+/**
+ * Move a message to a folder path or a role (archive, junk, inbox…). Archive
+ * is created as "Archive" on a server that has none. Returns the folder.
+ */
+export async function moveMessage(
+  acct: MailAccountConn,
+  mailbox: string,
+  uid: number,
+  target: string
+): Promise<{ movedTo: string }> {
+  return withClient(acct, async (client) => {
+    let dest: string | null = target;
+    if ((MAIL_ROLES as readonly string[]).includes(target)) {
+      dest = await findRole(client, target as MailRole);
+      if (!dest && target === "archive") {
+        await client.mailboxCreate("Archive");
+        dest = "Archive";
+      }
+      if (!dest) throw new Error(`No ${target} folder on this account`);
+    }
+    if (dest.toLowerCase() === mailbox.toLowerCase()) return { movedTo: dest };
+    const lock = await client.getMailboxLock(mailbox);
+    try {
+      await client.messageMove(String(uid), dest, { uid: true });
+      return { movedTo: dest };
+    } finally {
+      lock.release();
+    }
+  });
+}
+
+/**
+ * File a sent message in the account's Sent folder, unless the server already
+ * did (some SMTP servers keep a copy themselves — checked by Message-ID).
+ */
+export async function saveToSent(
+  acct: MailAccountConn,
+  raw: Buffer,
+  messageId: string
+): Promise<string | null> {
+  return withClient(acct, async (client) => {
+    const sent = await findRole(client, "sent");
+    if (!sent) return null;
+    const lock = await client.getMailboxLock(sent);
+    try {
+      const found = await client.search(
+        { header: { "message-id": messageId } },
+        { uid: true }
+      );
+      if (found && found.length > 0) return sent;
+    } finally {
+      lock.release();
+    }
+    await client.append(sent, raw, ["\\Seen"]);
+    return sent;
   });
 }
 

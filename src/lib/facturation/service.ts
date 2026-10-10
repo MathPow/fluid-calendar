@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 
 import { logger } from "@/lib/logger";
 import { loadAccount } from "@/lib/mail/account";
+import { saveToSent } from "@/lib/mail/imap";
 import { sendMail } from "@/lib/mail/smtp";
 import { notify } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -125,7 +126,9 @@ export function toIssuedView(row: IssuedRow): IssuedView {
 
 export async function settingsFor(organisationId: string) {
   return (
-    (await prisma.invoicingSettings.findUnique({ where: { organisationId } })) ?? {
+    (await prisma.invoicingSettings.findUnique({
+      where: { organisationId },
+    })) ?? {
       organisationId,
       numberPrefix: null,
       dueDays: 30,
@@ -161,7 +164,9 @@ export async function issuerFor(organisationId: string) {
   });
   if (!org) throw new Error("Organisation introuvable");
   const p = org.taxProfile;
-  const cityLine = [p?.city, p?.province, p?.postalCode].filter(Boolean).join(" ");
+  const cityLine = [p?.city, p?.province, p?.postalCode]
+    .filter(Boolean)
+    .join(" ");
   return {
     registered: p?.salesTaxStatus === "inscrit",
     issuer: {
@@ -202,17 +207,25 @@ export interface IssueInput {
  * lines, a number when none is given, and the PDF stored as its file so it
  * also shows up in Fiscalité.
  */
-export async function saveIssuedInvoice(input: IssueInput, id?: string): Promise<IssuedView> {
+export async function saveIssuedInvoice(
+  input: IssueInput,
+  id?: string
+): Promise<IssuedView> {
   const { issuer } = await issuerFor(input.organisationId);
   const totals = computeTotals(input.lines, input.applyTaxes);
-  const number = input.number?.trim() || (await nextNumberFor(input.organisationId));
+  const number =
+    input.number?.trim() || (await nextNumberFor(input.organisationId));
   const pdf = await renderInvoicePdf({
     lang: input.lang,
     number,
     date: input.date,
     dueDate: input.dueDate ?? null,
     issuer,
-    client: { name: input.party, billTo: input.billTo, email: input.clientEmail },
+    client: {
+      name: input.party,
+      billTo: input.billTo,
+      email: input.clientEmail,
+    },
     title: input.title,
     lines: input.lines,
     totals,
@@ -220,7 +233,13 @@ export async function saveIssuedInvoice(input: IssueInput, id?: string): Promise
     notes: input.notes,
   });
   const fileName = `${input.lang === "en" ? "invoice" : "facture"}-${number.replace(/[^\w.-]+/g, "_")}.pdf`;
-  const file = { name: fileName, mime: "application/pdf", size: pdf.byteLength, data: Buffer.from(pdf), text: null };
+  const file = {
+    name: fileName,
+    mime: "application/pdf",
+    size: pdf.byteLength,
+    data: Buffer.from(pdf),
+    text: null,
+  };
 
   const data = {
     organisationId: input.organisationId,
@@ -253,7 +272,11 @@ export async function saveIssuedInvoice(input: IssueInput, id?: string): Promise
         select: issuedSelect,
       })
     : await prisma.invoice.create({
-        data: { ...data, status: input.status ?? "draft", file: { create: file } },
+        data: {
+          ...data,
+          status: input.status ?? "draft",
+          file: { create: file },
+        },
         select: issuedSelect,
       });
   return toIssuedView(row);
@@ -284,10 +307,17 @@ export async function templateValues(inv: IssuedView) {
 }
 
 /** Send the invoice's PDF from one of the user's mail accounts, then mark it sent. */
-export async function sendIssuedInvoice(userId: string, invoiceId: string, input: SendInput): Promise<IssuedView> {
+export async function sendIssuedInvoice(
+  userId: string,
+  invoiceId: string,
+  input: SendInput
+): Promise<IssuedView> {
   const row = await prisma.invoice.findUnique({
     where: { id: invoiceId },
-    select: { ...issuedSelect, file: { select: { name: true, mime: true, size: true, data: true } } },
+    select: {
+      ...issuedSelect,
+      file: { select: { name: true, mime: true, size: true, data: true } },
+    },
   });
   if (!row) throw new Error("Facture introuvable");
   if (!row.file) throw new Error("Cette facture n'a pas de PDF");
@@ -298,16 +328,32 @@ export async function sendIssuedInvoice(userId: string, invoiceId: string, input
   const settings = await settingsFor(row.organisationId);
   const values = await templateValues(view);
   const fallback = DEFAULT_EMAIL[view.lang];
-  const subject = fillTemplate(input.subject || settings.emailSubject || fallback.subject, values);
-  const body = fillTemplate(input.body || settings.emailBody || fallback.body, values);
+  const subject = fillTemplate(
+    input.subject || settings.emailSubject || fallback.subject,
+    values
+  );
+  const body = fillTemplate(
+    input.body || settings.emailBody || fallback.body,
+    values
+  );
 
-  await sendMail(account.smtp, {
+  const sent = await sendMail(account.smtp, {
     to: input.to,
     cc: input.cc || undefined,
     subject,
     text: body,
-    attachments: [{ filename: row.file.name, content: Buffer.from(row.file.data), contentType: row.file.mime }],
+    attachments: [
+      {
+        filename: row.file.name,
+        content: Buffer.from(row.file.data),
+        contentType: row.file.mime,
+      },
+    ],
   });
+  // File it in Sent too (after a beat, in case the server keeps its own copy).
+  setTimeout(() => {
+    saveToSent(account.imap, sent.raw, sent.messageId).catch(() => undefined);
+  }, 4000);
 
   const [updated] = await prisma.$transaction([
     prisma.invoice.update({
@@ -323,7 +369,10 @@ export async function sendIssuedInvoice(userId: string, invoiceId: string, input
     // Remember the account for next time.
     prisma.invoicingSettings.upsert({
       where: { organisationId: row.organisationId },
-      create: { organisationId: row.organisationId, mailAccountId: input.mailAccountId },
+      create: {
+        organisationId: row.organisationId,
+        mailAccountId: input.mailAccountId,
+      },
       update: { mailAccountId: input.mailAccountId },
     }),
   ]);
@@ -358,7 +407,8 @@ export async function issueFromRecurring(rec: RecurringRow, issueDay: string) {
   let error: string | null = null;
   if (rec.autoSend) {
     if (!rec.clientEmail || !rec.mailAccountId) {
-      error = "Pas de courriel client ou de compte d'envoi : facture créée en brouillon.";
+      error =
+        "Pas de courriel client ou de compte d'envoi : facture créée en brouillon.";
     } else {
       try {
         sent = await sendIssuedInvoice(rec.userId, invoice.id, {
@@ -374,7 +424,11 @@ export async function issueFromRecurring(rec: RecurringRow, issueDay: string) {
 
   await prisma.recurringInvoice.update({
     where: { id: rec.id },
-    data: { lastInvoiceId: invoice.id, lastRunAt: new Date(), lastError: error },
+    data: {
+      lastInvoiceId: invoice.id,
+      lastRunAt: new Date(),
+      lastError: error,
+    },
   });
   return { invoice: sent ?? invoice, sent: !!sent, error };
 }
@@ -403,7 +457,10 @@ export async function runDueRecurring(now = new Date()) {
     if (claimed.count === 0) continue;
 
     try {
-      const { invoice, sent, error } = await issueFromRecurring(rec, isoDay(rec.nextRunAt));
+      const { invoice, sent, error } = await issueFromRecurring(
+        rec,
+        isoDay(rec.nextRunAt)
+      );
       issued++;
       await notify(rec.userId, {
         kind: error ? "invoice_failed" : "invoice_issued",
@@ -412,14 +469,23 @@ export async function runDueRecurring(now = new Date()) {
         title: sent
           ? `Facture ${invoice.number} envoyée à ${rec.party}`
           : `Facture ${invoice.number} prête pour ${rec.party}`,
-        body: error ?? `${rec.title} · ${formatCents(invoice.totalCents, invoice.lang)}`,
+        body:
+          error ??
+          `${rec.title} · ${formatCents(invoice.totalCents, invoice.lang)}`,
         url: "/facturation",
         dedupeKey: `recurring:${rec.id}:${isoDay(rec.nextRunAt)}`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await prisma.recurringInvoice.update({ where: { id: rec.id }, data: { lastError: message } });
-      logger.error("Recurring invoice failed", { id: rec.id, error: message }, LOG_SOURCE);
+      await prisma.recurringInvoice.update({
+        where: { id: rec.id },
+        data: { lastError: message },
+      });
+      logger.error(
+        "Recurring invoice failed",
+        { id: rec.id, error: message },
+        LOG_SOURCE
+      );
       await notify(rec.userId, {
         kind: "invoice_failed",
         source: "facturation",

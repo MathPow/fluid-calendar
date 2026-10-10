@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing accountId" }, { status: 400 });
   }
   const mailbox = sp.get("mailbox") || "INBOX";
-  const limit = Math.min(Math.max(Number(sp.get("limit")) || 30, 1), 100);
+  const limit = Math.min(Math.max(Number(sp.get("limit")) || 30, 1), 200);
   const q = sp.get("q") || undefined;
   const wantFolders = sp.get("folders") === "1";
 
