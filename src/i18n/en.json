@@ -2157,6 +2157,7 @@
   "tasks.dialog.tag.newNamePlaceholder": "New tag name",
   "tasks.dialog.title.edit": "Edit task",
   "tasks.dialog.title.new": "New task",
+  "tasks.duration.minutesShort": "{minutes}m",
   "tasks.editable.minutesPlaceholder": "Minutes",
   "tasks.editable.noEnergyLevel": "No energy level",
   "tasks.editable.noPriority": "No priority",

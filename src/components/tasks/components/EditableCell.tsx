@@ -192,7 +192,9 @@ export function EditableCell({
               value ? "text-muted-foreground" : "text-muted-foreground/70"
             }`}
           >
-            {value ? `${value}m` : t("tasks.editable.setDuration")}
+            {value
+              ? t("tasks.duration.minutesShort", { minutes: value })
+              : t("tasks.editable.setDuration")}
           </span>
         ) : field === "dueDate" ? (
           (() => {

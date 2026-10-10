@@ -140,7 +140,9 @@ export function BoardTask({ task, onEdit, onDelete }: BoardTaskProps) {
             )}
 
             {task.duration && (
-              <span className="text-muted-foreground">{task.duration}m</span>
+              <span className="text-muted-foreground">
+                {t("tasks.duration.minutesShort", { minutes: task.duration })}
+              </span>
             )}
 
             {task.dueDate && (() => {

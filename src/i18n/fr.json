@@ -2157,6 +2157,7 @@
   "tasks.dialog.tag.newNamePlaceholder": "Nom de la nouvelle étiquette",
   "tasks.dialog.title.edit": "Modifier la tâche",
   "tasks.dialog.title.new": "Nouvelle tâche",
+  "tasks.duration.minutesShort": "{minutes} min",
   "tasks.editable.minutesPlaceholder": "Minutes",
   "tasks.editable.noEnergyLevel": "Aucune énergie",
   "tasks.editable.noPriority": "Aucune priorité",
