@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { type TranslateFn, useT } from "@/i18n/client";
 import {
@@ -31,7 +31,6 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { PageLoader } from "@/components/ui/page-loader";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageLoader } from "@/components/ui/page-loader";
 import {
   Select,
   SelectContent,
@@ -73,6 +73,8 @@ import { useDeepLink } from "@/hooks/use-deep-link";
 
 import { useAssistantStore } from "@/store/assistant";
 import { accountVisibleInStation, useStationStore } from "@/store/station";
+
+import { type Recipient, RecipientInput } from "./RecipientInput";
 
 interface Account {
   id: string;
@@ -224,6 +226,8 @@ export function EmailClient() {
   const [initializing, setInitializing] = useState(true);
   const [showConnect, setShowConnect] = useState(false);
   const [compose, setCompose] = useState<ComposeState | null>(null);
+  // Contacts with an email, for the To/Cc/Bcc suggestions.
+  const [contacts, setContacts] = useState<Recipient[]>([]);
   // Set once a deep link (?account=&mailbox=&uid=) picked the box to show, so
   // the initial load doesn't switch back to the default view underneath it.
   const linkedRef = useRef(false);
@@ -300,6 +304,27 @@ export function EmailClient() {
     },
     [t]
   );
+
+  // Contacts load once, when a message is first written.
+  const contactsLoaded = useRef(false);
+  useEffect(() => {
+    if (!compose || contactsLoaded.current) return;
+    contactsLoaded.current = true;
+    fetch("/api/mail/contacts")
+      .then((r) => (r.ok ? r.json() : { contacts: [] }))
+      .then((d: { contacts?: Omit<Recipient, "contact">[] }) =>
+        setContacts(
+          (d.contacts ?? []).map((c) => ({
+            ...c,
+            email: c.email.trim(),
+            contact: true,
+          }))
+        )
+      )
+      .catch(() => {
+        contactsLoaded.current = false;
+      });
+  }, [compose]);
 
   // Initial load — « Toutes les boîtes » when several accounts are visible
   // under the active station, otherwise the only one.
@@ -1204,6 +1229,7 @@ export function EmailClient() {
               accountVisibleInStation(a.station, currentStation)
           )}
           initial={compose}
+          people={suggestionPool(contacts, messages, detail, accounts)}
           onClose={() => setCompose(null)}
         />
       )}
@@ -1492,13 +1518,45 @@ interface ComposeState {
 /** Kept under what SMTP servers take once base64 inflates it (~25 MB). */
 const MAX_ATTACH_BYTES = 20 * 1024 * 1024;
 
+/**
+ * Who To/Cc/Bcc can suggest: contacts first, then everyone seen in the
+ * loaded mail (minus my own boxes), one entry per address.
+ */
+function suggestionPool(
+  contacts: Recipient[],
+  messages: MessageSummary[],
+  detail: MessageDetail | null,
+  accounts: Account[]
+): Recipient[] {
+  const mine = new Set(accounts.map((a) => a.email.toLowerCase()));
+  const pool = new Map<string, Recipient>();
+  for (const c of contacts) {
+    const k = c.email.toLowerCase();
+    if (!mine.has(k) && !pool.has(k)) pool.set(k, c);
+  }
+  const seen = [
+    ...messages.flatMap((m) => [...m.from, ...m.to]),
+    ...(detail ? [...detail.from, ...detail.to, ...detail.cc] : []),
+  ];
+  for (const x of seen) {
+    const email = x.address?.trim();
+    if (!email) continue;
+    const k = email.toLowerCase();
+    if (mine.has(k) || pool.has(k)) continue;
+    pool.set(k, { name: x.name?.trim() || "", email });
+  }
+  return [...pool.values()];
+}
+
 function ComposeModal({
   accounts,
   initial,
+  people,
   onClose,
 }: {
   accounts: Account[];
   initial: ComposeState;
+  people: Recipient[];
   onClose: () => void;
 }) {
   const t = useT();
@@ -1519,6 +1577,16 @@ function ComposeModal({
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   // Counts dragenter/leave pairs: children fire their own.
   const dragDepth = useRef(0);
+  // Fields whose suggestion list is open: Esc closes the list, not the dialog.
+  const openLists = useRef(new Set<string>());
+  const [toOpen, ccOpen, bccOpen] = useMemo(
+    () =>
+      ["to", "cc", "bcc"].map((field) => (open: boolean) => {
+        if (open) openLists.current.add(field);
+        else openLists.current.delete(field);
+      }),
+    []
+  );
 
   // Replies and forwards start with the cursor above the quote.
   useEffect(() => {
@@ -1600,6 +1668,9 @@ function ComposeModal({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className="max-h-[92vh] max-w-2xl overflow-y-auto"
+        onEscapeKeyDown={(e) => {
+          if (openLists.current.size > 0) e.preventDefault();
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
@@ -1693,12 +1764,13 @@ function ComposeModal({
                 )}
               </div>
             </div>
-            <Input
+            <RecipientInput
               id="compose-to"
-              inputMode="email"
               autoFocus={!initial.to}
               value={to}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={setTo}
+              people={people}
+              onOpenChange={toOpen}
               placeholder={t("mail.compose.toPlaceholder")}
             />
           </div>
@@ -1712,10 +1784,12 @@ function ComposeModal({
               {showCc && (
                 <div className="space-y-2">
                   <Label htmlFor="compose-cc">{t("mail.compose.cc")}</Label>
-                  <Input
+                  <RecipientInput
                     id="compose-cc"
                     value={cc}
-                    onChange={(e) => setCc(e.target.value)}
+                    onChange={setCc}
+                    people={people}
+                    onOpenChange={ccOpen}
                     placeholder={t("mail.compose.ccPlaceholder")}
                   />
                 </div>
@@ -1723,10 +1797,12 @@ function ComposeModal({
               {showBcc && (
                 <div className="space-y-2">
                   <Label htmlFor="compose-bcc">{t("mail.compose.bcc")}</Label>
-                  <Input
+                  <RecipientInput
                     id="compose-bcc"
                     value={bcc}
-                    onChange={(e) => setBcc(e.target.value)}
+                    onChange={setBcc}
+                    people={people}
+                    onOpenChange={bccOpen}
                     placeholder={t("mail.compose.ccPlaceholder")}
                   />
                 </div>
