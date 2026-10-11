@@ -2598,5 +2598,11 @@
   "calendar.stats.noScheduledTasks": "No scheduled tasks in this period.",
   "calendar.stats.noOrganisation": "No organisation",
   "calendar.stats.noProject": "No project",
-  "calendar.stats.noCalendar": "Unknown calendar"
+  "calendar.stats.noCalendar": "Unknown calendar",
+  "machines.metric.cpu": "CPU",
+  "machines.metric.ram": "RAM",
+  "machines.metric.disk": "disk",
+  "machines.metric.temp": "temp",
+  "machines.metric.gpuTemp": "GPU temp",
+  "machines.meters.unitGb": "GB"
 }
