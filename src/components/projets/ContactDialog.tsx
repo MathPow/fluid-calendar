@@ -158,7 +158,9 @@ export function ContactDialog({
         const fieldMsg = data.details?.fieldErrors
           ? Object.values(data.details.fieldErrors).flat()[0]
           : undefined;
-        throw new Error(fieldMsg || data.error || `Erreur ${res.status}`);
+        throw new Error(
+          fieldMsg || data.error || t("common.error", { status: res.status })
+        );
       }
       toast.success(
         editing ? t("toasts.contacts.updated") : t("toasts.contacts.created")

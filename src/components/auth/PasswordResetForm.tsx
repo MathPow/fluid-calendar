@@ -88,7 +88,9 @@ export function PasswordResetForm() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to request password reset");
+        throw new Error(
+          result.error || t("auth.resetPassword.toasts.requestFailed")
+        );
       }
 
       toast.success(t("auth.resetPassword.toasts.emailSent"), {
@@ -132,7 +134,9 @@ export function PasswordResetForm() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to reset password");
+        throw new Error(
+          result.error || t("auth.resetPassword.toasts.resetFailed")
+        );
       }
 
       toast.success(t("auth.resetPassword.toasts.resetSuccess"), {
