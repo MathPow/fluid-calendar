@@ -48,7 +48,7 @@ export function ContactPicker({
   const resolvedPlaceholder = placeholder ?? t("projects.contactPicker.placeholder");
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <button
           type="button"
