@@ -2522,6 +2522,7 @@
   "tasks.mobile.deleteAria": "Supprimer {title}",
   "tasks.mobile.swipeHint": "Glisse à droite pour terminer, à gauche pour supprimer.",
   "tasks.notFound": "Cette tâche n'existe plus.",
+  "tasks.page.focus": "Tâche ouverte : « {title} » (id={id}, statut {status})",
   "tasks.priority.high": "Haute",
   "tasks.priority.low": "Basse",
   "tasks.priority.medium": "Moyenne",
