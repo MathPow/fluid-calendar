@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { useLocale, useT } from "@/i18n/client";
+import { type TranslateFn, useLocale, useT } from "@/i18n/client";
 import {
   type RoutineBlockLite,
   crossesMidnight,
@@ -34,9 +34,11 @@ import { useRoutineStore } from "@/store/routine";
 import { useSettingsStore } from "@/store/settings";
 
 /** A first week to edit rather than an empty screen: the usual three blocks. */
-const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
+const starterBlocks = (
+  t: TranslateFn
+): Omit<RoutineBlockLite, "id" | "layerId">[] => [
   {
-    title: "Travail",
+    title: t("calendar.routineKinds.work"),
     kind: "work",
     color: null,
     days: [1, 2, 3, 4, 5],
@@ -45,7 +47,7 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
     schedulable: true,
   },
   {
-    title: "Sommeil",
+    title: t("calendar.routineKinds.sleep"),
     kind: "sleep",
     color: null,
     days: [0, 1, 2, 3, 4, 5, 6],
@@ -54,7 +56,7 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
     schedulable: false,
   },
   {
-    title: "Entraînement",
+    title: t("calendar.routineLayers.starter.training"),
     kind: "sport",
     color: null,
     days: [1, 3, 5],
@@ -89,7 +91,7 @@ export function RoutineLayers() {
 
   const seed = async () => {
     setSeeding(true);
-    for (const block of STARTER) await store.createBlock(block);
+    for (const block of starterBlocks(t)) await store.createBlock(block);
     setSeeding(false);
   };
 
