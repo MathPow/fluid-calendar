@@ -79,7 +79,7 @@ export function AccountMenu() {
   // session, so there is no sign-in button here; /auth/signin handles it.
   if (status !== "authenticated" || !session) return null;
 
-  const name = session.user?.name?.trim() || "You";
+  const name = session.user?.name?.trim() || t("account.defaultName");
   const initials = name
     .split(/\s+/)
     .map((n) => n[0])
@@ -150,7 +150,7 @@ export function AccountMenu() {
                   <DropdownMenuItem
                     key={l.id}
                     onSelect={() => runLauncher(l)}
-                    title={`${l.label} · ${l.machine?.label || l.machine?.name || "sans machine"}`}
+                    title={`${l.label} · ${l.machine?.label || l.machine?.name || t("launchers.noMachine")}`}
                     className="flex h-[4.5rem] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl bg-secondary px-1.5 text-center focus:bg-border/70"
                   >
                     <LauncherIcon icon={l.icon} className="h-5 w-5" />
