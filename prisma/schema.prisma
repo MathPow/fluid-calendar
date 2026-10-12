@@ -1378,6 +1378,15 @@ model EventOrganisation {
 
 // A contact's profile on a platform: Instagram, LinkedIn, TikTok, a website…
 // `value` is what was typed (a handle or a URL); the link is built from it.
+// Someone seen in a social-network export (LinkedIn, Instagram, Facebook)
+// and left out on purpose: the next import doesn't offer them again.
+model ContactImportDismissal {
+  id        String   @id @default(cuid())
+  key       String   @unique // "instagram:handle", "linkedin:in/slug", "facebook:name:prenom nom"
+  name      String
+  createdAt DateTime @default(now())
+}
+
 model ContactLink {
   id        String  @id @default(cuid())
   contactId String

@@ -17,6 +17,7 @@ import {
   Tag,
   Tags,
   User,
+  UserPlus,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ import { useStationStore } from "@/store/station";
 
 import { ContactDialog } from "./ContactDialog";
 import { type ContactTagRow, ContactTagsManager, TagChip } from "./ContactTags";
+import { SocialImportDialog } from "./SocialImportDialog";
 import { SocialLinkButtons } from "./social-links";
 import { ContactsSwitch } from "./ContactsSwitch";
 import { Avatar } from "./ImageField";
@@ -78,6 +80,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
   /** Official tags to filter on: a contact must carry all of them. */
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [manageTags, setManageTags] = useState(false);
+  const [importing, setImporting] = useState(false);
   const router = useRouter();
   const toggleTag = (id: string) =>
     setTagFilter((prev) =>
@@ -248,6 +251,9 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <ContactsSwitch />
+          <Button size="lg" variant="outline" onClick={() => setImporting(true)}>
+            <UserPlus /> {t("contacts.board.importSocials")}
+          </Button>
           <Button size="lg" onClick={() => setDialog({ open: true, contact: null })}>
             <Plus /> {t("contacts.board.newContact")}
           </Button>
@@ -614,6 +620,7 @@ export function ContactsBoard({ contacts: initial, projects }: ContactsBoardProp
         onOpenChange={setManageTags}
         onChanged={() => router.refresh()}
       />
+      <SocialImportDialog open={importing} onOpenChange={setImporting} contacts={contacts} />
       <ContactDialog
         open={dialog.open}
         onOpenChange={(open) => setDialog((d) => ({ ...d, open }))}
