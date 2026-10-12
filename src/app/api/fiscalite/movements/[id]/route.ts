@@ -18,6 +18,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     await prisma.partnerMovement.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Mouvement introuvable" }, { status: 404 });
+    return NextResponse.json({ errorKey: "api.fiscalite.movementNotFound", error: "Mouvement introuvable" }, { status: 404 });
   }
 }

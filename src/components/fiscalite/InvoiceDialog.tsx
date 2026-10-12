@@ -174,8 +174,13 @@ export function InvoiceDialog({
           guess?: InvoiceGuess;
           source?: string;
           error?: string;
+          errorKey?: string;
         };
-        if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+        if (!res.ok)
+          throw new Error(
+            (data.errorKey ? t(data.errorKey) : data.error) ||
+              t("common.error", { status: res.status })
+          );
         if (cancelled) return;
         const g = data.guess ?? {};
         const money = (c?: number) => (c == null ? "" : centsToInput(c));
@@ -325,8 +330,15 @@ export function InvoiceDialog({
         if (file) body.append("file", file);
         res = await fetch("/api/fiscalite/invoices", { method: "POST", body });
       }
-      const data = (await res.json().catch(() => ({}))) as InvoiceView & { error?: string };
-      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+      const data = (await res.json().catch(() => ({}))) as InvoiceView & {
+        error?: string;
+        errorKey?: string;
+      };
+      if (!res.ok)
+        throw new Error(
+          (data.errorKey ? t(data.errorKey) : data.error) ||
+            t("common.error", { status: res.status })
+        );
       toast.success(editing ? t("toasts.fiscalite.invoiceUpdated") : t("toasts.fiscalite.invoiceFiled"));
       onSaved(data);
       onOpenChange(false);

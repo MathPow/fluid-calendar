@@ -259,7 +259,7 @@ export function Calendar({
           <button
             onClick={() => eventModal.setOpen(true)}
             className="ml-auto rounded-full bg-primary p-2.5 text-primary-foreground shadow-float md:hidden"
-            title="New event"
+            title={t("calendar.header.newEvent")}
             aria-label={t("calendar.header.newEvent")}
           >
             <CalendarPlus className="h-5 w-5" />

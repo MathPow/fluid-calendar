@@ -18,13 +18,13 @@ export async function GET(request: NextRequest) {
   const organisationId = request.nextUrl.searchParams.get("organisationId") ?? "";
   const year = Number(request.nextUrl.searchParams.get("year"));
   if (!organisationId || !Number.isInteger(year)) {
-    return NextResponse.json({ error: "organisationId et year requis" }, { status: 400 });
+    return NextResponse.json({ errorKey: "api.fiscalite.exportParamsRequired", error: "organisationId et year requis" }, { status: 400 });
   }
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
     select: { name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ errorKey: "api.fiscalite.organisationNotFound", error: "Organisation introuvable" }, { status: 404 });
 
   const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[], partnerShares: [] as number[] };
   const t = org.taxProfile;

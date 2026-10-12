@@ -182,8 +182,15 @@ export function FiscaliteBoard({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ tracked }),
       });
-      const data = (await res.json().catch(() => ({}))) as ProfileView & { error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      const data = (await res.json().catch(() => ({}))) as ProfileView & {
+        error?: string;
+        errorKey?: string;
+      };
+      if (!res.ok)
+        throw new Error(
+          (data.errorKey ? t(data.errorKey) : data.error) ||
+            t("common.error", { status: res.status })
+        );
       setProfiles((prev) => [...prev.filter((p) => p.organisationId !== organisationId), data]);
       if (tracked) pickOrg(organisationId);
     } catch (e) {

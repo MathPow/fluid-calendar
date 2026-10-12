@@ -259,8 +259,15 @@ function MovementDialog({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ organisationId, date, kind, partner: who, amountCents: cents, notes }),
       });
-      const data = (await res.json().catch(() => ({}))) as MovementView & { error?: string };
-      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+      const data = (await res.json().catch(() => ({}))) as MovementView & {
+        error?: string;
+        errorKey?: string;
+      };
+      if (!res.ok)
+        throw new Error(
+          (data.errorKey ? t(data.errorKey) : data.error) ||
+            t("common.error", { status: res.status })
+        );
       onSaved(data);
       setAmount("");
       setNotes("");

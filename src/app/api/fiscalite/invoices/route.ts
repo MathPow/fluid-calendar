@@ -44,21 +44,21 @@ export async function POST(request: NextRequest) {
       json = await request.json();
     }
   } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return NextResponse.json({ errorKey: "api.common.invalidBody", error: "Invalid body" }, { status: 400 });
   }
 
   const parsed = InvoiceInput.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid body", details: parsed.error.flatten() },
+      { errorKey: "api.common.invalidBody", error: "Invalid body", details: parsed.error.flatten() },
       { status: 400 }
     );
   }
   if (file && file.size > MAX_INVOICE_BYTES) {
-    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
+    return NextResponse.json({ errorKey: "api.fiscalite.fileTooLarge15", error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
   }
   if (file && !INVOICE_MIMES.includes(file.type)) {
-    return NextResponse.json({ error: "PDF ou image seulement" }, { status: 415 });
+    return NextResponse.json({ errorKey: "api.fiscalite.pdfOrImage", error: "PDF ou image seulement" }, { status: 415 });
   }
 
   const { date, ...rest } = parsed.data;
@@ -91,6 +91,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return NextResponse.json({ errorKey: "api.fiscalite.saveFailed", error: "Enregistrement impossible" }, { status: 500 });
   }
 }

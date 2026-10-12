@@ -29,15 +29,15 @@ export async function POST(request: NextRequest) {
   const file = form?.get("file");
   const organisationId = String(form?.get("organisationId") ?? "");
   const apply = form?.get("apply") === "1";
-  if (!(file instanceof File)) return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
+  if (!(file instanceof File)) return NextResponse.json({ errorKey: "api.fiscalite.fileMissing", error: "Fichier manquant" }, { status: 400 });
   if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: "Fichier trop lourd (10 Mo max)" }, { status: 413 });
+    return NextResponse.json({ errorKey: "api.fiscalite.fileTooLarge10", error: "Fichier trop lourd (10 Mo max)" }, { status: 413 });
   }
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
     select: { id: true, name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ errorKey: "api.fiscalite.organisationNotFound", error: "Organisation introuvable" }, { status: 404 });
   const personal = org.taxProfile?.legalForm === "personnel";
 
   const csv = looksLikeCsv(file.name, file.type);
@@ -65,7 +65,10 @@ export async function POST(request: NextRequest) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: csv ? "CSV illisible" : "Classeur illisible (.xlsx attendu)" },
+      {
+        errorKey: csv ? "api.fiscalite.csvUnreadable" : "api.fiscalite.workbookUnreadable",
+        error: csv ? "CSV illisible" : "Classeur illisible (.xlsx attendu)",
+      },
       { status: 400 }
     );
   }

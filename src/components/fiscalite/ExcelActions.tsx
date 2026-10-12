@@ -42,6 +42,7 @@ interface ImportSummary {
   otherAccounts?: string[];
   applied: boolean;
   error?: string;
+  errorKey?: string;
 }
 
 /** A spreadsheet the import understands: our .xlsx, or a bank .csv. */
@@ -114,7 +115,11 @@ export function ImportDialog({
     if (apply) body.append("apply", "1");
     const res = await fetch("/api/fiscalite/import", { method: "POST", body });
     const data = (await res.json().catch(() => ({}))) as ImportSummary;
-    if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+    if (!res.ok)
+      throw new Error(
+        (data.errorKey ? t(data.errorKey) : data.error) ||
+          t("common.error", { status: res.status })
+      );
     return data;
   };
 

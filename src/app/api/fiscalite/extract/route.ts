@@ -21,13 +21,13 @@ export async function POST(request: NextRequest) {
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
+    return NextResponse.json({ errorKey: "api.fiscalite.fileMissing", error: "Fichier manquant" }, { status: 400 });
   }
   if (file.size > MAX_INVOICE_BYTES) {
-    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
+    return NextResponse.json({ errorKey: "api.fiscalite.fileTooLarge15", error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
   }
   if (!INVOICE_MIMES.includes(file.type)) {
-    return NextResponse.json({ error: "PDF ou image seulement" }, { status: 415 });
+    return NextResponse.json({ errorKey: "api.fiscalite.pdfOrImage", error: "PDF ou image seulement" }, { status: 415 });
   }
 
   const orgId = form?.get("organisationId");
