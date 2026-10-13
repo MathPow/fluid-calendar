@@ -38,7 +38,6 @@ import { type TranslateFn, useT } from "@/i18n/client";
 import {
   USER_DESKTOP_ACTION_IDS,
   type DesktopAction,
-  USER_DESKTOP_ACTION_IDS,
   agentOnline,
   describeCommand,
 } from "@/lib/desktop-actions";
