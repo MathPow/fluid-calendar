@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { CommandInput } from "@/lib/desktop-actions";
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     }),
   ]);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiError("notFound", 404);
   return NextResponse.json({
     agent: { connected: !!machine.agentTokenHash, seenAt: machine.agentSeenAt },
     commands,
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { agentTokenHash: true },
   });
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiError("notFound", 404);
   if (!machine.agentTokenHash) {
     return NextResponse.json(
       { error: "Aucun agent connecté à cette machine." },

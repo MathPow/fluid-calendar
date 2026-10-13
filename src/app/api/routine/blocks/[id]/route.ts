@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
@@ -30,7 +31,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiError("notFound", 404);
 
   const { layerId, ...data } = parsed.data;
   const merged = { ...current, ...data };
@@ -45,10 +46,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       where: { id: layerId, userId: auth.userId },
     });
     if (!layer)
-      return NextResponse.json(
-        { error: "Calque introuvable" },
-        { status: 404 }
-      );
+      return apiError("layerNotFound", 404);
   }
 
   const block = await prisma.routineBlock.update({
@@ -65,7 +63,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiError("notFound", 404);
   await prisma.routineBlock.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

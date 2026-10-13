@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { enqueueSession, isQueued } from "@/lib/sessions/pipeline";
@@ -31,13 +32,10 @@ export async function POST(
     where: { id, userId: auth.userId },
     select: { id: true, status: true, _count: { select: { recordings: true } } },
   });
-  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session) return apiError("notFound", 404);
 
   if (session._count.recordings === 0) {
-    return NextResponse.json(
-      { error: "Ajoute au moins un fichier audio avant de compiler." },
-      { status: 400 }
-    );
+    return apiError("audioRequired", 400);
   }
   if (isQueued(id) || session.status === "processing") {
     return NextResponse.json({ status: "processing" });

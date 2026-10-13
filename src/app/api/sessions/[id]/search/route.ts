@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { getSegmentRange, searchTranscript } from "@/lib/sessions/search";
@@ -29,7 +30,7 @@ export async function GET(
     where: { id, userId: auth.userId },
     select: { id: true },
   });
-  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session) return apiError("notFound", 404);
 
   const url = new URL(request.url);
   const q = url.searchParams.get("q");
@@ -50,7 +51,7 @@ export async function GET(
   }
 
   if (!q?.trim()) {
-    return NextResponse.json({ error: "Fournis ?q= ou ?from=&to=" }, { status: 400 });
+    return apiError("searchParamsRequired", 400);
   }
 
   const limitRaw = Number(url.searchParams.get("limit") ?? "15");

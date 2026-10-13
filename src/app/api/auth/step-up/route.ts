@@ -1,6 +1,7 @@
 import { compare } from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import {
   STEP_UP_COOKIE,
@@ -27,10 +28,7 @@ export async function POST(request: NextRequest) {
 
   const entry = failures.get(auth.userId) ?? { count: 0, lockedUntil: 0 };
   if (entry.lockedUntil > Date.now()) {
-    return NextResponse.json(
-      { error: "Trop d'essais. Réessaie dans 15 minutes." },
-      { status: 429 }
-    );
+    return apiError("tooManyAttempts", 429);
   }
 
   const body = await request.json().catch(() => null);
@@ -44,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
     failures.set(auth.userId, entry);
     logger.warn("Step-up PIN rejected", { userId: auth.userId }, LOG_SOURCE);
-    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+    return apiError("pinIncorrect", 401);
   }
 
   failures.delete(auth.userId);

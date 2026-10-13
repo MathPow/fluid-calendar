@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { LayerInput, layerInclude } from "@/lib/routine-schemas";
@@ -26,7 +27,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id, userId: auth.userId },
   });
   if (!owned)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiError("notFound", 404);
   const layer = await prisma.calendarLayer.update({
     where: { id },
     data: parsed.data,

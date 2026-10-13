@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { isGenericParty, looksLikeCsv, parseBankCsv } from "@/lib/fiscalite/bank-csv";
 import { type ParsedWorkbook, parseWorkbook } from "@/lib/fiscalite/excel";
@@ -29,15 +30,15 @@ export async function POST(request: NextRequest) {
   const file = form?.get("file");
   const organisationId = String(form?.get("organisationId") ?? "");
   const apply = form?.get("apply") === "1";
-  if (!(file instanceof File)) return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
+  if (!(file instanceof File)) return apiError("fileMissing", 400);
   if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: "Fichier trop lourd (10 Mo max)" }, { status: 413 });
+    return apiError("fileTooLarge10", 413);
   }
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
     select: { id: true, name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return apiError("organisationNotFound", 404);
   const personal = org.taxProfile?.legalForm === "personnel";
 
   const csv = looksLikeCsv(file.name, file.type);
