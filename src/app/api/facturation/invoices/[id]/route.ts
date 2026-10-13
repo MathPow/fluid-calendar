@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { InvoicePatch, IssueInput } from "@/lib/facturation/schemas";
 import { issuedSelect, saveIssuedInvoice, toIssuedView } from "@/lib/facturation/service";
@@ -27,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { id: true, status: true, sentAt: true, lines: true },
   });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return apiError("notFound", 404);
 
   const patch = InvoicePatch.safeParse(body);
   if (patch.success) {
@@ -48,7 +49,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   if (existing.lines == null) {
     // Imported invoices keep their original file: edit them in Fiscalité.
-    return NextResponse.json({ error: "Facture importée : modifie-la dans Fiscalité" }, { status: 409 });
+    return apiError("importedInvoiceReadonly", 409);
   }
   try {
     return NextResponse.json(await saveIssuedInvoice(parsed.data, id));
@@ -58,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return apiError("saveFailed", 500);
   }
 }
 

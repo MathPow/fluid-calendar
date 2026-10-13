@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -58,10 +59,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, organisationId: true },
     });
     if (!parent) {
-      return NextResponse.json(
-        { error: "Projet parent introuvable" },
-        { status: 400 }
-      );
+      return apiError("parentProjectNotFound", 400);
     }
     // A sub-project lives in its parent's organisation unless told otherwise.
     if (fields.organisationId === undefined)
@@ -109,6 +107,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Création impossible" }, { status: 500 });
+    return apiError("createFailed", 500);
   }
 }

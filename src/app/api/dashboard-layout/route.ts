@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { Prisma } from "@prisma/client";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { sanitizeLayout } from "@/lib/dashboard/layout";
 import { prisma } from "@/lib/prisma";
@@ -31,10 +32,7 @@ export async function PUT(request: NextRequest) {
   const layout =
     body?.layout === null ? null : sanitizeLayout(body?.layout ?? undefined);
   if (body?.layout !== null && !layout) {
-    return NextResponse.json(
-      { error: "Disposition invalide" },
-      { status: 400 }
-    );
+    return apiError("invalidLayout", 400);
   }
   const dashboardLayout = layout
     ? (layout as unknown as Prisma.InputJsonArray)

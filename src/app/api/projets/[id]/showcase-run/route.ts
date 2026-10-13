@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { id: true, slug: true, path: true },
   });
   if (!project) {
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiError("notFound", 404);
   }
   if (!project.path) {
     return NextResponse.json(
