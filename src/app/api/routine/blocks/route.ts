@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
         data: { userId: auth.userId, name: "Semaine type" },
       })));
   if (!layer)
-    return NextResponse.json({ error: "Calque introuvable" }, { status: 404 });
+    return apiError("layerNotFound", 404);
 
   const count = await prisma.routineBlock.count({
     where: { layerId: layer.id },

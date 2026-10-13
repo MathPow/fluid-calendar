@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -106,8 +107,7 @@ export async function POST(request: NextRequest) {
     where: { id: agentProjectId },
     select: { id: true, name: true, color: true, description: true },
   });
-  if (!agent)
-    return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
+  if (!agent) return apiError("projectNotFound", 404);
 
   try {
     const existing = await prisma.project.findUnique({
@@ -164,16 +164,14 @@ export async function DELETE(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const projectId = request.nextUrl.searchParams.get("projectId");
-  if (!projectId)
-    return NextResponse.json({ error: "projectId requis" }, { status: 400 });
+  if (!projectId) return apiError("projectIdRequired", 400);
   try {
     // Keep the name and colour it was showing, so the list doesn't revert to stale values.
     const current = await prisma.project.findFirst({
       where: { id: projectId, userId: auth.userId },
       include: taskProjectInclude,
     });
-    if (!current)
-      return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    if (!current) return apiError("notFound", 404);
     const shown = presentTaskProject(current);
     const updated = await prisma.project.update({
       where: { id: projectId },

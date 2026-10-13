@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { apiError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -49,10 +50,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Enregistrement impossible" },
-      { status: 500 }
-    );
+    return apiError("saveFailed", 500);
   }
 }
 
@@ -62,8 +60,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const locationId = request.nextUrl.searchParams.get("locationId");
-  if (!locationId)
-    return NextResponse.json({ error: "locationId requis" }, { status: 400 });
+  if (!locationId) return apiError("locationIdRequired", 400);
   try {
     await prisma.projectLocation.deleteMany({
       where: { id: locationId, projectId: id },
