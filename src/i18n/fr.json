@@ -2154,6 +2154,7 @@
   "settings.users.title": "Gestion des utilisateurs",
   "tasks.actions.autoSchedule": "Auto-planifier",
   "tasks.actions.newTask": "+ Tâche",
+  "tasks.assistant.focus": "Tâche ouverte : « {title} » (id={id}, statut {status})",
   "tasks.boardColumnCount": "{count}",
   "tasks.confirm.delete": "Supprimer cette tâche ?",
   "tasks.date.date": "{text}",
