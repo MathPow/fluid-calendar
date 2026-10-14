@@ -2152,6 +2152,7 @@
   "settings.users.title": "User management",
   "tasks.actions.autoSchedule": "Auto Schedule",
   "tasks.actions.newTask": "+ Task",
+  "tasks.assistant.focus": "Open task: “{title}” (id={id}, status {status})",
   "tasks.boardColumnCount": "{count}",
   "tasks.confirm.delete": "Delete this task?",
   "tasks.date.date": "{text}",
