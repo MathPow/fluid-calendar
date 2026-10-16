@@ -169,17 +169,17 @@ export function Calendar({
             >
               <div className="flex min-h-[52px] items-center justify-between gap-2 border-b border-border px-4">
                 <DialogPrimitive.Title className="font-semibold">
-                  Calendriers et calques
+                  {t("calendar.sidebar.title")}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Close
-                  aria-label="Fermer les calendriers"
+                  aria-label={t("calendar.sidebar.closeAria")}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary"
                 >
                   <X className="h-5 w-5" />
                 </DialogPrimitive.Close>
               </div>
               <DialogPrimitive.Description className="sr-only">
-                Choisir les calendriers et gérer la semaine type.
+                {t("calendar.sidebar.description")}
               </DialogPrimitive.Description>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 <FeedManager />
@@ -191,7 +191,7 @@ export function Calendar({
       ) : (
         <aside
           id="calendar-sidebar"
-          aria-label="Calendriers et calques"
+          aria-label={t("calendar.sidebar.title")}
           inert={!isSidebarOpen}
           className={cn(
             "relative hidden h-full w-80 flex-none border-r border-border bg-card transition-[margin,transform] duration-300 motion-reduce:transition-none md:mr-4 md:block md:overflow-hidden md:rounded-[28px] md:border-r-0 md:shadow-tile",
@@ -219,7 +219,7 @@ export function Calendar({
             ref={sidebarButton}
             onClick={() => setSidebarOpen(!isSidebarOpen)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            title="Toggle Sidebar (b)"
+            title={t("calendar.header.toggleSidebarTitle")}
             aria-label={t("calendar.header.showCalendars")}
             aria-expanded={isSidebarOpen}
             aria-controls="calendar-sidebar"
@@ -232,7 +232,7 @@ export function Calendar({
             <button
               onClick={handlePrev}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-foreground hover:bg-secondary"
-              title="Previous (←)"
+              title={t("calendar.header.prevTitle")}
               aria-label={t("calendar.header.prevDay")}
             >
               <ChevronLeft className="h-5 w-5" />
@@ -259,7 +259,7 @@ export function Calendar({
             <button
               onClick={handleNext}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 text-foreground hover:bg-secondary"
-              title="Next (→)"
+              title={t("calendar.header.nextTitle")}
               aria-label={t("calendar.header.nextDay")}
             >
               <ChevronRight className="h-5 w-5" />
@@ -271,15 +271,15 @@ export function Calendar({
             <button
               onClick={() => setDate(newDate())}
               className="rounded-full px-3.5 py-1.5 text-[13px] font-medium text-foreground hover:bg-secondary"
-              title="Go to Today (t)"
+              title={t("calendar.header.todayTitle")}
             >
-              Today
+              {t("calendar.header.today")}
             </button>
             <button
               onClick={handleAutoSchedule}
               className="rounded-full border-[1.5px] border-foreground px-3.5 py-1 text-[13px] font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
             >
-              Auto Schedule
+              {t("calendar.header.autoSchedule")}
             </button>
           </div>
 
@@ -302,7 +302,7 @@ export function Calendar({
           <button
             onClick={() => eventModal.setOpen(true)}
             className="ml-auto rounded-full bg-primary p-2.5 text-primary-foreground shadow-float md:hidden"
-            title="New event"
+            title={t("calendar.header.newEvent")}
             aria-label={t("calendar.header.newEvent")}
           >
             <CalendarPlus className="h-5 w-5" />

@@ -40,7 +40,9 @@ const WaitlistPage = dynamic(
       }`
     ),
   {
-    loading: () => <p>Loading...</p>,
+    loading: function WaitlistLoading() {
+      return <p>…</p>;
+    },
   }
 );
 

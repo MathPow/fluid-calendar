@@ -423,6 +423,7 @@ function OrgHeader({
   isActive: boolean;
   onEdit: (project: Project) => void;
 }) {
+  const t = useT();
   const { setActiveProject } = useProjectStore();
   const general = group.general;
   const { droppableProps, isOver } = useDroppableProject(
@@ -449,7 +450,7 @@ function OrgHeader({
       {general && (
         <button
           type="button"
-          aria-label={`Modifier ${group.name}`}
+          aria-label={t("projectSidebar.editAria", { name: group.name })}
           onClick={(e) => {
             e.stopPropagation();
             onEdit(general);

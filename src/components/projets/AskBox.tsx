@@ -58,7 +58,7 @@ export function AskBox({
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
       setAnswer(data.answer ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Une erreur est survenue.");
+      setError(e instanceof Error ? e.message : t("projects.askBox.error"));
     } finally {
       setLoading(false);
     }

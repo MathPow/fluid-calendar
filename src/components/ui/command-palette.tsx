@@ -32,6 +32,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { useT } from "@/i18n/client";
 import { cn, formatShortcut } from "@/lib/utils";
 
 import { useCommands } from "@/hooks/useCommands";
@@ -107,6 +108,7 @@ const SOURCE_ICONS: Record<string, typeof CheckSquare> = {
 };
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const t = useT();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [showAllCommands, setShowAllCommands] = useState(false);
@@ -166,7 +168,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         answer: null,
         // Keep the previewed resources: they're still useful without an answer.
         sources: prev?.question === question ? prev.sources : [],
-        error: e instanceof Error ? e.message : "Une erreur est survenue.",
+        error: e instanceof Error ? e.message : t("commandPalette.genericError"),
       }));
     }
   };
@@ -261,9 +263,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             }
           }}
         >
-          <Dialog.Title className="sr-only">Command Menu</Dialog.Title>
+          <Dialog.Title className="sr-only">{t("commandPalette.title")}</Dialog.Title>
           <Dialog.Description className="sr-only">
-            Search commands and navigate the application
+            {t("commandPalette.description")}
           </Dialog.Description>
 
           {ask ? (
@@ -287,7 +289,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               <div className="flex items-center border-b border-border px-4">
                 <Search className="h-5 w-5 text-muted-foreground" />
                 <Command.Input
-                  placeholder="Search, ask a question, or run a command"
+                  placeholder={t("commandPalette.inputPlaceholder")}
                   className="h-12 flex-1 px-3 text-base outline-none placeholder:text-muted-foreground"
                   value={search}
                   onValueChange={setSearch}
@@ -297,7 +299,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   <button
                     className="ml-2 p-2 text-muted-foreground hover:text-foreground"
                     onClick={() => setSearch("")}
-                    aria-label="Clear search"
+                    aria-label={t("commandPalette.clearSearch")}
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -309,7 +311,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     </kbd>
                     <Dialog.Close
                       className="ml-2 p-2 text-muted-foreground hover:text-foreground"
-                      aria-label="Close command menu"
+                      aria-label={t("commandPalette.close")}
                     >
                       <X className="h-5 w-5" />
                     </Dialog.Close>
@@ -328,7 +330,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   >
                     <Sparkles className="h-4 w-4 shrink-0 text-foreground" />
                     <span className="truncate">
-                      Ask AI:{" "}
+                      {t("commandPalette.askAi")}:{" "}
                       <span className="font-medium">{search.trim()}</span>
                     </span>
                     <kbd className="ml-auto shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
@@ -517,6 +519,7 @@ function AskPanel({
   onRetry: () => void;
   onNavigate: (url: string) => void;
 }) {
+  const t = useT();
   // Cited sources first — they're the ones the answer actually leans on.
   const sources = [...state.sources].sort(
     (a, b) => Number(b.cited) - Number(a.cited) || a.n - b.n
@@ -528,7 +531,7 @@ function AskPanel({
         <button
           onClick={onBack}
           className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-          aria-label="Back to search"
+          aria-label={t("commandPalette.ask.back")}
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -538,7 +541,7 @@ function AskPanel({
         </span>
         <Dialog.Close
           className="ml-auto p-1 text-muted-foreground hover:text-foreground"
-          aria-label="Close command menu"
+          aria-label={t("commandPalette.close")}
         >
           <X className="h-4 w-4" />
         </Dialog.Close>
@@ -550,10 +553,10 @@ function AskPanel({
             <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             <span>
               {state.sources.length === 0
-                ? "Recherche dans ton calendrier, tes tâches, tes notes…"
-                : "Lecture des ressources ci-dessous…"}
+                ? t("commandPalette.ask.searching")
+                : t("commandPalette.ask.reading")}
               <span className="block text-xs text-muted-foreground">
-                Le modèle tourne en local — compte une à deux minutes.
+                {t("commandPalette.ask.localModelHint")}
               </span>
             </span>
           </div>
@@ -566,7 +569,7 @@ function AskPanel({
               onClick={onRetry}
               className="mt-2 rounded-xl px-2 py-1 text-xs font-medium text-foreground hover:bg-tint-soft"
             >
-              Réessayer
+              {t("commandPalette.ask.retry")}
             </button>
           </div>
         )}
@@ -594,7 +597,7 @@ function AskPanel({
 
         {sources.length > 0 && (
           <div className="mt-4 border-t border-border pt-3">
-            <p className="etiquette mb-3">Ressources consultées</p>
+            <p className="etiquette mb-3">{t("commandPalette.ask.sources")}</p>
             <ul className="space-y-0.5">
               {sources.map((source) => {
                 const Icon = SOURCE_ICONS[source.type] ?? FileText;
