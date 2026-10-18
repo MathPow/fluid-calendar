@@ -526,7 +526,7 @@ export function LaunchersDialog() {
                     type="button"
                     onClick={() => setForm({ ...form, icon: ic })}
                     aria-pressed={form.icon === ic}
-                    aria-label={ic}
+                    aria-label={t(`launchers.icons.${ic}`)}
                     className={cn(
                       "flex h-9 w-9 items-center justify-center rounded-xl transition-colors",
                       form.icon === ic
