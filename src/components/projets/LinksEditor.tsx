@@ -132,7 +132,9 @@ export function LinksEditor({
                 </SelectContent>
               </Select>
               <Input
-                aria-label={`Adresse du lien ${i + 1}`}
+                aria-label={t("projects.linksEditor.urlAria", {
+                  index: i + 1,
+                })}
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
@@ -143,7 +145,9 @@ export function LinksEditor({
                 inputMode="url"
               />
               <Input
-                aria-label={`Libellé du lien ${i + 1}`}
+                aria-label={t("projects.linksEditor.labelAria", {
+                  index: i + 1,
+                })}
                 value={l.label}
                 onChange={(e) => update(i, { label: e.target.value })}
                 placeholder={t("projects.linksEditor.labelPlaceholder")}

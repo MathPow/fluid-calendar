@@ -169,17 +169,17 @@ export function Calendar({
             >
               <div className="flex min-h-[52px] items-center justify-between gap-2 border-b border-border px-4">
                 <DialogPrimitive.Title className="font-semibold">
-                  Calendriers et calques
+                  {t("calendar.sidebar.title")}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Close
-                  aria-label="Fermer les calendriers"
+                  aria-label={t("calendar.sidebar.closeAria")}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary"
                 >
                   <X className="h-5 w-5" />
                 </DialogPrimitive.Close>
               </div>
               <DialogPrimitive.Description className="sr-only">
-                Choisir les calendriers et gérer la semaine type.
+                {t("calendar.sidebar.description")}
               </DialogPrimitive.Description>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 <FeedManager />
@@ -191,7 +191,7 @@ export function Calendar({
       ) : (
         <aside
           id="calendar-sidebar"
-          aria-label="Calendriers et calques"
+          aria-label={t("calendar.sidebar.title")}
           inert={!isSidebarOpen}
           className={cn(
             "relative hidden h-full w-80 flex-none border-r border-border bg-card transition-[margin,transform] duration-300 motion-reduce:transition-none md:mr-4 md:block md:overflow-hidden md:rounded-[28px] md:border-r-0 md:shadow-tile",
@@ -362,10 +362,11 @@ export function Calendar({
           <div className="flex flex-none items-center gap-3 border-b border-border bg-tint-soft px-4 py-2.5 md:px-5">
             <PenLine className="h-4 w-4 shrink-0" />
             <p className="min-w-0 flex-1 text-[13px] leading-snug">
-              <span className="font-semibold">Semaine type.</span>{" "}
+              <span className="font-semibold">
+                {t("calendar.routineEditing.title")}
+              </span>{" "}
               <span className="text-muted-foreground">
-                Glisse dans la grille pour créer un bloc, déplace-le ou
-                étire-le. Touche un bloc pour le modifier.
+                {t("calendar.routineEditing.hint")}
               </span>
             </p>
             <button
@@ -373,7 +374,7 @@ export function Calendar({
               onClick={() => useRoutineStore.getState().setEditing(false)}
               className="shrink-0 rounded-full bg-foreground px-3.5 py-1.5 text-[12px] font-semibold text-background"
             >
-              Terminer
+              {t("calendar.routineEditing.done")}
             </button>
           </div>
         )}

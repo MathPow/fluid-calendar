@@ -626,7 +626,11 @@ export function TaxProfileDialog({
               </div>
               <div className="space-y-2 sm:col-span-3">
                 <Label htmlFor="tp-city">{t("fiscalite.taxProfile.city")}</Label>
-                <Input id="tp-city" {...field("city")} placeholder="Québec" />
+                <Input
+                  id="tp-city"
+                  {...field("city")}
+                  placeholder={t("fiscalite.taxProfile.cityPlaceholder")}
+                />
               </div>
               <div className="space-y-2 sm:col-span-1">
                 <Label htmlFor="tp-prov">{t("fiscalite.taxProfile.province")}</Label>
