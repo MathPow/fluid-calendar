@@ -10,6 +10,7 @@ import { useSystemCommands } from "@/lib/commands/groups/system";
 import { useTaskCommands } from "@/lib/commands/groups/tasks";
 import { commandRegistry } from "@/lib/commands/registry";
 import { Command } from "@/lib/commands/types";
+import { useAssistantStore } from "@/store/assistant";
 
 export function useCommands() {
   const calendarCommands = useCalendarCommands();
@@ -75,6 +76,9 @@ export function useCommands() {
     const KEY_SEQUENCE_TIMEOUT = 1000; // 1 second timeout for key sequences
 
     const handleKeyDown = async (e: KeyboardEvent) => {
+      // Chat panel open — keystrokes belong to the conversation, not shortcuts.
+      if (useAssistantStore.getState().open) return;
+
       // Don't handle shortcuts when typing in input fields
       if (
         e.target instanceof HTMLInputElement ||

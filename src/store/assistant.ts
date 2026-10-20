@@ -8,9 +8,13 @@ import { create } from "zustand";
 interface AssistantStore {
   focus: string | null;
   setFocus: (focus: string | null) => void;
+  open: boolean;
+  setOpen: (open: boolean) => void;
 }
 
 export const useAssistantStore = create<AssistantStore>((set) => ({
   focus: null,
   setFocus: (focus) => set({ focus }),
+  open: false,
+  setOpen: (open) => set({ open }),
 }));
