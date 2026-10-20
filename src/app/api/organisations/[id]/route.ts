@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +16,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /** PATCH /api/organisations/[id] */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -71,7 +73,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: t("api.common.updateFailed") },
       { status: 500 }
     );
   }
@@ -79,6 +81,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
 /** DELETE /api/organisations/[id] — its projects fall back to the default bucket. */
 export async function DELETE(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -86,7 +89,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { isDefault: true },
   });
-  if (!org) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   if (org.isDefault) {
     return NextResponse.json(
       { error: "L'organisation par défaut ne peut pas être supprimée." },
@@ -103,7 +106,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Suppression impossible" },
+      { error: t("api.common.deleteFailed") },
       { status: 500 }
     );
   }

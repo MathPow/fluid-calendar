@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -18,6 +19,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /** GET /api/projets/[id] */
 export async function GET(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     include: projectInclude,
   });
   if (!project)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   return NextResponse.json(project);
 }
 
@@ -36,6 +38,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
  * full list).
  */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -60,7 +63,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     select: { id: true, name: true, slug: true },
   });
   if (!existing)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
 
   if (fields.parentId) {
     if (await wouldCreateCycle(id, fields.parentId)) {
@@ -168,7 +171,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: t("api.common.updateFailed") },
       { status: 500 }
     );
   }
@@ -176,6 +179,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
 /** DELETE /api/projets/[id] — sub-projects are kept and become top-level. */
 export async function DELETE(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -189,7 +193,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Suppression impossible" },
+      { error: t("api.common.deleteFailed") },
       { status: 500 }
     );
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
@@ -18,6 +19,7 @@ async function ownedBlock(id: string, userId: string) {
 
 /** PATCH /api/routine/blocks/[id] — any subset of the block's fields. */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -30,7 +32,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
 
   const { layerId, ...data } = parsed.data;
   const merged = { ...current, ...data };
@@ -46,7 +48,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     if (!layer)
       return NextResponse.json(
-        { error: "Calque introuvable" },
+        { error: t("api.routine.layerNotFound") },
         { status: 404 }
       );
   }
@@ -60,12 +62,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
 /** DELETE /api/routine/blocks/[id] */
 export async function DELETE(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   await prisma.routineBlock.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

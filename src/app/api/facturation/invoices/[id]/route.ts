@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { InvoicePatch, IssueInput } from "@/lib/facturation/schemas";
 import { issuedSelect, saveIssuedInvoice, toIssuedView } from "@/lib/facturation/service";
@@ -18,6 +19,7 @@ type Ctx = { params: Promise<{ id: string }> };
  * - an IssueInput: rewrite an invoice made here (lines, client…) and its PDF.
  */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -58,7 +60,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return NextResponse.json({ error: t("api.common.saveFailed") }, { status: 500 });
   }
 }
 

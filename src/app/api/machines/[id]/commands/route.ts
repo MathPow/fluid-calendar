@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { CommandInput } from "@/lib/desktop-actions";
@@ -25,6 +26,7 @@ const commandSelect = {
 
 /** GET /api/machines/[id]/commands — the agent's state and the latest commands. */
 export async function GET(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -42,7 +44,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     }),
   ]);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   return NextResponse.json({
     agent: { connected: !!machine.agentTokenHash, seenAt: machine.agentSeenAt },
     commands,
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
 /** POST /api/machines/[id]/commands — `{ action, args }` for the machine's agent. */
 export async function POST(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const stepUp = requireStepUp(request, auth.userId);
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { agentTokenHash: true },
   });
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   if (!machine.agentTokenHash) {
     return NextResponse.json(
       { error: "Aucun agent connecté à cette machine." },

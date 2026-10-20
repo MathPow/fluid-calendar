@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
  * host runner. One at a time per project; the project needs a path on the box.
  */
 export async function POST(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { id: true, slug: true, path: true },
   });
   if (!project) {
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   }
   if (!project.path) {
     return NextResponse.json(

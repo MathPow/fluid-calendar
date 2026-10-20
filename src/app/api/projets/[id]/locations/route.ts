@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { z } from "zod";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
@@ -19,6 +20,7 @@ const Body = z.object({
 
 /** POST /api/projets/[id]/locations — say where the project lives on a machine. */
 export async function POST(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Enregistrement impossible" },
+      { error: t("api.common.saveFailed") },
       { status: 500 }
     );
   }
@@ -58,6 +60,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
 
 /** DELETE /api/projets/[id]/locations?locationId=… */
 export async function DELETE(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -76,7 +79,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Suppression impossible" },
+      { error: t("api.common.deleteFailed") },
       { status: 500 }
     );
   }

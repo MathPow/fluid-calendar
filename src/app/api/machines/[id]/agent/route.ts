@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { hashAgentToken, newAgentToken } from "@/lib/desktop-agent";
@@ -14,6 +15,7 @@ type Ctx = { params: Promise<{ id: string }> };
  * agent (replaces the old one). Shown once; only its hash is stored.
  */
 export async function POST(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const stepUp = requireStepUp(request, auth.userId);
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     })
     .catch(() => null);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   return NextResponse.json({ token, machine: machine.name });
 }
 

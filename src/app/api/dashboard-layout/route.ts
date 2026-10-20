@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { Prisma } from "@prisma/client";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
 
 /** PUT /api/dashboard-layout — `{ layout: [{ type, w, h }] | null }`; null resets. */
 export async function PUT(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const body = await request.json().catch(() => null);
@@ -32,7 +34,7 @@ export async function PUT(request: NextRequest) {
     body?.layout === null ? null : sanitizeLayout(body?.layout ?? undefined);
   if (body?.layout !== null && !layout) {
     return NextResponse.json(
-      { error: "Disposition invalide" },
+      { error: t("api.common.invalidLayout") },
       { status: 400 }
     );
   }

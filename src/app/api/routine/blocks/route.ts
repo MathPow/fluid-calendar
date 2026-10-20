@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
@@ -11,6 +12,7 @@ const LOG_SOURCE = "routine-blocks-api";
  * user's first layer, created as « Semaine type » on first use.
  */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const parsed = BlockInput.safeParse(await request.json().catch(() => null));
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
         data: { userId: auth.userId, name: "Semaine type" },
       })));
   if (!layer)
-    return NextResponse.json({ error: "Calque introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.routine.layerNotFound") }, { status: 404 });
 
   const count = await prisma.routineBlock.count({
     where: { layerId: layer.id },

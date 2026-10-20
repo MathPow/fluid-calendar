@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { z } from "zod";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
@@ -87,6 +88,7 @@ const Body = z.object({
  * one already attached, attaches `projectId` when given, or creates one.
  */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
     select: { id: true, name: true, color: true, description: true },
   });
   if (!agent)
-    return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.projets.notFound") }, { status: 404 });
 
   try {
     const existing = await prisma.project.findUnique({
@@ -155,12 +157,13 @@ export async function POST(request: NextRequest) {
       },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Liaison impossible" }, { status: 500 });
+    return NextResponse.json({ error: t("api.projets.linkFailed") }, { status: 500 });
   }
 }
 
 /** DELETE /api/projects/link?projectId=… — detach a task list (its tasks stay). */
 export async function DELETE(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const projectId = request.nextUrl.searchParams.get("projectId");
@@ -173,7 +176,7 @@ export async function DELETE(request: NextRequest) {
       include: taskProjectInclude,
     });
     if (!current)
-      return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+      return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
     const shown = presentTaskProject(current);
     const updated = await prisma.project.update({
       where: { id: projectId },
@@ -191,7 +194,7 @@ export async function DELETE(request: NextRequest) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Détachement impossible" },
+      { error: t("api.projets.unlinkFailed") },
       { status: 500 }
     );
   }

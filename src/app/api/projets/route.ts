@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/projets — create a project (optionally as a sub-project). */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
     });
     if (!parent) {
       return NextResponse.json(
-        { error: "Projet parent introuvable" },
+        { error: t("api.projets.parentNotFound") },
         { status: 400 }
       );
     }
@@ -109,6 +111,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Création impossible" }, { status: 500 });
+    return NextResponse.json({ error: t("api.common.createFailed") }, { status: 500 });
   }
 }

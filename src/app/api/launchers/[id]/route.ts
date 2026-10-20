@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { LauncherInput } from "@/lib/launchers";
@@ -11,6 +12,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /** PATCH /api/launchers/[id] — replace the button's fields (full form). */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const stepUp = requireStepUp(request, auth.userId);
@@ -41,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     },
   });
   if (!count)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
 
