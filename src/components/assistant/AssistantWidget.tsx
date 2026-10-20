@@ -132,6 +132,7 @@ export function AssistantWidget() {
   const pathname = usePathname();
   const focus = useAssistantStore((s) => s.focus);
   const { model } = useEffectiveModel();
+  const setStoreOpen = useAssistantStore((s) => s.setOpen);
 
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<Pos>(DEFAULT_POS);
@@ -140,10 +141,14 @@ export function AssistantWidget() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [recording, setRecording] = useState<"idle" | "recording" | "transcribing">("idle");
+  const [recordError, setRecordError] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
   const drag = useRef<{
     startX: number;
     startY: number;
@@ -183,6 +188,12 @@ export function AssistantWidget() {
   useEffect(() => {
     if (open && !isMobile) inputRef.current?.focus();
   }, [open, isMobile]);
+
+  // Suspend the app's global keyboard shortcuts while the chat panel is open.
+  useEffect(() => {
+    setStoreOpen(open);
+    return () => setStoreOpen(false);
+  }, [open, setStoreOpen]);
 
 
   /* -------------------------------------------------------------- drag */
@@ -307,6 +318,57 @@ export function AssistantWidget() {
   };
 
   const stop = () => abortRef.current?.abort();
+
+  /* --------------------------------------------------------------- mic */
+
+  // Push-to-talk: tap mic → record → tap stop → upload to canardo whisper
+  // (/api/assistant/transcribe) → fill the textarea. The user then reviews and
+  // taps send, so an inaudible clip can't just blow a question into the agent.
+  const startRecording = async () => {
+    if (recording !== "idle" || busy) return;
+    setRecordError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const types = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
+      const mimeType = types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+      const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorderRef.current = rec;
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
+        chunksRef.current = [];
+        if (!blob.size) { setRecording("idle"); return; }
+        setRecording("transcribing");
+        try {
+          const form = new FormData();
+          const ext = (rec.mimeType || "audio/webm").includes("mp4") ? "m4a" : "webm";
+          form.append("file", blob, `mic.${ext}`);
+          const res = await fetch("/api/assistant/transcribe", { method: "POST", body: form });
+          const data = (await res.json().catch(() => ({}))) as { text?: string; error?: string };
+          if (!res.ok || !data.text) throw new Error(data.error || `HTTP ${res.status}`);
+          setInput((prev) => (prev ? `${prev} ${data.text}` : data.text!));
+          requestAnimationFrame(() => inputRef.current?.focus());
+        } catch (e) {
+          setRecordError(e instanceof Error ? e.message : t("assistant.error"));
+        } finally {
+          setRecording("idle");
+        }
+      };
+      rec.start();
+      setRecording("recording");
+    } catch (e) {
+      setRecordError(e instanceof Error ? e.message : t("assistant.error"));
+      setRecording("idle");
+    }
+  };
+
+  const stopRecording = () => {
+    const rec = recorderRef.current;
+    if (rec && rec.state !== "inactive") rec.stop();
+    recorderRef.current = null;
+  };
 
   const reset = () => {
     stop();
@@ -433,41 +495,87 @@ export function AssistantWidget() {
               e.preventDefault();
               send(input);
             }}
-            className="flex items-end gap-2 border-t border-border p-2"
+            className="flex flex-col gap-1 border-t border-border p-2"
           >
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  send(input);
-                }
-              }}
-              rows={1}
-              placeholder={t("assistant.placeholder")}
-              className="max-h-32 min-h-[38px] flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-ring md:text-sm"
-            />
-            {busy ? (
+            {recordError && (
+              <div className="px-1 text-[11px] text-destructive">{recordError}</div>
+            )}
+            <div className="flex items-end gap-2">
               <button
                 type="button"
-                onClick={stop}
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-xl bg-muted text-foreground hover:bg-muted/80"
-                aria-label={t("assistant.stop")}
+                onClick={recording === "recording" ? stopRecording : startRecording}
+                disabled={busy || recording === "transcribing"}
+                className={cn(
+                  "flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl",
+                  recording === "recording"
+                    ? "animate-pulse bg-destructive text-destructive-foreground"
+                    : "bg-muted text-foreground hover:bg-muted/80",
+                  "disabled:opacity-40"
+                )}
+                aria-label={
+                  recording === "recording"
+                    ? t("assistant.stop")
+                    : recording === "transcribing"
+                      ? t("assistant.thinking")
+                      : t("assistant.open")
+                }
+                title={
+                  recording === "recording"
+                    ? t("assistant.stop")
+                    : recording === "transcribing"
+                      ? t("assistant.thinking")
+                      : t("assistant.open")
+                }
               >
-                <Square className="h-4 w-4" />
+                {recording === "transcribing" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : recording === "recording" ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
               </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40"
-                aria-label={t("assistant.send")}
-              >
-                <ArrowUp className="h-4 w-4" />
-              </button>
-            )}
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    send(input);
+                  }
+                }}
+                rows={1}
+                placeholder={
+                  recording === "recording"
+                    ? "🎙️ …"
+                    : recording === "transcribing"
+                      ? t("assistant.thinking")
+                      : t("assistant.placeholder")
+                }
+                disabled={recording !== "idle"}
+                className="max-h-32 min-h-[38px] flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-ring md:text-sm"
+              />
+              {busy ? (
+                <button
+                  type="button"
+                  onClick={stop}
+                  className="flex h-[38px] w-[38px] items-center justify-center rounded-xl bg-muted text-foreground hover:bg-muted/80"
+                  aria-label={t("assistant.stop")}
+                >
+                  <Square className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!input.trim() || recording !== "idle"}
+                  className="flex h-[38px] w-[38px] items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40"
+                  aria-label={t("assistant.send")}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </form>
         </div>
       )}
