@@ -65,6 +65,9 @@ function dayStart(ymd: string): Date {
 }
 
 const Ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const Iso = z.string().min(10).max(40);
+const Priority = z.enum(["high", "medium", "low", "none"]);
+const TaskStatus = z.enum(["todo", "in_progress", "completed"]);
 
 const inputs = {
   search_email: z.object({
@@ -92,7 +95,59 @@ const inputs = {
   read_note: z.object({ path: z.string().min(1).max(500) }),
   search_contacts: z.object({ query: z.string().min(1).max(200) }),
   machines_status: z.object({}),
+  create_event: z.object({
+    title: z.string().min(1).max(300),
+    start: Iso,
+    end: Iso,
+    description: z.string().max(5000).optional(),
+    location: z.string().max(300).optional(),
+    allDay: z.boolean().optional(),
+  }),
+  update_event: z.object({
+    id: z.string().min(1),
+    title: z.string().min(1).max(300).optional(),
+    start: Iso.optional(),
+    end: Iso.optional(),
+    description: z.string().max(5000).optional(),
+    location: z.string().max(300).optional(),
+    allDay: z.boolean().optional(),
+  }),
+  delete_event: z.object({ id: z.string().min(1) }),
+  create_task: z.object({
+    title: z.string().min(1).max(300),
+    description: z.string().max(5000).optional(),
+    status: TaskStatus.optional(),
+    dueDate: Iso.optional(),
+    priority: Priority.optional(),
+    duration: z.number().int().positive().max(10_000).optional(),
+  }),
+  update_task: z.object({
+    id: z.string().min(1),
+    title: z.string().min(1).max(300).optional(),
+    description: z.string().max(5000).optional(),
+    status: TaskStatus.optional(),
+    dueDate: Iso.optional(),
+    priority: Priority.optional(),
+    duration: z.number().int().positive().max(10_000).optional(),
+  }),
+  complete_task: z.object({ id: z.string().min(1) }),
+  delete_task: z.object({ id: z.string().min(1) }),
 };
+
+const LOCAL_FEED_NAME = process.env.FLUID_MCP_FEED_NAME ?? "Orka";
+
+async function getUserLocalFeedId(userId: string): Promise<string> {
+  const existing = await prisma.calendarFeed.findFirst({
+    where: { userId, type: "LOCAL", name: LOCAL_FEED_NAME },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+  const created = await prisma.calendarFeed.create({
+    data: { name: LOCAL_FEED_NAME, type: "LOCAL", userId, color: "#3b82f6", enabled: true },
+    select: { id: true },
+  });
+  return created.id;
+}
 
 type ToolName = keyof typeof inputs;
 
@@ -202,6 +257,104 @@ export const TOOL_DEFS: Anthropic.Beta.BetaToolUnion[] = [
       "Live health of the user's computers and servers (Netdata): online/offline, CPU, RAM, disk, temperatures, GPU, uptime, plus an overall level (ok / warn / bad) and what is over threshold.",
     input_schema: { type: "object", properties: {} },
   },
+  {
+    name: "create_event",
+    description:
+      "Add a calendar event to the user's local DreamDash feed. `start` and `end` are ISO 8601 datetimes with a timezone offset (e.g. 2026-10-29T12:30:00-04:00 for 12 h 30 America/Toronto). For an all-day event, pass `allDay: true` and dates at 00:00 local.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        start: { type: "string", description: "ISO 8601 start, with offset." },
+        end: { type: "string", description: "ISO 8601 end, with offset." },
+        description: { type: "string" },
+        location: { type: "string" },
+        allDay: { type: "boolean" },
+      },
+      required: ["title", "start", "end"],
+    },
+  },
+  {
+    name: "update_event",
+    description:
+      "Change fields on an existing event by `id` (from list_events / search_dreamdash). Only the fields you pass are updated.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        title: { type: "string" },
+        start: { type: "string" },
+        end: { type: "string" },
+        description: { type: "string" },
+        location: { type: "string" },
+        allDay: { type: "boolean" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "delete_event",
+    description:
+      "Remove an event by `id`. Destructive — confirm with the user first when it's ambiguous which event they mean.",
+    input_schema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"],
+    },
+  },
+  {
+    name: "create_task",
+    description:
+      "Create a to-do task. `dueDate` is ISO 8601; `priority` is one of high/medium/low/none; `duration` is estimated minutes.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        description: { type: "string" },
+        status: { type: "string", enum: ["todo", "in_progress", "completed"] },
+        dueDate: { type: "string" },
+        priority: { type: "string", enum: ["high", "medium", "low", "none"] },
+        duration: { type: "integer", description: "Estimated minutes." },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "update_task",
+    description: "Change fields on a task by `id`. Only the fields you pass are updated.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        status: { type: "string", enum: ["todo", "in_progress", "completed"] },
+        dueDate: { type: "string" },
+        priority: { type: "string", enum: ["high", "medium", "low", "none"] },
+        duration: { type: "integer" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "complete_task",
+    description: "Mark a task as completed by `id`.",
+    input_schema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"],
+    },
+  },
+  {
+    name: "delete_task",
+    description:
+      "Delete a task by `id`. Destructive — confirm with the user first when it's ambiguous which task they mean.",
+    input_schema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"],
+    },
+  },
 ];
 
 /** Short French label shown in the chat while a tool runs. */
@@ -228,6 +381,20 @@ export function describeToolCall(name: string, input: unknown): string {
       return `Contacts : « ${i.query} »`;
     case "machines_status":
       return "État des machines";
+    case "create_event":
+      return `Création d'un événement : « ${i.title} »`;
+    case "update_event":
+      return `Mise à jour de l'événement ${i.id}`;
+    case "delete_event":
+      return `Suppression de l'événement ${i.id}`;
+    case "create_task":
+      return `Création d'une tâche : « ${i.title} »`;
+    case "update_task":
+      return `Mise à jour de la tâche ${i.id}`;
+    case "complete_task":
+      return `Tâche terminée ${i.id}`;
+    case "delete_task":
+      return `Suppression de la tâche ${i.id}`;
     case "web_search":
       return `Recherche web : « ${i.query} »`;
     default:
@@ -483,6 +650,170 @@ export async function runTool(
           })
         )
       );
+    }
+
+    case "create_event": {
+      const i = input as z.infer<typeof inputs.create_event>;
+      const feedId = await getUserLocalFeedId(userId);
+      const row = await prisma.calendarEvent.create({
+        data: {
+          feedId,
+          title: i.title,
+          description: i.description,
+          location: i.location,
+          start: new Date(i.start),
+          end: new Date(i.end),
+          allDay: i.allDay ?? false,
+        },
+      });
+      return JSON.stringify({
+        id: row.id,
+        title: row.title,
+        start: fmt(row.start),
+        end: fmt(row.end),
+        allDay: row.allDay,
+        url: add({
+          type: "event",
+          title: row.title,
+          subtitle: [fmt(row.start), row.location].filter(Boolean).join(" · "),
+          url: links.event(row.start),
+        }),
+      });
+    }
+
+    case "update_event": {
+      const i = input as z.infer<typeof inputs.update_event>;
+      const existing = await prisma.calendarEvent.findUnique({
+        where: { id: i.id },
+        include: { feed: { select: { userId: true } } },
+      });
+      if (!existing || existing.feed.userId !== userId)
+        throw new Error("Événement introuvable.");
+      const row = await prisma.calendarEvent.update({
+        where: { id: i.id },
+        data: {
+          title: i.title,
+          description: i.description,
+          location: i.location,
+          allDay: i.allDay,
+          start: i.start ? new Date(i.start) : undefined,
+          end: i.end ? new Date(i.end) : undefined,
+        },
+      });
+      return JSON.stringify({
+        id: row.id,
+        title: row.title,
+        start: fmt(row.start),
+        end: fmt(row.end),
+        url: add({
+          type: "event",
+          title: row.title,
+          subtitle: [fmt(row.start), row.location].filter(Boolean).join(" · "),
+          url: links.event(row.start),
+        }),
+      });
+    }
+
+    case "delete_event": {
+      const i = input as z.infer<typeof inputs.delete_event>;
+      const existing = await prisma.calendarEvent.findUnique({
+        where: { id: i.id },
+        include: { feed: { select: { userId: true } } },
+      });
+      if (!existing || existing.feed.userId !== userId)
+        throw new Error("Événement introuvable.");
+      await prisma.calendarEvent.delete({ where: { id: i.id } });
+      return JSON.stringify({ deleted: i.id, title: existing.title });
+    }
+
+    case "create_task": {
+      const i = input as z.infer<typeof inputs.create_task>;
+      const row = await prisma.task.create({
+        data: {
+          userId,
+          title: i.title,
+          description: i.description,
+          status: i.status ?? "todo",
+          priority: i.priority,
+          duration: i.duration,
+          dueDate: i.dueDate ? new Date(i.dueDate) : undefined,
+        },
+      });
+      return JSON.stringify({
+        id: row.id,
+        title: row.title,
+        status: row.status,
+        due: fmt(row.dueDate),
+        url: add({
+          type: "task",
+          title: row.title,
+          subtitle: [row.status, row.dueDate ? `échéance ${fmt(row.dueDate)}` : undefined]
+            .filter(Boolean)
+            .join(" · "),
+          url: links.task(row.id),
+        }),
+      });
+    }
+
+    case "update_task": {
+      const i = input as z.infer<typeof inputs.update_task>;
+      const existing = await prisma.task.findUnique({ where: { id: i.id } });
+      if (!existing || existing.userId !== userId) throw new Error("Tâche introuvable.");
+      const row = await prisma.task.update({
+        where: { id: i.id },
+        data: {
+          title: i.title,
+          description: i.description,
+          status: i.status,
+          priority: i.priority,
+          duration: i.duration,
+          dueDate: i.dueDate ? new Date(i.dueDate) : undefined,
+          completedAt: i.status === "completed" ? new Date() : undefined,
+        },
+      });
+      return JSON.stringify({
+        id: row.id,
+        title: row.title,
+        status: row.status,
+        due: fmt(row.dueDate),
+        url: add({
+          type: "task",
+          title: row.title,
+          subtitle: [row.status, row.dueDate ? `échéance ${fmt(row.dueDate)}` : undefined]
+            .filter(Boolean)
+            .join(" · "),
+          url: links.task(row.id),
+        }),
+      });
+    }
+
+    case "complete_task": {
+      const i = input as z.infer<typeof inputs.complete_task>;
+      const existing = await prisma.task.findUnique({ where: { id: i.id } });
+      if (!existing || existing.userId !== userId) throw new Error("Tâche introuvable.");
+      const row = await prisma.task.update({
+        where: { id: i.id },
+        data: { status: "completed", completedAt: new Date(), lastCompletedDate: new Date() },
+      });
+      return JSON.stringify({
+        id: row.id,
+        title: row.title,
+        status: row.status,
+        url: add({
+          type: "task",
+          title: row.title,
+          subtitle: "complétée",
+          url: links.task(row.id),
+        }),
+      });
+    }
+
+    case "delete_task": {
+      const i = input as z.infer<typeof inputs.delete_task>;
+      const existing = await prisma.task.findUnique({ where: { id: i.id } });
+      if (!existing || existing.userId !== userId) throw new Error("Tâche introuvable.");
+      await prisma.task.delete({ where: { id: i.id } });
+      return JSON.stringify({ deleted: i.id, title: existing.title });
     }
 
     case "search_contacts": {
