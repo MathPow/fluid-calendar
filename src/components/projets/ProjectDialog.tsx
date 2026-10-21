@@ -321,6 +321,7 @@ export function ProjectDialog({
       );
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
+        errorKey?: string;
         slug?: string;
         details?: { fieldErrors?: Record<string, string[]> };
       };
@@ -328,7 +329,8 @@ export function ProjectDialog({
         const fieldMsg = data.details?.fieldErrors
           ? Object.values(data.details.fieldErrors).flat()[0]
           : undefined;
-        throw new Error(fieldMsg || data.error || `Erreur ${res.status}`);
+        const apiMsg = data.errorKey ? t(data.errorKey) : data.error;
+        throw new Error(fieldMsg || apiMsg || `Erreur ${res.status}`);
       }
       toast.success(
         editing

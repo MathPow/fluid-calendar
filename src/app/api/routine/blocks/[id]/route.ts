@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
 
   const { layerId, ...data } = parsed.data;
   const merged = { ...current, ...data };
@@ -65,7 +65,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   await prisma.routineBlock.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

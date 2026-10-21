@@ -20,7 +20,7 @@ export async function PUT(request: NextRequest) {
   if ("response" in auth) return auth.response;
   const parsed = OrderInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Ordre invalide" }, { status: 400 });
+    return NextResponse.json({ error: "Ordre invalide", errorKey: "api.common.invalidOrder" }, { status: 400 });
   }
   await prisma.$transaction(
     parsed.data.ids.map((id, i) =>

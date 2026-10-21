@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     })
     .catch(() => null);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   return NextResponse.json({ token, machine: machine.name });
 }
 

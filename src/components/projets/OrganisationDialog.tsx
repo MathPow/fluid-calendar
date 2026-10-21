@@ -99,8 +99,8 @@ export function OrganisationDialog({
           }),
         }
       );
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      const data = (await res.json().catch(() => ({}))) as { error?: string; errorKey?: string };
+      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || `Erreur ${res.status}`);
       toast.success(
         editing
           ? t("projects.orgDialog.toasts.saved")
@@ -138,8 +138,8 @@ export function OrganisationDialog({
       const res = await fetch(`/api/organisations/${organisation.id}`, {
         method: "DELETE",
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      const data = (await res.json().catch(() => ({}))) as { error?: string; errorKey?: string };
+      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || `Erreur ${res.status}`);
       toast.success(t("projects.orgDialog.toasts.deleted"));
       onOpenChange(false);
       router.refresh();

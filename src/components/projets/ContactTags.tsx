@@ -329,7 +329,8 @@ export function ContactTagsManager({
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
-      toast.error(data.error || tr("toasts.contacts.tagUpdateFailed"));
+      const apiMsg = data.errorKey ? tr(data.errorKey) : data.error;
+      toast.error(apiMsg || tr("toasts.contacts.tagUpdateFailed"));
       return false;
     }
     setTags((prev) => prev?.map((t) => (t.id === id ? { ...t, ...data } : t)) ?? null);
@@ -366,7 +367,10 @@ export function ContactTagsManager({
       body: JSON.stringify({ name, color: nextColor((tags ?? []).length) }),
     });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) return toast.error(data.error || tr("toasts.contacts.tagCreateFailed"));
+    if (!r.ok) {
+      const apiMsg = data.errorKey ? tr(data.errorKey) : data.error;
+      return toast.error(apiMsg || tr("toasts.contacts.tagCreateFailed"));
+    }
     setTags((prev) =>
       prev?.some((t) => t.id === data.id)
         ? prev

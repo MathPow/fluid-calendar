@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     },
   });
   if (!count)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
 

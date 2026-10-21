@@ -173,7 +173,7 @@ export async function DELETE(request: NextRequest) {
       include: taskProjectInclude,
     });
     if (!current)
-      return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+      return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
     const shown = presentTaskProject(current);
     const updated = await prisma.project.update({
       where: { id: projectId },

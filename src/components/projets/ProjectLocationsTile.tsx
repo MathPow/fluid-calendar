@@ -78,12 +78,14 @@ export function ProjectLocationsTile({
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as {
           error?: string;
+          errorKey?: string;
           details?: { fieldErrors?: Record<string, string[]> };
         };
         const field = data.details?.fieldErrors
           ? Object.values(data.details.fieldErrors).flat()[0]
           : undefined;
-        throw new Error(field || data.error || `Erreur ${res.status}`);
+        const apiMsg = data.errorKey ? t(data.errorKey) : data.error;
+        throw new Error(field || apiMsg || `Erreur ${res.status}`);
       }
       toast.success(done);
       router.refresh();

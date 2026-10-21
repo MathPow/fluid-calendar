@@ -43,7 +43,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { id: true, slug: true, path: true },
   });
   if (!project) {
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   }
   if (!project.path) {
     return NextResponse.json(

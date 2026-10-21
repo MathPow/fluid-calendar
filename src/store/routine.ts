@@ -58,7 +58,8 @@ async function send<T>(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || tr("toasts.routine.serverError"));
+    const apiMsg = err.errorKey ? tr(err.errorKey) : err.error;
+    throw new Error(apiMsg || tr("toasts.routine.serverError"));
   }
   return res.json();
 }

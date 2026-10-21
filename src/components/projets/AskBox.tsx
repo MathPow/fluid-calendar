@@ -54,8 +54,8 @@ export function AskBox({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: q, ...(slug ? { slug } : {}) }),
       });
-      const data = (await res.json()) as { answer?: string; error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      const data = (await res.json()) as { answer?: string; error?: string; errorKey?: string };
+      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || `Erreur ${res.status}`);
       setAnswer(data.answer ?? "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue.");

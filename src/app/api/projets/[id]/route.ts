@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     include: projectInclude,
   });
   if (!project)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   return NextResponse.json(project);
 }
 
@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     select: { id: true, name: true, slug: true },
   });
   if (!existing)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
 
   if (fields.parentId) {
     if (await wouldCreateCycle(id, fields.parentId)) {
