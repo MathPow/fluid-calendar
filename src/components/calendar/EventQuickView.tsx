@@ -285,7 +285,7 @@ export function EventQuickView({
                       taskItem.status === TaskStatus.TODO,
                   })}
                 >
-                  {taskItem.status.toLowerCase().replace("_", " ")}
+                  {t(`calendar.event.quickView.status.${taskItem.status}`)}
                 </span>
               </div>
 
