@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -70,8 +71,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
+    const t = await getT();
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: t("api.organisations.updateFailed") },
       { status: 500 }
     );
   }
@@ -86,10 +88,15 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { isDefault: true },
   });
-  if (!org) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  const t = await getT();
+  if (!org)
+    return NextResponse.json(
+      { error: t("api.common.notFound") },
+      { status: 404 }
+    );
   if (org.isDefault) {
     return NextResponse.json(
-      { error: "L'organisation par défaut ne peut pas être supprimée." },
+      { error: t("api.organisations.cannotDeleteDefault") },
       { status: 400 }
     );
   }

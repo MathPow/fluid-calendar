@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { answerFromSources } from "@/lib/ask/answer";
 import { retrieveSources } from "@/lib/ask/retrieve";
 import { authenticateRequest } from "@/lib/auth/api-auth";
@@ -111,8 +112,9 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
+    const t = await getT();
     return NextResponse.json(
-      { error: "Impossible d'obtenir une réponse. Réessaie." },
+      { error: t("api.search.ask.noAnswer") },
       { status: 500 }
     );
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
@@ -28,15 +29,19 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { status: 400 }
     );
   }
+  const t = await getT();
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json(
+      { error: t("api.common.notFound") },
+      { status: 404 }
+    );
 
   const { layerId, ...data } = parsed.data;
   const merged = { ...current, ...data };
   if (merged.startTime === merged.endTime) {
     return NextResponse.json(
-      { error: "Le bloc doit durer plus de zéro minute" },
+      { error: t("api.routine.blockDurationZero") },
       { status: 400 }
     );
   }
@@ -46,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     if (!layer)
       return NextResponse.json(
-        { error: "Calque introuvable" },
+        { error: t("api.routine.layerNotFound") },
         { status: 404 }
       );
   }

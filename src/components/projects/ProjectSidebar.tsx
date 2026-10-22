@@ -206,7 +206,7 @@ export function ProjectSidebar() {
               onClick={() => setActiveProject(NO_PROJECT as Project)}
             >
               <FolderOpen className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1">No Project</span>
+              <span className="flex-1">{t("projects.sidebar.noProject")}</span>
               <span className="text-xs text-muted-foreground">
                 {unassignedTasksCount}
               </span>
@@ -257,14 +257,21 @@ export function ProjectSidebar() {
                   className="w-full rounded-md px-3 py-1.5 text-left text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   {showEmpty
-                    ? "Masquer les listes vides"
-                    : `${hiddenCount} liste${hiddenCount > 1 ? "s" : ""} vide${hiddenCount > 1 ? "s" : ""} masquée${hiddenCount > 1 ? "s" : ""}`}
+                    ? t("projects.sidebar.hideEmpty")
+                    : t(
+                        hiddenCount > 1
+                          ? "projects.sidebar.emptyMasked.other"
+                          : "projects.sidebar.emptyMasked.one",
+                        { count: hiddenCount }
+                      )}
                 </button>
               ) : null}
 
               {archivedProjects.length > 0 && showEmpty && (
                 <div className="space-y-1">
-                  <div className="etiquette py-2">Archived</div>
+                  <div className="etiquette py-2">
+                    {t("projects.sidebar.archived")}
+                  </div>
                   {archivedProjects.map((project) => (
                     <ProjectItem
                       key={project.id}

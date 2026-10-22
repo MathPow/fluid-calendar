@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -25,8 +26,13 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     where: { id },
     include: projectInclude,
   });
-  if (!project)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!project) {
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.common.notFound") },
+      { status: 404 }
+    );
+  }
   return NextResponse.json(project);
 }
 
@@ -59,13 +65,17 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { id: true, name: true, slug: true },
   });
+  const t = await getT();
   if (!existing)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json(
+      { error: t("api.common.notFound") },
+      { status: 404 }
+    );
 
   if (fields.parentId) {
     if (await wouldCreateCycle(id, fields.parentId)) {
       return NextResponse.json(
-        { error: "Un projet ne peut pas être son propre parent." },
+        { error: t("api.projets.selfParent") },
         { status: 400 }
       );
     }
@@ -168,7 +178,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: t("api.projets.updateFailed") },
       { status: 500 }
     );
   }

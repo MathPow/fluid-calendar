@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { getSegmentRange, searchTranscript } from "@/lib/sessions/search";
@@ -40,8 +41,9 @@ export async function GET(
     const fromSec = parseTimestamp(from ?? "0");
     const toSec = parseTimestamp(to ?? "");
     if (fromSec === null || toSec === null) {
+      const t = await getT();
       return NextResponse.json(
-        { error: "from/to doivent être des timestamps, ex. 1:40:00" },
+        { error: t("api.sessions.search.badRange") },
         { status: 400 }
       );
     }

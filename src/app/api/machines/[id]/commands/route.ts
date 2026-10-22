@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { CommandInput } from "@/lib/desktop-actions";
@@ -67,11 +68,15 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { agentTokenHash: true },
   });
+  const t = await getT();
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json(
+      { error: t("api.common.notFound") },
+      { status: 404 }
+    );
   if (!machine.agentTokenHash) {
     return NextResponse.json(
-      { error: "Aucun agent connecté à cette machine." },
+      { error: t("api.machines.command.noAgent") },
       { status: 409 }
     );
   }

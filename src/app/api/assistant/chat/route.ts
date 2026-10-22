@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { runAssistant } from "@/lib/assistant/agent";
 import { ASSISTANT_MODEL_IDS } from "@/lib/assistant/models";
 import { authenticateRequest } from "@/lib/auth/api-auth";
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Last message must be from the user" }, { status: 400 });
   }
 
+  const t = await getT();
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
           { error: error instanceof Error ? error.message : String(error) },
           LOG_SOURCE
         );
-        send({ type: "error", text: "Oups, je n'ai pas pu terminer. Réessaie." });
+        send({ type: "error", text: t("api.assistant.chatFailed") });
         send({ type: "done" });
       } finally {
         controller.close();

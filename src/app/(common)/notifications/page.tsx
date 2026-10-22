@@ -7,7 +7,10 @@ import { NotificationList } from "@/components/notifications/NotificationList";
 import { useNotifications } from "@/components/notifications/useNotifications";
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n/client";
+
 export default function NotificationsPage() {
+  const t = useT();
   const { items, unread, loaded, markRead, markUnread, remove } =
     useNotifications();
 
@@ -23,7 +26,7 @@ export default function NotificationsPage() {
             disabled={!unread}
             onClick={() => markRead("all")}
           >
-            Tout marquer lu
+            {t("notifications.page.markAllRead")}
           </Button>
           <NotificationBell />
         </div>
@@ -43,10 +46,10 @@ export default function NotificationsPage() {
             }}
             onDelete={async (n) => {
               if (
-                confirm("Supprimer cette notification ?") &&
+                confirm(t("notifications.page.confirmDelete")) &&
                 !(await remove([n.id]))
               ) {
-                toast.error("La notification n’a pas pu être supprimée.");
+                toast.error(t("toasts.notifications.deleteFailed"));
               }
             }}
           />
@@ -56,8 +59,8 @@ export default function NotificationsPage() {
             role="status"
           >
             {loaded
-              ? "Rien de neuf pour l’instant."
-              : "Chargement des notifications…"}
+              ? t("notifications.page.empty")
+              : t("notifications.page.loading")}
           </p>
         )}
       </div>

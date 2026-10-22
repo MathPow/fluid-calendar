@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -20,7 +21,11 @@ export async function PUT(request: NextRequest) {
   if ("response" in auth) return auth.response;
   const parsed = OrderInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Ordre invalide" }, { status: 400 });
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.common.badOrder") },
+      { status: 400 }
+    );
   }
   await prisma.$transaction(
     parsed.data.ids.map((id, i) =>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { logger } from "@/lib/logger";
 import { notify, ownerUserId } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -55,13 +56,15 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   });
   if (!run) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const t = await getT();
+  const defaultError = t("api.ingest.showcase.failedNoMessage");
   await prisma.showcaseRun.update({
     where: { id },
     data: {
       status,
       finishedAt: new Date(),
       log: tailLog(log),
-      error: status === "failed" ? error || "Échec sans message." : null,
+      error: status === "failed" ? error || defaultError : null,
     },
   });
   logger.info("showcase run finished", { runId: id, status }, LOG_SOURCE);
@@ -83,7 +86,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           : `Présentation de ${project.name} : échec`,
       body:
         status === "failed"
-          ? (error || "Échec sans message.").slice(0, 300)
+          ? (error || defaultError).slice(0, 300)
           : null,
       url: `/projets/${encodeURIComponent(project.slug)}`,
       dedupeKey: `showcase-run:${id}`,
