@@ -10,6 +10,17 @@ import { useT } from "@/i18n/client";
 import { PROJECT_COLORS, isHexColor, readableTextOn } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
+const COLOR_NAME_KEYS: Record<string, string> = {
+  "#a8ccff": "projects.colorField.colors.bleu",
+  "#ff7585": "projects.colorField.colors.corail",
+  "#ffd166": "projects.colorField.colors.ambre",
+  "#9fe0c4": "projects.colorField.colors.menthe",
+  "#cbb2f0": "projects.colorField.colors.lilas",
+  "#ffa8c5": "projects.colorField.colors.rose",
+  "#bfd3a8": "projects.colorField.colors.sauge",
+  "#9fd5f0": "projects.colorField.colors.ciel",
+};
+
 /**
  * The palette swatches plus a custom colour: a native picker and a hex field,
  * for an exact brand colour (a company's logo).
@@ -39,12 +50,13 @@ export function ColorField({
       <div className="flex flex-wrap gap-2.5">
         {PROJECT_COLORS.map((c) => {
           const active = value.toLowerCase() === c.hex;
+          const name = COLOR_NAME_KEYS[c.hex] ? t(COLOR_NAME_KEYS[c.hex]) : c.name;
           return (
             <button
               key={c.hex}
               type="button"
-              title={c.name}
-              aria-label={c.name}
+              title={name}
+              aria-label={name}
               onClick={() => onChange(c.hex)}
               className={cn(
                 "flex h-11 w-14 items-center justify-center rounded-[14px] border-2 transition-transform hover:scale-105",

@@ -81,6 +81,17 @@ const NO_MACHINE = "__none__";
 const NO_PARENT = "__none__";
 const DEFAULT_ORG = "__default__";
 
+const COLOR_NAME_KEYS: Record<string, string> = {
+  "#a8ccff": "projects.colorField.colors.bleu",
+  "#ff7585": "projects.colorField.colors.corail",
+  "#ffd166": "projects.colorField.colors.ambre",
+  "#9fe0c4": "projects.colorField.colors.menthe",
+  "#cbb2f0": "projects.colorField.colors.lilas",
+  "#ffa8c5": "projects.colorField.colors.rose",
+  "#bfd3a8": "projects.colorField.colors.sauge",
+  "#9fd5f0": "projects.colorField.colors.ciel",
+};
+
 /**
  * Create / edit a project: name, colour, perso-vs-client, parent, links,
  * tools, contacts. Links and contacts are sent as full lists and replace the
@@ -446,11 +457,14 @@ export function ProjectDialog({
               <div className="flex flex-wrap gap-2.5">
                 {PROJECT_COLORS.map((c) => {
                   const active = color.toLowerCase() === c.hex;
+                  const name = COLOR_NAME_KEYS[c.hex]
+                    ? t(COLOR_NAME_KEYS[c.hex])
+                    : c.name;
                   return (
                     <button
                       key={c.hex}
                       type="button"
-                      title={c.name}
+                      title={name}
                       onClick={() => setColor(c.hex)}
                       className={cn(
                         "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-transform hover:scale-105",
