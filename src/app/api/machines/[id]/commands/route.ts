@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { CommandInput } from "@/lib/desktop-actions";
@@ -27,6 +28,7 @@ const commandSelect = {
 export async function GET(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   await expireCommands(id);
   const [machine, commands] = await Promise.all([
@@ -42,7 +44,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     }),
   ]);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.machines.notFound") }, { status: 404 });
   return NextResponse.json({
     agent: { connected: !!machine.agentTokenHash, seenAt: machine.agentSeenAt },
     commands,
@@ -55,11 +57,12 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   if ("response" in auth) return auth.response;
   const stepUp = requireStepUp(request, auth.userId);
   if (stepUp) return stepUp;
+  const t = await getT();
   const { id } = await params;
   const parsed = CommandInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Commande invalide" },
+      { error: parsed.error.issues[0]?.message ?? t("api.desktopCommands.invalid") },
       { status: 400 }
     );
   }
@@ -68,10 +71,10 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { agentTokenHash: true },
   });
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.machines.notFound") }, { status: 404 });
   if (!machine.agentTokenHash) {
     return NextResponse.json(
-      { error: "Aucun agent connecté à cette machine." },
+      { error: t("api.desktopCommands.noAgent") },
       { status: 409 }
     );
   }

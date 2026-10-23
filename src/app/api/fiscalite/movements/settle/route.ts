@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { movementSelect, toMovementView } from "@/lib/fiscalite/queries";
 import { prisma } from "@/lib/prisma";
@@ -26,13 +27,14 @@ const Body = z.object({
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid body", details: parsed.error.flatten() }, { status: 400 });
   }
   const { organisationId, from, to, amountCents } = parsed.data;
   if (from === to) {
-    return NextResponse.json({ error: "`from` et `to` doivent être différents" }, { status: 400 });
+    return NextResponse.json({ error: t("api.fiscalite.movements.sameAccounts") }, { status: 400 });
   }
   const date = new Date(`${parsed.data.date ?? new Date().toISOString().slice(0, 10)}T00:00:00Z`);
   const notes = `Règlement entre ${from} et ${to}`;

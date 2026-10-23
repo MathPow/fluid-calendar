@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { buildWorkbook } from "@/lib/fiscalite/excel";
 import { DEFAULT_PROFILE, fiscalYearRange } from "@/lib/fiscalite/meta";
@@ -15,19 +16,20 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const organisationId = request.nextUrl.searchParams.get("organisationId") ?? "";
   const year = Number(request.nextUrl.searchParams.get("year"));
   if (!organisationId || !Number.isInteger(year)) {
-    return NextResponse.json({ error: "organisationId et year requis" }, { status: 400 });
+    return NextResponse.json({ error: t("api.fiscalite.missingParams") }, { status: 400 });
   }
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
     select: { name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ error: t("api.organisations.notFound") }, { status: 404 });
 
   const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[], partnerShares: [] as number[] };
-  const t = org.taxProfile;
+  const tp = org.taxProfile;
   const { start, end } = fiscalYearRange(profile, year);
   const range = { gte: start, lte: end };
   const [invoices, movements] = await Promise.all([
@@ -43,23 +45,23 @@ export async function GET(request: NextRequest) {
     salesTaxStatus: profile.salesTaxStatus,
     partners: profile.partners ?? [],
     partnerShares: profile.partnerShares ?? [],
-    identity: t
+    identity: tp
       ? [
-          ["Nom légal", t.legalName],
-          ["NEQ", t.neq],
-          ["No d'identification Revenu Québec", t.rqNumber],
-          ["No TVQ", t.qstNumber],
-          ["No TPS", t.gstNumber],
-          ["NE fédéral (ARC)", t.businessNumber],
-          ["Dossier employeur (RS)", t.payrollNumber],
-          ["Immatriculation au REQ", t.startedAt?.toISOString().slice(0, 10)],
-          ["Activité", t.activity],
-          ["Code SCIAN", t.naicsCode],
-          ["Adresse", [t.address, t.city, t.province, t.postalCode].filter(Boolean).join(", ") || null],
-          ["Courriel", t.email],
-          ["Téléphone", t.phone],
-          ["Site web", t.website],
-          ["Comptable", [t.accountant, t.accountantEmail, t.accountantPhone].filter(Boolean).join(" · ") || null],
+          ["Nom légal", tp.legalName],
+          ["NEQ", tp.neq],
+          ["No d'identification Revenu Québec", tp.rqNumber],
+          ["No TVQ", tp.qstNumber],
+          ["No TPS", tp.gstNumber],
+          ["NE fédéral (ARC)", tp.businessNumber],
+          ["Dossier employeur (RS)", tp.payrollNumber],
+          ["Immatriculation au REQ", tp.startedAt?.toISOString().slice(0, 10)],
+          ["Activité", tp.activity],
+          ["Code SCIAN", tp.naicsCode],
+          ["Adresse", [tp.address, tp.city, tp.province, tp.postalCode].filter(Boolean).join(", ") || null],
+          ["Courriel", tp.email],
+          ["Téléphone", tp.phone],
+          ["Site web", tp.website],
+          ["Comptable", [tp.accountant, tp.accountantEmail, tp.accountantPhone].filter(Boolean).join(" · ") || null],
         ]
       : [],
     invoices: invoices.map((i) => ({ ...i, date: ymd(i.date) })),

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { hashAgentToken, newAgentToken } from "@/lib/desktop-agent";
@@ -18,6 +19,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   if ("response" in auth) return auth.response;
   const stepUp = requireStepUp(request, auth.userId);
   if (stepUp) return stepUp;
+  const t = await getT();
   const { id } = await params;
   const token = newAgentToken();
   const machine = await prisma.machine
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     })
     .catch(() => null);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.machines.notFound") }, { status: 404 });
   return NextResponse.json({ token, machine: machine.name });
 }
 
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
 export async function DELETE(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   await prisma.machine.updateMany({
     where: { id },
@@ -45,7 +48,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     where: { machineId: id, status: { in: ["queued", "running"] } },
     data: {
       status: "failed",
-      error: "Agent déconnecté.",
+      error: t("api.machines.agentDisconnected"),
       finishedAt: new Date(),
     },
   });

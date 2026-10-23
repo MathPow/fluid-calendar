@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { answerFromSources } from "@/lib/ask/answer";
 import { retrieveSources } from "@/lib/ask/retrieve";
 import { authenticateRequest } from "@/lib/auth/api-auth";
@@ -65,6 +66,7 @@ function toDto(
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
 
   let json: unknown;
   try {
@@ -112,7 +114,7 @@ export async function POST(request: NextRequest) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Impossible d'obtenir une réponse. Réessaie." },
+      { error: t("api.ask.failed") },
       { status: 500 }
     );
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { logger } from "@/lib/logger";
@@ -19,6 +20,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   if ("response" in auth) return auth.response;
   const stepUp = requireStepUp(request, auth.userId);
   if (stepUp) return stepUp;
+  const t = await getT();
   const { id } = await params;
   let json: unknown;
   try {
@@ -51,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: t("api.machines.updateFailed") },
       { status: 500 }
     );
   }
@@ -61,6 +63,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 export async function DELETE(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   try {
     await prisma.machine.delete({ where: { id } });
@@ -72,7 +75,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Suppression impossible" },
+      { error: t("api.machines.deleteFailed") },
       { status: 500 }
     );
   }
