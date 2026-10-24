@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { transcribeAudioBuffer } from "@/lib/recordings/transcribe";
@@ -21,14 +22,16 @@ export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
+  const t = await getT();
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof Blob)) {
-    return NextResponse.json({ error: "file manquant" }, { status: 400 });
+    return NextResponse.json({ error: t("api.assistant.missingFile") }, { status: 400 });
   }
-  if (file.size === 0) return NextResponse.json({ error: "fichier vide" }, { status: 400 });
+  if (file.size === 0)
+    return NextResponse.json({ error: t("api.assistant.emptyFile") }, { status: 400 });
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "fichier > 10 Mo" }, { status: 413 });
+    return NextResponse.json({ error: t("api.assistant.fileTooLarge10") }, { status: 413 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     logger.error("transcribe failed", { error: String(err) }, LOG_SOURCE);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "transcription a échoué" },
+      { error: err instanceof Error ? err.message : t("api.assistant.transcribeFailed") },
       { status: 502 }
     );
   }

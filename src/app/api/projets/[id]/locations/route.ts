@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -49,8 +50,9 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
+    const t = await getT();
     return NextResponse.json(
-      { error: "Enregistrement impossible" },
+      { error: t("api.projets.locations.saveFailed") },
       { status: 500 }
     );
   }
@@ -61,9 +63,10 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
+  const t = await getT();
   const locationId = request.nextUrl.searchParams.get("locationId");
   if (!locationId)
-    return NextResponse.json({ error: "locationId requis" }, { status: 400 });
+    return NextResponse.json({ error: t("api.projets.locations.missingId") }, { status: 400 });
   try {
     await prisma.projectLocation.deleteMany({
       where: { id: locationId, projectId: id },
@@ -76,7 +79,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Suppression impossible" },
+      { error: t("api.projets.locations.deleteFailed") },
       { status: 500 }
     );
   }

@@ -8,6 +8,7 @@ import {
   issueStepUp,
   stepUpEnabled,
 } from "@/lib/auth/step-up";
+import { getT } from "@/i18n/server";
 import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "StepUp";
@@ -25,10 +26,11 @@ export async function POST(request: NextRequest) {
   if ("response" in auth) return auth.response;
   if (!stepUpEnabled()) return NextResponse.json({ ok: true });
 
+  const t = await getT();
   const entry = failures.get(auth.userId) ?? { count: 0, lockedUntil: 0 };
   if (entry.lockedUntil > Date.now()) {
     return NextResponse.json(
-      { error: "Trop d'essais. Réessaie dans 15 minutes." },
+      { error: t("api.auth.rateLimited") },
       { status: 429 }
     );
   }
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
     failures.set(auth.userId, entry);
     logger.warn("Step-up PIN rejected", { userId: auth.userId }, LOG_SOURCE);
-    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+    return NextResponse.json({ error: t("api.auth.invalidPin") }, { status: 401 });
   }
 
   failures.delete(auth.userId);

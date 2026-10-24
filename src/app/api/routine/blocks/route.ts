@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
@@ -33,8 +34,10 @@ export async function POST(request: NextRequest) {
       (await prisma.calendarLayer.create({
         data: { userId: auth.userId, name: "Semaine type" },
       })));
-  if (!layer)
-    return NextResponse.json({ error: "Calque introuvable" }, { status: 404 });
+  if (!layer) {
+    const t = await getT();
+    return NextResponse.json({ error: t("api.routine.layers.notFound") }, { status: 404 });
+  }
 
   const count = await prisma.routineBlock.count({
     where: { layerId: layer.id },

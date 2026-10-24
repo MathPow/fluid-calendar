@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -95,8 +96,9 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
+    const t = await getT();
     return NextResponse.json(
-      { error: "Impossible d'obtenir une réponse. Réessaie." },
+      { error: t("api.ask.answerFailed") },
       { status: 500 }
     );
   }

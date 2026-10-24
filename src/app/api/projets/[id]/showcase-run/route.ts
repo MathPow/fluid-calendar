@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -42,12 +43,13 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { id: true, slug: true, path: true },
   });
+  const t = await getT();
   if (!project) {
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.projets.notFound") }, { status: 404 });
   }
   if (!project.path) {
     return NextResponse.json(
-      { error: "Ce projet n'a pas de dossier sur le serveur." },
+      { error: t("api.projets.showcase.noPath") },
       { status: 400 }
     );
   }
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   });
   if (active) {
     return NextResponse.json(
-      { error: "Une génération est déjà en cours.", run: active },
+      { error: t("api.projets.showcase.alreadyRunning"), run: active },
       { status: 409 }
     );
   }

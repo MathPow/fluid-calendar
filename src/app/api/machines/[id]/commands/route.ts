@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { CommandInput } from "@/lib/desktop-actions";
@@ -41,8 +42,10 @@ export async function GET(request: NextRequest, { params }: Ctx) {
       select: commandSelect,
     }),
   ]);
-  if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!machine) {
+    const t = await getT();
+    return NextResponse.json({ error: t("api.machines.notFound") }, { status: 404 });
+  }
   return NextResponse.json({
     agent: { connected: !!machine.agentTokenHash, seenAt: machine.agentSeenAt },
     commands,
@@ -56,10 +59,11 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   const stepUp = requireStepUp(request, auth.userId);
   if (stepUp) return stepUp;
   const { id } = await params;
+  const t = await getT();
   const parsed = CommandInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Commande invalide" },
+      { error: parsed.error.issues[0]?.message ?? t("api.machines.invalidCommand") },
       { status: 400 }
     );
   }
@@ -68,10 +72,10 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { agentTokenHash: true },
   });
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.machines.notFound") }, { status: 404 });
   if (!machine.agentTokenHash) {
     return NextResponse.json(
-      { error: "Aucun agent connecté à cette machine." },
+      { error: t("api.machines.agentDisconnected") },
       { status: 409 }
     );
   }

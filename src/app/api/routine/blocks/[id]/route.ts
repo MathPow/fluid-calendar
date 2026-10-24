@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
@@ -29,14 +30,15 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     );
   }
   const current = await ownedBlock(id, auth.userId);
+  const t = await getT();
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.routine.blocks.notFound") }, { status: 404 });
 
   const { layerId, ...data } = parsed.data;
   const merged = { ...current, ...data };
   if (merged.startTime === merged.endTime) {
     return NextResponse.json(
-      { error: "Le bloc doit durer plus de zéro minute" },
+      { error: t("api.routine.blocks.zeroDuration") },
       { status: 400 }
     );
   }
@@ -46,7 +48,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     if (!layer)
       return NextResponse.json(
-        { error: "Calque introuvable" },
+        { error: t("api.routine.layers.notFound") },
         { status: 404 }
       );
   }
@@ -64,8 +66,10 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const current = await ownedBlock(id, auth.userId);
-  if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!current) {
+    const t = await getT();
+    return NextResponse.json({ error: t("api.routine.blocks.notFound") }, { status: 404 });
+  }
   await prisma.routineBlock.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

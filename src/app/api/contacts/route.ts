@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Création impossible" }, { status: 500 });
+    const t = await getT();
+    return NextResponse.json({ error: t("api.contacts.createFailed") }, { status: 500 });
   }
 }
