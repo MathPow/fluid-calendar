@@ -4,6 +4,8 @@
  * server and client code (no Prisma here).
  */
 
+import { tNow } from "@/i18n/now";
+
 export const LINK_KINDS = [
   { id: "figma", label: "Figma" },
   { id: "drive", label: "Drive" },
@@ -254,16 +256,19 @@ export function normalizeUrl(input: string): string {
 export function timeAgoFr(date: Date | string | null | undefined): string {
   if (!date) return "—";
   const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (s < 60) return "à l'instant";
+  if (s < 60) return tNow("common.time.justNow");
   const m = Math.floor(s / 60);
-  if (m < 60) return `il y a ${m} min`;
+  if (m < 60) return tNow("common.time.minutesAgo", { count: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h} h`;
+  if (h < 24) return tNow("common.time.hoursAgo", { count: h });
   const d = Math.floor(h / 24);
-  if (d < 30) return `il y a ${d} j`;
+  if (d < 30) return tNow("common.time.daysAgo", { count: d });
   const mo = Math.floor(d / 30);
-  if (mo < 12) return `il y a ${mo} mois`;
-  return `il y a ${Math.floor(mo / 12)} an${mo >= 24 ? "s" : ""}`;
+  if (mo < 12) return tNow("common.time.monthsAgo", { count: mo });
+  const y = Math.floor(mo / 12);
+  return tNow(y >= 2 ? "common.time.yearsAgoPlural" : "common.time.yearsAgo", {
+    count: y,
+  });
 }
 
 export const initials = (name: string) =>

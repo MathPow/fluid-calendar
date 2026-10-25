@@ -32,6 +32,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { useT } from "@/i18n/client";
 import { cn, formatShortcut } from "@/lib/utils";
 
 import { useCommands } from "@/hooks/useCommands";
@@ -81,18 +82,21 @@ interface AskState {
 
 const RESULT_META: Record<
   SearchResult["type"],
-  { label: string; icon: typeof CheckSquare }
+  { labelKey: string; icon: typeof CheckSquare }
 > = {
-  project: { label: "Projets", icon: FolderKanban },
-  contact: { label: "Contacts", icon: Users },
-  organisation: { label: "Organisations", icon: Building2 },
-  task: { label: "Tasks", icon: CheckSquare },
-  event: { label: "Calendar", icon: CalendarClock },
-  invoice: { label: "Factures", icon: Receipt },
-  note: { label: "Notes", icon: FileText },
-  recording: { label: "Recordings", icon: AudioLines },
-  machine: { label: "Machines", icon: Server },
-  ghost: { label: "Blocs fantômes", icon: Ghost },
+  project: { labelKey: "commandPalette.group.project", icon: FolderKanban },
+  contact: { labelKey: "commandPalette.group.contact", icon: Users },
+  organisation: {
+    labelKey: "commandPalette.group.organisation",
+    icon: Building2,
+  },
+  task: { labelKey: "commandPalette.group.task", icon: CheckSquare },
+  event: { labelKey: "commandPalette.group.event", icon: CalendarClock },
+  invoice: { labelKey: "commandPalette.group.invoice", icon: Receipt },
+  note: { labelKey: "commandPalette.group.note", icon: FileText },
+  recording: { labelKey: "commandPalette.group.recording", icon: AudioLines },
+  machine: { labelKey: "commandPalette.group.machine", icon: Server },
+  ghost: { labelKey: "commandPalette.group.ghost", icon: Ghost },
 };
 
 /** Icons for every source type the ask endpoint can cite. */
@@ -107,6 +111,7 @@ const SOURCE_ICONS: Record<string, typeof CheckSquare> = {
 };
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const t = useT();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [showAllCommands, setShowAllCommands] = useState(false);
@@ -135,7 +140,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         sources?: AskSource[];
         error?: string;
       };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      if (!res.ok)
+        throw new Error(
+          data.error || t("common.error", { status: res.status })
+        );
       return data;
     };
 
@@ -166,7 +174,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         answer: null,
         // Keep the previewed resources: they're still useful without an answer.
         sources: prev?.question === question ? prev.sources : [],
-        error: e instanceof Error ? e.message : "Une erreur est survenue.",
+        error:
+          e instanceof Error ? e.message : t("commandPalette.genericError"),
       }));
     }
   };
@@ -414,9 +423,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   (type) => {
                     const items = groupedResults[type];
                     if (!items || items.length === 0) return null;
-                    const { label, icon: Icon } = RESULT_META[type];
+                    const { labelKey, icon: Icon } = RESULT_META[type];
                     return (
-                      <Command.Group key={`result-${type}`} heading={label}>
+                      <Command.Group
+                        key={`result-${type}`}
+                        heading={t(labelKey)}
+                      >
                         {items.map((item) => (
                           <Command.Item
                             key={`${item.type}:${item.id}`}
@@ -517,6 +529,7 @@ function AskPanel({
   onRetry: () => void;
   onNavigate: (url: string) => void;
 }) {
+  const t = useT();
   // Cited sources first — they're the ones the answer actually leans on.
   const sources = [...state.sources].sort(
     (a, b) => Number(b.cited) - Number(a.cited) || a.n - b.n
@@ -550,10 +563,10 @@ function AskPanel({
             <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             <span>
               {state.sources.length === 0
-                ? "Recherche dans ton calendrier, tes tâches, tes notes…"
-                : "Lecture des ressources ci-dessous…"}
+                ? t("commandPalette.loading.search")
+                : t("commandPalette.loading.sources")}
               <span className="block text-xs text-muted-foreground">
-                Le modèle tourne en local — compte une à deux minutes.
+                {t("commandPalette.loading.model")}
               </span>
             </span>
           </div>
@@ -566,7 +579,7 @@ function AskPanel({
               onClick={onRetry}
               className="mt-2 rounded-xl px-2 py-1 text-xs font-medium text-foreground hover:bg-tint-soft"
             >
-              Réessayer
+              {t("commandPalette.retry")}
             </button>
           </div>
         )}
@@ -594,7 +607,9 @@ function AskPanel({
 
         {sources.length > 0 && (
           <div className="mt-4 border-t border-border pt-3">
-            <p className="etiquette mb-3">Ressources consultées</p>
+            <p className="etiquette mb-3">
+              {t("commandPalette.sources")}
+            </p>
             <ul className="space-y-0.5">
               {sources.map((source) => {
                 const Icon = SOURCE_ICONS[source.type] ?? FileText;

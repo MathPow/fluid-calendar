@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -18,6 +19,10 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     await prisma.partnerMovement.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Mouvement introuvable" }, { status: 404 });
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.movements.notFound") },
+      { status: 404 }
+    );
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { hashAgentToken, newAgentToken } from "@/lib/desktop-agent";
@@ -27,8 +28,13 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       select: { name: true },
     })
     .catch(() => null);
-  if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!machine) {
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.common.notFound") },
+      { status: 404 }
+    );
+  }
   return NextResponse.json({ token, machine: machine.name });
 }
 
@@ -41,11 +47,12 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     where: { id },
     data: { agentTokenHash: null, agentSeenAt: null },
   });
+  const t = await getT();
   await prisma.desktopCommand.updateMany({
     where: { machineId: id, status: { in: ["queued", "running"] } },
     data: {
       status: "failed",
-      error: "Agent déconnecté.",
+      error: t("api.machines.agentOffline"),
       finishedAt: new Date(),
     },
   });

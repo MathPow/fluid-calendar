@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { withMe } from "@/lib/fiscalite/meta";
 import { TaxProfileInput } from "@/lib/fiscalite/schemas";
@@ -26,7 +27,13 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     );
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) {
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.organisations.notFound") },
+      { status: 404 }
+    );
+  }
 
   const data = parsed.data.legalForm === "senc" ? withMe(parsed.data) : parsed.data;
   const profile = await prisma.taxProfile.upsert({
@@ -64,7 +71,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     return NextResponse.json({ error: "`tracked` ou `budgets` attendu" }, { status: 400 });
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) {
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.organisations.notFound") },
+      { status: 404 }
+    );
+  }
 
   const profile = await prisma.taxProfile.upsert({
     where: { organisationId },

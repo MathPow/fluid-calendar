@@ -257,8 +257,13 @@ export function ProjectSidebar() {
                   className="w-full rounded-md px-3 py-1.5 text-left text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   {showEmpty
-                    ? "Masquer les listes vides"
-                    : `${hiddenCount} liste${hiddenCount > 1 ? "s" : ""} vide${hiddenCount > 1 ? "s" : ""} masquée${hiddenCount > 1 ? "s" : ""}`}
+                    ? t("projects.sidebar.hideEmpty")
+                    : t(
+                        hiddenCount > 1
+                          ? "projects.sidebar.showEmptyPlural"
+                          : "projects.sidebar.showEmpty",
+                        { count: hiddenCount }
+                      )}
                 </button>
               ) : null}
 

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 import { useT } from "@/i18n/client";
+import { tNow } from "@/i18n/now";
 import { timeAgoFr } from "@/lib/projets/meta";
 import type { ShowcaseRunView } from "@/lib/projets/showcase-runs";
 import { cn } from "@/lib/utils";
@@ -19,10 +20,14 @@ const POLL_MS = 10_000;
 const isActive = (run: ShowcaseRunView | null) =>
   run?.status === "queued" || run?.status === "running";
 
-/** "depuis 3 min" without the "il y a". */
+/** Locale-aware "depuis 3 min" / "for 3 min". */
 const sinceFr = (date: string) => {
-  const ago = timeAgoFr(date);
-  return ago.startsWith("il y a ") ? `depuis ${ago.slice(7)}` : "à l'instant";
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 60) return tNow("common.time.sinceMoment");
+  const m = Math.floor(s / 60);
+  if (m < 60) return tNow("common.time.sinceMinutes", { count: m });
+  const h = Math.floor(m / 60);
+  return tNow("common.time.sinceHours", { count: h });
 };
 
 /**
@@ -73,7 +78,7 @@ export function ShowcaseRunControl({
     } catch {
       // Offline for a moment (phone); the next poll catches up.
     }
-  }, [endpoint, router]);
+  }, [endpoint, router, t]);
 
   const active = isActive(run);
   useEffect(() => {

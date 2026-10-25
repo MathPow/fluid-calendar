@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -106,8 +107,13 @@ export async function POST(request: NextRequest) {
     where: { id: agentProjectId },
     select: { id: true, name: true, color: true, description: true },
   });
-  if (!agent)
-    return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
+  if (!agent) {
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.projects.notFound") },
+      { status: 404 }
+    );
+  }
 
   try {
     const existing = await prisma.project.findUnique({
@@ -117,8 +123,9 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       if (projectId && projectId !== existing.id) {
+        const t = await getT();
         return NextResponse.json(
-          { error: "Ce projet a déjà une liste de tâches." },
+          { error: t("api.projects.linkAlreadyLinked") },
           { status: 409 }
         );
       }
@@ -155,7 +162,11 @@ export async function POST(request: NextRequest) {
       },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Liaison impossible" }, { status: 500 });
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.projects.linkFailed") },
+      { status: 500 }
+    );
   }
 }
 
@@ -172,8 +183,13 @@ export async function DELETE(request: NextRequest) {
       where: { id: projectId, userId: auth.userId },
       include: taskProjectInclude,
     });
-    if (!current)
-      return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    if (!current) {
+      const t = await getT();
+      return NextResponse.json(
+        { error: t("api.common.notFound") },
+        { status: 404 }
+      );
+    }
     const shown = presentTaskProject(current);
     const updated = await prisma.project.update({
       where: { id: projectId },
@@ -190,8 +206,9 @@ export async function DELETE(request: NextRequest) {
       },
       LOG_SOURCE
     );
+    const t = await getT();
     return NextResponse.json(
-      { error: "Détachement impossible" },
+      { error: t("api.projects.detachFailed") },
       { status: 500 }
     );
   }

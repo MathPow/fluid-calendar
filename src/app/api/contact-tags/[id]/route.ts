@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { contactTagSelect } from "@/lib/projets/queries";
@@ -29,11 +30,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       where: { name: { equals: name, mode: "insensitive" }, id: { not: id } },
       select: { id: true },
     });
-    if (clash)
+    if (clash) {
+      const t = await getT();
       return NextResponse.json(
-        { error: "Un tag porte déjà ce nom." },
+        { error: t("api.contactTags.duplicate") },
         { status: 409 }
       );
+    }
   }
   const tag = await prisma.contactTag
     .update({
@@ -45,7 +48,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       select: contactTagSelect,
     })
     .catch(() => null);
-  if (!tag) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!tag) {
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.common.notFound") },
+      { status: 404 }
+    );
+  }
   return NextResponse.json(tag);
 }
 
@@ -55,7 +64,12 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const { count } = await prisma.contactTag.deleteMany({ where: { id } });
-  if (!count)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!count) {
+    const t = await getT();
+    return NextResponse.json(
+      { error: t("api.common.notFound") },
+      { status: 404 }
+    );
+  }
   return new NextResponse(null, { status: 204 });
 }

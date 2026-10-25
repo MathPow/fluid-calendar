@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { logger } from "@/lib/logger";
@@ -50,8 +51,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
+    const t = await getT();
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { error: t("api.common.updateFailed") },
       { status: 500 }
     );
   }

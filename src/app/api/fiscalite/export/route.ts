@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { buildWorkbook } from "@/lib/fiscalite/excel";
 import { DEFAULT_PROFILE, fiscalYearRange } from "@/lib/fiscalite/meta";
@@ -24,7 +25,13 @@ export async function GET(request: NextRequest) {
     where: { id: organisationId },
     select: { name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) {
+    const tr = await getT();
+    return NextResponse.json(
+      { error: tr("api.organisations.notFound") },
+      { status: 404 }
+    );
+  }
 
   const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[], partnerShares: [] as number[] };
   const t = org.taxProfile;
