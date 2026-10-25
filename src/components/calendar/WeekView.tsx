@@ -7,6 +7,7 @@ import type {
   EventDropArg,
 } from "@fullcalendar/core";
 import type { DateSelectArg } from "@fullcalendar/core";
+import frLocale from "@fullcalendar/core/locales/fr";
 import interactionPlugin, {
   EventResizeDoneArg,
 } from "@fullcalendar/interaction";
@@ -15,7 +16,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 
 import { TaskModal } from "@/components/tasks/TaskModal";
 
-import { useT } from "@/i18n/client";
+import { useLocale, useT } from "@/i18n/client";
 import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { newDate } from "@/lib/date-utils";
 
@@ -45,6 +46,7 @@ interface WeekViewProps {
 
 export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
   const t = useT();
+  const locale = useLocale();
   const { feeds, getAllCalendarItems, isLoading, removeEvent, updateEvent } =
     useCalendarStore();
   const { user: userSettings, calendar: calendarSettings } = useSettingsStore();
@@ -405,6 +407,9 @@ export function WeekView({ currentDate, onDateClick }: WeekViewProps) {
         headerToolbar={false}
         initialDate={currentDate}
         events={calendarEvents}
+        locales={[frLocale]}
+        locale={locale}
+        allDayText={t("calendar.week.allDay")}
         nowIndicator={true}
         allDaySlot={true}
         slotMinTime="00:00:00"
