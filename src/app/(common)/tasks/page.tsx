@@ -145,11 +145,15 @@ export default function TasksPage() {
     const setFocus = useAssistantStore.getState().setFocus;
     setFocus(
       isOpen && selectedTask
-        ? `Tâche ouverte : « ${selectedTask.title} » (id=${selectedTask.id}, statut ${selectedTask.status})`
+        ? t("tasks.focus.open", {
+            title: selectedTask.title,
+            id: selectedTask.id,
+            status: t(`tasks.status.${selectedTask.status}`),
+          })
         : null
     );
     return () => setFocus(null);
-  }, [isOpen, selectedTask]);
+  }, [isOpen, selectedTask, t]);
 
   const handleCreateTaskClick = () => {
     setSelectedTask(undefined);
@@ -213,7 +217,7 @@ export default function TasksPage() {
               onClick={() => scheduleAllTasks()}
               className="segmented-item md:hidden"
             >
-              Auto Schedule
+              {t("tasks.actions.autoSchedule")}
             </button>
             <Link href="/focus" className="segmented-item">
               <Target className="h-4 w-4" />
