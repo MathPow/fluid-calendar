@@ -123,7 +123,8 @@ export function ProjectTile({
           {projectTerminals(project).map((terminal) => (
             <DropdownMenuItem key={terminal.id} asChild>
               <a href={terminal.url} target="_blank" rel="noopener noreferrer">
-                <SquareTerminal /> Terminal · {terminal.machine}
+                <SquareTerminal />{" "}
+                {t("projects.tile.terminalItem", { machine: terminal.machine })}
               </a>
             </DropdownMenuItem>
           ))}
