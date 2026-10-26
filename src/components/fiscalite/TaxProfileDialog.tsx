@@ -621,7 +621,7 @@ export function TaxProfileDialog({
                 <Input
                   id="tp-address"
                   {...field("address")}
-                  placeholder="123, rue Saint-Joseph Est"
+                  placeholder={t("fiscalite.taxProfile.address.placeholder")}
                 />
               </div>
               <div className="space-y-2 sm:col-span-3">

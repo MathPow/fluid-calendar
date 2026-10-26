@@ -73,7 +73,7 @@ export function ShowcaseRunControl({
     } catch {
       // Offline for a moment (phone); the next poll catches up.
     }
-  }, [endpoint, router]);
+  }, [endpoint, router, t]);
 
   const active = isActive(run);
   useEffect(() => {
