@@ -22,6 +22,7 @@ import {
 
 import { useLocale, useT } from "@/i18n/client";
 import {
+  ROUTINE_KINDS,
   type RoutineBlockLite,
   crossesMidnight,
   formatDays,
@@ -33,10 +34,10 @@ import { useViewStore } from "@/store/calendar";
 import { useRoutineStore } from "@/store/routine";
 import { useSettingsStore } from "@/store/settings";
 
-/** A first week to edit rather than an empty screen: the usual three blocks. */
-const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
+/** A first week to edit rather than an empty screen: the usual three blocks.
+ *  The title is set at seed time from the kind's localized label. */
+const STARTER: Omit<RoutineBlockLite, "id" | "layerId" | "title">[] = [
   {
-    title: "Travail",
     kind: "work",
     color: null,
     days: [1, 2, 3, 4, 5],
@@ -45,7 +46,6 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
     schedulable: true,
   },
   {
-    title: "Sommeil",
     kind: "sleep",
     color: null,
     days: [0, 1, 2, 3, 4, 5, 6],
@@ -54,7 +54,6 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
     schedulable: false,
   },
   {
-    title: "Entraînement",
     kind: "sport",
     color: null,
     days: [1, 3, 5],
@@ -89,7 +88,11 @@ export function RoutineLayers() {
 
   const seed = async () => {
     setSeeding(true);
-    for (const block of STARTER) await store.createBlock(block);
+    for (const block of STARTER) {
+      const preset = ROUTINE_KINDS.find((k) => k.value === block.kind);
+      const title = preset ? t(preset.labelKey) : block.kind;
+      await store.createBlock({ ...block, title });
+    }
     setSeeding(false);
   };
 
