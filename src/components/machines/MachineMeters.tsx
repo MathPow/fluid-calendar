@@ -139,9 +139,9 @@ export function MachineMeters({ stats }: { stats: MachineStats }) {
   return (
     <div>
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Meter label="CPU" pct={s.cpu} metric="cpu" />
+        <Meter label={t("machines.meters.cpu")} pct={s.cpu} metric="cpu" />
         <Meter
-          label="RAM"
+          label={t("machines.meters.ram")}
           pct={s.ram?.pct}
           detail={s.ram ? size(s.ram) : undefined}
           metric="ram"
@@ -155,7 +155,7 @@ export function MachineMeters({ stats }: { stats: MachineStats }) {
         {s.gpu && (
           <>
             <Meter
-              label="GPU"
+              label={t("machines.meters.gpu")}
               pct={s.gpu.util}
               detail={
                 typeof s.gpu.watts === "number"
@@ -164,7 +164,7 @@ export function MachineMeters({ stats }: { stats: MachineStats }) {
               }
             />
             <Meter
-              label="VRAM"
+              label={t("machines.meters.vram")}
               pct={s.gpu.vram?.pct}
               detail={s.gpu.vram ? size(s.gpu.vram) : undefined}
             />
