@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -21,6 +22,7 @@ const Body = z.object({
 export async function POST(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   let json: unknown;
   try {
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Enregistrement impossible" },
+      { error: t("api.errors.saveFailed") },
       { status: 500 }
     );
   }
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
 export async function DELETE(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   const locationId = request.nextUrl.searchParams.get("locationId");
   if (!locationId)
@@ -76,7 +79,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Suppression impossible" },
+      { error: t("api.errors.deleteFailed") },
       { status: 500 }
     );
   }

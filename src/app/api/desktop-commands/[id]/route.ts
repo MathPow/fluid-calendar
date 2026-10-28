@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { expireCommands } from "@/lib/desktop-agent";
 import { prisma } from "@/lib/prisma";
@@ -14,12 +15,13 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   const cmd = await prisma.desktopCommand.findUnique({
     where: { id },
     select: { machineId: true, status: true, output: true, error: true },
   });
-  if (!cmd) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!cmd) return NextResponse.json({ error: t("api.errors.notFound") }, { status: 404 });
   if (cmd.status === "queued" || cmd.status === "running")
     await expireCommands(cmd.machineId);
   const fresh = await prisma.desktopCommand.findUnique({

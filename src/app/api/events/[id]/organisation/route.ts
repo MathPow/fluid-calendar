@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { eventKey } from "@/lib/event-organisation";
 import { prisma } from "@/lib/prisma";
@@ -18,12 +19,13 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PUT(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
 
   const body = (await request.json().catch(() => null)) as { organisationId?: unknown } | null;
   const organisationId = body?.organisationId;
   if (organisationId !== null && typeof organisationId !== "string") {
-    return NextResponse.json({ error: "organisationId (string | null) attendu" }, { status: 400 });
+    return NextResponse.json({ error: t("api.events.organisationIdExpected") }, { status: 400 });
   }
 
   const select = {
@@ -36,7 +38,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   } as const;
   const event = await prisma.calendarEvent.findUnique({ where: { id }, select });
   if (!event || event.feed.userId !== auth.userId) {
-    return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.events.notFound") }, { status: 404 });
   }
   const master = event.masterEventId
     ? await prisma.calendarEvent.findUnique({ where: { id: event.masterEventId }, select })
@@ -49,7 +51,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     return NextResponse.json({ organisationId: null });
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId }, select: { id: true } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ error: t("api.organisations.notFound") }, { status: 404 });
   await prisma.eventOrganisation.upsert({
     where,
     create: { feedId: event.feedId, eventKey: key, organisationId },

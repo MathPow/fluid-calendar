@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { LayerInput, layerInclude } from "@/lib/routine-schemas";
@@ -12,6 +13,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   const parsed = LayerInput.partial().safeParse(
     await request.json().catch(() => null)
@@ -26,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id, userId: auth.userId },
   });
   if (!owned)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.errors.notFound") }, { status: 404 });
   const layer = await prisma.calendarLayer.update({
     where: { id },
     data: parsed.data,

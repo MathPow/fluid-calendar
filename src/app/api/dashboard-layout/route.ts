@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { Prisma } from "@prisma/client";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { sanitizeLayout } from "@/lib/dashboard/layout";
 import { prisma } from "@/lib/prisma";
@@ -27,12 +28,13 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const body = await request.json().catch(() => null);
   const layout =
     body?.layout === null ? null : sanitizeLayout(body?.layout ?? undefined);
   if (body?.layout !== null && !layout) {
     return NextResponse.json(
-      { error: "Disposition invalide" },
+      { error: t("api.errors.invalidLayout") },
       { status: 400 }
     );
   }

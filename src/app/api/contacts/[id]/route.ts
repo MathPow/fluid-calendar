@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +17,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
 
   let json: unknown;
@@ -83,7 +85,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Mise à jour impossible" }, { status: 500 });
+    return NextResponse.json({ error: t("api.errors.updateFailed") }, { status: 500 });
   }
 }
 
@@ -91,6 +93,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 export async function DELETE(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   try {
     await prisma.contact.delete({ where: { id } });
@@ -101,6 +104,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Suppression impossible" }, { status: 500 });
+    return NextResponse.json({ error: t("api.errors.deleteFailed") }, { status: 500 });
   }
 }

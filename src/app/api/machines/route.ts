@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   let json: unknown;
   try {
     json = await request.json();
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Enregistrement impossible" },
+      { error: t("api.errors.saveFailed") },
       { status: 500 }
     );
   }

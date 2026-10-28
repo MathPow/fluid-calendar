@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { InvoicePatch, IssueInput } from "@/lib/facturation/schemas";
 import { issuedSelect, saveIssuedInvoice, toIssuedView } from "@/lib/facturation/service";
@@ -20,6 +21,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   const body = await request.json().catch(() => null);
 
@@ -48,7 +50,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   if (existing.lines == null) {
     // Imported invoices keep their original file: edit them in Fiscalité.
-    return NextResponse.json({ error: "Facture importée : modifie-la dans Fiscalité" }, { status: 409 });
+    return NextResponse.json({ error: t("api.facturation.importedEditInFiscalite") }, { status: 409 });
   }
   try {
     return NextResponse.json(await saveIssuedInvoice(parsed.data, id));
@@ -58,7 +60,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return NextResponse.json({ error: t("api.errors.saveFailed") }, { status: 500 });
   }
 }
 
