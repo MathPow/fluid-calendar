@@ -83,7 +83,7 @@ export function ProjectLocationsTile({
         const field = data.details?.fieldErrors
           ? Object.values(data.details.fieldErrors).flat()[0]
           : undefined;
-        throw new Error(field || data.error || `Erreur ${res.status}`);
+        throw new Error(field || data.error || t("errors.status", { status: res.status }));
       }
       toast.success(done);
       router.refresh();

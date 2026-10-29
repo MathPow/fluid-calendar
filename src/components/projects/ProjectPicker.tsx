@@ -159,7 +159,7 @@ export function ProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ agentProjectId: v.slice(AGENT.length) }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("errors.status", { status: res.status }));
       const list = (await res.json()) as { id: string };
       await Promise.all([fetchProjects(), reload()]);
       onChange(list.id);
@@ -290,7 +290,7 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name: org?.name ?? "Organisation", organisationId: id, color: org?.color ?? undefined }),
     });
-    if (!res.ok) throw new Error(`Erreur ${res.status}`);
+    if (!res.ok) throw new Error(t("errors.status", { status: res.status }));
     const list = (await res.json()) as { id: string };
     await Promise.all([fetchProjects(), reload()]);
     return list.id;
@@ -327,7 +327,7 @@ export function OrgProjectPicker({ value, onChange, id }: ProjectPickerProps) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ agentProjectId: v.slice(AGENT.length) }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("errors.status", { status: res.status }));
       const list = (await res.json()) as { id: string };
       await Promise.all([fetchProjects(), reload()]);
       onChange(list.id);

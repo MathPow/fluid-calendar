@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -26,29 +26,30 @@ import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "PasswordResetForm";
 
-// Form validation schema
-const requestSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
-
-const resetSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-      ),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
+const requestSchemaFactory = (t: (k: string) => string) =>
+  z.object({
+    email: z.string().email(t("auth.resetPassword.validation.email")),
   });
 
-type RequestFormValues = z.infer<typeof requestSchema>;
-type ResetFormValues = z.infer<typeof resetSchema>;
+const resetSchemaFactory = (t: (k: string) => string) =>
+  z
+    .object({
+      password: z
+        .string()
+        .min(8, t("auth.resetPassword.validation.passwordMin"))
+        .regex(
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/,
+          t("auth.resetPassword.validation.passwordComplexity")
+        ),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t("auth.resetPassword.validation.passwordsMismatch"),
+      path: ["confirmPassword"],
+    });
+
+type RequestFormValues = z.infer<ReturnType<typeof requestSchemaFactory>>;
+type ResetFormValues = z.infer<ReturnType<typeof resetSchemaFactory>>;
 
 export function PasswordResetForm() {
   const t = useT();
@@ -56,6 +57,9 @@ export function PasswordResetForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [isLoading, setIsLoading] = useState(false);
+
+  const requestSchema = useMemo(() => requestSchemaFactory(t), [t]);
+  const resetSchema = useMemo(() => resetSchemaFactory(t), [t]);
 
   const {
     register: registerRequest,

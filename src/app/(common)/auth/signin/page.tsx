@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 
 import { SignInForm } from "@/components/auth/SignInForm";
+import { getT } from "@/i18n/server";
 
 import { getAuthOptions } from "@/lib/auth/auth-options";
 
@@ -19,6 +20,8 @@ export default async function SignInPage() {
     redirect("/dashboard");
   }
 
+  const t = await getT();
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="page flex h-20 items-center">
@@ -29,11 +32,10 @@ export default async function SignInPage() {
 
       <main className="page flex flex-1 flex-col items-center pb-16 pt-6 md:pt-14">
         <h1 className="display text-center text-[44px] sm:text-[64px] md:text-[80px]">
-          Welcome back.
+          {t("auth.signin.heading")}
         </h1>
         <p className="mt-6 max-w-md text-center text-[15px] leading-relaxed text-muted-foreground">
-          Your personal command center — calendar, tasks, email and notes,
-          all in one place.
+          {t("auth.signin.subheading")}
         </p>
 
         <SignInForm />
