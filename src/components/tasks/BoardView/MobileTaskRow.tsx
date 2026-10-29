@@ -75,7 +75,7 @@ export function MobileTaskRow({
     >
       <button
         type="button"
-        aria-label={`Ouvrir ${task.title}`}
+        aria-label={t("tasks.row.openAria", { title: task.title })}
         className="min-h-12 min-w-0 flex-1 rounded-lg px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => {
           if (swiped.current) {
