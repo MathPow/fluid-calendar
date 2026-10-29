@@ -2280,6 +2280,7 @@
   "tasks.view.board": "Tableau",
   "tasks.view.focus": "Focus",
   "tasks.view.list": "Liste",
+  "themeToggle.aria": "Changer le thème",
   "toasts.common.saveFailed": "Enregistrement impossible",
   "toasts.contacts.created": "Contact créé.",
   "toasts.contacts.deleteFailed": "Suppression impossible",

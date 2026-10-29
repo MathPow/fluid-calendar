@@ -2280,6 +2280,7 @@
   "tasks.view.board": "Board",
   "tasks.view.focus": "Focus",
   "tasks.view.list": "List",
+  "themeToggle.aria": "Toggle theme",
   "toasts.common.saveFailed": "Save failed",
   "toasts.contacts.created": "Contact created.",
   "toasts.contacts.deleteFailed": "Couldn't delete",
