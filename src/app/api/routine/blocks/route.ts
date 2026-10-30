@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
         data: { userId: auth.userId, name: "Semaine type" },
       })));
   if (!layer)
-    return NextResponse.json({ error: "Calque introuvable" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Calque introuvable", errorKey: "errors.routine.layerNotFound" },
+      { status: 404 }
+    );
 
   const count = await prisma.routineBlock.count({
     where: { layerId: layer.id },

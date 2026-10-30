@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { create } from "zustand";
 
-import { translate } from "@/i18n/catalogs";
+import { catalogs, translate } from "@/i18n/catalogs";
 import { useSettingsStore } from "@/store/settings";
 
 import type { RoutineBlockLite, RoutineLayerLite } from "@/lib/routine";
@@ -58,7 +58,15 @@ async function send<T>(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || tr("toasts.routine.serverError"));
+    const locale =
+      (useSettingsStore.getState().user.locale as "fr" | "en") || "fr";
+    const key =
+      typeof err.errorKey === "string" ? err.errorKey : null;
+    const translated =
+      key && typeof catalogs[locale]?.[key] === "string" ? tr(key) : null;
+    throw new Error(
+      translated || err.error || tr("toasts.routine.serverError")
+    );
   }
   return res.json();
 }

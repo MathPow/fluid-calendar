@@ -30,13 +30,19 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Introuvable", errorKey: "errors.routine.notFound" },
+      { status: 404 }
+    );
 
   const { layerId, ...data } = parsed.data;
   const merged = { ...current, ...data };
   if (merged.startTime === merged.endTime) {
     return NextResponse.json(
-      { error: "Le bloc doit durer plus de zéro minute" },
+      {
+        error: "Le bloc doit durer plus de zéro minute",
+        errorKey: "errors.routine.minDuration",
+      },
       { status: 400 }
     );
   }
@@ -46,7 +52,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     if (!layer)
       return NextResponse.json(
-        { error: "Calque introuvable" },
+        { error: "Calque introuvable", errorKey: "errors.routine.layerNotFound" },
         { status: 404 }
       );
   }
@@ -65,7 +71,10 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Introuvable", errorKey: "errors.routine.notFound" },
+      { status: 404 }
+    );
   await prisma.routineBlock.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
