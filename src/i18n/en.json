@@ -2240,6 +2240,7 @@
   "tasks.list.sortAria": "Sort tasks",
   "tasks.mobile.completeAria": "Complete {title}",
   "tasks.mobile.deleteAria": "Delete {title}",
+  "tasks.mobile.openAria": "Open {title}",
   "tasks.mobile.swipeHint": "Swipe right to complete, left to delete.",
   "tasks.priority.high": "High",
   "tasks.priority.low": "Low",
