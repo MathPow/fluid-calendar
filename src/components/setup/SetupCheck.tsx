@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { usePathname, useRouter } from "next/navigation";
 
+import { useT } from "@/i18n";
 import { checkSetupStatus } from "@/lib/setup-actions";
 
 import { useSetupStore } from "@/store/setup";
@@ -13,6 +14,7 @@ import { useSetupStore } from "@/store/setup";
 const CHECK_INTERVAL = 60 * 60 * 1000;
 
 export function SetupCheck() {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
@@ -106,5 +108,5 @@ export function SetupCheck() {
   ]);
 
   // Show loading state or render nothing
-  return loading ? <div>Loading...</div> : null;
+  return loading ? <div>{t("common.loading")}</div> : null;
 }

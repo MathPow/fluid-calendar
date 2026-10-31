@@ -454,13 +454,19 @@ export function EmailClient() {
       return;
     }
     const from = detail.from[0];
+    const sender = from?.name || from?.address || "?";
+    const base = t("mail.assistantFocus.open", {
+      subject: detail.subject,
+      sender,
+    });
+    const dateLine = detail.date
+      ? t("mail.assistantFocus.receivedOn", { date: detail.date })
+      : "";
     setFocus(
-      `Courriel ouvert : « ${detail.subject} » de ${from?.name || from?.address || "?"}` +
-        (detail.date ? `, reçu le ${detail.date}` : "") +
-        ` (account=${selected.accountId}, mailbox=${selected.mailbox}, uid=${selected.uid})`
+      `${base}${dateLine} (account=${selected.accountId}, mailbox=${selected.mailbox}, uid=${selected.uid})`
     );
     return () => setFocus(null);
-  }, [selected, detail]);
+  }, [selected, detail, t]);
 
   const closeMessage = () => {
     setSelected(null);
