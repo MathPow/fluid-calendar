@@ -46,10 +46,12 @@ const FILL: Record<Level, string> = {
 
 const round = (v: number) => (v >= 10 ? v.toFixed(0) : v.toFixed(1));
 
-const size = (u: Usage) =>
-  u.total >= 100
-    ? `${u.used.toFixed(0)} / ${u.total.toFixed(0)} Go`
-    : `${u.used.toFixed(1)} / ${u.total.toFixed(1)} Go`;
+const size = (t: TranslateFn, u: Usage) => {
+  const gb = t("machines.units.gigabyte");
+  return u.total >= 100
+    ? `${u.used.toFixed(0)} / ${u.total.toFixed(0)} ${gb}`
+    : `${u.used.toFixed(1)} / ${u.total.toFixed(1)} ${gb}`;
+};
 
 const rate = (kbps: number) =>
   kbps >= 1000 ? `${(kbps / 1000).toFixed(1)} Mb/s` : `${kbps.toFixed(0)} kb/s`;
@@ -143,13 +145,13 @@ export function MachineMeters({ stats }: { stats: MachineStats }) {
         <Meter
           label="RAM"
           pct={s.ram?.pct}
-          detail={s.ram ? size(s.ram) : undefined}
+          detail={s.ram ? size(t, s.ram) : undefined}
           metric="ram"
         />
         <Meter
           label={t("machines.meters.disk")}
           pct={s.disk?.pct}
-          detail={s.disk ? size(s.disk) : undefined}
+          detail={s.disk ? size(t, s.disk) : undefined}
           metric="disk"
         />
         {s.gpu && (
@@ -166,7 +168,7 @@ export function MachineMeters({ stats }: { stats: MachineStats }) {
             <Meter
               label="VRAM"
               pct={s.gpu.vram?.pct}
-              detail={s.gpu.vram ? size(s.gpu.vram) : undefined}
+              detail={s.gpu.vram ? size(t, s.gpu.vram) : undefined}
             />
           </>
         )}
