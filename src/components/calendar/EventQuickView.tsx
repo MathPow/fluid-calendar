@@ -235,8 +235,15 @@ export function EventQuickView({
                             getStatusColor(attendee.status)
                           )}
                         >
-                          {attendee.status?.toLowerCase() ||
-                            t("calendar.event.quickView.pending")}
+                          {attendee.status === "ACCEPTED"
+                            ? t("calendar.event.quickView.attendeeStatus.accepted")
+                            : attendee.status === "TENTATIVE"
+                              ? t("calendar.event.quickView.attendeeStatus.tentative")
+                              : attendee.status === "DECLINED"
+                                ? t("calendar.event.quickView.attendeeStatus.declined")
+                                : attendee.status === "NEEDS-ACTION"
+                                  ? t("calendar.event.quickView.attendeeStatus.needsAction")
+                                  : t("calendar.event.quickView.pending")}
                         </span>
                       </div>
                     ))}
@@ -285,7 +292,11 @@ export function EventQuickView({
                       taskItem.status === TaskStatus.TODO,
                   })}
                 >
-                  {taskItem.status.toLowerCase().replace("_", " ")}
+                  {taskItem.status === TaskStatus.COMPLETED
+                    ? t("calendar.event.quickView.taskStatus.completed")
+                    : taskItem.status === TaskStatus.IN_PROGRESS
+                      ? t("calendar.event.quickView.taskStatus.inProgress")
+                      : t("calendar.event.quickView.taskStatus.todo")}
                 </span>
               </div>
 
