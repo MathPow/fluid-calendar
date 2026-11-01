@@ -29,6 +29,11 @@ import { useAdmin } from "@/hooks/use-admin";
 
 import { useSettingsStore } from "@/store/settings";
 
+function WaitlistLoading() {
+  const t = useT();
+  return <p>{t("common.loading")}</p>;
+}
+
 // Add dynamic import for the waitlist page
 const WaitlistPage = dynamic(
   () =>
@@ -40,7 +45,7 @@ const WaitlistPage = dynamic(
       }`
     ),
   {
-    loading: () => <p>Loading...</p>,
+    loading: WaitlistLoading,
   }
 );
 
