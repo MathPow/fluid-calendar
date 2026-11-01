@@ -7,7 +7,10 @@ import { NotificationList } from "@/components/notifications/NotificationList";
 import { useNotifications } from "@/components/notifications/useNotifications";
 import { Button } from "@/components/ui/button";
 
+import { useT } from "@/i18n";
+
 export default function NotificationsPage() {
+  const t = useT();
   const { items, unread, loaded, markRead, markUnread, remove } =
     useNotifications();
 
@@ -15,7 +18,7 @@ export default function NotificationsPage() {
     <div className="page py-5 md:py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-title md:text-4xl">
-          Notifications
+          {t("notifications.title")}
         </h1>
         <div className="flex items-center gap-2">
           <Button
@@ -23,7 +26,7 @@ export default function NotificationsPage() {
             disabled={!unread}
             onClick={() => markRead("all")}
           >
-            Tout marquer lu
+            {t("notifications.markAllRead")}
           </Button>
           <NotificationBell />
         </div>
@@ -43,10 +46,10 @@ export default function NotificationsPage() {
             }}
             onDelete={async (n) => {
               if (
-                confirm("Supprimer cette notification ?") &&
+                confirm(t("notifications.deleteConfirm")) &&
                 !(await remove([n.id]))
               ) {
-                toast.error("La notification n’a pas pu être supprimée.");
+                toast.error(t("notifications.deleteError"));
               }
             }}
           />
@@ -55,9 +58,7 @@ export default function NotificationsPage() {
             className="px-4 py-10 text-center text-sm text-muted-foreground"
             role="status"
           >
-            {loaded
-              ? "Rien de neuf pour l’instant."
-              : "Chargement des notifications…"}
+            {loaded ? t("notifications.emptyAll") : t("notifications.loading")}
           </p>
         )}
       </div>
