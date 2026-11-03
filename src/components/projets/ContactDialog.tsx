@@ -158,7 +158,7 @@ export function ContactDialog({
         const fieldMsg = data.details?.fieldErrors
           ? Object.values(data.details.fieldErrors).flat()[0]
           : undefined;
-        throw new Error(fieldMsg || data.error || `Erreur ${res.status}`);
+        throw new Error(fieldMsg || data.error || t("common.error", { status: res.status }));
       }
       toast.success(
         editing ? t("toasts.contacts.updated") : t("toasts.contacts.created")
@@ -181,7 +181,7 @@ export function ContactDialog({
     setSubmitting(true);
     try {
       const res = await fetch(`/api/contacts/${contact.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
       toast.success(t("toasts.contacts.deleted"));
       onOpenChange(false);
       router.refresh();

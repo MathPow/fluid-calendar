@@ -126,7 +126,7 @@ export function FeedManager() {
           headers: { "content-type": "application/json" },
           body: JSON.stringify(patch),
         });
-        if (!res.ok) throw new Error(`Erreur ${res.status}`);
+        if (!res.ok) throw new Error(t("common.error", { status: res.status }));
         await loadFromDatabase();
         toast.success(done);
       } catch (e) {
