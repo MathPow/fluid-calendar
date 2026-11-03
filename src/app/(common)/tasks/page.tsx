@@ -213,7 +213,7 @@ export default function TasksPage() {
               onClick={() => scheduleAllTasks()}
               className="segmented-item md:hidden"
             >
-              Auto Schedule
+              {t("tasks.actions.autoSchedule")}
             </button>
             <Link href="/focus" className="segmented-item">
               <Target className="h-4 w-4" />
