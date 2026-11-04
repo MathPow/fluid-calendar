@@ -3,12 +3,16 @@ import { redirect } from "next/navigation";
 
 import { SignInForm } from "@/components/auth/SignInForm";
 
+import { getT } from "@/i18n/server";
 import { getAuthOptions } from "@/lib/auth/auth-options";
 
-export const metadata = {
-  title: "Sign In | DreamDash",
-  description: "Sign in to your DreamDash account",
-};
+export async function generateMetadata() {
+  const t = await getT();
+  return {
+    title: t("auth.signIn.metaTitle"),
+    description: t("auth.signIn.metaDescription"),
+  };
+}
 
 export default async function SignInPage() {
   // Check if user is already signed in
@@ -18,6 +22,8 @@ export default async function SignInPage() {
   if (session) {
     redirect("/dashboard");
   }
+
+  const t = await getT();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -29,11 +35,10 @@ export default async function SignInPage() {
 
       <main className="page flex flex-1 flex-col items-center pb-16 pt-6 md:pt-14">
         <h1 className="display text-center text-[44px] sm:text-[64px] md:text-[80px]">
-          Welcome back.
+          {t("auth.signIn.heading")}
         </h1>
         <p className="mt-6 max-w-md text-center text-[15px] leading-relaxed text-muted-foreground">
-          Your personal command center — calendar, tasks, email and notes,
-          all in one place.
+          {t("auth.signIn.tagline")}
         </p>
 
         <SignInForm />

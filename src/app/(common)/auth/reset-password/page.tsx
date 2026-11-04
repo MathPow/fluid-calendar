@@ -1,11 +1,17 @@
 import { PasswordResetForm } from "@/components/auth/PasswordResetForm";
 
-export const metadata = {
-  title: "Reset Password - DreamDash",
-  description: "Reset your DreamDash account password",
-};
+import { getT } from "@/i18n/server";
 
-export default function ResetPasswordPage() {
+export async function generateMetadata() {
+  const t = await getT();
+  return {
+    title: t("auth.resetPassword.metaTitle"),
+    description: t("auth.resetPassword.metaDescription"),
+  };
+}
+
+export default async function ResetPasswordPage() {
+  const t = await getT();
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="page flex h-20 items-center">
@@ -15,7 +21,7 @@ export default function ResetPasswordPage() {
       </header>
       <main className="page flex flex-1 flex-col items-center pb-16 pt-6 md:pt-14">
         <h1 className="display mb-10 text-center text-[44px] sm:text-[64px] md:text-[80px]">
-          New password.
+          {t("auth.resetPassword.heading")}
         </h1>
         <PasswordResetForm />
       </main>

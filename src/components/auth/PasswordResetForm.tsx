@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -26,29 +26,8 @@ import { logger } from "@/lib/logger";
 
 const LOG_SOURCE = "PasswordResetForm";
 
-// Form validation schema
-const requestSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
-
-const resetSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-      ),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type RequestFormValues = z.infer<typeof requestSchema>;
-type ResetFormValues = z.infer<typeof resetSchema>;
+type RequestFormValues = { email: string };
+type ResetFormValues = { password: string; confirmPassword: string };
 
 export function PasswordResetForm() {
   const t = useT();
@@ -56,6 +35,34 @@ export function PasswordResetForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [isLoading, setIsLoading] = useState(false);
+
+  const requestSchema = useMemo(
+    () =>
+      z.object({
+        email: z.string().email(t("auth.resetPassword.validation.invalidEmail")),
+      }),
+    [t]
+  );
+
+  const resetSchema = useMemo(
+    () =>
+      z
+        .object({
+          password: z
+            .string()
+            .min(8, t("auth.resetPassword.validation.passwordTooShort"))
+            .regex(
+              /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/,
+              t("auth.resetPassword.validation.passwordComplexity")
+            ),
+          confirmPassword: z.string(),
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: t("auth.resetPassword.validation.passwordsMismatch"),
+          path: ["confirmPassword"],
+        }),
+    [t]
+  );
 
   const {
     register: registerRequest,

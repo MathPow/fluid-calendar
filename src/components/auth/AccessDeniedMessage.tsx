@@ -1,31 +1,25 @@
+"use client";
+
 import React from "react";
 
-interface AccessDeniedMessageProps {
-  /**
-   * Custom message to display
-   * @default "You do not have permission to access this resource."
-   */
-  message?: string;
+import { useT } from "@/i18n";
 
-  /**
-   * Custom title to display
-   * @default "Access Denied"
-   */
+interface AccessDeniedMessageProps {
+  message?: string;
   title?: string;
 }
 
-/**
- * A reusable component to display an access denied message
- * Used when a user tries to access a resource they don't have permission for
- */
 export default function AccessDeniedMessage({
-  message = "You do not have permission to access this resource.",
-  title = "Access Denied",
+  message,
+  title,
 }: AccessDeniedMessageProps) {
+  const t = useT();
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold text-negative-foreground">{title}</h2>
-      <p className="mt-2">{message}</p>
+      <h2 className="text-xl font-bold text-negative-foreground">
+        {title ?? t("auth.accessDenied.title")}
+      </h2>
+      <p className="mt-2">{message ?? t("auth.accessDenied.message")}</p>
     </div>
   );
 }
