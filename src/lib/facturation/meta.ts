@@ -6,6 +6,9 @@
 export const GST_RATE = 0.05;
 export const QST_RATE = 0.09975;
 
+/** Window event: the assistant created or changed an invoice. */
+export const INVOICES_CHANGED_EVENT = "dreamdash:invoices-changed";
+
 export type InvoiceLang = "fr" | "en";
 export type InvoiceStatus = "draft" | "sent" | "paid";
 export type Frequency = "weekly" | "monthly" | "quarterly" | "yearly";

@@ -10,14 +10,26 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
 import { retrieveSources } from "@/lib/ask/retrieve";
+import { addDays, formatCents, isoDay, type InvoiceLang } from "@/lib/facturation/meta";
+import { LineInput } from "@/lib/facturation/schemas";
+import {
+  type IssuedView,
+  invoicingOrgWhere,
+  issuedSelect,
+  nextNumberFor,
+  saveIssuedInvoice,
+  settingsFor,
+  toIssuedView,
+} from "@/lib/facturation/service";
+import { pdfText } from "@/lib/fiscalite/extract";
 import { loadAccounts } from "@/lib/mail/account";
 import { machineHealth } from "@/lib/machines/health";
 import { machineStats } from "@/lib/machines/netdata";
-import { getMessage, listMailboxes, listMessages } from "@/lib/mail/imap";
+import { getAttachment, getMessage, listMailboxes, listMessages } from "@/lib/mail/imap";
 import { isNotesConfigured, readNote } from "@/lib/notes/webdav";
 import { prisma } from "@/lib/prisma";
 
-import { USER_TZ, links } from "./links";
+import { USER_TZ, links, localDay } from "./links";
 
 export type LinkType =
   | "email"
@@ -29,6 +41,7 @@ export type LinkType =
   | "activity"
   | "contact"
   | "machine"
+  | "invoice"
   | "web";
 
 export interface LinkItem {
@@ -39,6 +52,12 @@ export interface LinkItem {
 }
 
 export type LinkRegistry = Map<string, LinkItem>;
+
+/** What a tool hands back to the model: JSON text, or blocks for a scanned file. */
+export type ToolOutput = NonNullable<Anthropic.Beta.BetaToolResultBlockParam["content"]>;
+
+/** Tools that change invoices, so an open Facturation page knows to reload. */
+export const INVOICE_WRITE_TOOLS = new Set(["create_invoice", "update_invoice"]);
 
 const fmt = (d: Date | string | null | undefined) =>
   d
@@ -68,6 +87,22 @@ const Ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Iso = z.string().min(10).max(40);
 const Priority = z.enum(["high", "medium", "low", "none"]);
 const TaskStatus = z.enum(["todo", "in_progress", "completed"]);
+const InvoiceLineInput = LineInput.extend({
+  description: z.string().trim().min(1).max(1000),
+});
+const invoiceContent = {
+  company: z.string().min(1).max(200).optional(),
+  contact_id: z.string().min(1).max(60).optional(),
+  bill_to: z.string().trim().max(1000).optional(),
+  client_email: z.string().trim().max(200).optional(),
+  number: z.string().trim().min(1).max(100).optional(),
+  date: Ymd.optional(),
+  due_date: Ymd.optional(),
+  title: z.string().trim().max(300).optional(),
+  apply_taxes: z.boolean().optional(),
+  lang: z.enum(["fr", "en"]).optional(),
+  notes: z.string().trim().max(4000).optional(),
+};
 
 const inputs = {
   search_email: z.object({
@@ -83,6 +118,12 @@ const inputs = {
     account_id: z.string().min(1),
     mailbox: z.string().min(1),
     uid: z.number().int().positive(),
+  }),
+  read_email_attachment: z.object({
+    account_id: z.string().min(1),
+    mailbox: z.string().min(1),
+    uid: z.number().int().positive(),
+    index: z.number().int().min(0),
   }),
   list_mail_folders: z.object({}),
   search_dreamdash: z.object({ query: z.string().min(1).max(300) }),
@@ -132,7 +173,120 @@ const inputs = {
   }),
   complete_task: z.object({ id: z.string().min(1) }),
   delete_task: z.object({ id: z.string().min(1) }),
+  list_invoices: z.object({
+    company: z.string().min(1).max(200).optional(),
+    query: z.string().max(200).optional(),
+    status: z.enum(["draft", "sent", "paid"]).optional(),
+    limit: z.number().int().min(1).max(50).optional(),
+  }),
+  create_invoice: z.object({
+    ...invoiceContent,
+    client: z.string().trim().min(1).max(200),
+    lines: z.array(InvoiceLineInput).min(1).max(100),
+  }),
+  update_invoice: z.object({
+    ...invoiceContent,
+    id: z.string().min(1),
+    client: z.string().trim().min(1).max(200).optional(),
+    lines: z.array(InvoiceLineInput).min(1).max(100).optional(),
+  }),
 };
+
+/** Largest scanned file handed to the model as a document or an image. */
+const MAX_INLINE_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const INLINE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
+
+async function invoicingCompanies() {
+  const rows = await prisma.organisation.findMany({
+    where: invoicingOrgWhere,
+    select: { id: true, name: true, taxProfile: { select: { salesTaxStatus: true } } },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+  return rows.map((o) => ({
+    id: o.id,
+    name: o.name,
+    registered: o.taxProfile?.salesTaxStatus === "inscrit",
+  }));
+}
+
+/** The issuing company, by id or name; optional only when there is just one. */
+async function resolveCompany(ref?: string) {
+  const companies = await invoicingCompanies();
+  if (!companies.length) {
+    throw new Error("Aucune entreprise ne peut facturer : active-en une dans Fiscalité.");
+  }
+  const names = companies.map((c) => c.name).join(", ");
+  if (!ref) {
+    if (companies.length === 1) return companies[0];
+    throw new Error(`Précise l'entreprise qui facture : ${names}.`);
+  }
+  const wanted = ref.trim().toLowerCase();
+  const match = companies.find((c) => c.id === ref || c.name.toLowerCase() === wanted);
+  if (!match) throw new Error(`Entreprise inconnue « ${ref} ». Choix : ${names}.`);
+  return match;
+}
+
+async function assertNumberFree(organisationId: string, number: string, exceptId?: string) {
+  const taken = await prisma.invoice.findFirst({
+    where: {
+      organisationId,
+      direction: "revenu",
+      number,
+      ...(exceptId ? { id: { not: exceptId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (taken) throw new Error(`Le numéro ${number} est déjà utilisé par une autre facture.`);
+}
+
+/**
+ * Tool calls run in parallel, and the next invoice number is read from the
+ * existing ones: writes go one at a time so two invoices can't share a number.
+ */
+let invoiceWrites: Promise<unknown> = Promise.resolve();
+function serialInvoiceWrite<T>(write: () => Promise<T>): Promise<T> {
+  const run = invoiceWrites.then(write, write);
+  invoiceWrites = run.catch(() => undefined);
+  return run;
+}
+
+function describeInvoice(view: IssuedView, add: (item: LinkItem) => string) {
+  const total = formatCents(view.totalCents, view.lang);
+  const title = view.number ? `Facture ${view.number}` : "Facture";
+  return {
+    id: view.id,
+    number: view.number,
+    status: view.status,
+    client: view.party,
+    client_email: view.clientEmail,
+    bill_to: view.billTo,
+    date: view.date,
+    due_date: view.dueDate,
+    description: view.description,
+    lines: view.lines,
+    apply_taxes: view.applyTaxes,
+    lang: view.lang,
+    notes: clip(view.notes, 500) || undefined,
+    subtotal: formatCents(view.subtotalCents, view.lang),
+    gst: formatCents(view.gstCents, view.lang),
+    qst: formatCents(view.qstCents, view.lang),
+    total,
+    sent_at: fmt(view.sentAt),
+    paid_at: fmt(view.paidAt),
+    editable: view.generated && view.status === "draft",
+    url: add({
+      type: "invoice",
+      title,
+      subtitle: [view.party, total, view.status].filter(Boolean).join(" · "),
+      url: links.invoice(view.id),
+    }),
+  };
+}
+
+const taxWarning = (applyTaxes: boolean, registered: boolean) =>
+  applyTaxes && !registered
+    ? "Cette entreprise n'est pas inscrite aux taxes, mais la facture charge la TPS et la TVQ. Signale-le à l'utilisateur."
+    : undefined;
 
 const LOCAL_FEED_NAME = process.env.FLUID_MCP_FEED_NAME ?? "Orka";
 
@@ -190,6 +344,21 @@ export const TOOL_DEFS: Anthropic.Beta.BetaToolUnion[] = [
         uid: { type: "integer" },
       },
       required: ["account_id", "mailbox", "uid"],
+    },
+  },
+  {
+    name: "read_email_attachment",
+    description:
+      "Read one attachment of a message: `index` is its position in the `attachments` list from read_email. Handles PDFs (scanned ones included), images and text files. Use it to get the details of an invoice received by email.",
+    input_schema: {
+      type: "object",
+      properties: {
+        account_id: { type: "string" },
+        mailbox: { type: "string" },
+        uid: { type: "integer" },
+        index: { type: "integer" },
+      },
+      required: ["account_id", "mailbox", "uid", "index"],
     },
   },
   {
@@ -355,6 +524,99 @@ export const TOOL_DEFS: Anthropic.Beta.BetaToolUnion[] = [
       required: ["id"],
     },
   },
+  {
+    name: "list_invoices",
+    description:
+      "Look up the Facturation page: the companies that can issue invoices (`companies`: tax registration, next number, default due days and language) and their client invoices, newest first, with their lines. Use it to copy an existing invoice or to find one to change.",
+    input_schema: {
+      type: "object",
+      properties: {
+        company: { type: "string", description: "Company name or id. Default: all of them." },
+        query: { type: "string", description: "Keyword in the client, number or description." },
+        status: { type: "string", enum: ["draft", "sent", "paid"] },
+        limit: { type: "integer", description: "Default 20." },
+      },
+    },
+  },
+  {
+    name: "create_invoice",
+    description:
+      "Create a client invoice in the Facturation page, as a draft with its PDF. It is not sent. `unitCents` is the unit price BEFORE taxes, in cents; taxes are added on top when `apply_taxes` is true, so back them out of a tax-included amount (1 149,75 $ with taxes = 100000 cents). Returns the computed totals: check them against what the user asked for.",
+    input_schema: {
+      type: "object",
+      properties: {
+        company: {
+          type: "string",
+          description: "Issuing company, name or id. Required when there are several (see list_invoices).",
+        },
+        client: { type: "string", description: "Client name." },
+        lines: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              description: { type: "string" },
+              quantity: { type: "number" },
+              unitCents: { type: "integer", description: "Unit price before taxes, in cents." },
+            },
+            required: ["description", "quantity", "unitCents"],
+          },
+        },
+        contact_id: { type: "string", description: "The client's id from search_contacts, when known." },
+        bill_to: { type: "string", description: "Client's billing address, several lines allowed." },
+        client_email: { type: "string" },
+        number: {
+          type: "string",
+          description: "Leave out to use the company's next number. Must not already be in use.",
+        },
+        date: { type: "string", description: "YYYY-MM-DD. Default: today." },
+        due_date: { type: "string", description: "YYYY-MM-DD. Default: the company's payment terms." },
+        title: { type: "string", description: "Short heading printed on the invoice." },
+        apply_taxes: {
+          type: "boolean",
+          description: "Charge TPS and TVQ. Default: only if the company is registered for sales taxes.",
+        },
+        lang: { type: "string", enum: ["fr", "en"], description: "Default: the company's language." },
+        notes: { type: "string", description: "Default: the company's standard notes." },
+      },
+      required: ["client", "lines"],
+    },
+  },
+  {
+    name: "update_invoice",
+    description:
+      "Change a draft invoice by `id` and regenerate its PDF. Only the fields you pass change; `lines` replaces every line. Invoices already sent or paid, and imported ones, can't be changed.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        client: { type: "string" },
+        lines: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              description: { type: "string" },
+              quantity: { type: "number" },
+              unitCents: { type: "integer", description: "Unit price before taxes, in cents." },
+            },
+            required: ["description", "quantity", "unitCents"],
+          },
+        },
+        contact_id: { type: "string" },
+        bill_to: { type: "string" },
+        client_email: { type: "string" },
+        number: { type: "string" },
+        date: { type: "string", description: "YYYY-MM-DD" },
+        due_date: { type: "string", description: "YYYY-MM-DD" },
+        title: { type: "string" },
+        apply_taxes: { type: "boolean" },
+        lang: { type: "string", enum: ["fr", "en"] },
+        notes: { type: "string" },
+      },
+      required: ["id"],
+    },
+  },
 ];
 
 /** Short French label shown in the chat while a tool runs. */
@@ -367,6 +629,8 @@ export function describeToolCall(name: string, input: unknown): string {
       return "Lecture des derniers courriels";
     case "read_email":
       return "Lecture d'un courriel";
+    case "read_email_attachment":
+      return "Lecture d'une pièce jointe";
     case "list_mail_folders":
       return "Liste des dossiers courriel";
     case "search_dreamdash":
@@ -395,6 +659,12 @@ export function describeToolCall(name: string, input: unknown): string {
       return `Tâche terminée ${i.id}`;
     case "delete_task":
       return `Suppression de la tâche ${i.id}`;
+    case "list_invoices":
+      return "Consultation de la facturation";
+    case "create_invoice":
+      return `Création d'une facture pour ${i.client}`;
+    case "update_invoice":
+      return "Mise à jour d'une facture";
     case "web_search":
       return `Recherche web : « ${i.query} »`;
     default:
@@ -411,7 +681,7 @@ export async function runTool(
   name: string,
   rawInput: unknown,
   registry: LinkRegistry
-): Promise<string> {
+): Promise<ToolOutput> {
   if (!(name in inputs)) throw new Error(`Unknown tool ${name}`);
   const input = inputs[name as ToolName].parse(rawInput);
   const add = (item: LinkItem) => {
@@ -484,7 +754,11 @@ export async function runTool(
         to: msg.to,
         cc: msg.cc,
         date: fmt(msg.date),
-        attachments: msg.attachments.map((a) => a.filename),
+        attachments: msg.attachments.map((a, index) => ({
+          index,
+          filename: a.filename,
+          contentType: a.contentType,
+        })),
         body: clip(body, 8000),
         url: add({
           type: "email",
@@ -493,6 +767,53 @@ export async function runTool(
           url: links.email(account.id, i.mailbox, i.uid),
         }),
       });
+    }
+
+    case "read_email_attachment": {
+      const i = input as z.infer<typeof inputs.read_email_attachment>;
+      const [account] = await loadAccounts(userId, [i.account_id]);
+      if (!account) throw new Error("Compte courriel introuvable");
+      const file = await getAttachment(account.imap, i.mailbox, i.uid, i.index);
+      if (!file) throw new Error("Pièce jointe introuvable");
+      const type = file.contentType.split(";")[0].trim().toLowerCase();
+      const fits = file.content.byteLength <= MAX_INLINE_ATTACHMENT_BYTES;
+      const label = { type: "text" as const, text: `Pièce jointe : ${file.filename}` };
+
+      if (type === "application/pdf" || /\.pdf$/i.test(file.filename)) {
+        // A copy: PDF.js may detach the buffer it's given.
+        const text = await pdfText(Uint8Array.from(file.content));
+        if (text) return JSON.stringify({ filename: file.filename, text: text.slice(0, 30000) });
+        if (!fits) throw new Error("PDF scanné trop lourd pour être lu (10 Mo max).");
+        return [
+          label,
+          {
+            type: "document",
+            source: {
+              type: "base64",
+              media_type: "application/pdf",
+              data: file.content.toString("base64"),
+            },
+          },
+        ];
+      }
+      const image = INLINE_IMAGE_TYPES.find((t) => t === type);
+      if (image) {
+        if (!fits) throw new Error("Image trop lourde pour être lue (10 Mo max).");
+        return [
+          label,
+          {
+            type: "image",
+            source: { type: "base64", media_type: image, data: file.content.toString("base64") },
+          },
+        ];
+      }
+      if (type.startsWith("text/")) {
+        return JSON.stringify({
+          filename: file.filename,
+          text: file.content.toString("utf8").slice(0, 30000),
+        });
+      }
+      throw new Error(`Format de pièce jointe non lisible : ${type || file.filename}.`);
     }
 
     case "list_mail_folders": {
@@ -816,6 +1137,119 @@ export async function runTool(
       return JSON.stringify({ deleted: i.id, title: existing.title });
     }
 
+    case "list_invoices": {
+      const i = input as z.infer<typeof inputs.list_invoices>;
+      const companies = i.company ? [await resolveCompany(i.company)] : await invoicingCompanies();
+      const q = i.query ? { contains: i.query, mode: "insensitive" as const } : null;
+      const [rows, details] = await Promise.all([
+        prisma.invoice.findMany({
+          where: {
+            direction: "revenu",
+            organisationId: { in: companies.map((c) => c.id) },
+            ...(i.status ? { status: i.status } : {}),
+            ...(q ? { OR: [{ party: q }, { number: q }, { description: q }] } : {}),
+          },
+          select: issuedSelect,
+          orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+          take: i.limit ?? 20,
+        }),
+        Promise.all(
+          companies.map(async (c) => {
+            const [settings, nextNumber] = await Promise.all([settingsFor(c.id), nextNumberFor(c.id)]);
+            return {
+              id: c.id,
+              name: c.name,
+              registered_for_sales_taxes: c.registered,
+              next_number: nextNumber,
+              default_due_days: settings.dueDays,
+              lang: settings.lang,
+            };
+          })
+        ),
+      ]);
+      const names = new Map(companies.map((c) => [c.id, c.name]));
+      return JSON.stringify({
+        companies: details,
+        invoices: rows.map((row) => ({
+          company: names.get(row.organisationId),
+          ...describeInvoice(toIssuedView(row), add),
+        })),
+      });
+    }
+
+    case "create_invoice": {
+      const i = input as z.infer<typeof inputs.create_invoice>;
+      const company = await resolveCompany(i.company);
+      const settings = await settingsFor(company.id);
+      const date = i.date ?? localDay(new Date());
+      const applyTaxes = i.apply_taxes ?? company.registered;
+      const view = await serialInvoiceWrite(async () => {
+        if (i.number) await assertNumberFree(company.id, i.number);
+        return saveIssuedInvoice({
+          organisationId: company.id,
+          contactId: i.contact_id,
+          party: i.client,
+          billTo: i.bill_to,
+          clientEmail: i.client_email,
+          number: i.number,
+          date,
+          dueDate: i.due_date ?? isoDay(addDays(new Date(`${date}T00:00:00Z`), settings.dueDays)),
+          title: i.title,
+          lines: i.lines,
+          applyTaxes,
+          lang: i.lang ?? (settings.lang === "en" ? "en" : "fr"),
+          notes: i.notes ?? settings.notes,
+          status: "draft",
+        });
+      });
+      return JSON.stringify({
+        company: company.name,
+        ...describeInvoice(view, add),
+        warning: taxWarning(applyTaxes, company.registered),
+      });
+    }
+
+    case "update_invoice": {
+      const i = input as z.infer<typeof inputs.update_invoice>;
+      const view = await serialInvoiceWrite(async () => {
+        const row = await prisma.invoice.findUnique({ where: { id: i.id }, select: issuedSelect });
+        if (!row || row.direction !== "revenu") throw new Error("Facture introuvable.");
+        const current = toIssuedView(row);
+        if (!current.generated || current.status !== "draft") {
+          throw new Error("Seul un brouillon créé dans DreamDash peut être modifié.");
+        }
+        if (i.number) await assertNumberFree(current.organisationId, i.number, current.id);
+        // A title left blank is stored as the first line's text: don't promote it.
+        const currentTitle =
+          current.description === current.lines[0]?.description ? null : current.description;
+        return saveIssuedInvoice(
+          {
+            organisationId: current.organisationId,
+            contactId: i.contact_id ?? current.contactId,
+            party: i.client ?? current.party ?? "",
+            billTo: i.bill_to ?? current.billTo,
+            clientEmail: i.client_email ?? current.clientEmail,
+            number: i.number ?? current.number,
+            date: i.date ?? current.date,
+            dueDate: i.due_date ?? current.dueDate,
+            title: i.title ?? currentTitle,
+            lines: i.lines ?? current.lines,
+            applyTaxes: i.apply_taxes ?? current.applyTaxes,
+            lang: (i.lang ?? current.lang) as InvoiceLang,
+            notes: i.notes ?? current.notes,
+            recurringId: current.recurringId,
+          },
+          current.id
+        );
+      });
+      const company = (await invoicingCompanies()).find((c) => c.id === view.organisationId);
+      return JSON.stringify({
+        company: company?.name,
+        ...describeInvoice(view, add),
+        warning: taxWarning(view.applyTaxes, company?.registered ?? false),
+      });
+    }
+
     case "search_contacts": {
       const i = input as z.infer<typeof inputs.search_contacts>;
       const q = { contains: i.query, mode: "insensitive" as const };
@@ -830,6 +1264,7 @@ export async function runTool(
           ],
         },
         select: {
+          id: true,
           name: true,
           email: true,
           phone: true,

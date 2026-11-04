@@ -17,6 +17,7 @@ import {
   Loader2,
   Mail,
   Mic,
+  Receipt,
   RotateCcw,
   Server,
   Square,
@@ -27,6 +28,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { useT } from "@/i18n/client";
+import { INVOICES_CHANGED_EVENT } from "@/lib/facturation/meta";
 import { cn } from "@/lib/utils";
 
 import { openDeepLink } from "@/hooks/use-deep-link";
@@ -61,6 +63,7 @@ type AssistantEvent =
   | { type: "thinking"; text: string }
   | { type: "text"; text: string }
   | { type: "links"; items: LinkItem[] }
+  | { type: "invoices_changed" }
   | { type: "error"; text: string }
   | { type: "done" };
 
@@ -115,6 +118,7 @@ const LINK_ICON: Record<string, typeof Mail> = {
   activity: FolderKanban,
   contact: User,
   machine: Server,
+  invoice: Receipt,
   web: Globe,
 };
 
@@ -299,6 +303,9 @@ export function AssistantWidget() {
               break;
             case "links":
               patchLast((m) => ({ ...m, links: ev.items }));
+              break;
+            case "invoices_changed":
+              window.dispatchEvent(new Event(INVOICES_CHANGED_EVENT));
               break;
             case "error":
               patchLast((m) => ({ ...m, error: ev.text }));

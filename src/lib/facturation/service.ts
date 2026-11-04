@@ -61,6 +61,11 @@ export const issuedSelect = {
   file: { select: { name: true, mime: true, size: true } },
 } satisfies Prisma.InvoiceSelect;
 
+/** The companies flagged in Fiscalité (not the personal budget) issue invoices. */
+export const invoicingOrgWhere = {
+  taxProfile: { tracked: true, legalForm: { not: "personnel" } },
+} satisfies Prisma.OrganisationWhereInput;
+
 type IssuedRow = Prisma.InvoiceGetPayload<{ select: typeof issuedSelect }>;
 
 export interface IssuedView {

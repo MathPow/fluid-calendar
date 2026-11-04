@@ -33,8 +33,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 
+import { useDeepLink } from "@/hooks/use-deep-link";
 import { useLocale, useT } from "@/i18n/client";
-import { computeTotals, displayStatus, formatCents, formatIsoDay } from "@/lib/facturation/meta";
+import { INVOICES_CHANGED_EVENT, computeTotals, displayStatus, formatCents, formatIsoDay } from "@/lib/facturation/meta";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
 
@@ -158,6 +159,40 @@ export function FacturationBoard({ organisations, contacts, invoices: initialInv
     );
     void refreshSettings(inv.organisationId);
   };
+
+  /** Invoices can also change from the assistant, behind this page's back. */
+  const reloadInvoices = async (): Promise<IssuedView[] | null> => {
+    const res = await fetch("/api/facturation/invoices");
+    if (!res.ok) return null;
+    const list: IssuedView[] = await res.json();
+    setInvoices(list);
+    await Promise.all(organisations.map((o) => refreshSettings(o.id)));
+    return list;
+  };
+  const reloadRef = useRef(reloadInvoices);
+  reloadRef.current = reloadInvoices;
+
+  useEffect(() => {
+    const onChanged = () => void reloadRef.current();
+    window.addEventListener(INVOICES_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(INVOICES_CHANGED_EVENT, onChanged);
+  }, []);
+
+  // /facturation?invoice=<id>: show it in its company, ready to edit if it's a draft.
+  useDeepLink("/facturation", (params) => {
+    const id = params.get("invoice");
+    if (!id) return;
+    void reloadRef.current().then((list) => {
+      const inv = list?.find((i) => i.id === id);
+      if (!inv) return;
+      setOrgId(inv.organisationId);
+      if (inv.generated && inv.status === "draft") setComposer({ mode: "invoice", invoice: inv });
+      else {
+        setFilter("all");
+        setSearch(inv.number ?? inv.party ?? "");
+      }
+    });
+  });
 
   const upsertRecurring = (r: RecurringView) =>
     setRecurring((prev) => [r, ...prev.filter((x) => x.id !== r.id)].sort((a, b) => Number(b.active) - Number(a.active) || a.nextRunDate.localeCompare(b.nextRunDate)));

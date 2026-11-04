@@ -25,4 +25,5 @@ export const links = {
     })}`,
   contact: (name: string) => `/contacts?q=${encodeURIComponent(name)}`,
   projet: (slug: string) => `/projets/${slug}`,
+  invoice: (id: string) => `/facturation?invoice=${encodeURIComponent(id)}`,
 };

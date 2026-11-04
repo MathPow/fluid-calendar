@@ -1,16 +1,15 @@
 import { FacturationBoard } from "@/components/facturation/FacturationBoard";
 
 import { recurringView } from "@/lib/facturation/recurring";
-import { issuedSelect, nextNumberFor, settingsFor, toIssuedView } from "@/lib/facturation/service";
+import { invoicingOrgWhere, issuedSelect, nextNumberFor, settingsFor, toIssuedView } from "@/lib/facturation/service";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function FacturationPage() {
   const [organisations, contacts, invoices, recurring] = await Promise.all([
-    // The companies flagged in Fiscalité (not the personal budget) issue invoices.
     prisma.organisation.findMany({
-      where: { taxProfile: { tracked: true, legalForm: { not: "personnel" } } },
+      where: invoicingOrgWhere,
       select: {
         id: true,
         name: true,
