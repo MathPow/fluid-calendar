@@ -45,7 +45,7 @@ const MENU: NavLink[] = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
   { href: "/calendar", labelKey: "nav.calendar", icon: Calendar },
   { href: "/tasks", labelKey: "nav.tasks", icon: ListTodo, also: ["/focus"] },
-  { href: "/email", labelKey: "nav.email", icon: Mail },
+  { href: "/email", labelKey: "nav.email", icon: Mail, also: ["/envois"] },
   { href: "/notes", labelKey: "nav.notes", icon: FileText, also: ["/sessions"] },
   { href: "/projets", labelKey: "nav.projects", icon: FolderGit2 },
   { href: "/contacts", labelKey: "nav.contacts", icon: Users, also: ["/machines"] },

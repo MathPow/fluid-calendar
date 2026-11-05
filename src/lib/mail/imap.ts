@@ -548,3 +548,111 @@ export async function listRepliesToSent(
     return replies;
   });
 }
+
+export interface InboxEnvelope {
+  messageId: string | null;
+  /** Message-IDs it answers, In-Reply-To first then References. */
+  parents: string[];
+  subject: string;
+  from: Address[];
+}
+
+/** Read from the headers: not every server fills In-Reply-To in its envelope, and some mail only has References. */
+function parentIds(
+  headers: Buffer | undefined,
+  envelopeInReplyTo?: string
+): string[] {
+  const text = headers?.toString("utf8").replace(/\r?\n[ \t]+/g, " ") ?? "";
+  const field = (name: string) =>
+    text.match(new RegExp(`^${name}:(.*)$`, "im"))?.[1] ?? "";
+  const ids = [
+    ...(envelopeInReplyTo ? [envelopeInReplyTo] : []),
+    ...(field("in-reply-to").match(/<[^<>\s]+>/g) ?? []),
+    ...(field("references").match(/<[^<>\s]+>/g) ?? []).reverse(),
+  ];
+  return [...new Set(ids)];
+}
+
+export interface InboxSignal extends InboxEnvelope {
+  uid: number;
+  date: string | null;
+  /** Plain text of the message, quoted history included. */
+  text: string;
+  /** Lower-cased header names. */
+  headers: Record<string, string>;
+  /** The whole message: a bounce carries the original Message-ID somewhere in it. */
+  raw: string;
+}
+
+/**
+ * INBOX messages newer than `afterUid` that `wants` picks from their envelope,
+ * read in full without marking them as seen. `maxUid` is the new watermark.
+ */
+export async function listInboxSignals(
+  acct: MailAccountConn,
+  afterUid: number,
+  wants: (envelope: InboxEnvelope) => boolean,
+  days = 30
+): Promise<{ signals: InboxSignal[]; maxUid: number }> {
+  return withClient(acct, async (client) => {
+    const lock = await client.getMailboxLock("INBOX", { readOnly: true });
+    try {
+      const since = new Date(Date.now() - days * 86_400_000);
+      const uids =
+        (await client.search(
+          { uid: `${afterUid + 1}:*`, since },
+          { uid: true }
+        )) || [];
+      // "n:*" always matches the newest message, even when it is older than n.
+      const fresh = uids.filter((uid) => uid > afterUid);
+      if (fresh.length === 0) return { signals: [], maxUid: afterUid };
+
+      const picked = new Map<number, string[]>();
+      for await (const msg of client.fetch(
+        fresh,
+        { uid: true, envelope: true, headers: ["in-reply-to", "references"] },
+        { uid: true }
+      )) {
+        const parents = parentIds(msg.headers, msg.envelope?.inReplyTo);
+        const envelope: InboxEnvelope = {
+          messageId: msg.envelope?.messageId ?? null,
+          parents,
+          subject: msg.envelope?.subject || "",
+          from: addrList(msg.envelope?.from),
+        };
+        if (wants(envelope)) picked.set(msg.uid, parents);
+      }
+
+      const signals: InboxSignal[] = [];
+      if (picked.size > 0) {
+        for await (const msg of client.fetch(
+          [...picked.keys()],
+          { uid: true, envelope: true, source: true },
+          { uid: true }
+        )) {
+          const source = msg.source as Buffer;
+          const parsed = await simpleParser(source);
+          const headers: Record<string, string> = {};
+          for (const line of parsed.headerLines)
+            headers[line.key.toLowerCase()] = line.line;
+          signals.push({
+            uid: msg.uid,
+            messageId: msg.envelope?.messageId ?? null,
+            parents: picked.get(msg.uid) ?? [],
+            subject: msg.envelope?.subject || "",
+            from: addrList(msg.envelope?.from),
+            date: msg.envelope?.date
+              ? new Date(msg.envelope.date).toISOString()
+              : null,
+            text: parsed.text || "",
+            headers,
+            raw: source.toString("utf8"),
+          });
+        }
+      }
+      return { signals, maxUid: Math.max(...fresh) };
+    } finally {
+      lock.release();
+    }
+  });
+}

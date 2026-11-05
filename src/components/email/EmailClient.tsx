@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import Link from "next/link";
+
 import { type TranslateFn, useT } from "@/i18n/client";
 import {
   AlertCircle,
@@ -801,6 +803,11 @@ export function EmailClient() {
           <Button onClick={startCompose} className="w-full">
             <PenSquare /> {t("mail.compose")}
           </Button>
+          <Button asChild variant="ghost" className="mt-1 w-full">
+            <Link href="/envois">
+              <Send /> {t("mail.campaigns")}
+            </Link>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -937,6 +944,14 @@ export function EmailClient() {
               ))}
             </div>
           </div>
+          <Link
+            href="/envois"
+            className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-secondary text-foreground"
+            title={t("mail.campaigns")}
+            aria-label={t("mail.campaigns")}
+          >
+            <Send className="h-4 w-4" />
+          </Link>
           <button
             onClick={startCompose}
             className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"

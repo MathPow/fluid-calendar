@@ -21,6 +21,7 @@ export interface OutgoingMail {
   inReplyTo?: string;
   references?: string[];
   attachments?: { filename: string; content: Buffer; contentType?: string }[];
+  headers?: Record<string, string>;
 }
 
 /**
@@ -52,6 +53,7 @@ export async function sendMail(
     inReplyTo: mail.inReplyTo || undefined,
     references: mail.references?.length ? mail.references : undefined,
     attachments: mail.attachments?.length ? mail.attachments : undefined,
+    headers: mail.headers,
     // Fixed so the Sent copy matches what went out.
     messageId: `<${randomUUID()}@${domain}>`,
     date: new Date(),

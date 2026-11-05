@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { runCampaignTick } from "@/lib/envois/service";
 import { runDueRecurring } from "@/lib/facturation/service";
 import { logger } from "@/lib/logger";
 import { loadAccounts } from "@/lib/mail/account";
@@ -31,6 +32,16 @@ export async function POST(request: NextRequest) {
   const invoices = await runDueRecurring().catch((error) => {
     logger.error(
       "Recurring invoices run failed",
+      { error: error instanceof Error ? error.message : String(error) },
+      LOG_SOURCE
+    );
+    return null;
+  });
+
+  // Mass sends too: replies and bounces are read first, then one message per account.
+  const campaigns = await runCampaignTick().catch((error) => {
+    logger.error(
+      "Campaign tick failed",
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
@@ -78,5 +89,5 @@ export async function POST(request: NextRequest) {
       }
     }
   }
-  return NextResponse.json({ ok: true, created, failed, invoices });
+  return NextResponse.json({ ok: true, created, failed, invoices, campaigns });
 }
