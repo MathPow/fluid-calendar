@@ -1,4 +1,5 @@
 {
+  "account.fallbackName": "You",
   "account.keyboardShortcuts": "Keyboard shortcuts",
   "account.launchers.manage": "Manage launchers",
   "account.loggingOut": "Logging out…",
