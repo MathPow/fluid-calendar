@@ -1,3 +1,4 @@
+import { getT } from "@/i18n/server";
 import { isSaasEnabled } from "@/lib/config";
 import { logger } from "@/lib/logger";
 
@@ -27,7 +28,8 @@ export async function sendPasswordResetEmail({
     const resetLink = `${baseUrl}/auth/reset-password?token=${resetToken}`;
 
     // Get the email template
-    const html = getPasswordResetTemplate(name, resetLink, expirationDate);
+    const t = await getT();
+    const html = await getPasswordResetTemplate(name, resetLink, expirationDate);
 
     // Dynamically import the correct email service based on SAAS flag
     const { EmailService } = await import(
@@ -38,7 +40,7 @@ export async function sendPasswordResetEmail({
     const { jobId } = await EmailService.sendEmail({
       from: EmailService.formatSender("DreamDash"),
       to: email,
-      subject: "Reset Your DreamDash Password",
+      subject: t("email.passwordReset.subject"),
       html,
     });
 

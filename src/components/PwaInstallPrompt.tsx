@@ -2,7 +2,10 @@
 
 import { useEffect } from "react";
 
+import { useT } from "@/i18n/client";
+
 export function PwaInstallPrompt() {
+  const t = useT();
   useEffect(() => {
     import("@khmyznikov/pwa-install").catch(() => {});
   }, []);
@@ -11,7 +14,7 @@ export function PwaInstallPrompt() {
     <pwa-install
       manifest-url="/manifest.json"
       name="DreamDash"
-      description="Your personal command center — calendar, tasks, email and notes"
+      description={t("pwa.installDescription")}
       icon="/logo.svg"
     />
   );

@@ -19,9 +19,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { useT } from "@/i18n/client";
+
 import { useSetupStore } from "@/store/setup";
 
 export function SetupForm() {
+  const t = useT();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,13 +50,13 @@ export function SetupForm() {
 
     // Basic validation
     if (!formData.name || !formData.email || !formData.password) {
-      setError("All fields are required");
+      setError(t("setup.form.errors.allFieldsRequired"));
       setIsLoading(false);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("setup.form.errors.passwordsDontMatch"));
       setIsLoading(false);
       return;
     }
@@ -88,7 +91,7 @@ export function SetupForm() {
       }, 2000);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
+        err instanceof Error ? err.message : t("setup.form.errors.unknown")
       );
     } finally {
       setIsLoading(false);
@@ -98,16 +101,14 @@ export function SetupForm() {
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader>
-        <CardTitle className="text-2xl">Welcome to DreamDash</CardTitle>
-        <CardDescription>
-          Set up your admin account to get started with the multi-user version.
-        </CardDescription>
+        <CardTitle className="text-2xl">{t("setup.form.welcome")}</CardTitle>
+        <CardDescription>{t("setup.form.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
             <CircleAlert className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
+            <AlertTitle>{t("setup.form.errorTitle")}</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
@@ -115,9 +116,11 @@ export function SetupForm() {
         {success && (
           <Alert className="mb-4 bg-positive">
             <CircleCheck className="h-4 w-4 text-positive-foreground" />
-            <AlertTitle className="text-positive-foreground">Success!</AlertTitle>
+            <AlertTitle className="text-positive-foreground">
+              {t("setup.form.successTitle")}
+            </AlertTitle>
             <AlertDescription className="text-positive-foreground">
-              Admin account created successfully. Redirecting to dashboard...
+              {t("setup.form.successDescription")}
             </AlertDescription>
           </Alert>
         )}
@@ -125,11 +128,11 @@ export function SetupForm() {
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t("setup.form.name")}</Label>
               <Input
                 id="name"
                 name="name"
-                placeholder="John Doe"
+                placeholder={t("setup.form.namePlaceholder")}
                 value={formData.name}
                 onChange={handleChange}
                 disabled={isLoading || success}
@@ -138,12 +141,12 @@ export function SetupForm() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("setup.form.email")}</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder={t("setup.form.emailPlaceholder")}
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading || success}
@@ -152,7 +155,7 @@ export function SetupForm() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("setup.form.password")}</Label>
               <Input
                 id="password"
                 name="password"
@@ -165,7 +168,9 @@ export function SetupForm() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">
+                {t("setup.form.confirmPassword")}
+              </Label>
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -183,12 +188,12 @@ export function SetupForm() {
             className="mt-6 w-full"
             disabled={isLoading || success}
           >
-            {isLoading ? "Setting up..." : "Create Admin Account"}
+            {isLoading ? t("setup.form.submitLoading") : t("setup.form.submit")}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="flex justify-center text-sm text-muted-foreground">
-        This will set up the initial admin user and migrate existing data.
+        {t("setup.form.footer")}
       </CardFooter>
     </Card>
   );

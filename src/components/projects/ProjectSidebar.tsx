@@ -179,7 +179,9 @@ export function ProjectSidebar() {
       <div className="flex h-full w-64 flex-col overflow-hidden rounded-[28px] bg-card shadow-tile">
         <div className="border-b p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[18px] font-bold tracking-title">Projects</h2>
+            <h2 className="text-[18px] font-bold tracking-title">
+              {t("projectSidebar.title")}
+            </h2>
             <Button
               size="icon"
               onClick={() => {
@@ -196,7 +198,7 @@ export function ProjectSidebar() {
               className="w-full justify-start"
               onClick={() => setActiveProject(null)}
             >
-              All Tasks
+              {t("projectSidebar.allTasks")}
             </Button>
             <Button
               variant={
@@ -206,7 +208,7 @@ export function ProjectSidebar() {
               onClick={() => setActiveProject(NO_PROJECT as Project)}
             >
               <FolderOpen className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1">No Project</span>
+              <span className="flex-1">{t("projectSidebar.noProject")}</span>
               <span className="text-xs text-muted-foreground">
                 {unassignedTasksCount}
               </span>
@@ -218,7 +220,7 @@ export function ProjectSidebar() {
           {loading ? (
             <div className="flex h-full items-center justify-center">
               <div className="text-sm text-muted-foreground">
-                Loading projects...
+                {t("projectSidebar.loading")}
               </div>
             </div>
           ) : error ? (
@@ -257,14 +259,16 @@ export function ProjectSidebar() {
                   className="w-full rounded-md px-3 py-1.5 text-left text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   {showEmpty
-                    ? "Masquer les listes vides"
-                    : `${hiddenCount} liste${hiddenCount > 1 ? "s" : ""} vide${hiddenCount > 1 ? "s" : ""} masquée${hiddenCount > 1 ? "s" : ""}`}
+                    ? t("projectSidebar.hideEmpty")
+                    : t("projectSidebar.hiddenEmpty", { count: hiddenCount })}
                 </button>
               ) : null}
 
               {archivedProjects.length > 0 && showEmpty && (
                 <div className="space-y-1">
-                  <div className="etiquette py-2">Archived</div>
+                  <div className="etiquette py-2">
+                    {t("projectSidebar.archived")}
+                  </div>
                   {archivedProjects.map((project) => (
                     <ProjectItem
                       key={project.id}
@@ -281,7 +285,7 @@ export function ProjectSidebar() {
 
               {projects.length === 0 && (
                 <div className="py-4 text-center text-sm text-muted-foreground">
-                  No projects yet
+                  {t("projectSidebar.empty")}
                 </div>
               )}
 
@@ -296,7 +300,7 @@ export function ProjectSidebar() {
                 )}
               >
                 <p className="text-sm text-muted-foreground">
-                  Drop here to remove from project
+                  {t("projectSidebar.dropToRemove")}
                 </p>
               </div>
             </div>
@@ -333,6 +337,7 @@ function ProjectItem({
   isSyncing,
   onSync,
 }: ProjectItemProps) {
+  const t = useT();
   const { setActiveProject } = useProjectStore();
   const { tasks } = useTaskStore();
   const { droppableProps, isOver } = useDroppableProject(project);
@@ -368,7 +373,9 @@ function ProjectItem({
           href={`/projets/${encodeURIComponent(project.agentProject.slug)}`}
           onClick={(e) => e.stopPropagation()}
           className="rounded-full p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-100"
-          title={`Ouvrir ${project.agentProject.name} dans Projets`}
+          title={t("projectSidebar.openInProjects", {
+            name: project.agentProject.name,
+          })}
         >
           <FolderGit2 className="h-3.5 w-3.5" />
         </Link>
@@ -423,6 +430,7 @@ function OrgHeader({
   isActive: boolean;
   onEdit: (project: Project) => void;
 }) {
+  const t = useT();
   const { setActiveProject } = useProjectStore();
   const general = group.general;
   const { droppableProps, isOver } = useDroppableProject(
@@ -449,7 +457,7 @@ function OrgHeader({
       {general && (
         <button
           type="button"
-          aria-label={`Modifier ${group.name}`}
+          aria-label={t("projectSidebar.editOrg", { name: group.name })}
           onClick={(e) => {
             e.stopPropagation();
             onEdit(general);

@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 interface LoadingSpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -9,6 +12,7 @@ export function LoadingSpinner({
   size = "default",
   ...props
 }: LoadingSpinnerProps) {
+  const t = useT();
   return (
     <div
       className={cn(
@@ -20,7 +24,7 @@ export function LoadingSpinner({
       )}
       {...props}
     >
-      <span className="sr-only">Loading...</span>
+      <span className="sr-only">{t("common.loading")}</span>
     </div>
   );
 }
