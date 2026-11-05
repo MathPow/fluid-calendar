@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Eye, History, Loader2, Plus, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +26,9 @@ import {
   formatIsoDay,
   isoDay,
 } from "@/lib/facturation/meta";
+import { parseRecipients } from "@/lib/facturation/recipients";
 
+import { CcField } from "./CcField";
 import type { FactContact, FactOrg, FactSettings, IssuedView, MailAccountLite, RecurringView } from "./types";
 import { centsToMoneyInput, moneyInputToCents, openBlob, plusDaysIso, todayIso } from "./types";
 
@@ -114,6 +116,7 @@ export function InvoiceComposer({
     editingRecurring?.mailAccountId ?? settings.mailAccountId ?? accounts[0]?.id ?? ""
   );
   const [cc, setCc] = useState(editingRecurring?.cc ?? "");
+  const ccListOpen = useRef(false);
 
   const [saving, setSaving] = useState<"draft" | "send" | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -202,6 +205,11 @@ export function InvoiceComposer({
     }
     if (recurringMode && autoSend && (!clientEmail.trim() || !mailAccountId)) {
       toast.error(t("facturation.composer.errors.autoSend"));
+      return false;
+    }
+    const ccInvalid = recurringMode ? parseRecipients(cc).invalid : [];
+    if (ccInvalid.length > 0) {
+      toast.error(t("facturation.send.invalidCc", { emails: ccInvalid.join(", ") }));
       return false;
     }
     return true;
@@ -303,7 +311,12 @@ export function InvoiceComposer({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent
+        className="max-w-3xl"
+        onEscapeKeyDown={(e) => {
+          if (ccListOpen.current) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{heading}</DialogTitle>
           <DialogDescription>
@@ -545,10 +558,15 @@ export function InvoiceComposer({
                       <p className="text-[13px] text-muted-foreground">{t("facturation.send.noAccount")}</p>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fact-cc">{t("facturation.send.cc")}</Label>
-                    <Input id="fact-cc" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="cc@client.com" />
-                  </div>
+                  <CcField
+                    id="fact-cc"
+                    value={cc}
+                    onChange={setCc}
+                    contacts={contacts}
+                    onSuggestionsOpen={(open) => {
+                      ccListOpen.current = open;
+                    }}
+                  />
                 </div>
               )}
             </section>

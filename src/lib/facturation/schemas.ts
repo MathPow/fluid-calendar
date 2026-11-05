@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { parseRecipients } from "./recipients";
+
 const text = (max: number) =>
   z
     .string()
@@ -8,6 +10,23 @@ const text = (max: number) =>
     .nullable()
     .optional()
     .transform((v) => (v ? v : null));
+/** Several addresses, normalized to « a@x.com, b@y.com »; null when empty. */
+const ccList = z
+  .string()
+  .max(2000)
+  .nullable()
+  .optional()
+  .transform((value, ctx) => {
+    const { list, invalid } = parseRecipients(value);
+    if (invalid.length > 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Adresse Cc invalide : ${invalid.join(", ")}`,
+      });
+      return z.NEVER;
+    }
+    return list.length > 0 ? list.join(", ") : null;
+  });
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide");
 const cents = z.number().int().min(-100_000_000_00).max(100_000_000_00);
 
@@ -63,7 +82,7 @@ export const InvoicePatch = z.object({
 export const SendInput = z.object({
   mailAccountId: z.string().min(1),
   to: z.string().trim().min(3).max(500),
-  cc: text(500),
+  cc: ccList,
   subject: text(300),
   body: text(10000),
 });
@@ -71,7 +90,7 @@ export const SendInput = z.object({
 export const RecurringInput = z.object({
   ...contentFields,
   title: z.string().trim().min(1, "Nom du contrat requis").max(300),
-  cc: text(500),
+  cc: ccList,
   frequency: z.enum(["weekly", "monthly", "quarterly", "yearly"]),
   interval: z.number().int().min(1).max(24),
   dueDays: z.number().int().min(0).max(365),

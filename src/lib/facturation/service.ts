@@ -28,6 +28,7 @@ import {
   readLines,
 } from "./meta";
 import { renderInvoicePdf } from "./pdf";
+import { parseRecipients } from "./recipients";
 
 const LOG_SOURCE = "facturation";
 
@@ -342,9 +343,15 @@ export async function sendIssuedInvoice(
     values
   );
 
+  // A recurring contract's Cc may predate validation, so check it here too.
+  const cc = parseRecipients(input.cc, input.to);
+  if (cc.invalid.length > 0) {
+    throw new Error(`Adresse Cc invalide : ${cc.invalid.join(", ")}`);
+  }
+
   const sent = await sendMail(account.smtp, {
     to: input.to,
-    cc: input.cc || undefined,
+    cc: cc.list.join(", ") || undefined,
     subject,
     text: body,
     attachments: [
@@ -366,7 +373,7 @@ export async function sendIssuedInvoice(
       data: {
         status: row.status === "paid" ? "paid" : "sent",
         sentAt: new Date(),
-        sentTo: [input.to, input.cc].filter(Boolean).join(", "),
+        sentTo: [input.to, ...cc.list].join(", "),
         clientEmail: row.clientEmail || input.to,
       },
       select: issuedSelect,

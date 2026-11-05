@@ -599,6 +599,7 @@ export function FacturationBoard({ organisations, contacts, invoices: initialInv
           organisation={org}
           settings={orgSettings}
           accounts={accounts}
+          contacts={contacts}
           onClose={() => setSending(null)}
           onSent={(inv) => {
             upsertInvoice(inv);
