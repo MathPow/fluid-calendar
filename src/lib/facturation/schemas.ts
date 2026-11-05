@@ -11,7 +11,7 @@ const text = (max: number) =>
     .optional()
     .transform((v) => (v ? v : null));
 /** Several addresses, normalized to « a@x.com, b@y.com »; null when empty. */
-const ccList = z
+export const ccList = z
   .string()
   .max(2000)
   .nullable()
@@ -51,6 +51,7 @@ const contentFields = {
 
 export const IssueInput = z.object({
   ...contentFields,
+  cc: ccList,
   number: text(100),
   date: day,
   dueDate: day.nullable().optional(),

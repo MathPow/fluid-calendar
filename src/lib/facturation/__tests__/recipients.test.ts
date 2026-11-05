@@ -1,5 +1,5 @@
 import { parseRecipients } from "../recipients";
-import { RecurringInput, SendInput } from "../schemas";
+import { IssueInput, RecurringInput, SendInput } from "../schemas";
 
 describe("parseRecipients", () => {
   it("splits on commas, semicolons and newlines", () => {
@@ -68,5 +68,12 @@ describe("cc in the API schemas", () => {
     const shape = RecurringInput.shape.cc;
     expect(shape.parse("a@x.com;b@y.com")).toBe("a@x.com, b@y.com");
     expect(shape.safeParse("nope").success).toBe(false);
+  });
+
+  it("applies to a new invoice, and is optional there", () => {
+    const shape = IssueInput.shape.cc;
+    expect(shape.parse("a@x.com\nb@y.com")).toBe("a@x.com, b@y.com");
+    expect(shape.parse(undefined)).toBeNull();
+    expect(shape.safeParse("a@x.com, nope").success).toBe(false);
   });
 });

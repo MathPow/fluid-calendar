@@ -132,6 +132,15 @@ describe("create_invoice", () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  it("keeps the Cc for when it's sent, and refuses a bad address", async () => {
+    await run("create_invoice", { company: "StayChum", client: "X", lines: [line], cc: "a@x.com; b@y.com" });
+    expect(save.mock.calls[0][0].cc).toBe("a@x.com, b@y.com");
+    await expect(
+      run("create_invoice", { company: "StayChum", client: "X", lines: [line], cc: "a@x.com, nope" })
+    ).rejects.toThrow();
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
   it("requires at least one line", async () => {
     await expect(run("create_invoice", { company: "StayChum", client: "X", lines: [] })).rejects.toThrow();
   });
@@ -167,6 +176,14 @@ describe("update_invoice", () => {
       title: null,
     });
     expect(input.status).toBeUndefined();
+  });
+
+  it("keeps the Cc unless a new one is passed", async () => {
+    findUnique.mockResolvedValue({ ...draft, cc: "compta@client.com" });
+    await run("update_invoice", { id: "inv1", notes: "x" });
+    expect(save.mock.calls[0][0].cc).toBe("compta@client.com");
+    await run("update_invoice", { id: "inv1", cc: "autre@client.com" });
+    expect(save.mock.calls[1][0].cc).toBe("autre@client.com");
   });
 
   it.each([

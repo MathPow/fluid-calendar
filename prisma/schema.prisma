@@ -1338,6 +1338,7 @@ model Invoice {
   dueDate        DateTime?
   billTo         String? // client's name + address block, as printed
   clientEmail    String?
+  cc             String? // « a@x.com, b@y.com », pre-filled when it's sent
   lines          Json? // [{ description, quantity, unitCents }] — set when generated here
   applyTaxes     Boolean           @default(false)
   lang           String? // "fr" | "en", the PDF's language

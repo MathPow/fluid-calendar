@@ -115,7 +115,7 @@ export function InvoiceComposer({
   const [mailAccountId, setMailAccountId] = useState(
     editingRecurring?.mailAccountId ?? settings.mailAccountId ?? accounts[0]?.id ?? ""
   );
-  const [cc, setCc] = useState(editingRecurring?.cc ?? "");
+  const [cc, setCc] = useState(source?.cc ?? "");
   const ccListOpen = useRef(false);
 
   const [saving, setSaving] = useState<"draft" | "send" | null>(null);
@@ -144,6 +144,7 @@ export function InvoiceComposer({
     setLines(toDrafts(inv.lines));
     setBillTo(inv.billTo ?? "");
     if (inv.clientEmail) setClientEmail(inv.clientEmail);
+    if (inv.cc) setCc(inv.cc);
     setApplyTaxes(inv.applyTaxes);
     setLang(inv.lang);
     if (inv.description) setTitle(inv.description);
@@ -188,6 +189,7 @@ export function InvoiceComposer({
     number: number.trim() || null,
     date: recurringMode ? nextRunDate : date,
     dueDate: recurringMode ? plusDaysIso(nextRunDate, Number(dueDays) || 0) : dueDate || null,
+    cc: cc.trim() || null,
   });
 
   const validate = (): boolean => {
@@ -207,7 +209,7 @@ export function InvoiceComposer({
       toast.error(t("facturation.composer.errors.autoSend"));
       return false;
     }
-    const ccInvalid = recurringMode ? parseRecipients(cc).invalid : [];
+    const ccInvalid = parseRecipients(cc).invalid;
     if (ccInvalid.length > 0) {
       toast.error(t("facturation.send.invalidCc", { emails: ccInvalid.join(", ") }));
       return false;
@@ -365,6 +367,20 @@ export function InvoiceComposer({
                   placeholder={t("facturation.composer.billToPlaceholder")}
                 />
               </div>
+              {/* A recurring contract has its own Cc, with its auto-send settings. */}
+              {!recurringMode && (
+                <div className="sm:col-span-2">
+                  <CcField
+                    id="fact-invoice-cc"
+                    value={cc}
+                    onChange={setCc}
+                    contacts={contacts}
+                    onSuggestionsOpen={(open) => {
+                      ccListOpen.current = open;
+                    }}
+                  />
+                </div>
+              )}
             </div>
             {lastForClient && appliedMemory !== lastForClient.id && (
               <button

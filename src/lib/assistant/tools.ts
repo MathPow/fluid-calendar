@@ -11,7 +11,7 @@ import { z } from "zod";
 
 import { retrieveSources } from "@/lib/ask/retrieve";
 import { addDays, formatCents, isoDay, type InvoiceLang } from "@/lib/facturation/meta";
-import { LineInput } from "@/lib/facturation/schemas";
+import { LineInput, ccList } from "@/lib/facturation/schemas";
 import {
   type IssuedView,
   invoicingOrgWhere,
@@ -95,6 +95,7 @@ const invoiceContent = {
   contact_id: z.string().min(1).max(60).optional(),
   bill_to: z.string().trim().max(1000).optional(),
   client_email: z.string().trim().max(200).optional(),
+  cc: ccList,
   number: z.string().trim().min(1).max(100).optional(),
   date: Ymd.optional(),
   due_date: Ymd.optional(),
@@ -259,6 +260,7 @@ function describeInvoice(view: IssuedView, add: (item: LinkItem) => string) {
     status: view.status,
     client: view.party,
     client_email: view.clientEmail,
+    cc: view.cc,
     bill_to: view.billTo,
     date: view.date,
     due_date: view.dueDate,
@@ -565,6 +567,10 @@ export const TOOL_DEFS: Anthropic.Beta.BetaToolUnion[] = [
         contact_id: { type: "string", description: "The client's id from search_contacts, when known." },
         bill_to: { type: "string", description: "Client's billing address, several lines allowed." },
         client_email: { type: "string" },
+        cc: {
+          type: "string",
+          description: "Other addresses to copy when it's sent, comma-separated. Pre-fills the send dialog.",
+        },
         number: {
           type: "string",
           description: "Leave out to use the company's next number. Must not already be in use.",
@@ -606,6 +612,7 @@ export const TOOL_DEFS: Anthropic.Beta.BetaToolUnion[] = [
         contact_id: { type: "string" },
         bill_to: { type: "string" },
         client_email: { type: "string" },
+        cc: { type: "string", description: "Comma-separated; replaces the current Cc." },
         number: { type: "string" },
         date: { type: "string", description: "YYYY-MM-DD" },
         due_date: { type: "string", description: "YYYY-MM-DD" },
@@ -1191,6 +1198,7 @@ export async function runTool(
           party: i.client,
           billTo: i.bill_to,
           clientEmail: i.client_email,
+          cc: i.cc,
           number: i.number,
           date,
           dueDate: i.due_date ?? isoDay(addDays(new Date(`${date}T00:00:00Z`), settings.dueDays)),
@@ -1229,6 +1237,7 @@ export async function runTool(
             party: i.client ?? current.party ?? "",
             billTo: i.bill_to ?? current.billTo,
             clientEmail: i.client_email ?? current.clientEmail,
+            cc: i.cc ?? current.cc,
             number: i.number ?? current.number,
             date: i.date ?? current.date,
             dueDate: i.due_date ?? current.dueDate,

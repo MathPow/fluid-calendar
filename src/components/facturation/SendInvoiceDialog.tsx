@@ -45,7 +45,7 @@ export function SendInvoiceDialog({ invoice, organisation, settings, accounts, c
     settings.mailAccountId && accounts.some((a) => a.id === settings.mailAccountId) ? settings.mailAccountId : (accounts[0]?.id ?? "")
   );
   const [to, setTo] = useState(invoice.clientEmail ?? "");
-  const [cc, setCc] = useState("");
+  const [cc, setCc] = useState(invoice.cc ?? "");
   const [subject, setSubject] = useState(fillTemplate(settings.emailSubject || fallback.subject, values));
   const [body, setBody] = useState(fillTemplate(settings.emailBody || fallback.body, values));
   const [sending, setSending] = useState(false);

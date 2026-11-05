@@ -51,6 +51,7 @@ export const issuedSelect = {
   dueDate: true,
   billTo: true,
   clientEmail: true,
+  cc: true,
   lines: true,
   applyTaxes: true,
   lang: true,
@@ -86,6 +87,7 @@ export interface IssuedView {
   dueDate: string | null;
   billTo: string | null;
   clientEmail: string | null;
+  cc: string | null;
   lines: InvoiceLine[];
   generated: boolean;
   applyTaxes: boolean;
@@ -117,6 +119,7 @@ export function toIssuedView(row: IssuedRow): IssuedView {
     dueDate: row.dueDate ? isoDay(row.dueDate) : null,
     billTo: row.billTo,
     clientEmail: row.clientEmail,
+    cc: row.cc,
     lines,
     generated: row.lines != null,
     applyTaxes: row.applyTaxes,
@@ -196,6 +199,8 @@ export interface IssueInput {
   party: string;
   billTo?: string | null;
   clientEmail?: string | null;
+  /** Pre-fills the Cc when it's sent. Left out = unchanged on an update. */
+  cc?: string | null;
   number?: string | null;
   date: string; // YYYY-MM-DD
   dueDate?: string | null;
@@ -260,6 +265,7 @@ export async function saveIssuedInvoice(
     contactId: input.contactId || null,
     billTo: input.billTo || null,
     clientEmail: input.clientEmail || null,
+    ...(input.cc !== undefined ? { cc: input.cc || null } : {}),
     dueDate: input.dueDate ? new Date(`${input.dueDate}T00:00:00Z`) : null,
     lines: input.lines as unknown as Prisma.InputJsonValue,
     applyTaxes: input.applyTaxes,
@@ -375,6 +381,8 @@ export async function sendIssuedInvoice(
         sentAt: new Date(),
         sentTo: [input.to, ...cc.list].join(", "),
         clientEmail: row.clientEmail || input.to,
+        // Offered again on a resend.
+        cc: cc.list.join(", ") || null,
       },
       select: issuedSelect,
     }),
@@ -404,6 +412,7 @@ export async function issueFromRecurring(rec: RecurringRow, issueDay: string) {
     party: rec.party,
     billTo: rec.billTo,
     clientEmail: rec.clientEmail,
+    cc: rec.cc,
     date: issueDay,
     dueDate: isoDay(addDays(new Date(`${issueDay}T00:00:00Z`), rec.dueDays)),
     title: rec.title,
