@@ -169,17 +169,17 @@ export function Calendar({
             >
               <div className="flex min-h-[52px] items-center justify-between gap-2 border-b border-border px-4">
                 <DialogPrimitive.Title className="font-semibold">
-                  Calendriers et calques
+                  {t("calendar.sidebar.title")}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Close
-                  aria-label="Fermer les calendriers"
+                  aria-label={t("calendar.sidebar.close")}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary"
                 >
                   <X className="h-5 w-5" />
                 </DialogPrimitive.Close>
               </div>
               <DialogPrimitive.Description className="sr-only">
-                Choisir les calendriers et gérer la semaine type.
+                {t("calendar.sidebar.description")}
               </DialogPrimitive.Description>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 <FeedManager />
