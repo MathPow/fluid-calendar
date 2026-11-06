@@ -55,10 +55,13 @@ export function AskBox({
         body: JSON.stringify({ question: q, ...(slug ? { slug } : {}) }),
       });
       const data = (await res.json()) as { answer?: string; error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      if (!res.ok)
+        throw new Error(
+          data.error || t("projects.askBox.errorStatus", { status: res.status })
+        );
       setAnswer(data.answer ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Une erreur est survenue.");
+      setError(e instanceof Error ? e.message : t("projects.askBox.error"));
     } finally {
       setLoading(false);
     }
@@ -90,7 +93,7 @@ export function AskBox({
           size="icon"
           className="h-12 w-12 shrink-0"
           disabled={loading || !question.trim()}
-          aria-label="Demander"
+          aria-label={t("projects.askBox.ask")}
         >
           {loading ? (
             <LoadingSpinner size="sm" className="text-primary-foreground" />
@@ -102,7 +105,7 @@ export function AskBox({
 
       {loading ? (
         <p className="mt-4 px-1 font-serif text-[15px] italic text-muted-foreground">
-          Le modèle tourne en local — compte une à deux minutes.
+          {t("projects.askBox.loadingHint")}
         </p>
       ) : null}
 
