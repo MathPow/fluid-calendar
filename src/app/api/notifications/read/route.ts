@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "notifications-read-api";
 
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
   if ("response" in auth) return auth.response;
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   if ("ids" in parsed.data && parsed.data.read === false) {
     await prisma.notification.updateMany({
       where: { userId: auth.userId, id: { in: parsed.data.ids } },

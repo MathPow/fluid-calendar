@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { useT } from "@/i18n";
+import { translateApiError, useT } from "@/i18n";
 import { formatDay, formatMoney, tCategoryLabel } from "@/lib/fiscalite/meta";
 
 interface ImportSummary {
@@ -114,7 +114,10 @@ export function ImportDialog({
     if (apply) body.append("apply", "1");
     const res = await fetch("/api/fiscalite/import", { method: "POST", body });
     const data = (await res.json().catch(() => ({}))) as ImportSummary;
-    if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+    if (!res.ok)
+      throw new Error(
+        translateApiError(t, data, "common.error", { status: res.status })
+      );
     return data;
   };
 

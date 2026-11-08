@@ -5,6 +5,7 @@ import { InvoicePatch, IssueInput } from "@/lib/facturation/schemas";
 import { issuedSelect, saveIssuedInvoice, toIssuedView } from "@/lib/facturation/service";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "facturation-invoice-api";
 
@@ -27,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { id: true, status: true, sentAt: true, lines: true },
   });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return apiErrors.notFound("Not found");
 
   const patch = InvoicePatch.safeParse(body);
   if (patch.success) {
@@ -58,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return apiErrors.saveFailed();
   }
 }
 

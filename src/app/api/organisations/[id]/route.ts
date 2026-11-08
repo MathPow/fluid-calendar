@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { orgKindStation } from "@/lib/projets/meta";
 import { organisationSelect } from "@/lib/projets/queries";
 import { OrganisationInput } from "@/lib/projets/schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "organisations-api";
 
@@ -23,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = OrganisationInput.partial().safeParse(json);
   if (!parsed.success) {
@@ -86,7 +87,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { isDefault: true },
   });
-  if (!org) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!org) return apiErrors.notFound();
   if (org.isDefault) {
     return NextResponse.json(
       { error: "L'organisation par défaut ne peut pas être supprimée." },

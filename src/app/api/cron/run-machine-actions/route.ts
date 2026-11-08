@@ -4,6 +4,7 @@ import { isPromptKind, type LauncherRecurrence } from "@/lib/launchers";
 import { logger } from "@/lib/logger";
 import { nextOccurrence, runMachineAction } from "@/lib/machine-actions";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "run-machine-actions-cron";
 
@@ -27,7 +28,7 @@ function authorize(request: NextRequest): boolean {
  */
 export async function POST(request: NextRequest) {
   if (!authorize(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrors.unauthorized("Unauthorized");
   }
   const now = new Date();
   const dueRows = await prisma.launchShortcut.findMany({

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { orgKindStation, slugify } from "@/lib/projets/meta";
 import { organisationSelect } from "@/lib/projets/queries";
 import { OrganisationInput } from "@/lib/projets/schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "organisations-api";
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = OrganisationInput.safeParse(json);
   if (!parsed.success) {

@@ -6,6 +6,7 @@ import { runAssistant } from "@/lib/assistant/agent";
 import { ASSISTANT_MODEL_IDS } from "@/lib/assistant/models";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "assistant-chat";
 
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = BodySchema.safeParse(json);
   if (!parsed.success) {

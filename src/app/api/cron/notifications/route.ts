@@ -7,6 +7,7 @@ import { loadAccounts } from "@/lib/mail/account";
 import { listRepliesToSent } from "@/lib/mail/imap";
 import { notify } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "notifications-cron";
 
@@ -25,7 +26,7 @@ const PUSH_WINDOW_MS = 6 * 3_600_000;
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("x-cron-secret");
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrors.unauthorized("Unauthorized");
   }
 
   // Recurring invoices (subscriptions) ride on the same 5-minute tick.

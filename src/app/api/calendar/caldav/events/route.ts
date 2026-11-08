@@ -6,6 +6,7 @@ import { getEvent, validateEvent } from "@/lib/calendar-db";
 import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "CalDAVEventsAPI";
 
@@ -151,12 +152,12 @@ export async function PUT(request: NextRequest) {
     // Get the event from the database
     const event = await getEvent(eventId);
     if (!event) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     // Check if the event belongs to a feed owned by the current user
     if (event.feed.userId !== userId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     const validatedEvent = await validateEvent(event, "CALDAV");
@@ -266,12 +267,12 @@ export async function DELETE(request: NextRequest) {
     // Get the event from the database
     const event = await getEvent(eventId);
     if (!event) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     // Check if the event belongs to a feed owned by the current user
     if (event.feed.userId !== userId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     const validatedEvent = await validateEvent(event, "CALDAV");

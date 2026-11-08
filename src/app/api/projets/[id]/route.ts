@@ -9,6 +9,7 @@ import {
   wouldCreateCycle,
 } from "@/lib/projets/queries";
 import { ProjectInput } from "@/lib/projets/schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "projets-api";
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     include: projectInclude,
   });
   if (!project)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   return NextResponse.json(project);
 }
 
@@ -44,7 +45,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = ProjectInput.partial().safeParse(json);
   if (!parsed.success) {
@@ -60,7 +61,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     select: { id: true, name: true, slug: true },
   });
   if (!existing)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
 
   if (fields.parentId) {
     if (await wouldCreateCycle(id, fields.parentId)) {

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { eventKey } from "@/lib/event-organisation";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "event-organisation";
 
@@ -49,7 +50,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     return NextResponse.json({ organisationId: null });
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId }, select: { id: true } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return apiErrors.notFound("Organisation introuvable");
   await prisma.eventOrganisation.upsert({
     where,
     create: { feedId: event.feedId, eventKey: key, organisationId },

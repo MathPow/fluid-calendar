@@ -11,6 +11,8 @@ import {
   listRoleMessages,
 } from "@/lib/mail/imap";
 
+import { apiErrors } from "@/lib/api/errors";
+
 const LOG_SOURCE = "mail-messages-route";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +57,7 @@ export async function GET(request: NextRequest) {
 
   const account = await loadAccount(auth.userId, accountId);
   if (!account) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return apiErrors.notFound("Account not found");
   }
 
   try {

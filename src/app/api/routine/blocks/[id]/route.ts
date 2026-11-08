@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "routine-block-api";
 
@@ -30,7 +31,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
 
   const { layerId, ...data } = parsed.data;
   const merged = { ...current, ...data };
@@ -65,7 +66,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const current = await ownedBlock(id, auth.userId);
   if (!current)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   await prisma.routineBlock.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

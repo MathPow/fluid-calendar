@@ -9,6 +9,8 @@ import {
   removeSuppression,
 } from "@/lib/envois/service";
 
+import { apiErrors } from "@/lib/api/errors";
+
 const LOG_SOURCE = "envois-exclusions-api";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
     await request.json().catch(() => null)
   );
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   }
   try {
     await addSuppression(auth.userId, parsed.data.email);

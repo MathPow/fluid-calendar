@@ -5,6 +5,7 @@ import { requireStepUp } from "@/lib/auth/step-up";
 import { CommandInput } from "@/lib/desktop-actions";
 import { expireCommands } from "@/lib/desktop-agent";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "desktop-commands-api";
 
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     }),
   ]);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   return NextResponse.json({
     agent: { connected: !!machine.agentTokenHash, seenAt: machine.agentSeenAt },
     commands,
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { agentTokenHash: true },
   });
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   if (!machine.agentTokenHash) {
     return NextResponse.json(
       { error: "Aucun agent connecté à cette machine." },

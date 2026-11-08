@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { machineSelect } from "@/lib/projets/queries";
 import { MachineInput, machineFields } from "@/lib/projets/schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "machines-api";
 
@@ -24,7 +25,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = MachineInput.partial().safeParse(json);
   if (!parsed.success) {

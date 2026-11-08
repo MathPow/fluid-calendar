@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser } from "@/lib/push-notifications";
+import { apiErrors } from "@/lib/api/errors";
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("x-cron-secret");
   if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrors.unauthorized("Unauthorized");
   }
 
   const now = new Date();

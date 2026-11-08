@@ -6,6 +6,7 @@ import { recurringView } from "@/lib/facturation/recurring";
 import { issueFromRecurring } from "@/lib/facturation/service";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "facturation-recurring-run-api";
 
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const rec = await prisma.recurringInvoice.findUnique({ where: { id } });
-  if (!rec) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!rec) return apiErrors.notFound("Not found");
   try {
     const result = await issueFromRecurring(rec, isoDay(new Date()));
     const updated = await prisma.recurringInvoice.findUniqueOrThrow({ where: { id } });

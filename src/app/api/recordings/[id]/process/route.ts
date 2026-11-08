@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { enqueueProcessing } from "@/lib/recordings/pipeline";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "recordings-process-route";
 
@@ -26,7 +27,7 @@ export async function POST(
     where: { id, userId: auth.userId },
   });
   if (!recording) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiErrors.notFound("Not found");
   }
 
   const regenerate =

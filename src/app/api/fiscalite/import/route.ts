@@ -6,6 +6,7 @@ import { type ParsedWorkbook, parseWorkbook } from "@/lib/fiscalite/excel";
 import { planInvoices, planMovements } from "@/lib/fiscalite/import-plan";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "fiscalite-import";
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     where: { id: organisationId },
     select: { id: true, name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return apiErrors.notFound("Organisation introuvable");
   const personal = org.taxProfile?.legalForm === "personnel";
 
   const csv = looksLikeCsv(file.name, file.type);

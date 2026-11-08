@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { invoiceSelect, toInvoiceView } from "@/lib/fiscalite/queries";
 import { InvoiceInput } from "@/lib/fiscalite/schemas";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "fiscalite-invoice-api";
 
@@ -34,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     return NextResponse.json(toInvoiceView(row));
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return apiErrors.notFound("Facture introuvable");
   }
 }
 
@@ -47,6 +48,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     await prisma.invoice.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return apiErrors.notFound("Facture introuvable");
   }
 }

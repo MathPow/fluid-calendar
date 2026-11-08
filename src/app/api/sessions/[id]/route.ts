@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { deleteRecordingFile } from "@/lib/recordings/storage";
 import { buildTimeline, timelineDuration } from "@/lib/sessions/timeline";
 import { TargetsSchema, parseTargets } from "@/lib/sessions/types";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "sessions-id-route";
 
@@ -52,7 +53,7 @@ export async function GET(
       },
     },
   });
-  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session) return apiErrors.notFound("Not found");
 
   const timeline = buildTimeline(session.recordings);
 
@@ -86,7 +87,7 @@ export async function PATCH(
     where: { id, userId: auth.userId },
     select: { id: true },
   });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return apiErrors.notFound("Not found");
 
   let body: unknown;
   try {
@@ -136,7 +137,7 @@ export async function DELETE(
     where: { id, userId: auth.userId },
     include: { recordings: { select: { id: true, storagePath: true } } },
   });
-  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session) return apiErrors.notFound("Not found");
 
   try {
     for (const rec of session.recordings) {

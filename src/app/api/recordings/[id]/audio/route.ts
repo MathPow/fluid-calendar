@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { recordingAbsPath } from "@/lib/recordings/storage";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "recordings-audio-route";
 
@@ -29,7 +30,7 @@ export async function GET(
     select: { storagePath: true, mimeType: true, fileName: true },
   });
   if (!recording?.storagePath) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiErrors.notFound("Not found");
   }
 
   const abs = recordingAbsPath(recording.storagePath);

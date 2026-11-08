@@ -10,6 +10,8 @@ import {
   taskProjectInclude,
 } from "@/lib/projets/task-link";
 
+import { apiErrors } from "@/lib/api/errors";
+
 const LOG_SOURCE = "projects-link";
 
 export const dynamic = "force-dynamic";
@@ -94,11 +96,11 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = Body.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   }
   const { agentProjectId, projectId } = parsed.data;
 
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
     select: { id: true, name: true, color: true, description: true },
   });
   if (!agent)
-    return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
+    return apiErrors.notFound("Projet introuvable");
 
   try {
     const existing = await prisma.project.findUnique({
@@ -173,7 +175,7 @@ export async function DELETE(request: NextRequest) {
       include: taskProjectInclude,
     });
     if (!current)
-      return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+      return apiErrors.notFound();
     const shown = presentTaskProject(current);
     const updated = await prisma.project.update({
       where: { id: projectId },

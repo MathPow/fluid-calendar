@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { deleteRecordingFile } from "@/lib/recordings/storage";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "recordings-id-route";
 
@@ -22,7 +23,7 @@ export async function GET(
     where: { id, userId: auth.userId },
   });
   if (!recording) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiErrors.notFound("Not found");
   }
   return NextResponse.json({ recording });
 }
@@ -40,7 +41,7 @@ export async function DELETE(
     where: { id, userId: auth.userId },
   });
   if (!recording) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiErrors.notFound("Not found");
   }
 
   try {

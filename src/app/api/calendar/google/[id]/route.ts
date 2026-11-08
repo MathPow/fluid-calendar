@@ -4,6 +4,7 @@ import { GaxiosError } from "gaxios";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "GoogleCalendarIdAPI";
 
@@ -90,7 +91,7 @@ export async function DELETE(
     });
 
     if (!feed) {
-      return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+      return apiErrors.notFound("Feed not found");
     }
 
     // Delete the feed

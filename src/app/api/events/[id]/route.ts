@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { getEvent } from "@/lib/calendar-db";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "event-route";
 
@@ -24,7 +25,7 @@ export async function GET(
     const event = await getEvent(id);
 
     if (!event) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     // Check if the event belongs to a feed owned by the current user

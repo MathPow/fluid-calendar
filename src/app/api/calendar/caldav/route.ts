@@ -14,6 +14,8 @@ import {
   loginToCalDAVServer,
 } from "./utils";
 
+import { apiErrors } from "@/lib/api/errors";
+
 const LOG_SOURCE = "CalDAVCalendar";
 
 /**
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     if (!account) {
       logger.error(`Account not found: ${accountId}`, {}, LOG_SOURCE);
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+      return apiErrors.notFound("Account not found");
     }
 
     if (account.provider !== "CALDAV") {

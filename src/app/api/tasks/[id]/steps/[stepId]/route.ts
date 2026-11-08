@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "task-steps-api";
 
@@ -24,7 +25,7 @@ export async function PATCH(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   if (typeof body.done !== "boolean") {
     return NextResponse.json({ error: "done must be a boolean" }, { status: 400 });
@@ -34,7 +35,7 @@ export async function PATCH(
     where: { id: stepId, taskId: id, task: { userId: auth.userId } },
     select: { id: true },
   });
-  if (!step) return NextResponse.json({ error: "Step not found" }, { status: 404 });
+  if (!step) return apiErrors.notFound("Step not found");
 
   try {
     await prisma.taskStep.update({

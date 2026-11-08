@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { loadAccount } from "@/lib/mail/account";
 import { getAttachments, saveToSent } from "@/lib/mail/imap";
 import { type OutgoingMail, sendMail } from "@/lib/mail/smtp";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "mail-send-route";
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     }
   } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   }
 
   const accountId = String(body.accountId ?? "");
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
 
   const account = await loadAccount(auth.userId, accountId);
   if (!account) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return apiErrors.notFound("Account not found");
   }
 
   const attachments: NonNullable<OutgoingMail["attachments"]> = [];

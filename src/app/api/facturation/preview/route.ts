@@ -5,6 +5,7 @@ import { computeTotals } from "@/lib/facturation/meta";
 import { renderInvoicePdf } from "@/lib/facturation/pdf";
 import { IssueInput } from "@/lib/facturation/schemas";
 import { issuerFor, nextNumberFor } from "@/lib/facturation/service";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "facturation-preview-api";
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
   }
   const d = parsed.data;
   const { issuer } = await issuerFor(d.organisationId).catch(() => ({ issuer: null }));
-  if (!issuer) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!issuer) return apiErrors.notFound("Not found");
   const pdf = await renderInvoicePdf({
     lang: d.lang,
     number: d.number || (await nextNumberFor(d.organisationId)),

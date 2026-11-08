@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { contactInclude } from "@/lib/projets/queries";
 import { ContactInput } from "@/lib/projets/schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "contacts-api";
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = ContactInput.safeParse(json);
   if (!parsed.success) {

@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { getOutlookClient } from "@/lib/outlook-calendar";
 import { syncOutlookCalendar } from "@/lib/outlook-sync";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "OutlookCalendarSyncAPI";
 
@@ -139,7 +140,7 @@ export async function PUT(req: NextRequest) {
     });
 
     if (!feed || !feed.account) {
-      return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+      return apiErrors.notFound("Feed not found");
     }
 
     logger.error(

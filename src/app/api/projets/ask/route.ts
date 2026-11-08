@@ -6,6 +6,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { answerProjectQuestion, type ActivityForContext } from "@/lib/projets/ask";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "projets-ask";
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
 
   const parsed = BodySchema.safeParse(json);

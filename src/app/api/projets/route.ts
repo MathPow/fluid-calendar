@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { projectInclude, uniqueSlug } from "@/lib/projets/queries";
 import { ProjectInput } from "@/lib/projets/schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "projets-api";
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = ProjectInput.safeParse(json);
   if (!parsed.success) {

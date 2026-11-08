@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { agentMachine } from "@/lib/desktop-agent";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -20,7 +21,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   const { status, output, error } = parsed.data;
   const { count } = await prisma.desktopCommand.updateMany({
     where: { id, machineId: machine.id, status: "running" },
@@ -32,6 +33,6 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     },
   });
   if (count === 0)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiErrors.notFound("Not found");
   return NextResponse.json({ ok: true });
 }

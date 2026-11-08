@@ -7,6 +7,7 @@ import { encryptSecret } from "@/lib/mail/crypto";
 import { testConnection } from "@/lib/mail/imap";
 import { presetFor } from "@/lib/mail/providers";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "mail-accounts-route";
 
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
 
   const provider = String(body.provider ?? "").toLowerCase();

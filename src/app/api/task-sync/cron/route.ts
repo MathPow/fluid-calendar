@@ -4,6 +4,7 @@ import { withMappingLock } from "@/lib/task-sync/push-soon";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { TaskSyncManager } from "@/lib/task-sync/task-sync-manager";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "task-sync-cron";
 
@@ -20,7 +21,7 @@ let running = false;
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("x-cron-secret");
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrors.unauthorized("Unauthorized");
   }
   if (running) {
     return NextResponse.json({ skipped: "a sync is already running" });

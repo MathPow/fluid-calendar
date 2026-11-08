@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { expireCommands } from "@/lib/desktop-agent";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "desktop-command-api";
 
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { machineId: true, status: true, output: true, error: true },
   });
-  if (!cmd) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!cmd) return apiErrors.notFound();
   if (cmd.status === "queued" || cmd.status === "running")
     await expireCommands(cmd.machineId);
   const fresh = await prisma.desktopCommand.findUnique({

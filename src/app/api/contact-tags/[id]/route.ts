@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { contactTagSelect } from "@/lib/projets/queries";
 import { ContactTagInput } from "@/lib/projets/schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "contact-tag-api";
 
@@ -45,7 +46,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       select: contactTagSelect,
     })
     .catch(() => null);
-  if (!tag) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!tag) return apiErrors.notFound();
   return NextResponse.json(tag);
 }
 
@@ -56,6 +57,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const { count } = await prisma.contactTag.deleteMany({ where: { id } });
   if (!count)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   return new NextResponse(null, { status: 204 });
 }

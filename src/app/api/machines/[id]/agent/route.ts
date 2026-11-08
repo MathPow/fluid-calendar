@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { hashAgentToken, newAgentToken } from "@/lib/desktop-agent";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "desktop-agent-token-api";
 
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     })
     .catch(() => null);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   return NextResponse.json({ token, machine: machine.name });
 }
 

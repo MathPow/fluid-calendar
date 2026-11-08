@@ -8,6 +8,8 @@ import {
   showcaseRunSelect,
 } from "@/lib/projets/showcase-runs";
 
+import { apiErrors } from "@/lib/api/errors";
+
 const LOG_SOURCE = "projets-showcase-run";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { id: true, slug: true, path: true },
   });
   if (!project) {
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   }
   if (!project.path) {
     return NextResponse.json(

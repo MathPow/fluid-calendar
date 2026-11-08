@@ -6,6 +6,7 @@ import { invoiceSelect, toInvoiceView } from "@/lib/fiscalite/queries";
 import { INVOICE_MIMES, InvoiceInput, MAX_INVOICE_BYTES } from "@/lib/fiscalite/schemas";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "fiscalite-invoices-api";
 
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       json = await request.json();
     }
   } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   }
 
   const parsed = InvoiceInput.safeParse(json);
@@ -91,6 +92,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return apiErrors.saveFailed();
   }
 }

@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { LauncherInput } from "@/lib/launchers";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "launcher-api";
 
@@ -41,7 +42,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     },
   });
   if (!count)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   return NextResponse.json({ ok: true });
 }
 

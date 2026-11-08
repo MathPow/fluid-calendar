@@ -7,6 +7,7 @@ import { ImportInput, IssueInput } from "@/lib/facturation/schemas";
 import { issuedSelect, saveIssuedInvoice, toIssuedView } from "@/lib/facturation/service";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "facturation-invoices-api";
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return apiErrors.saveFailed();
   }
 }
 
@@ -60,7 +61,7 @@ async function importInvoice(request: NextRequest) {
   try {
     json = JSON.parse(String(form?.get("data") ?? "{}"));
   } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   }
   const parsed = ImportInput.safeParse(json);
   if (!parsed.success) {
@@ -110,6 +111,6 @@ async function importInvoice(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return apiErrors.saveFailed();
   }
 }

@@ -17,6 +17,7 @@ import getGoogleEvent, {
 } from "@/lib/google-calendar";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "GoogleEventsAPI";
 
@@ -223,7 +224,7 @@ export async function PUT(request: NextRequest) {
 
     // Check if the event belongs to a feed owned by the current user
     if (event && event.feed.userId !== userId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     const validatedEvent = await validateEvent(event, "GOOGLE");
@@ -309,7 +310,7 @@ export async function DELETE(request: NextRequest) {
 
     // Check if the event belongs to a feed owned by the current user
     if (event && event.feed.userId !== userId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     const validatedEvent = await validateEvent(event, "GOOGLE");

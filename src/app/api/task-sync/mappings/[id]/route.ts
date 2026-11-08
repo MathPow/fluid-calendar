@@ -5,6 +5,7 @@ import { z } from "zod";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "task-sync-mapping-api";
 
@@ -58,7 +59,7 @@ export async function GET(
     });
 
     if (!mapping) {
-      return NextResponse.json({ error: "Mapping not found" }, { status: 404 });
+      return apiErrors.notFound("Mapping not found");
     }
 
     // Verify the mapping belongs to the user (via provider and project)
@@ -257,7 +258,7 @@ export async function DELETE(
     });
 
     if (!existingMapping) {
-      return NextResponse.json({ error: "Mapping not found" }, { status: 404 });
+      return apiErrors.notFound("Mapping not found");
     }
 
     // Verify the mapping belongs to the user (via provider)

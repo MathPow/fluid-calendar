@@ -10,6 +10,8 @@ import {
   setMessageFlags,
 } from "@/lib/mail/imap";
 
+import { apiErrors } from "@/lib/api/errors";
+
 const LOG_SOURCE = "mail-message-detail-route";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +43,7 @@ export async function GET(
 
   const account = await loadAccount(auth.userId, accountId);
   if (!account) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return apiErrors.notFound("Account not found");
   }
 
   try {
@@ -93,7 +95,7 @@ export async function DELETE(
 
   const account = await loadAccount(auth.userId, accountId);
   if (!account) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return apiErrors.notFound("Account not found");
   }
 
   try {
@@ -146,7 +148,7 @@ export async function PATCH(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const flag = (v: unknown) => (typeof v === "boolean" ? v : undefined);
   const seen = flag(body.seen);
@@ -161,7 +163,7 @@ export async function PATCH(
 
   const account = await loadAccount(auth.userId, accountId);
   if (!account) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return apiErrors.notFound("Account not found");
   }
 
   try {

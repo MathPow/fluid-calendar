@@ -64,3 +64,23 @@ export function useT(): TranslateFn {
   if (ctx) return ctx.t;
   return (key, params) => translate(defaultLocale, key, params);
 }
+
+/**
+ * Pick the best user-facing message from an API error body. Prefers the
+ * server-provided `errorKey` (translated here), then its `error` fallback,
+ * then a local translated fallback.
+ */
+export function translateApiError(
+  t: TranslateFn,
+  data: { errorKey?: unknown; error?: unknown } | null | undefined,
+  fallbackKey: string,
+  fallbackParams?: Record<string, string | number>
+): string {
+  if (data && typeof data.errorKey === "string" && data.errorKey) {
+    return t(data.errorKey);
+  }
+  if (data && typeof data.error === "string" && data.error) {
+    return data.error;
+  }
+  return t(fallbackKey, fallbackParams);
+}

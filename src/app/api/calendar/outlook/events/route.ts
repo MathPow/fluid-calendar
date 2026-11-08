@@ -16,6 +16,7 @@ import {
 import { getOutlookClient } from "@/lib/outlook-calendar";
 import { syncOutlookCalendar } from "@/lib/outlook-sync";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "OutlookCalendarEventsAPI";
 
@@ -128,7 +129,7 @@ export async function PUT(request: NextRequest) {
 
     // Check if the event belongs to a feed owned by the current user
     if (event && event.feed.userId !== userId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     const validatedEvent = await validateEvent(event, "OUTLOOK");
@@ -216,7 +217,7 @@ export async function DELETE(request: NextRequest) {
 
     // Check if the event belongs to a feed owned by the current user
     if (event && event.feed.userId !== userId) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return apiErrors.notFound("Event not found");
     }
 
     const validatedEvent = await validateEvent(event, "OUTLOOK");

@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { loadAccount } from "@/lib/mail/account";
 import { getAttachment } from "@/lib/mail/imap";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "mail-attachment-route";
 
@@ -41,7 +42,7 @@ export async function GET(
 
   const account = await loadAccount(auth.userId, accountId);
   if (!account) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return apiErrors.notFound("Account not found");
   }
 
   try {

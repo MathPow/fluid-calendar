@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { LayerInput, layerInclude } from "@/lib/routine-schemas";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "routine-layer-api";
 
@@ -26,7 +27,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id, userId: auth.userId },
   });
   if (!owned)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return apiErrors.notFound();
   const layer = await prisma.calendarLayer.update({
     where: { id },
     data: parsed.data,

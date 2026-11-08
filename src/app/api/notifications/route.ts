@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "notifications-api";
 
@@ -54,7 +55,7 @@ export async function DELETE(request: NextRequest) {
   if ("response" in auth) return auth.response;
   const parsed = DeleteBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   const now = new Date();
   await prisma.$transaction([
     prisma.notification.updateMany({

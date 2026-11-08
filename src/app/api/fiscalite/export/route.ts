@@ -6,6 +6,7 @@ import { DEFAULT_PROFILE, fiscalYearRange } from "@/lib/fiscalite/meta";
 import { XLSX_MIME } from "@/lib/fiscalite/schemas";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/projets/meta";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "fiscalite-export";
 
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     where: { id: organisationId },
     select: { name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return apiErrors.notFound("Organisation introuvable");
 
   const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[], partnerShares: [] as number[] };
   const t = org.taxProfile;

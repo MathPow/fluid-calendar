@@ -5,6 +5,7 @@ import { newDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { saveRecordingFile } from "@/lib/recordings/storage";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "sessions-audio-route";
 
@@ -32,7 +33,7 @@ export async function POST(
     where: { id, userId: auth.userId },
     select: { id: true },
   });
-  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session) return apiErrors.notFound("Not found");
 
   let form: FormData;
   try {

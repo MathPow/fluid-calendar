@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { enqueueSession, isQueued } from "@/lib/sessions/pipeline";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "sessions-compile-route";
 
@@ -31,7 +32,7 @@ export async function POST(
     where: { id, userId: auth.userId },
     select: { id: true, status: true, _count: { select: { recordings: true } } },
   });
-  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session) return apiErrors.notFound("Not found");
 
   if (session._count.recordings === 0) {
     return NextResponse.json(

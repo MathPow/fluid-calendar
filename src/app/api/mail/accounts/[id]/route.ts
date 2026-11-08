@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { isMailAccountColor } from "@/lib/mail/colors";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "mail-account-id-route";
 
@@ -22,14 +23,14 @@ export async function PATCH(
     select: { id: true },
   });
   if (!acct) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiErrors.notFound("Not found");
   }
 
   let body: Record<string, unknown>;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
 
   const data: {
@@ -70,7 +71,7 @@ export async function DELETE(
     select: { id: true },
   });
   if (!acct) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiErrors.notFound("Not found");
   }
 
   await prisma.mailAccount.delete({ where: { id: acct.id } });

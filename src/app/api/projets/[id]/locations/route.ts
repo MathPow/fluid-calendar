@@ -5,6 +5,7 @@ import { z } from "zod";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "project-locations-api";
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
   const parsed = Body.safeParse(json);
   if (!parsed.success) {

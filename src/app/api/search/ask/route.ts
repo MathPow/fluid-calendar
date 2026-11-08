@@ -6,6 +6,7 @@ import { answerFromSources } from "@/lib/ask/answer";
 import { retrieveSources } from "@/lib/ask/retrieve";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "search-ask";
 
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiErrors.invalidJson();
   }
 
   const parsed = BodySchema.safeParse(json);

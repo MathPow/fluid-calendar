@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { renderMission } from "@/lib/sessions/mission";
 import { buildTimeline, timelineDuration } from "@/lib/sessions/timeline";
 import { parseTargets } from "@/lib/sessions/types";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "sessions-mission-route";
 
@@ -35,7 +36,7 @@ export async function GET(
       },
     },
   });
-  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session) return apiErrors.notFound("Not found");
 
   const timeline = buildTimeline(session.recordings);
   const markdown = renderMission({

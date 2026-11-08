@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "calendar-feed-route";
 
@@ -30,7 +31,7 @@ export async function GET(
     });
 
     if (!feed) {
-      return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+      return apiErrors.notFound("Feed not found");
     }
 
     return NextResponse.json(feed);

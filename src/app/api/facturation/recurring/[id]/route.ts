@@ -5,6 +5,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { recurringData, recurringView } from "@/lib/facturation/recurring";
 import { RecurringInput } from "@/lib/facturation/schemas";
 import { prisma } from "@/lib/prisma";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "facturation-recurring-item-api";
 
@@ -32,7 +33,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       data: toggle.success ? { active: toggle.data.active, lastError: null } : recurringData(parsed!.data!),
     })
     .catch(() => null);
-  if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!row) return apiErrors.notFound("Not found");
   return NextResponse.json(recurringView(row));
 }
 

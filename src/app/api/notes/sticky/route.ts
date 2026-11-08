@@ -13,6 +13,7 @@ import {
   updateSticky,
 } from "@/lib/notes/sticky";
 import { isNotesConfigured } from "@/lib/notes/webdav";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "notes-sticky-route";
 
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
   if (!isNotesConfigured()) return notConfigured();
   const parsed = CreateBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   }
   try {
     const path = await createSticky(
@@ -93,7 +94,7 @@ export async function PATCH(request: NextRequest) {
   if (!isNotesConfigured()) return notConfigured();
   const parsed = PatchBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success || !isStickyPath(parsed.data.path)) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return apiErrors.invalidBody();
   }
   const { path, text, organisation, archive } = parsed.data;
   try {

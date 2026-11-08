@@ -10,6 +10,7 @@ import { createGoogleOAuthClient } from "@/lib/google";
 import { getGoogleCalendarClient } from "@/lib/google-calendar";
 import { prisma } from "@/lib/prisma";
 import { TokenManager } from "@/lib/token-manager";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "GoogleCalendarAPI";
 
@@ -198,7 +199,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!account) {
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+      return apiErrors.notFound("Account not found");
     }
 
     // Check if calendar already exists
@@ -474,7 +475,7 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!feed || !feed.accountId || !feed.url) {
-      return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+      return apiErrors.notFound("Feed not found");
     }
 
     // Create calendar client using account ID

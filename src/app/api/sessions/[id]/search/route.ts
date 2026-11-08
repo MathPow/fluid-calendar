@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { getSegmentRange, searchTranscript } from "@/lib/sessions/search";
 import { parseTimestamp } from "@/lib/sessions/timeline";
+import { apiErrors } from "@/lib/api/errors";
 
 const LOG_SOURCE = "sessions-search-route";
 
@@ -29,7 +30,7 @@ export async function GET(
     where: { id, userId: auth.userId },
     select: { id: true },
   });
-  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session) return apiErrors.notFound("Not found");
 
   const url = new URL(request.url);
   const q = url.searchParams.get("q");
