@@ -1405,6 +1405,7 @@ model InvoicingSettings {
   mailAccountId  String? // last account used to send
   emailSubject   String?
   emailBody      String?
+  logo           String? // data URL printed on the PDF instead of the organisation avatar (e.g. the mark without its background)
   updatedAt      DateTime     @updatedAt
 }
 

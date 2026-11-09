@@ -146,6 +146,7 @@ export async function settingsFor(organisationId: string) {
       mailAccountId: null,
       emailSubject: null,
       emailBody: null,
+      logo: null,
       updatedAt: new Date(),
     }
   );
@@ -169,7 +170,13 @@ export async function nextNumberFor(organisationId: string): Promise<string> {
 export async function issuerFor(organisationId: string) {
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
-    select: { name: true, image: true, color: true, taxProfile: true },
+    select: {
+      name: true,
+      image: true,
+      color: true,
+      taxProfile: true,
+      invoicingSettings: { select: { logo: true } },
+    },
   });
   if (!org) throw new Error("Organisation introuvable");
   const p = org.taxProfile;
@@ -188,7 +195,7 @@ export async function issuerFor(organisationId: string) {
       gstNumber: p?.gstNumber,
       qstNumber: p?.qstNumber,
       neq: p?.neq,
-      logo: org.image,
+      logo: org.invoicingSettings?.logo || org.image,
       color: org.color,
     },
     companyName: org.name,

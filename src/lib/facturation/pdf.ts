@@ -125,7 +125,10 @@ async function embedLogo(doc: PDFDocument, dataUrl: string | null | undefined): 
   const m = dataUrl?.match(/^data:image\/(png|jpe?g);base64,(.+)$/);
   if (!m) return null;
   try {
-    const bytes = Buffer.from(m[2], "base64");
+    // A plain Uint8Array: pdf-lib reads the bytes from the start of the
+    // underlying ArrayBuffer, so a pooled Node Buffer (offset > 0) fails with
+    // "SOI not found" and the logo silently disappeared.
+    const bytes = new Uint8Array(Buffer.from(m[2], "base64"));
     return m[1] === "png" ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
   } catch {
     return null;
