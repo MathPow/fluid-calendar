@@ -841,6 +841,7 @@ model MailCampaign {
   weekdaysOnly        Boolean   @default(true)
   consecutiveFailures Int       @default(0)
   testSentAt          DateTime?
+  notBefore           DateTime? // scheduled start: nothing goes out before this
   startedAt           DateTime?
   completedAt         DateTime?
   createdAt           DateTime  @default(now())
@@ -867,6 +868,7 @@ model MailCampaignRecipient {
   outcome       String? // replied | unsubscribed | bounced
   attempts      Int       @default(0)
   nextAttemptAt DateTime?
+  inReplyTo     String? // Message-ID of an earlier mail: a follow-up lands in the same thread
   messageId     String?
   error         String?
   replySnippet  String?

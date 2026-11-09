@@ -2651,6 +2651,7 @@
   "envois.back": "Tous les envois",
   "envois.cancel": "Annuler",
   "envois.delete": "Supprimer",
+  "envois.notBefore": "Départ prévu : {date}",
   "envois.status.draft": "Brouillon",
   "envois.status.sending": "En cours",
   "envois.status.paused": "En pause",

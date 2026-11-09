@@ -104,6 +104,7 @@ interface CampaignDetail {
   sendFromHour: number;
   sendUntilHour: number;
   weekdaysOnly: boolean;
+  notBefore: string | null;
   testSentAt: string | null;
   account: { email: string } | null;
   recipients: Recipient[];
@@ -454,6 +455,19 @@ function CampaignView({
       <p className="mt-1 text-[14px] text-muted-foreground">
         {campaign.account?.email ?? t("envois.noAccount")}
       </p>
+      {campaign.notBefore && new Date(campaign.notBefore) > new Date() && (
+        <p className="mt-1 text-[14px] font-medium">
+          {t("envois.notBefore", {
+            date: new Date(campaign.notBefore).toLocaleString(undefined, {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+          })}
+        </p>
+      )}
 
       {campaign.status === "paused" && campaign.pauseReason && (
         <p className="mt-4 flex items-start gap-2 rounded-xl border border-destructive/40 p-3 text-[14px]">

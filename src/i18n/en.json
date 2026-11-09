@@ -2651,6 +2651,7 @@
   "envois.back": "All campaigns",
   "envois.cancel": "Cancel",
   "envois.delete": "Delete",
+  "envois.notBefore": "Scheduled start: {date}",
   "envois.status.draft": "Draft",
   "envois.status.sending": "Sending",
   "envois.status.paused": "Paused",

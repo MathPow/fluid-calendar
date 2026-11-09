@@ -495,6 +495,9 @@ async function sendNext(
         text: renderBody(next.body, campaign.footer),
         headers: {
           "List-Unsubscribe": `<mailto:${account.email}?subject=unsubscribe>`,
+          ...(next.inReplyTo
+            ? { "In-Reply-To": next.inReplyTo, References: next.inReplyTo }
+            : {}),
         },
       });
       await prisma.mailCampaignRecipient.update({
@@ -822,6 +825,7 @@ export async function runCampaignTick(now = new Date()) {
       continue;
     }
     if (usedAccounts.has(campaign.accountId)) continue;
+    if (campaign.notBefore && campaign.notBefore > now) continue;
     if (!inSendWindow(now, campaign)) continue;
 
     const today = await prisma.mailCampaignRecipient.count({
