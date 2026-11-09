@@ -975,6 +975,8 @@
   "fiscalite.taxProfile.identification.hint": "The NEQ and registration come from the Registraire des entreprises; the identification number and payroll account (only if you have employees), from Mon dossier pour les entreprises. The federal BN is for the CRA, and your GST number is based on it.",
   "fiscalite.taxProfile.legalForm.hint": "No \"inc.\"? On your own, it's a sole proprietorship; several people under one name (partnership agreement, REQ), it's a SENC.",
   "fiscalite.taxProfile.legalName": "Legal name (as registered with the Registraire des entreprises)",
+  "fiscalite.taxProfile.ownerName": "Owner's name",
+  "fiscalite.taxProfile.ownerNameHint": "Printed under the business name on invoices (sole proprietorship).",
   "fiscalite.taxProfile.month": "Month",
   "fiscalite.taxProfile.naics": "Industry code (NAICS)",
   "fiscalite.taxProfile.notes.placeholder": "Partnership agreement, quirks, things to remind your accountant…",

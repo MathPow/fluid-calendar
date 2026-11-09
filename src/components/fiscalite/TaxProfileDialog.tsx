@@ -37,6 +37,7 @@ import { ContactPicker, type PickerContact } from "../projets/ContactPicker";
 /** The company file fields, all optional free text. */
 export const COMPANY_FIELDS = [
   "legalName",
+  "ownerName",
   "neq",
   "businessNumber",
   "rqNumber",
@@ -329,6 +330,11 @@ export function TaxProfileDialog({
                   {...field("legalName")}
                   placeholder={`${organisation.name} SENC`}
                 />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="tp-owner">{t("fiscalite.taxProfile.ownerName")}</Label>
+                <Input id="tp-owner" {...field("ownerName")} placeholder="Prénom Nom" />
+                <p className="text-xs text-muted-foreground">{t("fiscalite.taxProfile.ownerNameHint")}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tp-neq">{t("fiscalite.identity.neq")}</Label>

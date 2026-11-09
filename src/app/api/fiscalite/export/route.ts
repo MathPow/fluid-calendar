@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
     identity: t
       ? [
           ["Nom légal", t.legalName],
+          ["Propriétaire", t.ownerName],
           ["NEQ", t.neq],
           ["No d'identification Revenu Québec", t.rqNumber],
           ["No TVQ", t.qstNumber],

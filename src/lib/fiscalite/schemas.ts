@@ -40,6 +40,7 @@ export const TaxProfileInput = z.object({
     .optional()
     .transform((v) => (v ? new Date(`${v}T00:00:00Z`) : null)),
   legalName: text(200),
+  ownerName: text(200),
   neq: text(20),
   businessNumber: text(20),
   rqNumber: text(30),

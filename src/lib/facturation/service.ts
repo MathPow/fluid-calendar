@@ -176,11 +176,13 @@ export async function issuerFor(organisationId: string) {
   const cityLine = [p?.city, p?.province, p?.postalCode]
     .filter(Boolean)
     .join(" ");
+  const name = p?.legalName || org.name;
+  const owner = p?.ownerName?.trim();
   return {
     registered: p?.salesTaxStatus === "inscrit",
     issuer: {
-      name: p?.legalName || org.name,
-      details: [p?.address, cityLine, p?.email, p?.phone, p?.website].filter(
+      name,
+      details: [owner && owner !== name ? owner : null, p?.address, cityLine, p?.email, p?.phone, p?.website].filter(
         (s): s is string => !!s && !!s.trim()
       ),
       gstNumber: p?.gstNumber,

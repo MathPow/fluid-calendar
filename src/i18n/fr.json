@@ -975,6 +975,8 @@
   "fiscalite.taxProfile.identification.hint": "Le NEQ et l'immatriculation viennent du Registraire des entreprises; le no d'identification et le dossier employeur (seulement si tu as des employés), de Mon dossier pour les entreprises. Le NE fédéral sert à l'ARC, et ton no TPS en découle.",
   "fiscalite.taxProfile.legalForm.hint": "Pas de « inc. » ? Seul, c'est une entreprise individuelle; à plusieurs sous un même nom (contrat de société, REQ), c'est une SENC.",
   "fiscalite.taxProfile.legalName": "Nom légal (au Registraire des entreprises)",
+  "fiscalite.taxProfile.ownerName": "Nom du propriétaire",
+  "fiscalite.taxProfile.ownerNameHint": "Imprimé sous le nom de l'entreprise sur les factures (entreprise individuelle).",
   "fiscalite.taxProfile.month": "Mois",
   "fiscalite.taxProfile.naics": "Code d'activité (SCIAN)",
   "fiscalite.taxProfile.notes.placeholder": "Contrat de société, particularités, choses à rappeler au comptable…",

@@ -1283,6 +1283,7 @@ model TaxProfile {
 
   // Company file: identification, contact, activity, accountant.
   legalName       String? // nom légal / raison sociale, as on the REQ
+  ownerName       String? // the person behind the business (entreprise individuelle), printed under the name on invoices
   neq             String? // numéro d'entreprise du Québec (10 digits)
   businessNumber  String? // NE fédéral (9 digits)
   rqNumber        String? // numéro d'identification Revenu Québec (10 digits, + IC0001 for a société)
