@@ -3,10 +3,19 @@ import { v4 as uuidv4 } from "uuid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { translate } from "@/i18n/catalogs";
 import { newDate, normalizeAllDayDate } from "@/lib/date-utils";
 import { DEFAULT_TASK_COLOR } from "@/lib/task-utils";
 
+import { useSettingsStore } from "@/store/settings";
 import { useTaskStore } from "@/store/task";
+
+const tr = (k: string, params?: Record<string, string | number>) =>
+  translate(
+    (useSettingsStore.getState().user.locale as "fr" | "en") || "fr",
+    k,
+    params
+  );
 
 import {
   CalendarEvent,
@@ -865,7 +874,7 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to sync calendar");
+        throw new Error(data.error || tr("toasts.calendar.syncFailed"));
       }
 
       // Refresh events after sync

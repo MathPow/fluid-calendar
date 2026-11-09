@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useT } from "@/i18n";
+
 import { useProjectStore } from "@/store/project";
 import { useOrganisationsStore } from "@/store/organisations";
 
@@ -38,6 +40,7 @@ interface ProjectModalProps {
 }
 
 export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
+  const t = useT();
   const { createProject, updateProject } = useProjectStore();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -108,13 +111,15 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           {isSubmitting && <LoadingOverlay />}
           <DialogHeader>
             <DialogTitle>
-              {project ? "Edit Project" : "Create Project"}
+              {project
+                ? t("tasks.projectModal.title.edit")
+                : t("tasks.projectModal.title.new")}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t("tasks.projectModal.fields.name")}</Label>
               <Input
                 id="name"
                 value={name}
@@ -124,7 +129,9 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
             </div>
 
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">
+                {t("tasks.projectModal.fields.description")}
+              </Label>
               <Textarea
                 id="description"
                 value={description}
@@ -134,7 +141,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
             </div>
 
             <div>
-              <Label htmlFor="color">Color</Label>
+              <Label htmlFor="color">{t("tasks.projectModal.fields.color")}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="color"
@@ -151,13 +158,13 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
             </div>
 
             <div>
-              <Label>Projet lié (onglet Projets)</Label>
+              <Label>{t("tasks.projectModal.fields.linkedProject")}</Label>
               <Select value={agentProjectId} onValueChange={setAgentProjectId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Aucun" />
+                  <SelectValue placeholder={t("common.none")} />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
-                  <SelectItem value={NO_LINK}>Aucun</SelectItem>
+                  <SelectItem value={NO_LINK}>{t("common.none")}</SelectItem>
                   {(options?.projets ?? [])
                     .filter((p) => !p.taskProjectId || p.taskProjectId === project?.id)
                     .map((p) => (
@@ -178,20 +185,24 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
               </Select>
               {agentProjectId !== NO_LINK && (
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  Le nom et la couleur affichés viennent du projet lié.
+                  {t("tasks.projectModal.linkedHint")}
                 </p>
               )}
             </div>
 
             {agentProjectId === NO_LINK && (
               <div>
-                <Label>Organisation</Label>
+                <Label>{t("tasks.projectModal.fields.organisation")}</Label>
                 <Select value={organisationId} onValueChange={setOrganisationId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sans organisation" />
+                    <SelectValue
+                      placeholder={t("tasks.projectModal.placeholder.noOrg")}
+                    />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
-                    <SelectItem value={NO_LINK}>Sans organisation</SelectItem>
+                    <SelectItem value={NO_LINK}>
+                      {t("tasks.projectModal.placeholder.noOrg")}
+                    </SelectItem>
                     {organisations.map((o) => (
                       <SelectItem key={o.id} value={o.id}>
                         <span className="inline-flex items-center gap-2">
@@ -206,7 +217,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
                   </SelectContent>
                 </Select>
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  La liste se range sous cette organisation dans la barre de côté.
+                  {t("tasks.projectModal.organisationHint")}
                 </p>
               </div>
             )}
@@ -219,7 +230,7 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
                   onClick={() => setShowDeleteDialog(true)}
                   disabled={isSubmitting}
                 >
-                  Delete Project
+                  {t("tasks.projectModal.actions.delete")}
                 </Button>
               )}
               <div className="ml-auto flex gap-2">
@@ -229,10 +240,12 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
                   onClick={onClose}
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : "Save Project"}
+                  {isSubmitting
+                    ? t("common.saving")
+                    : t("tasks.projectModal.actions.save")}
                 </Button>
               </div>
             </div>
