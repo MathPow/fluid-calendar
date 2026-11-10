@@ -1,9 +1,11 @@
 {
+  "account.defaultName": "Vous",
   "account.keyboardShortcuts": "Raccourcis clavier",
   "account.launchers.manage": "Gérer les raccourcis",
   "account.loggingOut": "Déconnexion…",
   "account.logout": "Se déconnecter",
   "account.menu.aria": "Menu compte",
+  "account.noMachine": "sans machine",
   "account.shortcuts": "Raccourcis",
   "account.signedInAs": "Connecté en tant que",
   "account.station.aria": "Station : {label}",
