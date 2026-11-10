@@ -172,7 +172,7 @@ export function Calendar({
                   Calendriers et calques
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Close
-                  aria-label="Fermer les calendriers"
+                  aria-label={t("calendar.aria.closeSidebar")}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary"
                 >
                   <X className="h-5 w-5" />
@@ -191,7 +191,7 @@ export function Calendar({
       ) : (
         <aside
           id="calendar-sidebar"
-          aria-label="Calendriers et calques"
+          aria-label={t("calendar.aria.sidebar")}
           inert={!isSidebarOpen}
           className={cn(
             "relative hidden h-full w-80 flex-none border-r border-border bg-card transition-[margin,transform] duration-300 motion-reduce:transition-none md:mr-4 md:block md:overflow-hidden md:rounded-[28px] md:border-r-0 md:shadow-tile",

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { BlockInput } from "@/lib/routine-schemas";
@@ -20,6 +21,7 @@ async function ownedBlock(id: string, userId: string) {
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   const parsed = BlockPatch.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -36,7 +38,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   const merged = { ...current, ...data };
   if (merged.startTime === merged.endTime) {
     return NextResponse.json(
-      { error: "Le bloc doit durer plus de zéro minute" },
+      { error: t("api.routine.blockMustHavePositiveDuration") },
       { status: 400 }
     );
   }

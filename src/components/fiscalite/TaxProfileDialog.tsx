@@ -333,7 +333,7 @@ export function TaxProfileDialog({
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="tp-owner">{t("fiscalite.taxProfile.ownerName")}</Label>
-                <Input id="tp-owner" {...field("ownerName")} placeholder="Prénom Nom" />
+                <Input id="tp-owner" {...field("ownerName")} placeholder={t("taxes.profile.placeholders.fullName")} />
                 <p className="text-xs text-muted-foreground">{t("fiscalite.taxProfile.ownerNameHint")}</p>
               </div>
               <div className="space-y-2">
@@ -632,7 +632,7 @@ export function TaxProfileDialog({
               </div>
               <div className="space-y-2 sm:col-span-3">
                 <Label htmlFor="tp-city">{t("fiscalite.taxProfile.city")}</Label>
-                <Input id="tp-city" {...field("city")} placeholder="Québec" />
+                <Input id="tp-city" {...field("city")} placeholder={t("taxes.profile.placeholders.city")} />
               </div>
               <div className="space-y-2 sm:col-span-1">
                 <Label htmlFor="tp-prov">{t("fiscalite.taxProfile.province")}</Label>

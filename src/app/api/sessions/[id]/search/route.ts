@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { getSegmentRange, searchTranscript } from "@/lib/sessions/search";
@@ -23,6 +24,7 @@ export async function GET(
 ) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
 
   const { id } = await params;
   const session = await prisma.workSession.findFirst({
@@ -50,7 +52,7 @@ export async function GET(
   }
 
   if (!q?.trim()) {
-    return NextResponse.json({ error: "Fournis ?q= ou ?from=&to=" }, { status: 400 });
+    return NextResponse.json({ error: t("api.sessions.provideQOrFromTo") }, { status: 400 });
   }
 
   const limitRaw = Number(url.searchParams.get("limit") ?? "15");
