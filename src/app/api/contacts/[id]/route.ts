@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Mise à jour impossible" }, { status: 500 });
+    return NextResponse.json({ error: "Mise à jour impossible", errorKey: "api.common.updateFailed" }, { status: 500 });
   }
 }
 
@@ -101,6 +101,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Suppression impossible" }, { status: 500 });
+    return NextResponse.json({ error: "Suppression impossible", errorKey: "api.common.deleteFailed" }, { status: 500 });
   }
 }

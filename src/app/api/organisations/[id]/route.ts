@@ -86,7 +86,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { isDefault: true },
   });
-  if (!org) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   if (org.isDefault) {
     return NextResponse.json(
       { error: "L'organisation par défaut ne peut pas être supprimée." },

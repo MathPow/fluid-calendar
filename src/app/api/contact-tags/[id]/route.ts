@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       select: contactTagSelect,
     })
     .catch(() => null);
-  if (!tag) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!tag) return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   return NextResponse.json(tag);
 }
 
@@ -56,6 +56,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const { count } = await prisma.contactTag.deleteMany({ where: { id } });
   if (!count)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   return new NextResponse(null, { status: 204 });
 }

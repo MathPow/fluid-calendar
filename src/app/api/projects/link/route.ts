@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     select: { id: true, name: true, color: true, description: true },
   });
   if (!agent)
-    return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Projet introuvable", errorKey: "api.projects.notFound" }, { status: 404 });
 
   try {
     const existing = await prisma.project.findUnique({
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
       },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Liaison impossible" }, { status: 500 });
+    return NextResponse.json({ error: "Liaison impossible", errorKey: "api.projects.linkFailed" }, { status: 500 });
   }
 }
 
@@ -173,7 +173,7 @@ export async function DELETE(request: NextRequest) {
       include: taskProjectInclude,
     });
     if (!current)
-      return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+      return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
     const shown = presentTaskProject(current);
     const updated = await prisma.project.update({
       where: { id: projectId },

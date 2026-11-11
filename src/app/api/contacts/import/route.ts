@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Import impossible" }, { status: 500 });
+    return NextResponse.json({ error: "Import impossible", errorKey: "api.contacts.importFailed" }, { status: 500 });
   }
 }
 

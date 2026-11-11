@@ -34,7 +34,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     return NextResponse.json(toInvoiceView(row));
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Facture introuvable", errorKey: "api.fiscalite.invoiceNotFound" }, { status: 404 });
   }
 }
 
@@ -47,6 +47,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     await prisma.invoice.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Facture introuvable", errorKey: "api.fiscalite.invoiceNotFound" }, { status: 404 });
   }
 }

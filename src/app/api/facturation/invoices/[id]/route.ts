@@ -48,7 +48,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   if (existing.lines == null) {
     // Imported invoices keep their original file: edit them in Fiscalité.
-    return NextResponse.json({ error: "Facture importée : modifie-la dans Fiscalité" }, { status: 409 });
+    return NextResponse.json({ error: "Facture importée : modifie-la dans Fiscalité", errorKey: "api.fiscalite.invoiceImportedEditInFiscalite" }, { status: 409 });
   }
   try {
     return NextResponse.json(await saveIssuedInvoice(parsed.data, id));
@@ -58,7 +58,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return NextResponse.json({ error: "Enregistrement impossible", errorKey: "api.common.saveFailed" }, { status: 500 });
   }
 }
 

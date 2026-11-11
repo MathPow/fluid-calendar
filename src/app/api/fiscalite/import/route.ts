@@ -29,15 +29,15 @@ export async function POST(request: NextRequest) {
   const file = form?.get("file");
   const organisationId = String(form?.get("organisationId") ?? "");
   const apply = form?.get("apply") === "1";
-  if (!(file instanceof File)) return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
+  if (!(file instanceof File)) return NextResponse.json({ error: "Fichier manquant", errorKey: "api.common.missingFile" }, { status: 400 });
   if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: "Fichier trop lourd (10 Mo max)" }, { status: 413 });
+    return NextResponse.json({ error: "Fichier trop lourd (10 Mo max)", errorKey: "api.common.fileTooLarge10" }, { status: 413 });
   }
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
     select: { id: true, name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ error: "Organisation introuvable", errorKey: "api.fiscalite.organisationNotFound" }, { status: 404 });
   const personal = org.taxProfile?.legalForm === "personnel";
 
   const csv = looksLikeCsv(file.name, file.type);

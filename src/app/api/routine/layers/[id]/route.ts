@@ -26,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id, userId: auth.userId },
   });
   if (!owned)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   const layer = await prisma.calendarLayer.update({
     where: { id },
     data: parsed.data,

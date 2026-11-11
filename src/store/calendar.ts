@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { apiErrorMessage } from "@/i18n/now";
 import { newDate, normalizeAllDayDate } from "@/lib/date-utils";
 import { DEFAULT_TASK_COLOR } from "@/lib/task-utils";
 
@@ -864,8 +865,8 @@ export const useCalendarStore = create<CalendarStore>()((set, get) => ({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to sync calendar");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(apiErrorMessage(data, "toasts.calendar.syncFailed"));
       }
 
       // Refresh events after sync

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return NextResponse.json({ error: "Enregistrement impossible", errorKey: "api.common.saveFailed" }, { status: 500 });
   }
 }
 
@@ -69,10 +69,10 @@ async function importInvoice(request: NextRequest) {
   const f = form?.get("file");
   const file = f instanceof File && f.size > 0 ? f : null;
   if (file && file.size > MAX_INVOICE_BYTES) {
-    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
+    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)", errorKey: "api.common.fileTooLarge15" }, { status: 413 });
   }
   if (file && !INVOICE_MIMES.includes(file.type)) {
-    return NextResponse.json({ error: "PDF ou image seulement" }, { status: 415 });
+    return NextResponse.json({ error: "PDF ou image seulement", errorKey: "api.common.pdfOrImageOnly" }, { status: 415 });
   }
 
   const { date, dueDate, status, ...rest } = parsed.data;
@@ -110,6 +110,6 @@ async function importInvoice(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return NextResponse.json({ error: "Enregistrement impossible", errorKey: "api.common.saveFailed" }, { status: 500 });
   }
 }

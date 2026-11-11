@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     where: { id: organisationId },
     select: { name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ error: "Organisation introuvable", errorKey: "api.fiscalite.organisationNotFound" }, { status: 404 });
 
   const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[], partnerShares: [] as number[] };
   const t = org.taxProfile;

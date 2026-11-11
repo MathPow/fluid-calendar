@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { machineId: true, status: true, output: true, error: true },
   });
-  if (!cmd) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!cmd) return NextResponse.json({ error: "Introuvable", errorKey: "api.common.notFound" }, { status: 404 });
   if (cmd.status === "queued" || cmd.status === "running")
     await expireCommands(cmd.machineId);
   const fresh = await prisma.desktopCommand.findUnique({
