@@ -3,6 +3,7 @@ import {
   classifySmtpError,
   findPlaceholder,
   inSendWindow,
+  isDelayNotice,
   looksLikeBounce,
   newTextOf,
   parseCampaignCsv,
@@ -341,5 +342,24 @@ describe("tooManyBounces", () => {
     expect(tooManyBounces(2, 3)).toBe(false);
     expect(tooManyBounces(3, 100)).toBe(false);
     expect(tooManyBounces(3, 20)).toBe(true);
+  });
+});
+
+describe("isDelayNotice", () => {
+  it("treats a delayed report as a warning, not a bounce", () => {
+    expect(
+      isDelayNotice(
+        "Mail Delivery Status Notification (Delay)",
+        "Status: 421\nAction: delayed\nDiagnostic-Code: 4.3.2"
+      )
+    ).toBe(true);
+  });
+  it("keeps a failed report as a bounce", () => {
+    expect(
+      isDelayNotice(
+        "Mail Delivery Status Notification (Failure)",
+        "Status: 5.1.1\nAction: failed"
+      )
+    ).toBe(false);
   });
 });

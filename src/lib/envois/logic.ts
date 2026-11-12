@@ -336,6 +336,18 @@ const BOUNCE_FROM_RE = /mailer-daemon|postmaster|mail delivery/i;
 const BOUNCE_SUBJECT_RE =
   /undeliver|delivery (status|fail)|returned mail|mail delivery failed|failure notice|non remis|[ée]chec de (la )?(remise|livraison)/i;
 
+/**
+ * A "delayed" delivery report is a warning: the provider keeps retrying (e.g.
+ * Outlook's 421 "too many connections"). Only a failed report is a bounce.
+ */
+export function isDelayNotice(subject: string, raw: string): boolean {
+  if (/^\s*Action:\s*failed/im.test(raw)) return false;
+  return (
+    /\(delay\)|delayed|delivery delay|retard/i.test(subject) ||
+    /^\s*Action:\s*delayed/im.test(raw)
+  );
+}
+
 export function looksLikeBounce(from: string, subject: string): boolean {
   return BOUNCE_FROM_RE.test(from) || BOUNCE_SUBJECT_RE.test(subject);
 }

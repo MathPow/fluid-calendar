@@ -20,6 +20,7 @@ import {
   classifySmtpError,
   inSendWindow,
   isListUnsubscribe,
+  isDelayNotice,
   looksLikeBounce,
   newTextOf,
   normalizeEmail,
@@ -613,6 +614,8 @@ async function applySignal(signal: InboxSignal, index: SentIndex) {
   const when = signal.date ? new Date(signal.date) : new Date();
 
   if (looksLikeBounce(from, signal.subject)) {
+    // Delivery is only late; the provider retries on its own.
+    if (isDelayNotice(signal.subject, signal.raw)) return;
     // A bounce quotes the original Message-ID. An address alone proves nothing: skip without it.
     const recipient = [...index.byMessageId.entries()].find(([id]) =>
       signal.raw.includes(id)
