@@ -168,7 +168,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       LOG_SOURCE
     );
     return NextResponse.json(
-      { error: "Mise à jour impossible" },
+      { errorKey: "toasts.api.updateFailed", error: "Could not update" },
       { status: 500 }
     );
   }

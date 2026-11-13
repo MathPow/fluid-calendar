@@ -66,9 +66,13 @@ export function PartnersTile({ organisationId, partners, summaries, movements, o
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ organisationId, from: s.from, to: s.to, amountCents: s.amountCents }),
       });
-      const data = (await res.json().catch(() => null)) as MovementView[] | { error?: string } | null;
+      const data = (await res.json().catch(() => null)) as MovementView[] | { error?: string; errorKey?: string } | null;
       if (!res.ok || !Array.isArray(data)) {
-        throw new Error((data as { error?: string } | null)?.error || `Erreur ${res.status}`);
+        const err = data as { error?: string; errorKey?: string } | null;
+        throw new Error(
+          (err?.errorKey ? t(err.errorKey) : err?.error) ||
+            t("common.error", { status: res.status })
+        );
       }
       for (const m of data) onAdded(m);
       toast.success(t("fiscalite.partners.settleDone", { amount: formatMoney(s.amountCents) }));

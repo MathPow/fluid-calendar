@@ -32,6 +32,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { useT } from "@/i18n/client";
 import { cn, formatShortcut } from "@/lib/utils";
 
 import { useCommands } from "@/hooks/useCommands";
@@ -81,18 +82,18 @@ interface AskState {
 
 const RESULT_META: Record<
   SearchResult["type"],
-  { label: string; icon: typeof CheckSquare }
+  { labelKey: string; icon: typeof CheckSquare }
 > = {
-  project: { label: "Projets", icon: FolderKanban },
-  contact: { label: "Contacts", icon: Users },
-  organisation: { label: "Organisations", icon: Building2 },
-  task: { label: "Tasks", icon: CheckSquare },
-  event: { label: "Calendar", icon: CalendarClock },
-  invoice: { label: "Factures", icon: Receipt },
-  note: { label: "Notes", icon: FileText },
-  recording: { label: "Recordings", icon: AudioLines },
-  machine: { label: "Machines", icon: Server },
-  ghost: { label: "Blocs fantômes", icon: Ghost },
+  project: { labelKey: "commandPalette.group.project", icon: FolderKanban },
+  contact: { labelKey: "commandPalette.group.contact", icon: Users },
+  organisation: { labelKey: "commandPalette.group.organisation", icon: Building2 },
+  task: { labelKey: "commandPalette.group.task", icon: CheckSquare },
+  event: { labelKey: "commandPalette.group.event", icon: CalendarClock },
+  invoice: { labelKey: "commandPalette.group.invoice", icon: Receipt },
+  note: { labelKey: "commandPalette.group.note", icon: FileText },
+  recording: { labelKey: "commandPalette.group.recording", icon: AudioLines },
+  machine: { labelKey: "commandPalette.group.machine", icon: Server },
+  ghost: { labelKey: "commandPalette.group.ghost", icon: Ghost },
 };
 
 /** Icons for every source type the ask endpoint can cite. */
@@ -107,6 +108,7 @@ const SOURCE_ICONS: Record<string, typeof CheckSquare> = {
 };
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const t = useT();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [showAllCommands, setShowAllCommands] = useState(false);
@@ -261,9 +263,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             }
           }}
         >
-          <Dialog.Title className="sr-only">Command Menu</Dialog.Title>
+          <Dialog.Title className="sr-only">{t("commandPalette.title")}</Dialog.Title>
           <Dialog.Description className="sr-only">
-            Search commands and navigate the application
+            {t("commandPalette.description")}
           </Dialog.Description>
 
           {ask ? (
@@ -287,7 +289,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               <div className="flex items-center border-b border-border px-4">
                 <Search className="h-5 w-5 text-muted-foreground" />
                 <Command.Input
-                  placeholder="Search, ask a question, or run a command"
+                  placeholder={t("commandPalette.searchPlaceholder")}
                   className="h-12 flex-1 px-3 text-base outline-none placeholder:text-muted-foreground"
                   value={search}
                   onValueChange={setSearch}
@@ -297,7 +299,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   <button
                     className="ml-2 p-2 text-muted-foreground hover:text-foreground"
                     onClick={() => setSearch("")}
-                    aria-label="Clear search"
+                    aria-label={t("commandPalette.clearAria")}
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -309,7 +311,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     </kbd>
                     <Dialog.Close
                       className="ml-2 p-2 text-muted-foreground hover:text-foreground"
-                      aria-label="Close command menu"
+                      aria-label={t("commandPalette.closeAria")}
                     >
                       <X className="h-5 w-5" />
                     </Dialog.Close>
@@ -328,7 +330,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   >
                     <Sparkles className="h-4 w-4 shrink-0 text-foreground" />
                     <span className="truncate">
-                      Ask AI:{" "}
+                      {t("commandPalette.askAi")}{" "}
                       <span className="font-medium">{search.trim()}</span>
                     </span>
                     <kbd className="ml-auto shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
@@ -340,7 +342,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 {!search && !showAllCommands && (
                   <div className="px-2 py-3 text-sm text-muted-foreground">
                     <p className="mb-2">
-                      Start typing to search commands or try these:
+                      {t("commandPalette.startTyping")}
                     </p>
                     <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <div
@@ -351,7 +353,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         }}
                       >
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Go to Calendar</span>
+                        <span className="text-sm">{t("commandPalette.goCalendar")}</span>
                         <kbd className="ml-auto rounded bg-secondary px-1.5 py-0.5 text-xs">
                           gc
                         </kbd>
@@ -364,7 +366,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         }}
                       >
                         <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Go to Tasks</span>
+                        <span className="text-sm">{t("commandPalette.goTasks")}</span>
                         <kbd className="ml-auto rounded bg-secondary px-1.5 py-0.5 text-xs">
                           gt
                         </kbd>
@@ -377,7 +379,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         }}
                       >
                         <Zap className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Go to Focus</span>
+                        <span className="text-sm">{t("commandPalette.goFocus")}</span>
                         <kbd className="ml-auto rounded bg-secondary px-1.5 py-0.5 text-xs">
                           gf
                         </kbd>
@@ -390,7 +392,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         }}
                       >
                         <Settings className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Go to Settings</span>
+                        <span className="text-sm">{t("commandPalette.goSettings")}</span>
                         <kbd className="ml-auto rounded bg-secondary px-1.5 py-0.5 text-xs">
                           gs
                         </kbd>
@@ -403,7 +405,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
                       >
                         <LayoutGrid className="h-4 w-4" />
-                        Show all commands
+                        {t("commandPalette.showAll")}
                       </button>
                     </div>
                   </div>
@@ -414,9 +416,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   (type) => {
                     const items = groupedResults[type];
                     if (!items || items.length === 0) return null;
-                    const { label, icon: Icon } = RESULT_META[type];
+                    const { labelKey, icon: Icon } = RESULT_META[type];
                     return (
-                      <Command.Group key={`result-${type}`} heading={label}>
+                      <Command.Group key={`result-${type}`} heading={t(labelKey)}>
                         {items.map((item) => (
                           <Command.Item
                             key={`${item.type}:${item.id}`}
@@ -440,13 +442,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
                 {searching && results.length === 0 && (
                   <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Searching…
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t("commandPalette.searching")}
                   </div>
                 )}
 
                 {!searching && (
                   <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
-                    No results found. Try a different search term.
+                    {t("commandPalette.noResults")}
                   </Command.Empty>
                 )}
 
@@ -517,6 +519,7 @@ function AskPanel({
   onRetry: () => void;
   onNavigate: (url: string) => void;
 }) {
+  const t = useT();
   // Cited sources first — they're the ones the answer actually leans on.
   const sources = [...state.sources].sort(
     (a, b) => Number(b.cited) - Number(a.cited) || a.n - b.n
@@ -528,7 +531,7 @@ function AskPanel({
         <button
           onClick={onBack}
           className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-          aria-label="Back to search"
+          aria-label={t("commandPalette.backAria")}
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -538,7 +541,7 @@ function AskPanel({
         </span>
         <Dialog.Close
           className="ml-auto p-1 text-muted-foreground hover:text-foreground"
-          aria-label="Close command menu"
+          aria-label={t("commandPalette.closeAria")}
         >
           <X className="h-4 w-4" />
         </Dialog.Close>
@@ -550,10 +553,10 @@ function AskPanel({
             <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             <span>
               {state.sources.length === 0
-                ? "Recherche dans ton calendrier, tes tâches, tes notes…"
-                : "Lecture des ressources ci-dessous…"}
+                ? t("commandPalette.ask.searching")
+                : t("commandPalette.ask.reading")}
               <span className="block text-xs text-muted-foreground">
-                Le modèle tourne en local — compte une à deux minutes.
+                {t("commandPalette.ask.localHint")}
               </span>
             </span>
           </div>
@@ -566,7 +569,7 @@ function AskPanel({
               onClick={onRetry}
               className="mt-2 rounded-xl px-2 py-1 text-xs font-medium text-foreground hover:bg-tint-soft"
             >
-              Réessayer
+              {t("commandPalette.ask.retry")}
             </button>
           </div>
         )}
@@ -594,7 +597,7 @@ function AskPanel({
 
         {sources.length > 0 && (
           <div className="mt-4 border-t border-border pt-3">
-            <p className="etiquette mb-3">Ressources consultées</p>
+            <p className="etiquette mb-3">{t("commandPalette.sources.heading")}</p>
             <ul className="space-y-0.5">
               {sources.map((source) => {
                 const Icon = SOURCE_ICONS[source.type] ?? FileText;
