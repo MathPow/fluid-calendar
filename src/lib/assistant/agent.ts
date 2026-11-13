@@ -12,8 +12,9 @@ import { answerFromSources } from "@/lib/ask/answer";
 import { retrieveSources } from "@/lib/ask/retrieve";
 import { logger } from "@/lib/logger";
 
+import { bridgeConfigured, runViaBridge } from "./bridge";
 import { USER_TZ } from "./links";
-import { type AssistantModelId, DEFAULT_ASSISTANT_MODEL } from "./models";
+import type { AssistantModelId } from "./models";
 import {
   INVOICE_WRITE_TOOLS,
   type LinkItem,
@@ -25,8 +26,8 @@ import {
 
 const LOG_SOURCE = "assistant-agent";
 
-/** Server default; the chat panel can pick another one per request. */
-const MODEL = process.env.ASSISTANT_MODEL || DEFAULT_ASSISTANT_MODEL;
+/** API model when none is picked (or the subscription bridge is missing). */
+const MODEL = process.env.ASSISTANT_MODEL || "claude-opus-5-5";
 const EFFORT = (process.env.ASSISTANT_EFFORT || "medium") as
   | "low"
   | "medium"
@@ -102,11 +103,16 @@ export async function* runAssistant(
   /** From the chat panel's picker; the server default otherwise. */
   requested?: AssistantModelId
 ): AsyncGenerator<AssistantEvent> {
+  const wantsBridge = requested === "claude-code" || requested === undefined;
+  if (requested !== "local" && wantsBridge && bridgeConfigured()) {
+    yield* runSubscription(userId, history, ctx);
+    return;
+  }
   if (requested === "local" || !process.env.ANTHROPIC_API_KEY) {
     yield* runLocalFallback(userId, history, ctx);
     return;
   }
-  const model = requested ?? MODEL;
+  const model = !requested || requested === "claude-code" ? MODEL : requested;
   // Haiku 4.5 predates adaptive thinking and effort (both 400 there), the
   // server-side refusal fallback and the dynamic-filtering web search.
   const legacy = model.startsWith("claude-haiku-4");
@@ -246,6 +252,43 @@ export async function* runAssistant(
     }
   }
 
+  yield { type: "links", items: pickLinks(answer, registry) };
+  yield { type: "done" };
+}
+
+/**
+ * On the Claude subscription, through the Claude Code bridge: same prompt and
+ * tools, one `claude -p` run per message. The history goes in as a transcript.
+ */
+async function* runSubscription(
+  userId: string,
+  history: ChatTurn[],
+  ctx: PageContext
+): AsyncGenerator<AssistantEvent> {
+  const registry: LinkRegistry = new Map();
+  const last = history[history.length - 1];
+  const earlier = history.slice(0, -1);
+  const prompt = [
+    earlier.length
+      ? `<historique>\n${earlier
+          .map((t) => `${t.role === "user" ? "Utilisateur" : "Assistant"} : ${t.content}`)
+          .join("\n\n")}\n</historique>`
+      : null,
+    contextBlock(ctx),
+    last.content,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const system = `${SYSTEM}
+
+Tes outils DreamDash s'appellent mcp__dd__<nom> (ex. mcp__dd__search_email) ; la recherche web est WebSearch. Le bloc <historique>, s'il y en a un, est la conversation jusqu'ici ; réponds seulement au dernier message.`;
+
+  yield { type: "status", text: "Claude Code démarre" };
+  let answer = "";
+  for await (const e of runViaBridge(userId, system, prompt, registry)) {
+    if (e.type === "text") answer += e.text;
+    yield e;
+  }
   yield { type: "links", items: pickLinks(answer, registry) };
   yield { type: "done" };
 }

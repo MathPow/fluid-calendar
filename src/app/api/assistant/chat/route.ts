@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { runAssistant } from "@/lib/assistant/agent";
+import { bridgeConfigured } from "@/lib/assistant/bridge";
 import { ASSISTANT_MODEL_IDS } from "@/lib/assistant/models";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
@@ -42,7 +43,10 @@ const BodySchema = z.object({
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
-  return NextResponse.json({ claude: !!process.env.ANTHROPIC_API_KEY });
+  return NextResponse.json({
+    claude: !!process.env.ANTHROPIC_API_KEY,
+    bridge: bridgeConfigured(),
+  });
 }
 
 export async function POST(request: NextRequest) {
