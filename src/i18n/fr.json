@@ -1,5 +1,7 @@
 {
+  "account.fallbackName": "Toi",
   "account.keyboardShortcuts": "Raccourcis clavier",
+  "account.launcher.noMachine": "sans machine",
   "account.launchers.manage": "Gérer les raccourcis",
   "account.loggingOut": "Déconnexion…",
   "account.logout": "Se déconnecter",

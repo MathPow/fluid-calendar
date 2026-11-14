@@ -1,5 +1,7 @@
 {
+  "account.fallbackName": "You",
   "account.keyboardShortcuts": "Keyboard shortcuts",
+  "account.launcher.noMachine": "no machine",
   "account.launchers.manage": "Manage launchers",
   "account.loggingOut": "Logging out…",
   "account.logout": "Log out",
