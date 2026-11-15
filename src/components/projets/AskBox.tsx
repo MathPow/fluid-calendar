@@ -58,7 +58,9 @@ export function AskBox({
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
       setAnswer(data.answer ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Une erreur est survenue.");
+      setError(
+        e instanceof Error ? e.message : t("projects.ask.defaultError")
+      );
     } finally {
       setLoading(false);
     }
@@ -90,7 +92,7 @@ export function AskBox({
           size="icon"
           className="h-12 w-12 shrink-0"
           disabled={loading || !question.trim()}
-          aria-label="Demander"
+          aria-label={t("projects.ask.submitAria")}
         >
           {loading ? (
             <LoadingSpinner size="sm" className="text-primary-foreground" />
@@ -102,7 +104,7 @@ export function AskBox({
 
       {loading ? (
         <p className="mt-4 px-1 font-serif text-[15px] italic text-muted-foreground">
-          Le modèle tourne en local — compte une à deux minutes.
+          {t("projects.ask.loadingMessage")}
         </p>
       ) : null}
 
