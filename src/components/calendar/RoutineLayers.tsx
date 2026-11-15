@@ -34,9 +34,11 @@ import { useRoutineStore } from "@/store/routine";
 import { useSettingsStore } from "@/store/settings";
 
 /** A first week to edit rather than an empty screen: the usual three blocks. */
-const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
+const STARTER: (Omit<RoutineBlockLite, "id" | "layerId" | "title"> & {
+  titleKey: string;
+})[] = [
   {
-    title: "Travail",
+    titleKey: "calendar.routineLayers.starter.work",
     kind: "work",
     color: null,
     days: [1, 2, 3, 4, 5],
@@ -45,7 +47,7 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
     schedulable: true,
   },
   {
-    title: "Sommeil",
+    titleKey: "calendar.routineLayers.starter.sleep",
     kind: "sleep",
     color: null,
     days: [0, 1, 2, 3, 4, 5, 6],
@@ -54,7 +56,7 @@ const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
     schedulable: false,
   },
   {
-    title: "Entraînement",
+    titleKey: "calendar.routineLayers.starter.sport",
     kind: "sport",
     color: null,
     days: [1, 3, 5],
@@ -89,7 +91,8 @@ export function RoutineLayers() {
 
   const seed = async () => {
     setSeeding(true);
-    for (const block of STARTER) await store.createBlock(block);
+    for (const { titleKey, ...rest } of STARTER)
+      await store.createBlock({ ...rest, title: t(titleKey) });
     setSeeding(false);
   };
 
