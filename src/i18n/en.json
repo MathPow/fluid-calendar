@@ -1,9 +1,11 @@
 {
   "account.keyboardShortcuts": "Keyboard shortcuts",
   "account.launchers.manage": "Manage launchers",
+  "account.launchers.noMachine": "no machine",
   "account.loggingOut": "Logging out…",
   "account.logout": "Log out",
   "account.menu.aria": "Account menu",
+  "account.name.fallback": "You",
   "account.shortcuts": "Launchers",
   "account.signedInAs": "Signed in as",
   "account.station.aria": "Station: {label}",
