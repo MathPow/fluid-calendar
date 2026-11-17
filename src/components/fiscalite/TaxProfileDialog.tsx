@@ -333,7 +333,7 @@ export function TaxProfileDialog({
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="tp-owner">{t("fiscalite.taxProfile.ownerName")}</Label>
-                <Input id="tp-owner" {...field("ownerName")} placeholder="Prénom Nom" />
+                <Input id="tp-owner" {...field("ownerName")} placeholder={t("fiscalite.taxProfile.ownerNamePlaceholder")} />
                 <p className="text-xs text-muted-foreground">{t("fiscalite.taxProfile.ownerNameHint")}</p>
               </div>
               <div className="space-y-2">
