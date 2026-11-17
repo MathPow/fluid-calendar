@@ -63,6 +63,13 @@ export async function POST(request: NextRequest) {
         for (const r of replies) {
           const who = r.from[0]?.name || r.from[0]?.address || "Quelqu'un";
           const at = r.date ? new Date(r.date) : new Date();
+          // Opens the reply itself (EmailClient deep link), not the inbox.
+          const url = `/email?${new URLSearchParams({
+            account: account.id,
+            mailbox: "INBOX",
+            uid: String(r.uid),
+          })}`;
+          const dedupeKey = `email-reply:${r.messageId ?? `${account.id}:${r.uid}`}`;
           const row = await notify(user.id, {
             kind: "email_reply",
             source: "email",
@@ -70,11 +77,17 @@ export async function POST(request: NextRequest) {
             silent: Date.now() - at.getTime() > PUSH_WINDOW_MS,
             title: `${who} a répondu`,
             body: `« ${r.repliesTo} »${r.subject !== r.repliesTo ? `\n${r.subject}` : ""}`,
-            url: "/email",
-            dedupeKey: `email-reply:${r.messageId ?? `${account.id}:${r.uid}`}`,
+            url,
+            dedupeKey,
             createdAt: at,
           });
           if (row) created++;
+          // Replies notified before the deep link pointed at the bare inbox.
+          else
+            await prisma.notification.updateMany({
+              where: { userId: user.id, dedupeKey, url: "/email" },
+              data: { url },
+            });
         }
       } catch (error) {
         failed.push(account.email);

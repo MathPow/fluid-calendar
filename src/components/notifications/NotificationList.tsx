@@ -14,6 +14,7 @@ import {
   Undo2,
 } from "lucide-react";
 
+import { useDeepLinkStore } from "@/hooks/use-deep-link";
 import { useT } from "@/i18n/client";
 import { timeAgoFr } from "@/lib/projets/meta";
 import { cn } from "@/lib/utils";
@@ -126,7 +127,16 @@ export function NotificationList({
                   {inner}
                 </a>
               ) : (
-                <Link href={n.url} className={cls} onClick={() => onOpen(n)}>
+                <Link
+                  href={n.url}
+                  className={cls}
+                  onClick={() => {
+                    // Already on the target page (e.g. /email), a client-side
+                    // navigation wouldn't re-run its mount: hand it the link.
+                    useDeepLinkStore.getState().push(n.url!);
+                    onOpen(n);
+                  }}
+                >
                   {inner}
                 </Link>
               )
