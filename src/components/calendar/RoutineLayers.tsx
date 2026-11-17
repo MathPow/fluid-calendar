@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { useLocale, useT } from "@/i18n/client";
+import { type TranslateFn, useLocale, useT } from "@/i18n/client";
 import {
   type RoutineBlockLite,
   crossesMidnight,
@@ -34,35 +34,39 @@ import { useRoutineStore } from "@/store/routine";
 import { useSettingsStore } from "@/store/settings";
 
 /** A first week to edit rather than an empty screen: the usual three blocks. */
-const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
-  {
-    title: "Travail",
-    kind: "work",
-    color: null,
-    days: [1, 2, 3, 4, 5],
-    startTime: "09:00",
-    endTime: "17:00",
-    schedulable: true,
-  },
-  {
-    title: "Sommeil",
-    kind: "sleep",
-    color: null,
-    days: [0, 1, 2, 3, 4, 5, 6],
-    startTime: "23:00",
-    endTime: "07:00",
-    schedulable: false,
-  },
-  {
-    title: "Entraînement",
-    kind: "sport",
-    color: null,
-    days: [1, 3, 5],
-    startTime: "07:15",
-    endTime: "08:15",
-    schedulable: false,
-  },
-];
+function starterBlocks(
+  t: TranslateFn
+): Omit<RoutineBlockLite, "id" | "layerId">[] {
+  return [
+    {
+      title: t("calendar.routineLayers.starter.work"),
+      kind: "work",
+      color: null,
+      days: [1, 2, 3, 4, 5],
+      startTime: "09:00",
+      endTime: "17:00",
+      schedulable: true,
+    },
+    {
+      title: t("calendar.routineLayers.starter.sleep"),
+      kind: "sleep",
+      color: null,
+      days: [0, 1, 2, 3, 4, 5, 6],
+      startTime: "23:00",
+      endTime: "07:00",
+      schedulable: false,
+    },
+    {
+      title: t("calendar.routineLayers.starter.sport"),
+      kind: "sport",
+      color: null,
+      days: [1, 3, 5],
+      startTime: "07:15",
+      endTime: "08:15",
+      schedulable: false,
+    },
+  ];
+}
 
 /**
  * Calendar sidebar section for the routine layers (« Semaine type »): show or
@@ -89,7 +93,7 @@ export function RoutineLayers() {
 
   const seed = async () => {
     setSeeding(true);
-    for (const block of STARTER) await store.createBlock(block);
+    for (const block of starterBlocks(t)) await store.createBlock(block);
     setSeeding(false);
   };
 
