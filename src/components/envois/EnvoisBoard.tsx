@@ -127,8 +127,13 @@ interface Exclusion {
   reason: string;
 }
 
-type Triage = "not_interested" | "closed" | "no_response";
-const TRIAGES: Triage[] = ["not_interested", "closed", "no_response"];
+type Triage = "meeting" | "not_interested" | "closed" | "no_response";
+const TRIAGES: Triage[] = [
+  "meeting",
+  "not_interested",
+  "closed",
+  "no_response",
+];
 
 type Filter =
   | "all"

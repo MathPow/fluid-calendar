@@ -2726,6 +2726,7 @@
   "envois.recipient.outcome.unsubscribed": "Désabonné",
   "envois.recipient.outcome.bounced": "Rebond",
   "envois.recipient.triage.label": "Classer",
+  "envois.recipient.triage.meeting": "Rencontre prévue",
   "envois.recipient.triage.not_interested": "Pas intéressé",
   "envois.recipient.triage.closed": "Fermé",
   "envois.recipient.triage.no_response": "Sans réponse",

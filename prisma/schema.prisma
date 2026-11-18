@@ -875,7 +875,7 @@ model MailCampaignRecipient {
   replyMessageId String? // their latest reply, so an answer from here lands in the same thread
   replyFrom     String? // who answered (may differ from the address emailed)
   answeredAt    DateTime? // last time the user answered them from the Envois page
-  triage        String? // not_interested | closed | no_response: the user filed this lead
+  triage        String? // meeting | not_interested | closed | no_response: the user filed this lead
   outcomeAt     DateTime?
   sentAt        DateTime?
   createdAt     DateTime  @default(now())

@@ -2726,6 +2726,7 @@
   "envois.recipient.outcome.unsubscribed": "Unsubscribed",
   "envois.recipient.outcome.bounced": "Bounced",
   "envois.recipient.triage.label": "File as",
+  "envois.recipient.triage.meeting": "Meeting coming",
   "envois.recipient.triage.not_interested": "Not interested",
   "envois.recipient.triage.closed": "Closed",
   "envois.recipient.triage.no_response": "No response",

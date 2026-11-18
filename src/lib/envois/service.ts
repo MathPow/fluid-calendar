@@ -272,7 +272,7 @@ export interface RecipientPatch {
   /** Send a failed or interrupted message again. */
   requeue?: boolean;
   /** File a lead once it's dealt with; null puts it back in the replies. */
-  triage?: "not_interested" | "closed" | "no_response" | null;
+  triage?: "meeting" | "not_interested" | "closed" | "no_response" | null;
 }
 
 export async function updateRecipient(
