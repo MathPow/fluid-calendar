@@ -271,6 +271,8 @@ export interface RecipientPatch {
   reviewed?: boolean;
   /** Send a failed or interrupted message again. */
   requeue?: boolean;
+  /** File a lead once it's dealt with; null puts it back in the replies. */
+  triage?: "not_interested" | "closed" | "no_response" | null;
 }
 
 export async function updateRecipient(
@@ -284,11 +286,23 @@ export async function updateRecipient(
     where: { id: recipientId, campaignId },
   });
   if (!recipient) throw new CampaignError("Recipient not found", 404);
+
+  const { requeue, reviewed, triage, ...fields } = patch;
+  // Filing a lead is the one change a message that already left still takes.
+  if (triage !== undefined) {
+    if (recipient.status !== "sent") {
+      throw new CampaignError("Only a sent message can be filed", 409);
+    }
+    await prisma.mailCampaignRecipient.update({
+      where: { id: recipientId },
+      data: { triage },
+    });
+    if (!requeue && !reviewed && Object.keys(fields).length === 0) return;
+  }
   if (recipient.status === "sent" || recipient.status === "sending") {
     throw new CampaignError("This message already left", 409);
   }
 
-  const { requeue, reviewed, ...fields } = patch;
   const data: Partial<MailCampaignRecipient> = { ...fields };
   if (fields.email !== undefined) data.email = normalizeEmail(fields.email);
   if (reviewed) data.reviewNote = null;
@@ -682,14 +696,23 @@ async function applySignal(signal: InboxSignal, index: SentIndex) {
     replySnippet: newTextOf(signal.text).slice(0, 300),
   };
   // A later message in the thread: keep the outcome, answer the newest one.
+  // Someone filed as "no response" who writes back comes back to the replies.
   if (recipient.outcome === "replied") {
-    await prisma.mailCampaignRecipient.update({ where: { id: recipient.id }, data: thread });
+    await prisma.mailCampaignRecipient.update({
+      where: { id: recipient.id },
+      data: recipient.triage === "no_response" ? { ...thread, triage: null } : thread,
+    });
     return;
   }
   if (recipient.outcome) return; // an opt-out or a bounce tells the story
   await prisma.mailCampaignRecipient.update({
     where: { id: recipient.id },
-    data: { outcome: "replied", outcomeAt: when, ...thread },
+    data: {
+      outcome: "replied",
+      outcomeAt: when,
+      ...thread,
+      ...(recipient.triage === "no_response" ? { triage: null } : {}),
+    },
   });
   recipient.outcome = "replied";
 }

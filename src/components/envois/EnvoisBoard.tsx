@@ -93,6 +93,7 @@ interface Recipient {
   replySnippet: string | null;
   replyFrom: string | null;
   answeredAt: string | null;
+  triage: Triage | null;
   sentAt: string | null;
 }
 
@@ -126,13 +127,24 @@ interface Exclusion {
   reason: string;
 }
 
-type Filter = "all" | "flagged" | "waiting" | "sent" | "replies" | "problems";
+type Triage = "not_interested" | "closed" | "no_response";
+const TRIAGES: Triage[] = ["not_interested", "closed", "no_response"];
+
+type Filter =
+  | "all"
+  | "flagged"
+  | "waiting"
+  | "sent"
+  | "replies"
+  | "filed"
+  | "problems";
 const FILTERS: Filter[] = [
   "all",
   "flagged",
   "waiting",
   "sent",
   "replies",
+  "filed",
   "problems",
 ];
 
@@ -165,7 +177,11 @@ const matchesFilter = (r: Recipient, filter: Filter) => {
     case "sent":
       return r.status === "sent";
     case "replies":
-      return r.outcome === "replied" || r.outcome === "unsubscribed";
+      return (
+        !r.triage && (r.outcome === "replied" || r.outcome === "unsubscribed")
+      );
+    case "filed":
+      return Boolean(r.triage);
     case "problems":
       return (
         r.status === "failed" ||
@@ -921,6 +937,11 @@ function RecipientRow({
                 {t(`envois.recipient.outcome.${recipient.outcome}`)}
               </Badge>
             )}
+            {recipient.triage && (
+              <Badge variant="outline">
+                {t(`envois.recipient.triage.${recipient.triage}`)}
+              </Badge>
+            )}
           </span>
           <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">
             {recipient.email} · {recipient.subject}
@@ -949,6 +970,44 @@ function RecipientRow({
             <blockquote className="border-l-2 border-border pl-3 text-[14px] text-muted-foreground">
               {recipient.replySnippet}
             </blockquote>
+          )}
+          {recipient.status === "sent" && (
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[13px] text-muted-foreground">
+                  {t("envois.recipient.triage.label")}
+                </span>
+                {TRIAGES.map((value) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    variant={recipient.triage === value ? "default" : "outline"}
+                    disabled={busy}
+                    aria-pressed={recipient.triage === value}
+                    onClick={() =>
+                      void patch({
+                        triage: recipient.triage === value ? null : value,
+                      })
+                    }
+                  >
+                    {t(`envois.recipient.triage.${value}`)}
+                  </Button>
+                ))}
+                {recipient.triage && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => void patch({ triage: null })}
+                  >
+                    {t("envois.recipient.triage.clear")}
+                  </Button>
+                )}
+              </div>
+              <p className="text-[12px] text-muted-foreground">
+                {t("envois.recipient.triage.hint")}
+              </p>
+            </div>
           )}
           {answerable && (
             <div className="space-y-1.5 rounded-xl border border-border p-3">

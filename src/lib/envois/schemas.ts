@@ -42,6 +42,10 @@ export const PatchRecipientInput = z.object({
   selected: z.boolean().optional(),
   reviewed: z.literal(true).optional(),
   requeue: z.literal(true).optional(),
+  triage: z
+    .enum(["not_interested", "closed", "no_response"])
+    .nullable()
+    .optional(),
 });
 
 export const AddExclusionInput = z.object({ email: z.string().email() });
