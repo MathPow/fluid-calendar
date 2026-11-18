@@ -656,3 +656,42 @@ export async function listInboxSignals(
     }
   });
 }
+
+/**
+ * The newest INBOX message since `since` that answers `messageId` (its
+ * In-Reply-To or References), for a reply recorded before its own Message-ID
+ * was kept. Matched here: not every server searches those headers.
+ */
+export async function findLatestReply(
+  acct: MailAccountConn,
+  messageId: string,
+  since: Date
+): Promise<{ messageId: string; from: string } | null> {
+  return withClient(acct, async (client) => {
+    const lock = await client.getMailboxLock("INBOX", { readOnly: true });
+    try {
+      const day = new Date(since.getTime() - 86_400_000);
+      const uids = (await client.search({ since: day }, { uid: true })) || [];
+      let best: { uid: number; messageId: string; from: string } | null = null;
+      if (uids.length === 0) return null;
+      for await (const msg of client.fetch(
+        uids.slice(-2000),
+        { uid: true, envelope: true, headers: ["in-reply-to", "references"] },
+        { uid: true }
+      )) {
+        const id = msg.envelope?.messageId;
+        const from = msg.envelope?.from?.[0]?.address;
+        if (!id || !from || id === messageId) continue;
+        if (
+          !parentIds(msg.headers, msg.envelope?.inReplyTo).includes(messageId)
+        )
+          continue;
+        if (!best || msg.uid > best.uid)
+          best = { uid: msg.uid, messageId: id, from };
+      }
+      return best && { messageId: best.messageId, from: best.from };
+    } finally {
+      lock.release();
+    }
+  });
+}

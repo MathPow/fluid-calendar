@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { type LoadedAccount, loadAccount } from "@/lib/mail/account";
 import {
   type InboxSignal,
+  findLatestReply,
   listInboxSignals,
   saveToSent,
 } from "@/lib/mail/imap";
@@ -675,16 +676,102 @@ async function applySignal(signal: InboxSignal, index: SentIndex) {
     await markUnsubscribed(recipient, from, when, newTextOf(signal.text));
     return;
   }
-  if (recipient.outcome) return; // the first answer tells the story
+  const thread = {
+    replyMessageId: signal.messageId,
+    replyFrom: from || null,
+    replySnippet: newTextOf(signal.text).slice(0, 300),
+  };
+  // A later message in the thread: keep the outcome, answer the newest one.
+  if (recipient.outcome === "replied") {
+    await prisma.mailCampaignRecipient.update({ where: { id: recipient.id }, data: thread });
+    return;
+  }
+  if (recipient.outcome) return; // an opt-out or a bounce tells the story
   await prisma.mailCampaignRecipient.update({
     where: { id: recipient.id },
-    data: {
-      outcome: "replied",
-      outcomeAt: when,
-      replySnippet: newTextOf(signal.text).slice(0, 300),
-    },
+    data: { outcome: "replied", outcomeAt: when, ...thread },
   });
   recipient.outcome = "replied";
+}
+
+const MAX_ANSWER = 20_000;
+
+/**
+ * Answer someone who replied to a campaign, from the campaign's own account and
+ * in the same thread as their reply, then file a copy in Sent.
+ */
+export async function answerReply(
+  userId: string,
+  id: string,
+  recipientId: string,
+  text: string
+) {
+  const campaign = await ownedCampaign(userId, id);
+  const recipient = await prisma.mailCampaignRecipient.findFirst({
+    where: { id: recipientId, campaignId: id },
+  });
+  if (!recipient) throw new CampaignError("Recipient not found", 404);
+  if (recipient.status !== "sent" || !recipient.messageId) {
+    throw new CampaignError("This message was never sent", 409);
+  }
+  const body = text.trim();
+  if (!body) throw new CampaignError("The answer is empty", 400);
+  if (body.length > MAX_ANSWER) throw new CampaignError("The answer is too long", 400);
+  if (!campaign.accountId) throw new CampaignError("Account not found", 404);
+  const account = await loadAccount(userId, campaign.accountId);
+  if (!account) throw new CampaignError("Account not found", 404);
+
+  // Replies recorded before their Message-ID was kept: look the thread up once.
+  let replyMessageId = recipient.replyMessageId;
+  let replyFrom = recipient.replyFrom;
+  if (!replyMessageId) {
+    const found = await findLatestReply(
+      account.imap,
+      recipient.messageId,
+      recipient.sentAt ?? recipient.createdAt
+    ).catch((error) => {
+      logger.warn(
+        "Could not find the reply to answer",
+        { error: error instanceof Error ? error.message : String(error) },
+        LOG_SOURCE
+      );
+      return null;
+    });
+    if (found) {
+      replyMessageId = found.messageId;
+      replyFrom = found.from;
+    }
+  }
+
+  const to = replyFrom || recipient.email;
+  const subject = /^re\s*:/i.test(recipient.subject)
+    ? recipient.subject
+    : `Re: ${recipient.subject}`;
+  const references = [recipient.inReplyTo, recipient.messageId, replyMessageId].filter(
+    (v): v is string => Boolean(v)
+  );
+  const sent = await sendMail(fromAccount(account, campaign), {
+    to,
+    subject,
+    text: body,
+    inReplyTo: replyMessageId ?? recipient.messageId,
+    references: [...new Set(references)],
+  });
+  await prisma.mailCampaignRecipient.update({
+    where: { id: recipient.id },
+    data: { answeredAt: new Date(), replyMessageId, replyFrom },
+  });
+  // A server that files its own copy gets a moment to do it first.
+  setTimeout(() => {
+    saveToSent(account.imap, sent.raw, sent.messageId).catch((error) =>
+      logger.error(
+        "Failed to file an answer in Sent",
+        { error: error instanceof Error ? error.message : String(error) },
+        LOG_SOURCE
+      )
+    );
+  }, 4000);
+  return { to };
 }
 
 async function markUnsubscribed(

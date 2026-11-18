@@ -16,6 +16,7 @@ import {
   Plus,
   RotateCcw,
   Save,
+  Send,
   ShieldBan,
   Trash2,
   Upload,
@@ -90,6 +91,8 @@ interface Recipient {
   outcome: string | null;
   error: string | null;
   replySnippet: string | null;
+  replyFrom: string | null;
+  answeredAt: string | null;
   sentAt: string | null;
 }
 
@@ -604,6 +607,7 @@ function CampaignView({
             campaignId={id}
             recipient={r}
             footer={campaign.footer}
+            fromEmail={campaign.account?.email ?? null}
             expanded={expanded === r.id}
             onToggle={() => setExpanded(expanded === r.id ? null : r.id)}
             onChanged={setCampaign}
@@ -809,6 +813,7 @@ function RecipientRow({
   campaignId,
   recipient,
   footer,
+  fromEmail,
   expanded,
   onToggle,
   onChanged,
@@ -816,6 +821,7 @@ function RecipientRow({
   campaignId: string;
   recipient: Recipient;
   footer: string;
+  fromEmail: string | null;
   expanded: boolean;
   onToggle: () => void;
   onChanged: (c: CampaignDetail) => void;
@@ -825,6 +831,30 @@ function RecipientRow({
   const [subject, setSubject] = useState(recipient.subject);
   const [body, setBody] = useState(recipient.body);
   const [busy, setBusy] = useState(false);
+  const [answer, setAnswer] = useState("");
+  const [answering, setAnswering] = useState(false);
+  const answerable =
+    recipient.status === "sent" && recipient.outcome === "replied";
+  const answerTo = recipient.replyFrom || recipient.email;
+
+  const sendAnswer = async () => {
+    setAnswering(true);
+    try {
+      const res = await api<{ to: string; campaign: CampaignDetail }>(
+        `/api/envois/${campaignId}/recipients/${recipient.id}/reply`,
+        { method: "POST", body: { text: answer } }
+      );
+      setAnswer("");
+      toast.success(t("envois.recipient.reply.sent", { to: res.to }));
+      onChanged(res.campaign);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("envois.toasts.actionFailed")
+      );
+    } finally {
+      setAnswering(false);
+    }
+  };
   const editable =
     recipient.status !== "sent" && recipient.status !== "sending";
   const tickable = recipient.status === "pending";
@@ -919,6 +949,50 @@ function RecipientRow({
             <blockquote className="border-l-2 border-border pl-3 text-[14px] text-muted-foreground">
               {recipient.replySnippet}
             </blockquote>
+          )}
+          {answerable && (
+            <div className="space-y-1.5 rounded-xl border border-border p-3">
+              <Label htmlFor={`answer-${recipient.id}`}>
+                {t("envois.recipient.reply.label", { to: answerTo })}
+              </Label>
+              <Textarea
+                id={`answer-${recipient.id}`}
+                rows={6}
+                value={answer}
+                placeholder={t("envois.recipient.reply.placeholder")}
+                onChange={(e) => setAnswer(e.target.value)}
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  size="sm"
+                  disabled={answering || !answer.trim()}
+                  onClick={() => void sendAnswer()}
+                >
+                  <Send />
+                  {answering
+                    ? t("envois.recipient.reply.sending")
+                    : t("envois.recipient.reply.send")}
+                </Button>
+                {recipient.answeredAt && (
+                  <span className="text-[13px] text-muted-foreground">
+                    {t("envois.recipient.reply.answeredAt", {
+                      date: new Date(recipient.answeredAt).toLocaleString(
+                        undefined,
+                        {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }
+                      ),
+                    })}
+                  </span>
+                )}
+              </div>
+              {fromEmail && (
+                <p className="text-[12px] text-muted-foreground">
+                  {t("envois.recipient.reply.hint", { from: fromEmail })}
+                </p>
+              )}
+            </div>
           )}
           {editable ? (
             <>
