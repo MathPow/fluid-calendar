@@ -34,6 +34,7 @@ import remarkGfm from "remark-gfm";
 
 import { cn, formatShortcut } from "@/lib/utils";
 
+import { useT } from "@/i18n/client";
 import { useCommands } from "@/hooks/useCommands";
 
 interface CommandPaletteProps {
@@ -107,6 +108,7 @@ const SOURCE_ICONS: Record<string, typeof CheckSquare> = {
 };
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const t = useT();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [showAllCommands, setShowAllCommands] = useState(false);
@@ -135,7 +137,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         sources?: AskSource[];
         error?: string;
       };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
       return data;
     };
 

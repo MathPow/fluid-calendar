@@ -56,9 +56,6 @@ import {
 } from "@/lib/envois/logic";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_FOOTER =
-  "DehorsQC, 1115 rue du Phénix, Lévis (Québec)\nPour ne plus recevoir de courriels de ma part, réponds simplement « non merci ».";
-
 interface Stats {
   total: number;
   queued: number;
@@ -1154,7 +1151,7 @@ function NewCampaignDialog({
   const [name, setName] = useState("");
   const [accountId, setAccountId] = useState("");
   const [fromName, setFromName] = useState("");
-  const [footer, setFooter] = useState(DEFAULT_FOOTER);
+  const [footer, setFooter] = useState(() => t("envois.defaultFooter"));
   const [csv, setCsv] = useState("");
   const [fileName, setFileName] = useState("");
   const [saving, setSaving] = useState(false);

@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 /**
@@ -6,6 +9,7 @@ import { cn } from "@/lib/utils";
  * their first data, so every page loads the same way.
  */
 export function PageLoader({ className }: { className?: string }) {
+  const t = useT();
   return (
     <div
       role="status"
@@ -13,7 +17,7 @@ export function PageLoader({ className }: { className?: string }) {
       className={cn("flex h-full min-h-[50dvh] items-center justify-center", className)}
     >
       <div className="h-7 w-7 animate-spin rounded-full border-2 border-border border-t-foreground" />
-      <span className="sr-only">Chargement…</span>
+      <span className="sr-only">{t("common.loading")}</span>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 type Option = { value: string; label: string };
@@ -40,6 +41,7 @@ export function SearchableSelect({
   id?: string;
   className?: string;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -95,7 +97,7 @@ export function SearchableSelect({
           <Command.Input
             value={search}
             onValueChange={setSearch}
-            placeholder="Rechercher…"
+            placeholder={t("common.search")}
             className="h-11 w-full border-b border-border bg-transparent px-3 text-[14px] outline-none placeholder:text-muted-foreground"
             onKeyDown={(e) => {
               if (e.key === "Enter" && showAdd) {
@@ -128,7 +130,9 @@ export function SearchableSelect({
                 className="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border-t border-border px-2 py-1.5 text-[13px] text-muted-foreground aria-selected:bg-muted"
               >
                 <Plus className="h-4 w-4" />
-                <span className="truncate">Ajouter « {trimmed} »</span>
+                <span className="truncate">
+                  {t("common.addQuoted", { value: trimmed })}
+                </span>
               </Command.Item>
             )}
           </Command.List>
