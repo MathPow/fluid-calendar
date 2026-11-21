@@ -183,7 +183,7 @@ export function FiscaliteBoard({
         body: JSON.stringify({ tracked }),
       });
       const data = (await res.json().catch(() => ({}))) as ProfileView & { error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
       setProfiles((prev) => [...prev.filter((p) => p.organisationId !== organisationId), data]);
       if (tracked) pickOrg(organisationId);
     } catch (e) {

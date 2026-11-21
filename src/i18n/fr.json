@@ -1365,6 +1365,7 @@
   "fiscalite.taxProfile.bank.placeholder": "Desjardins, compte d'entreprise",
   "fiscalite.taxProfile.businessNumber": "NE fédéral (ARC)",
   "fiscalite.taxProfile.city": "Ville",
+  "fiscalite.taxProfile.city.placeholder": "Québec",
   "fiscalite.taxProfile.contact.hint": "L'adresse du siège, telle qu'au Registraire des entreprises.",
   "fiscalite.taxProfile.day": "Jour",
   "fiscalite.taxProfile.description": "Tout ce que ton comptable (et Revenu Québec) va te demander, au même endroit. Seules la forme juridique et les taxes changent les calculs; le reste est ta fiche.",
@@ -1378,6 +1379,7 @@
   "fiscalite.taxProfile.naics": "Code d'activité (SCIAN)",
   "fiscalite.taxProfile.notes.placeholder": "Contrat de société, particularités, choses à rappeler au comptable…",
   "fiscalite.taxProfile.ownerName": "Nom du propriétaire",
+  "fiscalite.taxProfile.ownerName.placeholder": "Prénom Nom",
   "fiscalite.taxProfile.ownerNameHint": "Imprimé sous le nom de l'entreprise sur les factures (entreprise individuelle).",
   "fiscalite.taxProfile.partnerName": "Nom dans les comptes",
   "fiscalite.taxProfile.partnerName.placeholder": "Prénom",
@@ -2768,5 +2770,14 @@
   "toasts.settings.taskSync.trelloMissingFields": "Remplis la clé, le token et le nom Trello",
   "toasts.settings.taskSync.unlinked": "Déliée de son organisation",
   "toasts.settings.taskSync.updateConnectionFailed": "Impossible de mettre à jour la connexion",
-  "toasts.tasks.classifyFailed": "Impossible de classer la tâche"
+  "toasts.tasks.classifyFailed": "Impossible de classer la tâche",
+  "waitlist.allowsYouTo": "La gestion de la liste d'attente bêta te permet de :",
+  "waitlist.feature.configure": "Configurer les paramètres et les modèles d'e-mail",
+  "waitlist.feature.invite": "Envoyer des invitations aux utilisateurs de la liste",
+  "waitlist.feature.manage": "Gérer une liste d'attente pour ton programme bêta",
+  "waitlist.feature.track": "Suivre les parrainages et prioriser les utilisateurs",
+  "waitlist.saasOnly.description": "La gestion de la liste d'attente bêta n'est disponible que dans la version SAAS de FluidCalendar.",
+  "waitlist.saasOnly.label": "Fonctionnalité SAAS uniquement :",
+  "waitlist.title": "Gestion de la liste d'attente bêta",
+  "waitlist.upgradeHint": "Pour accéder à cette fonctionnalité, passe à la version SAAS de FluidCalendar."
 }

@@ -6,8 +6,10 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { NotificationList } from "@/components/notifications/NotificationList";
 import { useNotifications } from "@/components/notifications/useNotifications";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/i18n/client";
 
 export default function NotificationsPage() {
+  const t = useT();
   const { items, unread, loaded, markRead, markUnread, remove } =
     useNotifications();
 
@@ -46,7 +48,7 @@ export default function NotificationsPage() {
                 confirm("Supprimer cette notification ?") &&
                 !(await remove([n.id]))
               ) {
-                toast.error("La notification n’a pas pu être supprimée.");
+                toast.error(t("notifications.deleteError"));
               }
             }}
           />
