@@ -2,14 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useT } from "@/i18n/client";
 import { ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-
-import { useT } from "@/i18n/client";
 
 /**
  * Natural-language Q&A over the Projets activity feed. Omit `slug` for a
@@ -33,7 +32,10 @@ export function AskBox({
   useEffect(() => {
     // Wait for the opening transition to start so the page doesn't jump.
     if (focus) {
-      const t = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 150);
+      const t = setTimeout(
+        () => inputRef.current?.focus({ preventScroll: true }),
+        150
+      );
       return () => clearTimeout(t);
     }
   }, [focus]);
@@ -55,10 +57,13 @@ export function AskBox({
         body: JSON.stringify({ question: q, ...(slug ? { slug } : {}) }),
       });
       const data = (await res.json()) as { answer?: string; error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      if (!res.ok)
+        throw new Error(
+          data.error || t("projects.askBox.errorStatus", { status: res.status })
+        );
       setAnswer(data.answer ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Une erreur est survenue.");
+      setError(e instanceof Error ? e.message : t("projects.askBox.error"));
     } finally {
       setLoading(false);
     }
@@ -90,7 +95,7 @@ export function AskBox({
           size="icon"
           className="h-12 w-12 shrink-0"
           disabled={loading || !question.trim()}
-          aria-label="Demander"
+          aria-label={t("projects.askBox.submitAria")}
         >
           {loading ? (
             <LoadingSpinner size="sm" className="text-primary-foreground" />
@@ -102,7 +107,7 @@ export function AskBox({
 
       {loading ? (
         <p className="mt-4 px-1 font-serif text-[15px] italic text-muted-foreground">
-          Le modèle tourne en local — compte une à deux minutes.
+          {t("projects.askBox.loading")}
         </p>
       ) : null}
 

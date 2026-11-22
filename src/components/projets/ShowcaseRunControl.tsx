@@ -4,12 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { useT } from "@/i18n/client";
 import { AlertTriangle, Check, Clock, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-import { useT } from "@/i18n/client";
 import { timeAgoFr } from "@/lib/projets/meta";
 import type { ShowcaseRunView } from "@/lib/projets/showcase-runs";
 import { cn } from "@/lib/utils";
@@ -18,12 +18,6 @@ const POLL_MS = 10_000;
 
 const isActive = (run: ShowcaseRunView | null) =>
   run?.status === "queued" || run?.status === "running";
-
-/** "depuis 3 min" without the "il y a". */
-const sinceFr = (date: string) => {
-  const ago = timeAgoFr(date);
-  return ago.startsWith("il y a ") ? `depuis ${ago.slice(7)}` : "à l'instant";
-};
 
 /**
  * Runs the /project-showcase skill on this project. DreamDash only queues the
@@ -162,6 +156,12 @@ export function ShowcaseRunControl({
 
 function RunStatus({ run }: { run: ShowcaseRunView }) {
   const t = useT();
+  const since = (date: string) => {
+    const ago = timeAgoFr(date);
+    return ago.startsWith("il y a ")
+      ? t("projects.showcase.sinceAgo", { ago: ago.slice(7) })
+      : t("projects.timeAgo.now");
+  };
   const [text, Icon, tone] = (() => {
     switch (run.status) {
       case "queued":
@@ -173,7 +173,7 @@ function RunStatus({ run }: { run: ShowcaseRunView }) {
       case "running":
         return [
           t("projects.showcase.status.running", {
-            since: sinceFr(run.startedAt ?? run.createdAt),
+            since: since(run.startedAt ?? run.createdAt),
           }),
           Loader2,
           "text-foreground",
