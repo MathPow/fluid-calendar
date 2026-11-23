@@ -1,9 +1,13 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { toast } from "sonner";
 
+import { tNow } from "@/i18n/now";
+
 interface ApiErrorResponse {
   message?: string;
   error?: string;
+  errorKey?: string;
+  errorParams?: Record<string, string | number>;
 }
 
 export class ApiError extends Error {
@@ -27,13 +31,14 @@ export const api: AxiosInstance = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorResponse>) => {
+    const data = error.response?.data;
     const message =
-      error.response?.data?.error ||
-      error.response?.data?.message ||
+      (data?.errorKey ? tNow(data.errorKey, data.errorParams) : null) ||
+      data?.error ||
+      data?.message ||
       error.message ||
-      "An error occurred";
+      tNow("toasts.common.unexpectedError");
 
-    // Don't show toast for 401 errors as they're handled by auth
     if (error.response?.status !== 401) {
       toast.error(message);
     }

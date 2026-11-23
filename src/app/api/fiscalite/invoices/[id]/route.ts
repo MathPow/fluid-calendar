@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { invoiceSelect, toInvoiceView } from "@/lib/fiscalite/queries";
 import { InvoiceInput } from "@/lib/fiscalite/schemas";
@@ -15,6 +16,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
 
   const json = await request.json().catch(() => null);
@@ -34,7 +36,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     return NextResponse.json(toInvoiceView(row));
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.fiscalite.invoiceNotFound") }, { status: 404 });
   }
 }
 
@@ -42,11 +44,12 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 export async function DELETE(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   try {
     await prisma.invoice.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.fiscalite.invoiceNotFound") }, { status: 404 });
   }
 }

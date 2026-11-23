@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getT } from "@/i18n/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { contactTagSelect } from "@/lib/projets/queries";
@@ -13,6 +14,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   const parsed = ContactTagInput.partial().safeParse(
     await request.json().catch(() => null)
@@ -45,7 +47,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       select: contactTagSelect,
     })
     .catch(() => null);
-  if (!tag) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!tag) return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   return NextResponse.json(tag);
 }
 
@@ -53,9 +55,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 export async function DELETE(request: NextRequest, { params }: Ctx) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
+  const t = await getT();
   const { id } = await params;
   const { count } = await prisma.contactTag.deleteMany({ where: { id } });
   if (!count)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ error: t("api.common.notFound") }, { status: 404 });
   return new NextResponse(null, { status: 204 });
 }
