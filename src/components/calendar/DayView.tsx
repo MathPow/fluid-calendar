@@ -7,6 +7,7 @@ import type {
   EventDropArg,
 } from "@fullcalendar/core";
 import type { DateSelectArg } from "@fullcalendar/core";
+import frLocale from "@fullcalendar/core/locales/fr";
 import interactionPlugin, {
   EventResizeDoneArg,
 } from "@fullcalendar/interaction";
@@ -15,7 +16,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 
 import { TaskModal } from "@/components/tasks/TaskModal";
 
-import { useT } from "@/i18n/client";
+import { useLocale, useT } from "@/i18n/client";
 import { useEventModalStore } from "@/lib/commands/groups/calendar";
 import { newDate } from "@/lib/date-utils";
 
@@ -45,6 +46,7 @@ interface DayViewProps {
 
 export function DayView({ currentDate, onDateClick }: DayViewProps) {
   const t = useT();
+  const locale = useLocale();
   const { feeds, getAllCalendarItems, isLoading, removeEvent, updateEvent } =
     useCalendarStore();
   const { user: userSettings, calendar: calendarSettings } = useSettingsStore();
@@ -395,6 +397,7 @@ export function DayView({ currentDate, onDateClick }: DayViewProps) {
         ref={calendarRef}
         plugins={[timeGridPlugin, interactionPlugin]}
         initialView="timeGridDay"
+        locale={locale === "fr" ? frLocale : "en"}
         headerToolbar={false}
         initialDate={currentDate}
         events={calendarEvents}
