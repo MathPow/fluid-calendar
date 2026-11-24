@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { orgKindStation, slugify } from "@/lib/projets/meta";
 import { organisationSelect } from "@/lib/projets/queries";
 import { OrganisationInput } from "@/lib/projets/schemas";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "organisations-api";
 
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/organisations — create one. */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
@@ -90,6 +92,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Création impossible" }, { status: 500 });
+    return NextResponse.json({ errorKey: "api.organisations.createFailed", error: t("api.organisations.createFailed") }, { status: 500 });
   }
 }

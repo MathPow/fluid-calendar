@@ -9,6 +9,7 @@ import {
   wouldCreateCycle,
 } from "@/lib/projets/queries";
 import { ProjectInput } from "@/lib/projets/schemas";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "projets-api";
 
@@ -18,6 +19,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /** GET /api/projets/[id] */
 export async function GET(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     include: projectInclude,
   });
   if (!project)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ errorKey: "api.projects.notFound", error: t("api.projects.notFound") }, { status: 404 });
   return NextResponse.json(project);
 }
 
@@ -36,6 +38,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
  * full list).
  */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -60,7 +63,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     select: { id: true, name: true, slug: true },
   });
   if (!existing)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ errorKey: "api.projects.notFound", error: t("api.projects.notFound") }, { status: 404 });
 
   if (fields.parentId) {
     if (await wouldCreateCycle(id, fields.parentId)) {

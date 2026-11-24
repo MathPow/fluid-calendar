@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { hashAgentToken, newAgentToken } from "@/lib/desktop-agent";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "desktop-agent-token-api";
 
@@ -14,6 +15,7 @@ type Ctx = { params: Promise<{ id: string }> };
  * agent (replaces the old one). Shown once; only its hash is stored.
  */
 export async function POST(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const stepUp = requireStepUp(request, auth.userId);
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     })
     .catch(() => null);
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return NextResponse.json({ errorKey: "api.machines.notFound", error: t("api.machines.notFound") }, { status: 404 });
   return NextResponse.json({ token, machine: machine.name });
 }
 

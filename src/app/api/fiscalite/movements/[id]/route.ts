@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "fiscalite-movement-api";
 
@@ -11,6 +12,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /** DELETE /api/fiscalite/movements/[id] */
 export async function DELETE(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -18,6 +20,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     await prisma.partnerMovement.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Mouvement introuvable" }, { status: 404 });
+    return NextResponse.json({ errorKey: "api.fiscalite.movementNotFound", error: t("api.fiscalite.movementNotFound") }, { status: 404 });
   }
 }

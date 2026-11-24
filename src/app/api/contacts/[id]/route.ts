@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { contactInclude } from "@/lib/projets/queries";
 import { ContactInput } from "@/lib/projets/schemas";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "contacts-api";
 
@@ -14,6 +15,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /** PATCH /api/contacts/[id] — `projectIds`, when present, replaces the set. */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -83,12 +85,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Mise à jour impossible" }, { status: 500 });
+    return NextResponse.json({ errorKey: "api.contacts.updateFailed", error: t("api.contacts.updateFailed") }, { status: 500 });
   }
 }
 
 /** DELETE /api/contacts/[id] */
 export async function DELETE(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -101,6 +104,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Suppression impossible" }, { status: 500 });
+    return NextResponse.json({ errorKey: "api.contacts.deleteFailed", error: t("api.contacts.deleteFailed") }, { status: 500 });
   }
 }

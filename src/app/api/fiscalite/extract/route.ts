@@ -5,6 +5,7 @@ import { pickCategory } from "@/lib/fiscalite/category-guess";
 import { extractInvoice } from "@/lib/fiscalite/extract";
 import { INVOICE_MIMES, MAX_INVOICE_BYTES } from "@/lib/fiscalite/schemas";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "fiscalite-extract-api";
 
@@ -15,19 +16,20 @@ export const dynamic = "force-dynamic";
  * Reads the invoice and returns suggested fields; saves nothing.
  */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
+    return NextResponse.json({ errorKey: "api.common.missingFile", error: t("api.common.missingFile") }, { status: 400 });
   }
   if (file.size > MAX_INVOICE_BYTES) {
-    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
+    return NextResponse.json({ errorKey: "api.common.fileTooLarge15", error: t("api.common.fileTooLarge15") }, { status: 413 });
   }
   if (!INVOICE_MIMES.includes(file.type)) {
-    return NextResponse.json({ error: "PDF ou image seulement" }, { status: 415 });
+    return NextResponse.json({ errorKey: "api.common.pdfOrImageOnly", error: t("api.common.pdfOrImageOnly") }, { status: 415 });
   }
 
   const orgId = form?.get("organisationId");

@@ -6,6 +6,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { ContactInput } from "@/lib/projets/schemas";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "contacts-import-api";
 
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
  * and remembers the ones left out.
  */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Import impossible" }, { status: 500 });
+    return NextResponse.json({ errorKey: "api.common.saveFailed", error: t("api.common.saveFailed") }, { status: 500 });
   }
 }
 

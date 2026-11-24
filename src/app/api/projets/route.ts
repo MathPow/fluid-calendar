@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { projectInclude, uniqueSlug } from "@/lib/projets/queries";
 import { ProjectInput } from "@/lib/projets/schemas";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "projets-api";
 
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/projets — create a project (optionally as a sub-project). */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
@@ -109,6 +111,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Création impossible" }, { status: 500 });
+    return NextResponse.json({ errorKey: "api.projects.createFailed", error: t("api.projects.createFailed") }, { status: 500 });
   }
 }

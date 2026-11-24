@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { orgKindStation } from "@/lib/projets/meta";
 import { organisationSelect } from "@/lib/projets/queries";
 import { OrganisationInput } from "@/lib/projets/schemas";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "organisations-api";
 
@@ -79,6 +80,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
 /** DELETE /api/organisations/[id] — its projects fall back to the default bucket. */
 export async function DELETE(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { id } = await params;
@@ -86,7 +88,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { isDefault: true },
   });
-  if (!org) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ errorKey: "api.organisations.notFound", error: t("api.organisations.notFound") }, { status: 404 });
   if (org.isDefault) {
     return NextResponse.json(
       { error: "L'organisation par défaut ne peut pas être supprimée." },

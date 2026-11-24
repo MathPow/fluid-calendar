@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { contactInclude } from "@/lib/projets/queries";
 import { ContactInput } from "@/lib/projets/schemas";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "contacts-api";
 
@@ -75,6 +76,10 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Création impossible" }, { status: 500 });
+    const t = await getT();
+    return NextResponse.json(
+      { errorKey: "api.contacts.createFailed", error: t("api.contacts.createFailed") },
+      { status: 500 }
+    );
   }
 }

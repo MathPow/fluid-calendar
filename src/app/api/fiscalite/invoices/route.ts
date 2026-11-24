@@ -6,6 +6,7 @@ import { invoiceSelect, toInvoiceView } from "@/lib/fiscalite/queries";
 import { INVOICE_MIMES, InvoiceInput, MAX_INVOICE_BYTES } from "@/lib/fiscalite/schemas";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "fiscalite-invoices-api";
 
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
  * an optional `file` (the invoice itself), or a plain JSON body.
  */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
 
@@ -55,10 +57,10 @@ export async function POST(request: NextRequest) {
     );
   }
   if (file && file.size > MAX_INVOICE_BYTES) {
-    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
+    return NextResponse.json({ errorKey: "api.common.fileTooLarge15", error: t("api.common.fileTooLarge15") }, { status: 413 });
   }
   if (file && !INVOICE_MIMES.includes(file.type)) {
-    return NextResponse.json({ error: "PDF ou image seulement" }, { status: 415 });
+    return NextResponse.json({ errorKey: "api.common.pdfOrImageOnly", error: t("api.common.pdfOrImageOnly") }, { status: 415 });
   }
 
   const { date, ...rest } = parsed.data;
@@ -91,6 +93,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return NextResponse.json({ errorKey: "api.common.saveFailed", error: t("api.common.saveFailed") }, { status: 500 });
   }
 }

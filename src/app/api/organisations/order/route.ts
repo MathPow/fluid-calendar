@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "organisations-order-api";
 
@@ -17,11 +18,12 @@ const OrderInput = z.object({
  * keep their place after the listed ones.
  */
 export async function PUT(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const parsed = OrderInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Ordre invalide" }, { status: 400 });
+    return NextResponse.json({ errorKey: "api.common.invalidData", error: t("api.common.invalidData") }, { status: 400 });
   }
   const { ids } = parsed.data;
   await prisma.$transaction(

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { movementSelect, toMovementView } from "@/lib/fiscalite/queries";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "fiscalite-movements-settle";
 
@@ -24,6 +25,7 @@ const Body = z.object({
  * SENC, and the SENC reimburses `to`. Both balances drop by `amountCents`.
  */
 export async function POST(request: NextRequest) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const parsed = Body.safeParse(await request.json().catch(() => null));
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
   }
   const { organisationId, from, to, amountCents } = parsed.data;
   if (from === to) {
-    return NextResponse.json({ error: "`from` et `to` doivent être différents" }, { status: 400 });
+    return NextResponse.json({ errorKey: "api.fiscalite.movementsSameSide", error: t("api.fiscalite.movementsSameSide") }, { status: 400 });
   }
   const date = new Date(`${parsed.data.date ?? new Date().toISOString().slice(0, 10)}T00:00:00Z`);
   const notes = `Règlement entre ${from} et ${to}`;

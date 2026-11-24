@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/auth/api-auth";
 import { withMe } from "@/lib/fiscalite/meta";
 import { TaxProfileInput } from "@/lib/fiscalite/schemas";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/i18n/server";
 
 const LOG_SOURCE = "fiscalite-profile-api";
 
@@ -13,6 +14,7 @@ type Ctx = { params: Promise<{ organisationId: string }> };
 
 /** PUT /api/fiscalite/profiles/[organisationId] — the company's tax setup. */
 export async function PUT(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { organisationId } = await params;
@@ -26,7 +28,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     );
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ errorKey: "api.organisations.notFound", error: t("api.organisations.notFound") }, { status: 404 });
 
   const data = parsed.data.legalForm === "senc" ? withMe(parsed.data) : parsed.data;
   const profile = await prisma.taxProfile.upsert({
@@ -39,6 +41,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
 
 /** PATCH /api/fiscalite/profiles/[organisationId] — `{ tracked }`: show it in the tab or not. */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const { organisationId } = await params;
@@ -56,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       Object.keys(b).length > 100 ||
       !Object.entries(b).every(([k, v]) => k.length <= 60 && Number.isInteger(v) && (v as number) >= 0 && (v as number) < 1e10)
     ) {
-      return NextResponse.json({ error: "`budgets` invalide" }, { status: 400 });
+      return NextResponse.json({ errorKey: "api.common.invalidData", error: t("api.common.invalidData") }, { status: 400 });
     }
     budgets = b as Record<string, number>;
   }
@@ -64,7 +67,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     return NextResponse.json({ error: "`tracked` ou `budgets` attendu" }, { status: 400 });
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return NextResponse.json({ errorKey: "api.organisations.notFound", error: t("api.organisations.notFound") }, { status: 404 });
 
   const profile = await prisma.taxProfile.upsert({
     where: { organisationId },
