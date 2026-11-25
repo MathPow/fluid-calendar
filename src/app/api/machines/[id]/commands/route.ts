@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { CommandInput } from "@/lib/desktop-actions";
@@ -68,12 +69,9 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { agentTokenHash: true },
   });
   if (!machine)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return jsonError("api.launchers.notFound", 404);
   if (!machine.agentTokenHash) {
-    return NextResponse.json(
-      { error: "Aucun agent connecté à cette machine." },
-      { status: 409 }
-    );
+    return jsonError("api.errors.machine.noAgent", 409);
   }
   const command = await prisma.desktopCommand.create({
     data: {

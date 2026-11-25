@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -117,10 +118,7 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       if (projectId && projectId !== existing.id) {
-        return NextResponse.json(
-          { error: "Ce projet a déjà une liste de tâches." },
-          { status: 409 }
-        );
+        return jsonError("api.errors.project.alreadyHasTaskList", 409);
       }
       return NextResponse.json(presentTaskProject(existing));
     }
@@ -190,9 +188,6 @@ export async function DELETE(request: NextRequest) {
       },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Détachement impossible" },
-      { status: 500 }
-    );
+    return jsonError("api.errors.detachFailed", 500);
   }
 }

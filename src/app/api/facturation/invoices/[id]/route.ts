@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { InvoicePatch, IssueInput } from "@/lib/facturation/schemas";
 import { issuedSelect, saveIssuedInvoice, toIssuedView } from "@/lib/facturation/service";
@@ -48,7 +49,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
   if (existing.lines == null) {
     // Imported invoices keep their original file: edit them in Fiscalité.
-    return NextResponse.json({ error: "Facture importée : modifie-la dans Fiscalité" }, { status: 409 });
+    return jsonError("api.errors.invoice.importedEditInFiscalite", 409);
   }
   try {
     return NextResponse.json(await saveIssuedInvoice(parsed.data, id));

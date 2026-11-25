@@ -1,6 +1,7 @@
 import { compare } from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import {
   STEP_UP_COOKIE,
@@ -27,10 +28,7 @@ export async function POST(request: NextRequest) {
 
   const entry = failures.get(auth.userId) ?? { count: 0, lockedUntil: 0 };
   if (entry.lockedUntil > Date.now()) {
-    return NextResponse.json(
-      { error: "Trop d'essais. Réessaie dans 15 minutes." },
-      { status: 429 }
-    );
+    return jsonError("api.errors.stepUp.rateLimited", 429);
   }
 
   const body = await request.json().catch(() => null);

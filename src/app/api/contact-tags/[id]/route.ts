@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { contactTagSelect } from "@/lib/projets/queries";
@@ -30,10 +31,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       select: { id: true },
     });
     if (clash)
-      return NextResponse.json(
-        { error: "Un tag porte déjà ce nom." },
-        { status: 409 }
-      );
+      return jsonError("api.errors.contact.tagExists", 409);
   }
   const tag = await prisma.contactTag
     .update({
@@ -45,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       select: contactTagSelect,
     })
     .catch(() => null);
-  if (!tag) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!tag) return jsonError("api.launchers.notFound", 404);
   return NextResponse.json(tag);
 }
 

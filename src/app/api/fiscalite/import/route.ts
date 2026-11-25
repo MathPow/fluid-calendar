@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { isGenericParty, looksLikeCsv, parseBankCsv } from "@/lib/fiscalite/bank-csv";
 import { type ParsedWorkbook, parseWorkbook } from "@/lib/fiscalite/excel";
@@ -29,15 +30,15 @@ export async function POST(request: NextRequest) {
   const file = form?.get("file");
   const organisationId = String(form?.get("organisationId") ?? "");
   const apply = form?.get("apply") === "1";
-  if (!(file instanceof File)) return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
+  if (!(file instanceof File)) return jsonError("api.errors.missingFile", 400);
   if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: "Fichier trop lourd (10 Mo max)" }, { status: 413 });
+    return jsonError("api.errors.fileTooLarge.10mb", 413);
   }
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
     select: { id: true, name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return jsonError("api.errors.organisation.notFound", 404);
   const personal = org.taxProfile?.legalForm === "personnel";
 
   const csv = looksLikeCsv(file.name, file.type);
@@ -64,9 +65,9 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: csv ? "CSV illisible" : "Classeur illisible (.xlsx attendu)" },
-      { status: 400 }
+    return jsonError(
+      csv ? "api.errors.import.readFailedCsv" : "api.errors.import.readFailedXlsx",
+      400
     );
   }
 

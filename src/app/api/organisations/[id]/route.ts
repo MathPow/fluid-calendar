@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -70,10 +71,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Mise à jour impossible" },
-      { status: 500 }
-    );
+    return jsonError("api.errors.updateFailed", 500);
   }
 }
 
@@ -86,12 +84,9 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { isDefault: true },
   });
-  if (!org) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!org) return jsonError("api.errors.organisation.notFound", 404);
   if (org.isDefault) {
-    return NextResponse.json(
-      { error: "L'organisation par défaut ne peut pas être supprimée." },
-      { status: 400 }
-    );
+    return jsonError("api.errors.organisation.defaultCannotDelete", 400);
   }
   try {
     await prisma.organisation.delete({ where: { id } });
@@ -102,9 +97,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Suppression impossible" },
-      { status: 500 }
-    );
+    return jsonError("api.errors.deleteFailed", 500);
   }
 }

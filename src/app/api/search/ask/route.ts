@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { answerFromSources } from "@/lib/ask/answer";
 import { retrieveSources } from "@/lib/ask/retrieve";
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 
@@ -111,9 +112,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Impossible d'obtenir une réponse. Réessaie." },
-      { status: 500 }
-    );
+    return jsonError("api.errors.ai.retry", 500);
   }
 }

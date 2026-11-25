@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 import { getSegmentRange, searchTranscript } from "@/lib/sessions/search";
@@ -40,10 +41,7 @@ export async function GET(
     const fromSec = parseTimestamp(from ?? "0");
     const toSec = parseTimestamp(to ?? "");
     if (fromSec === null || toSec === null) {
-      return NextResponse.json(
-        { error: "from/to doivent être des timestamps, ex. 1:40:00" },
-        { status: 400 }
-      );
+      return jsonError("api.errors.search.invalidTimestamp", 400);
     }
     const range = await getSegmentRange(prisma, id, fromSec, toSec);
     return NextResponse.json(range);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { movementSelect, toMovementView } from "@/lib/fiscalite/queries";
 import { prisma } from "@/lib/prisma";
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
   const { organisationId, from, to, amountCents } = parsed.data;
   if (from === to) {
-    return NextResponse.json({ error: "`from` et `to` doivent être différents" }, { status: 400 });
+    return jsonError("api.errors.movement.sameAccount", 400);
   }
   const date = new Date(`${parsed.data.date ?? new Date().toISOString().slice(0, 10)}T00:00:00Z`);
   const notes = `Règlement entre ${from} et ${to}`;

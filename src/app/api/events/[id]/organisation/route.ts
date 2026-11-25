@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { eventKey } from "@/lib/event-organisation";
 import { prisma } from "@/lib/prisma";
@@ -36,7 +37,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   } as const;
   const event = await prisma.calendarEvent.findUnique({ where: { id }, select });
   if (!event || event.feed.userId !== auth.userId) {
-    return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
+    return jsonError("api.errors.event.notFound", 404);
   }
   const master = event.masterEventId
     ? await prisma.calendarEvent.findUnique({ where: { id: event.masterEventId }, select })
