@@ -40,9 +40,14 @@ const WaitlistPage = dynamic(
       }`
     ),
   {
-    loading: () => <p>Loading...</p>,
+    loading: () => <WaitlistLoading />,
   }
 );
+
+function WaitlistLoading() {
+  const t = useT();
+  return <p>{t("common.loading")}</p>;
+}
 
 type SettingsTab =
   | "appearance"
