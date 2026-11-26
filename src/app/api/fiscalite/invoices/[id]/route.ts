@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { invoiceSelect, toInvoiceView } from "@/lib/fiscalite/queries";
 import { InvoiceInput } from "@/lib/fiscalite/schemas";
@@ -20,10 +21,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   const json = await request.json().catch(() => null);
   const parsed = InvoiceInput.partial().safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid body", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    return jsonError("api.errors.invalidBody", 400, undefined, {
+      details: parsed.error.flatten(),
+    });
   }
   const { date, ...rest } = parsed.data;
   try {
@@ -34,7 +34,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     return NextResponse.json(toInvoiceView(row));
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return jsonError("api.errors.invoice.notFound", 404);
   }
 }
 
@@ -47,6 +47,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     await prisma.invoice.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return jsonError("api.errors.invoice.notFound", 404);
   }
 }

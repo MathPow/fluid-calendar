@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { answerFromSources } from "@/lib/ask/answer";
 import { retrieveSources } from "@/lib/ask/retrieve";
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 
@@ -70,15 +71,14 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return jsonError("api.errors.invalidJson", 400);
   }
 
   const parsed = BodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid body", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    return jsonError("api.errors.invalidBody", 400, undefined, {
+      details: parsed.error.flatten(),
+    });
   }
 
   const { question, sourcesOnly } = parsed.data;
@@ -111,9 +111,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Impossible d'obtenir une réponse. Réessaie." },
-      { status: 500 }
-    );
+    return jsonError("api.errors.ai.retry", 500);
   }
 }

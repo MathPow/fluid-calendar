@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -43,13 +44,10 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: { id: true, slug: true, path: true },
   });
   if (!project) {
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    return jsonError("api.errors.notFound", 404);
   }
   if (!project.path) {
-    return NextResponse.json(
-      { error: "Ce projet n'a pas de dossier sur le serveur." },
-      { status: 400 }
-    );
+    return jsonError("api.errors.project.noPath", 400);
   }
 
   await expireStaleShowcaseRuns(id);
@@ -59,10 +57,9 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     select: showcaseRunSelect,
   });
   if (active) {
-    return NextResponse.json(
-      { error: "Une génération est déjà en cours.", run: active },
-      { status: 409 }
-    );
+    return jsonError("api.errors.project.showcaseRunInProgress", 409, undefined, {
+      run: active,
+    });
   }
 
   const run = await prisma.showcaseRun.create({

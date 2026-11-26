@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -94,11 +95,11 @@ export async function POST(request: NextRequest) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return jsonError("api.errors.invalidJson", 400);
   }
   const parsed = Body.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return jsonError("api.errors.invalidBody", 400);
   }
   const { agentProjectId, projectId } = parsed.data;
 
@@ -106,8 +107,7 @@ export async function POST(request: NextRequest) {
     where: { id: agentProjectId },
     select: { id: true, name: true, color: true, description: true },
   });
-  if (!agent)
-    return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
+  if (!agent) return jsonError("api.errors.project.notFound", 404);
 
   try {
     const existing = await prisma.project.findUnique({
@@ -117,10 +117,7 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       if (projectId && projectId !== existing.id) {
-        return NextResponse.json(
-          { error: "Ce projet a déjà une liste de tâches." },
-          { status: 409 }
-        );
+        return jsonError("api.errors.project.alreadyHasTaskList", 409);
       }
       return NextResponse.json(presentTaskProject(existing));
     }
@@ -155,7 +152,7 @@ export async function POST(request: NextRequest) {
       },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Liaison impossible" }, { status: 500 });
+    return jsonError("api.errors.link.failed", 500);
   }
 }
 
@@ -164,16 +161,14 @@ export async function DELETE(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const projectId = request.nextUrl.searchParams.get("projectId");
-  if (!projectId)
-    return NextResponse.json({ error: "projectId requis" }, { status: 400 });
+  if (!projectId) return jsonError("api.errors.link.missingProjectId", 400);
   try {
     // Keep the name and colour it was showing, so the list doesn't revert to stale values.
     const current = await prisma.project.findFirst({
       where: { id: projectId, userId: auth.userId },
       include: taskProjectInclude,
     });
-    if (!current)
-      return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+    if (!current) return jsonError("api.errors.notFound", 404);
     const shown = presentTaskProject(current);
     const updated = await prisma.project.update({
       where: { id: projectId },
@@ -190,9 +185,6 @@ export async function DELETE(request: NextRequest) {
       },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Détachement impossible" },
-      { status: 500 }
-    );
+    return jsonError("api.errors.detachFailed", 500);
   }
 }

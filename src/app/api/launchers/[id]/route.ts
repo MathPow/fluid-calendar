@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { LauncherInput } from "@/lib/launchers";
@@ -40,8 +41,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       recurrence: data.recurrence,
     },
   });
-  if (!count)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!count) return jsonError("api.errors.notFound", 404);
   return NextResponse.json({ ok: true });
 }
 

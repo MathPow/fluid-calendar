@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { withMe } from "@/lib/fiscalite/meta";
 import { TaxProfileInput } from "@/lib/fiscalite/schemas";
@@ -20,13 +21,12 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   const json = await request.json().catch(() => null);
   const parsed = TaxProfileInput.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid body", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    return jsonError("api.errors.invalidBody", 400, undefined, {
+      details: parsed.error.flatten(),
+    });
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return jsonError("api.errors.organisation.notFound", 404);
 
   const data = parsed.data.legalForm === "senc" ? withMe(parsed.data) : parsed.data;
   const profile = await prisma.taxProfile.upsert({
@@ -56,15 +56,15 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       Object.keys(b).length > 100 ||
       !Object.entries(b).every(([k, v]) => k.length <= 60 && Number.isInteger(v) && (v as number) >= 0 && (v as number) < 1e10)
     ) {
-      return NextResponse.json({ error: "`budgets` invalide" }, { status: 400 });
+      return jsonError("api.errors.profile.invalidBudgets", 400);
     }
     budgets = b as Record<string, number>;
   }
   if (tracked === undefined && budgets === undefined) {
-    return NextResponse.json({ error: "`tracked` ou `budgets` attendu" }, { status: 400 });
+    return jsonError("api.errors.profile.missingFields", 400);
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return jsonError("api.errors.organisation.notFound", 404);
 
   const profile = await prisma.taxProfile.upsert({
     where: { organisationId },

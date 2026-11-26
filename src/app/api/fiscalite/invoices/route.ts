@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { pdfText } from "@/lib/fiscalite/extract";
 import { invoiceSelect, toInvoiceView } from "@/lib/fiscalite/queries";
@@ -44,21 +45,20 @@ export async function POST(request: NextRequest) {
       json = await request.json();
     }
   } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return jsonError("api.errors.invalidBody", 400);
   }
 
   const parsed = InvoiceInput.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid body", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    return jsonError("api.errors.invalidBody", 400, undefined, {
+      details: parsed.error.flatten(),
+    });
   }
   if (file && file.size > MAX_INVOICE_BYTES) {
-    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
+    return jsonError("api.errors.fileTooLarge15mb", 413);
   }
   if (file && !INVOICE_MIMES.includes(file.type)) {
-    return NextResponse.json({ error: "PDF ou image seulement" }, { status: 415 });
+    return jsonError("api.errors.extract.pdfOrImage", 415);
   }
 
   const { date, ...rest } = parsed.data;
@@ -91,6 +91,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return jsonError("api.errors.invoice.saveFailed", 500);
   }
 }

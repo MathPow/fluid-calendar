@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -25,8 +26,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     where: { id },
     include: projectInclude,
   });
-  if (!project)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!project) return jsonError("api.errors.notFound", 404);
   return NextResponse.json(project);
 }
 
@@ -44,14 +44,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return jsonError("api.errors.invalidJson", 400);
   }
   const parsed = ProjectInput.partial().safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid body", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    return jsonError("api.errors.invalidBody", 400, undefined, {
+      details: parsed.error.flatten(),
+    });
   }
   const { links, contacts, stack, ...fields } = parsed.data;
 
@@ -59,15 +58,11 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     where: { id },
     select: { id: true, name: true, slug: true },
   });
-  if (!existing)
-    return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (!existing) return jsonError("api.errors.notFound", 404);
 
   if (fields.parentId) {
     if (await wouldCreateCycle(id, fields.parentId)) {
-      return NextResponse.json(
-        { error: "Un projet ne peut pas être son propre parent." },
-        { status: 400 }
-      );
+      return jsonError("api.errors.project.circularParent", 400);
     }
   }
 
@@ -167,10 +162,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Mise à jour impossible" },
-      { status: 500 }
-    );
+    return jsonError("api.errors.projectUpdateFailed", 500);
   }
 }
 
@@ -188,9 +180,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Suppression impossible" },
-      { status: 500 }
-    );
+    return jsonError("api.errors.deleteFailed", 500);
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -21,8 +22,7 @@ export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request, LOG_SOURCE);
   if ("response" in auth) return auth.response;
   const parsed = Body.safeParse(await request.json().catch(() => null));
-  if (!parsed.success)
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  if (!parsed.success) return jsonError("api.errors.invalidBody", 400);
   if ("ids" in parsed.data && parsed.data.read === false) {
     await prisma.notification.updateMany({
       where: { userId: auth.userId, id: { in: parsed.data.ids } },

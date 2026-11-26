@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { jsonError } from "@/lib/api-errors";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { requireStepUp } from "@/lib/auth/step-up";
 import { logger } from "@/lib/logger";
@@ -24,14 +25,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return jsonError("api.errors.invalidJson", 400);
   }
   const parsed = MachineInput.partial().safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid body", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    return jsonError("api.errors.invalidBody", 400, undefined, {
+      details: parsed.error.flatten(),
+    });
   }
   const f = parsed.data;
   try {
@@ -50,10 +50,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Mise à jour impossible" },
-      { status: 500 }
-    );
+    return jsonError("api.errors.orgUpdateFailed", 500);
   }
 }
 
@@ -71,9 +68,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
       { id, error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json(
-      { error: "Suppression impossible" },
-      { status: 500 }
-    );
+    return jsonError("api.errors.deleteFailed", 500);
   }
 }
