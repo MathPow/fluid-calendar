@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { fiscaliteError } from "@/lib/fiscalite/api-errors";
 import { pdfText } from "@/lib/fiscalite/extract";
 import { invoiceSelect, toInvoiceView } from "@/lib/fiscalite/queries";
 import { INVOICE_MIMES, InvoiceInput, MAX_INVOICE_BYTES } from "@/lib/fiscalite/schemas";
@@ -55,10 +56,10 @@ export async function POST(request: NextRequest) {
     );
   }
   if (file && file.size > MAX_INVOICE_BYTES) {
-    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
+    return fiscaliteError("api.error.fiscalite.fileTooLarge15", "Fichier trop lourd (15 Mo max)", 413);
   }
   if (file && !INVOICE_MIMES.includes(file.type)) {
-    return NextResponse.json({ error: "PDF ou image seulement" }, { status: 415 });
+    return fiscaliteError("api.error.fiscalite.pdfImageOnly", "PDF ou image seulement", 415);
   }
 
   const { date, ...rest } = parsed.data;
@@ -91,6 +92,6 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : String(error) },
       LOG_SOURCE
     );
-    return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });
+    return fiscaliteError("api.error.fiscalite.saveFailed", "Enregistrement impossible", 500);
   }
 }

@@ -207,7 +207,7 @@ export function SocialImportDialog({ open, onOpenChange, contacts }: Props) {
             : [],
         }),
       });
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      if (!res.ok) throw new Error(t("common.error", { status: res.status }));
       toast.success(
         t(
           keep.length > 1

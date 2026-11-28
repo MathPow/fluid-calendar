@@ -100,7 +100,7 @@ export function OrganisationDialog({
         }
       );
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
       toast.success(
         editing
           ? t("projects.orgDialog.toasts.saved")
@@ -139,7 +139,7 @@ export function OrganisationDialog({
         method: "DELETE",
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
       toast.success(t("projects.orgDialog.toasts.deleted"));
       onOpenChange(false);
       router.refresh();

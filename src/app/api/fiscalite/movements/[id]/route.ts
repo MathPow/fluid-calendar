@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { fiscaliteError } from "@/lib/fiscalite/api-errors";
 import { prisma } from "@/lib/prisma";
 
 const LOG_SOURCE = "fiscalite-movement-api";
@@ -18,6 +19,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     await prisma.partnerMovement.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Mouvement introuvable" }, { status: 404 });
+    return fiscaliteError("api.error.fiscalite.movementNotFound", "Mouvement introuvable", 404);
   }
 }

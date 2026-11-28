@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { fiscaliteError } from "@/lib/fiscalite/api-errors";
 import { withMe } from "@/lib/fiscalite/meta";
 import { TaxProfileInput } from "@/lib/fiscalite/schemas";
 import { prisma } from "@/lib/prisma";
@@ -26,7 +27,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     );
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return fiscaliteError("api.error.fiscalite.orgNotFound", "Organisation introuvable", 404);
 
   const data = parsed.data.legalForm === "senc" ? withMe(parsed.data) : parsed.data;
   const profile = await prisma.taxProfile.upsert({
@@ -56,15 +57,15 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       Object.keys(b).length > 100 ||
       !Object.entries(b).every(([k, v]) => k.length <= 60 && Number.isInteger(v) && (v as number) >= 0 && (v as number) < 1e10)
     ) {
-      return NextResponse.json({ error: "`budgets` invalide" }, { status: 400 });
+      return fiscaliteError("api.error.fiscalite.invalidBudgets", "`budgets` invalide", 400);
     }
     budgets = b as Record<string, number>;
   }
   if (tracked === undefined && budgets === undefined) {
-    return NextResponse.json({ error: "`tracked` ou `budgets` attendu" }, { status: 400 });
+    return fiscaliteError("api.error.fiscalite.missingTrackedOrBudgets", "`tracked` ou `budgets` attendu", 400);
   }
   const org = await prisma.organisation.findUnique({ where: { id: organisationId } });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return fiscaliteError("api.error.fiscalite.orgNotFound", "Organisation introuvable", 404);
 
   const profile = await prisma.taxProfile.upsert({
     where: { organisationId },

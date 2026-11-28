@@ -66,9 +66,14 @@ export function PartnersTile({ organisationId, partners, summaries, movements, o
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ organisationId, from: s.from, to: s.to, amountCents: s.amountCents }),
       });
-      const data = (await res.json().catch(() => null)) as MovementView[] | { error?: string } | null;
+      const data = (await res.json().catch(() => null)) as MovementView[] | { error?: string; errorKey?: string } | null;
       if (!res.ok || !Array.isArray(data)) {
-        throw new Error((data as { error?: string } | null)?.error || `Erreur ${res.status}`);
+        const body = data as { error?: string; errorKey?: string } | null;
+        throw new Error(
+          (body?.errorKey && t(body.errorKey)) ||
+            body?.error ||
+            t("common.error", { status: res.status })
+        );
       }
       for (const m of data) onAdded(m);
       toast.success(t("fiscalite.partners.settleDone", { amount: formatMoney(s.amountCents) }));
@@ -260,7 +265,7 @@ function MovementDialog({
         body: JSON.stringify({ organisationId, date, kind, partner: who, amountCents: cents, notes }),
       });
       const data = (await res.json().catch(() => ({}))) as MovementView & { error?: string };
-      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+      if (!res.ok) throw new Error((() => { const b = data as { errorKey?: string; error?: string }; return (b.errorKey && t(b.errorKey)) || b.error || t("common.error", { status: res.status }); })());
       onSaved(data);
       setAmount("");
       setNotes("");

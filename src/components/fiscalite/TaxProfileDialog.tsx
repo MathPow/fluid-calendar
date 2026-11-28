@@ -286,7 +286,7 @@ export function TaxProfileDialog({
       const data = (await res.json().catch(() => ({}))) as ProfileView & {
         error?: string;
       };
-      if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+      if (!res.ok) throw new Error((() => { const b = data as { errorKey?: string; error?: string }; return (b.errorKey && t(b.errorKey)) || b.error || t("common.error", { status: res.status }); })());
       toast.success(t("toasts.fiscalite.profileSaved"));
       onSaved(data);
       onOpenChange(false);

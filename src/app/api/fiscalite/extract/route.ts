@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { fiscaliteError } from "@/lib/fiscalite/api-errors";
 import { pickCategory } from "@/lib/fiscalite/category-guess";
 import { extractInvoice } from "@/lib/fiscalite/extract";
 import { INVOICE_MIMES, MAX_INVOICE_BYTES } from "@/lib/fiscalite/schemas";
@@ -21,13 +22,13 @@ export async function POST(request: NextRequest) {
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
+    return fiscaliteError("api.error.fiscalite.fileRequired", "Fichier manquant", 400);
   }
   if (file.size > MAX_INVOICE_BYTES) {
-    return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)" }, { status: 413 });
+    return fiscaliteError("api.error.fiscalite.fileTooLarge15", "Fichier trop lourd (15 Mo max)", 413);
   }
   if (!INVOICE_MIMES.includes(file.type)) {
-    return NextResponse.json({ error: "PDF ou image seulement" }, { status: 415 });
+    return fiscaliteError("api.error.fiscalite.pdfImageOnly", "PDF ou image seulement", 415);
   }
 
   const orgId = form?.get("organisationId");

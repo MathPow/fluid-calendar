@@ -28,7 +28,7 @@ function save(layout: WidgetSlot[] | null) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ layout }),
       });
-      if (!r.ok) throw new Error(`Erreur ${r.status}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
     } catch {
       toast.error(tNow("toasts.dashboard.layoutSaveFailed"), {
         description: tNow("toasts.dashboard.layoutSaveFailed.description"),

@@ -114,7 +114,7 @@ export function ImportDialog({
     if (apply) body.append("apply", "1");
     const res = await fetch("/api/fiscalite/import", { method: "POST", body });
     const data = (await res.json().catch(() => ({}))) as ImportSummary;
-    if (!res.ok) throw new Error(data.error || t("common.error", { status: res.status }));
+    if (!res.ok) throw new Error((() => { const b = data as { errorKey?: string; error?: string }; return (b.errorKey && t(b.errorKey)) || b.error || t("common.error", { status: res.status }); })());
     return data;
   };
 

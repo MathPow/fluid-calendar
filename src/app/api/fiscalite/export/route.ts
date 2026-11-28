@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { fiscaliteError } from "@/lib/fiscalite/api-errors";
 import { buildWorkbook } from "@/lib/fiscalite/excel";
 import { DEFAULT_PROFILE, fiscalYearRange } from "@/lib/fiscalite/meta";
 import { XLSX_MIME } from "@/lib/fiscalite/schemas";
@@ -18,13 +19,13 @@ export async function GET(request: NextRequest) {
   const organisationId = request.nextUrl.searchParams.get("organisationId") ?? "";
   const year = Number(request.nextUrl.searchParams.get("year"));
   if (!organisationId || !Number.isInteger(year)) {
-    return NextResponse.json({ error: "organisationId et year requis" }, { status: 400 });
+    return fiscaliteError("api.error.fiscalite.missingParams", "organisationId et year requis", 400);
   }
   const org = await prisma.organisation.findUnique({
     where: { id: organisationId },
     select: { name: true, taxProfile: true },
   });
-  if (!org) return NextResponse.json({ error: "Organisation introuvable" }, { status: 404 });
+  if (!org) return fiscaliteError("api.error.fiscalite.orgNotFound", "Organisation introuvable", 404);
 
   const profile = org.taxProfile ?? { ...DEFAULT_PROFILE, partners: [] as string[], partnerShares: [] as number[] };
   const t = org.taxProfile;

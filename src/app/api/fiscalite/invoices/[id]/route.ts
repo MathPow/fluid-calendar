@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import { fiscaliteError } from "@/lib/fiscalite/api-errors";
 import { invoiceSelect, toInvoiceView } from "@/lib/fiscalite/queries";
 import { InvoiceInput } from "@/lib/fiscalite/schemas";
 import { prisma } from "@/lib/prisma";
@@ -34,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     });
     return NextResponse.json(toInvoiceView(row));
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return fiscaliteError("api.error.fiscalite.invoiceNotFound", "Facture introuvable", 404);
   }
 }
 
@@ -47,6 +48,6 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     await prisma.invoice.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Facture introuvable" }, { status: 404 });
+    return fiscaliteError("api.error.fiscalite.invoiceNotFound", "Facture introuvable", 404);
   }
 }
