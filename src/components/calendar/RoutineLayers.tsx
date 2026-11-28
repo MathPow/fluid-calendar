@@ -33,37 +33,6 @@ import { useViewStore } from "@/store/calendar";
 import { useRoutineStore } from "@/store/routine";
 import { useSettingsStore } from "@/store/settings";
 
-/** A first week to edit rather than an empty screen: the usual three blocks. */
-const STARTER: Omit<RoutineBlockLite, "id" | "layerId">[] = [
-  {
-    title: "Travail",
-    kind: "work",
-    color: null,
-    days: [1, 2, 3, 4, 5],
-    startTime: "09:00",
-    endTime: "17:00",
-    schedulable: true,
-  },
-  {
-    title: "Sommeil",
-    kind: "sleep",
-    color: null,
-    days: [0, 1, 2, 3, 4, 5, 6],
-    startTime: "23:00",
-    endTime: "07:00",
-    schedulable: false,
-  },
-  {
-    title: "Entraînement",
-    kind: "sport",
-    color: null,
-    days: [1, 3, 5],
-    startTime: "07:15",
-    endTime: "08:15",
-    schedulable: false,
-  },
-];
-
 /**
  * Calendar sidebar section for the routine layers (« Semaine type »): show or
  * hide each layer, list its blocks, and switch to « Dessiner » mode to draw
@@ -89,7 +58,36 @@ export function RoutineLayers() {
 
   const seed = async () => {
     setSeeding(true);
-    for (const block of STARTER) await store.createBlock(block);
+    const starter: Omit<RoutineBlockLite, "id" | "layerId">[] = [
+      {
+        title: t("calendar.routineLayers.starter.work"),
+        kind: "work",
+        color: null,
+        days: [1, 2, 3, 4, 5],
+        startTime: "09:00",
+        endTime: "17:00",
+        schedulable: true,
+      },
+      {
+        title: t("calendar.routineLayers.starter.sleep"),
+        kind: "sleep",
+        color: null,
+        days: [0, 1, 2, 3, 4, 5, 6],
+        startTime: "23:00",
+        endTime: "07:00",
+        schedulable: false,
+      },
+      {
+        title: t("calendar.routineLayers.starter.sport"),
+        kind: "sport",
+        color: null,
+        days: [1, 3, 5],
+        startTime: "07:15",
+        endTime: "08:15",
+        schedulable: false,
+      },
+    ];
+    for (const block of starter) await store.createBlock(block);
     setSeeding(false);
   };
 
